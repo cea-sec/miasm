@@ -556,7 +556,6 @@ int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, size_t siz
 int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, size_t size)
 {
        size_t len;
-       size_t size_st;
        uint64_t addr_diff;
        size_t addr_diff_st;
        struct memory_page_node * mpn;
@@ -565,10 +564,9 @@ int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, size_t size)
 	       fprintf(stderr, "Write size wider than supported system\n");
 	       exit(EXIT_FAILURE);
        }
-       size_st = (size_t)size;
 
        /* write is multiple page wide */
-       while (size_st){
+       while (size){
 	      mpn = get_memory_page_from_address(vm_mngr, addr, 1);
 	      if (!mpn){
 		      PyErr_SetString(PyExc_RuntimeError, "Error: cannot find address");
@@ -581,11 +579,11 @@ int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, size_t size)
 		      exit(EXIT_FAILURE);
 	      }
 	      addr_diff_st = (size_t) addr_diff;
-	      len = MIN(size_st, mpn->size - addr_diff_st);
+	      len = MIN(size, mpn->size - addr_diff_st);
 	      memcpy((char*)mpn->ad_hp + addr_diff_st, buffer, len);
 	      buffer += len;
 	      addr += len;
-	      size_st -= len;
+	      size -= len;
        }
 
        return 0;
@@ -593,10 +591,9 @@ int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, size_t size)
 
 
 
-int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
+int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, size_t size)
 {
        size_t len;
-       size_t size_st;
        uint64_t addr_diff;
        size_t addr_diff_st;
        struct memory_page_node * mpn;
@@ -605,10 +602,9 @@ int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
 	       fprintf(stderr, "Test size wider than supported system\n");
 	       exit(EXIT_FAILURE);
        }
-       size_st = (size_t)size;
 
        /* test multiple page wide */
-       while (size_st){
+       while (size){
 	      mpn = get_memory_page_from_address(vm_mngr, addr, 0);
 	      if (!mpn)
 		      return 0;
@@ -619,9 +615,9 @@ int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
 		      exit(EXIT_FAILURE);
 	      }
 	      addr_diff_st = (size_t) addr_diff;
-	      len = MIN(size_st, mpn->size - addr_diff_st);
+	      len = MIN(size, mpn->size - addr_diff_st);
 	      addr += len;
-	      size_st -= len;
+	      size -= len;
        }
 
        return 1;

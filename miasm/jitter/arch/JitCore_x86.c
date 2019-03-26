@@ -560,35 +560,37 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 	return 0;
 }
 
-#define getset_reg_E_u32(regname)						\
+#define getset_reg_E_u32(regname)					\
 	static PyObject *JitCpu_get_E ## regname  (JitCpu *self, void *closure) \
 	{								\
 		return PyLong_FromUnsignedLongLong((uint32_t)(self->cpu->R ## regname & 0xFFFFFFFF  )); \
 	}								\
 	static int JitCpu_set_E ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
-		uint64_t val;						\
-		PyGetInt_uint64_t_retneg(value, val);			\
-		val &= 0xFFFFFFFF;					\
-		val |= self->cpu->R ##regname & 0xFFFFFFFF00000000ULL; \
-		self->cpu->R ## regname   = val;		\
+		uint32_t val32;						\
+		uint64_t val64;						\
+		PyGetInt_uint32_t_retneg(value, val32);			\
+		val64 = val32;						\
+		val64 |= self->cpu->R ##regname & 0xFFFFFFFF00000000ULL; \
+		self->cpu->R ## regname = val64;			\
 		return 0;						\
 	}
 
 
 
-#define getset_reg_R_u16(regname)						\
+#define getset_reg_R_u16(regname)					\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
 		return PyLong_FromUnsignedLongLong((uint16_t)(self->cpu->R ## regname & 0xFFFF  )); \
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
-		uint64_t val;						\
-		PyGetInt_uint64_t_retneg(value, val);			\
-		val &= 0xFFFF;						\
-		val |= self->cpu->R ##regname & 0xFFFFFFFFFFFF0000ULL; \
-		self->cpu->R ## regname   = val;		\
+		uint16_t val16;						\
+		uint64_t val64;						\
+		PyGetInt_uint16_t_retneg(value, val16);			\
+		val64 = val16;						\
+		val64 |= self->cpu->R ##regname & 0xFFFFFFFFFFFF0000ULL; \
+		self->cpu->R ## regname = val64;			\
 		return 0;						\
 	}
 

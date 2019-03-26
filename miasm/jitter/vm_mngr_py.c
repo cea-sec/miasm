@@ -740,14 +740,14 @@ PyObject* vm_is_mapped(VmMngr* self, PyObject* args)
 	PyObject *ad;
 	PyObject *size;
 	uint64_t b_ad;
-	uint64_t b_size;
+	size_t b_size;
 	int ret;
 
 	if (!PyArg_ParseTuple(args, "OO", &ad, &size))
 		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt_uint64_t(ad, b_ad);
-	PyGetInt_uint64_t(size, b_size);
+	PyGetInt_size_t(size, b_size);
 	ret = is_mapped(&self->vm_mngr, b_ad, b_size);
 	return PyLong_FromUnsignedLongLong((uint64_t)ret);
 }

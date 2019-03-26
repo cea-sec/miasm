@@ -185,7 +185,7 @@ int is_mem_mapped(vm_mngr_t* vm_mngr, uint64_t ad);
 uint64_t get_mem_base_addr(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t *addr_base);
 unsigned int MEM_LOOKUP(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t addr);
 
-int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
+int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, size_t size);
 void vm_throw(vm_mngr_t* vm_mngr, unsigned long flags);
 
 void vm_MEM_WRITE_08(vm_mngr_t* vm_mngr, uint64_t addr, unsigned char src);
