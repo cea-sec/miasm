@@ -33,7 +33,7 @@
 		uint64_t tmp;						\
 		py_long = PyLong_FromLong(0);				\
 		cst_32 = PyLong_FromLong(32);				\
-		bn = ((vm_cpu_t*)(self->cpu))->  regname;		\
+		bn = (self->cpu)->regname;				\
 		bn = bignum_mask(bn, (size));				\
 		for (j = BN_BYTE_SIZE - 4; j >= 0 ; j -= 4) {		\
 			tmp = bignum_to_uint64(bignum_mask(bignum_rshift(bn, 8 * j), 32)); \
@@ -78,7 +78,7 @@
 			bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp), 8 * j)); \
 		}							\
 									\
-		((vm_cpu_t*)(self->cpu))->  regname   = bignum_mask(bn, (size)); \
+		(self->cpu)->regname = bignum_mask(bn, (size));		\
 		Py_DECREF(py_long);					\
 		Py_DECREF(cst_32);					\
 		Py_DECREF(cst_ffffffff);				\
@@ -99,7 +99,7 @@
 		uint64_t tmp;						\
 		py_long = PyLong_FromLong(0);				\
 		cst_32 = PyLong_FromLong(32);				\
-		bn = ((vm_cpu_t*)(self->cpu))->  regname;		\
+		bn = (self->cpu)->regname;				\
 		bn = bignum_mask(bn, (size));				\
 		for (j = BN_BYTE_SIZE - 4; j >= 0 ; j -= 4) {		\
 			tmp = bignum_to_uint64(bignum_mask(bignum_rshift(bn, 8 * j), 32)); \
@@ -149,7 +149,7 @@
 			bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp), 8 * j)); \
 		}							\
 									\
-		((vm_cpu_t*)(self->cpu))->  regname   = bignum_mask(bn, (size)); \
+		self->cpu->regname = bignum_mask(bn, (size));		\
 		Py_DECREF(py_long);					\
 		Py_DECREF(cst_32);					\
 		Py_DECREF(cst_ffffffff);				\
@@ -170,26 +170,26 @@
 #define getset_reg_u64(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
-		return PyLong_FromUnsignedLongLong((((vm_cpu_t*)(self->cpu))->  regname  )); \
+		return PyLong_FromUnsignedLongLong(self->cpu->regname); \
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint64_t val;						\
 		PyGetInt_uint64_t_retneg(value, val);			\
-		((vm_cpu_t*)(self->cpu))->  regname = val;		\
+		self->cpu->regname = val;				\
 		return 0;						\
 	}
 
 #define getset_reg_u32(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
-		return PyLong_FromUnsignedLongLong((((vm_cpu_t*)(self->cpu))->  regname  )); \
+		return PyLong_FromUnsignedLongLong(self->cpu->regname); \
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint32_t val;						\
 		PyGetInt_uint32_t_retneg(value, val);			\
-		((vm_cpu_t*)(self->cpu))->  regname = val;		\
+		self->cpu->regname = val;				\
 		return 0;						\
 	}
 
@@ -197,13 +197,13 @@
 #define getset_reg_u16(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
-		return PyLong_FromUnsignedLongLong((((vm_cpu_t*)(self->cpu))-> regname  )); \
+		return PyLong_FromUnsignedLongLong(self->cpu->regname); \
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint16_t val;						\
 		PyGetInt_uint16_t_retneg(value, val);			\
-		((vm_cpu_t*)(self->cpu))->  regname = val;		\
+		self->cpu->regname = val;				\
 		return 0;						\
 	}
 
@@ -211,19 +211,19 @@
 #define getset_reg_u8(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
-		return PyLong_FromUnsignedLongLong((((vm_cpu_t*)(self->cpu))-> regname  )); \
+		return PyLong_FromUnsignedLongLong(self->cpu->regname); \
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint8_t val;						\
 		PyGetInt_uint8_t_retneg(value, val);			\
-		((vm_cpu_t*)(self->cpu))->  regname = val;		\
+		self->cpu->regname = val;				\
 		return 0;						\
 	}
 
 
 #define get_reg(reg)  do {						\
-		o = PyLong_FromUnsignedLongLong((uint64_t)((vm_cpu_t*)(self->cpu))->reg); \
+		o = PyLong_FromUnsignedLongLong((uint64_t)self->cpu->reg); \
 		PyDict_SetItemString(dict, #reg, o);			\
 		Py_DECREF(o);						\
 	} while(0);
@@ -239,7 +239,7 @@
 		uint64_t tmp;						\
 		py_long = PyLong_FromLong(0);				\
 		cst_32 = PyLong_FromLong(32);				\
-		bn = ((vm_cpu_t*)(self->cpu))->  reg;			\
+		bn = self->cpu->reg;					\
 		bn = bignum_mask(bn, size);				\
 		for (j = BN_BYTE_SIZE - 4; j >= 0 ; j -= 4) {		\
 			tmp = bignum_to_uint64(bignum_mask(bignum_rshift(bn, 8 * j), 32)); \
@@ -257,7 +257,7 @@
 
 
 #define get_reg_off(reg)  do {						\
-		o = PyLong_FromUnsignedLongLong((uint64_t)offsetof(vm_cpu_t, reg)); \
+		o = PyLong_FromUnsignedLongLong((uint64_t)offsetof(struct vm_cpu, reg)); \
 		PyDict_SetItemString(dict, #reg, o);			\
 		Py_DECREF(o);						\
 	} while(0);
@@ -270,11 +270,13 @@ typedef struct {
 	uint64_t address;
 } block_id;
 
+struct vm_cpu;
+
 typedef struct {
 	PyObject_HEAD
 	VmMngr *pyvm;
 	PyObject *jitter;
-	void* cpu;
+	struct vm_cpu *cpu;
 } JitCpu;
 
 
@@ -321,7 +323,7 @@ _MIASM_EXPORT void MEM_WRITE_INT_BN_FROM_PTR(JitCpu* jitcpu, int size, uint64_t 
 
 
 #define VM_exception_flag (jitcpu->pyvm->vm_mngr.exception_flags)
-#define CPU_exception_flag (((vm_cpu_t*)jitcpu->cpu)->exception_flags)
+#define CPU_exception_flag (((struct vm_cpu*)jitcpu->cpu)->exception_flags)
 #define CPU_exception_flag_at_instr ((CPU_exception_flag) && ((CPU_exception_flag) > EXCEPT_NUM_UPDT_EIP))
 #define JIT_RET_EXCEPTION 1
 #define JIT_RET_NO_EXCEPTION 0

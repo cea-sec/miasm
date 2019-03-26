@@ -1,5 +1,5 @@
 
-typedef struct {
+struct vm_cpu {
 	uint32_t exception_flags;
 
 	/* gpregs */
@@ -32,11 +32,11 @@ typedef struct {
 	uint32_t scg1;
 	uint32_t res;
 
-}vm_cpu_t;
+};
 
 #define RETURN_PC return BlockDst;
 
-_MIASM_EXPORT void dump_gpregs(vm_cpu_t* vmcpu);
+_MIASM_EXPORT void dump_gpregs(struct vm_cpu* vmcpu);
 
 _MIASM_EXPORT void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src);
 _MIASM_EXPORT void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src);

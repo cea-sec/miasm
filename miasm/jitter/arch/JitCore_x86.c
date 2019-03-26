@@ -12,74 +12,74 @@
 #include "JitCore_x86.h"
 
 
-vm_cpu_t ref_arch_regs;
+struct vm_cpu ref_arch_regs;
 
 reg_dict gpreg_dict[] = {
-			 {.name = "RAX", .offset = offsetof(vm_cpu_t, RAX), .size = 64},
-			 {.name = "RBX", .offset = offsetof(vm_cpu_t, RBX), .size = 64},
-			 {.name = "RCX", .offset = offsetof(vm_cpu_t, RCX), .size = 64},
-			 {.name = "RDX", .offset = offsetof(vm_cpu_t, RDX), .size = 64},
-			 {.name = "RSI", .offset = offsetof(vm_cpu_t, RSI), .size = 64},
-			 {.name = "RDI", .offset = offsetof(vm_cpu_t, RDI), .size = 64},
-			 {.name = "RSP", .offset = offsetof(vm_cpu_t, RSP), .size = 64},
-			 {.name = "RBP", .offset = offsetof(vm_cpu_t, RBP), .size = 64},
+			 {.name = "RAX", .offset = offsetof(struct vm_cpu, RAX), .size = 64},
+			 {.name = "RBX", .offset = offsetof(struct vm_cpu, RBX), .size = 64},
+			 {.name = "RCX", .offset = offsetof(struct vm_cpu, RCX), .size = 64},
+			 {.name = "RDX", .offset = offsetof(struct vm_cpu, RDX), .size = 64},
+			 {.name = "RSI", .offset = offsetof(struct vm_cpu, RSI), .size = 64},
+			 {.name = "RDI", .offset = offsetof(struct vm_cpu, RDI), .size = 64},
+			 {.name = "RSP", .offset = offsetof(struct vm_cpu, RSP), .size = 64},
+			 {.name = "RBP", .offset = offsetof(struct vm_cpu, RBP), .size = 64},
 
-			 {.name = "R8", .offset = offsetof(vm_cpu_t, R8), .size = 64},
-			 {.name = "R9", .offset = offsetof(vm_cpu_t, R9), .size = 64},
-			 {.name = "R10", .offset = offsetof(vm_cpu_t, R10), .size = 64},
-			 {.name = "R11", .offset = offsetof(vm_cpu_t, R11), .size = 64},
-			 {.name = "R12", .offset = offsetof(vm_cpu_t, R12), .size = 64},
-			 {.name = "R13", .offset = offsetof(vm_cpu_t, R13), .size = 64},
-			 {.name = "R14", .offset = offsetof(vm_cpu_t, R14), .size = 64},
-			 {.name = "R15", .offset = offsetof(vm_cpu_t, R15), .size = 64},
+			 {.name = "R8", .offset = offsetof(struct vm_cpu, R8), .size = 64},
+			 {.name = "R9", .offset = offsetof(struct vm_cpu, R9), .size = 64},
+			 {.name = "R10", .offset = offsetof(struct vm_cpu, R10), .size = 64},
+			 {.name = "R11", .offset = offsetof(struct vm_cpu, R11), .size = 64},
+			 {.name = "R12", .offset = offsetof(struct vm_cpu, R12), .size = 64},
+			 {.name = "R13", .offset = offsetof(struct vm_cpu, R13), .size = 64},
+			 {.name = "R14", .offset = offsetof(struct vm_cpu, R14), .size = 64},
+			 {.name = "R15", .offset = offsetof(struct vm_cpu, R15), .size = 64},
 
-			 {.name = "RIP", .offset = offsetof(vm_cpu_t, RIP), .size = 64},
+			 {.name = "RIP", .offset = offsetof(struct vm_cpu, RIP), .size = 64},
 
-			 {.name = "zf", .offset = offsetof(vm_cpu_t, zf), .size = 8},
-			 {.name = "nf", .offset = offsetof(vm_cpu_t, nf), .size = 8},
-			 {.name = "pf", .offset = offsetof(vm_cpu_t, pf), .size = 8},
-			 {.name = "of", .offset = offsetof(vm_cpu_t, of), .size = 8},
-			 {.name = "cf", .offset = offsetof(vm_cpu_t, cf), .size = 8},
-			 {.name = "af", .offset = offsetof(vm_cpu_t, af), .size = 8},
-			 {.name = "df", .offset = offsetof(vm_cpu_t, df), .size = 8},
+			 {.name = "zf", .offset = offsetof(struct vm_cpu, zf), .size = 8},
+			 {.name = "nf", .offset = offsetof(struct vm_cpu, nf), .size = 8},
+			 {.name = "pf", .offset = offsetof(struct vm_cpu, pf), .size = 8},
+			 {.name = "of", .offset = offsetof(struct vm_cpu, of), .size = 8},
+			 {.name = "cf", .offset = offsetof(struct vm_cpu, cf), .size = 8},
+			 {.name = "af", .offset = offsetof(struct vm_cpu, af), .size = 8},
+			 {.name = "df", .offset = offsetof(struct vm_cpu, df), .size = 8},
 
-			 {.name = "ES", .offset = offsetof(vm_cpu_t, ES), .size = 16},
-			 {.name = "CS", .offset = offsetof(vm_cpu_t, CS), .size = 16},
-			 {.name = "SS", .offset = offsetof(vm_cpu_t, SS), .size = 16},
-			 {.name = "DS", .offset = offsetof(vm_cpu_t, DS), .size = 16},
-			 {.name = "FS", .offset = offsetof(vm_cpu_t, FS), .size = 16},
-			 {.name = "GS", .offset = offsetof(vm_cpu_t, GS), .size = 16},
+			 {.name = "ES", .offset = offsetof(struct vm_cpu, ES), .size = 16},
+			 {.name = "CS", .offset = offsetof(struct vm_cpu, CS), .size = 16},
+			 {.name = "SS", .offset = offsetof(struct vm_cpu, SS), .size = 16},
+			 {.name = "DS", .offset = offsetof(struct vm_cpu, DS), .size = 16},
+			 {.name = "FS", .offset = offsetof(struct vm_cpu, FS), .size = 16},
+			 {.name = "GS", .offset = offsetof(struct vm_cpu, GS), .size = 16},
 
-			 {.name = "MM0", .offset = offsetof(vm_cpu_t, MM0), .size = 64},
-			 {.name = "MM1", .offset = offsetof(vm_cpu_t, MM1), .size = 64},
-			 {.name = "MM2", .offset = offsetof(vm_cpu_t, MM2), .size = 64},
-			 {.name = "MM3", .offset = offsetof(vm_cpu_t, MM3), .size = 64},
-			 {.name = "MM4", .offset = offsetof(vm_cpu_t, MM4), .size = 64},
-			 {.name = "MM5", .offset = offsetof(vm_cpu_t, MM5), .size = 64},
-			 {.name = "MM6", .offset = offsetof(vm_cpu_t, MM6), .size = 64},
-			 {.name = "MM7", .offset = offsetof(vm_cpu_t, MM7), .size = 64},
+			 {.name = "MM0", .offset = offsetof(struct vm_cpu, MM0), .size = 64},
+			 {.name = "MM1", .offset = offsetof(struct vm_cpu, MM1), .size = 64},
+			 {.name = "MM2", .offset = offsetof(struct vm_cpu, MM2), .size = 64},
+			 {.name = "MM3", .offset = offsetof(struct vm_cpu, MM3), .size = 64},
+			 {.name = "MM4", .offset = offsetof(struct vm_cpu, MM4), .size = 64},
+			 {.name = "MM5", .offset = offsetof(struct vm_cpu, MM5), .size = 64},
+			 {.name = "MM6", .offset = offsetof(struct vm_cpu, MM6), .size = 64},
+			 {.name = "MM7", .offset = offsetof(struct vm_cpu, MM7), .size = 64},
 
-			 {.name = "XMM0", .offset = offsetof(vm_cpu_t, XMM0), .size = 128},
-			 {.name = "XMM1", .offset = offsetof(vm_cpu_t, XMM1), .size = 128},
-			 {.name = "XMM2", .offset = offsetof(vm_cpu_t, XMM2), .size = 128},
-			 {.name = "XMM3", .offset = offsetof(vm_cpu_t, XMM3), .size = 128},
-			 {.name = "XMM4", .offset = offsetof(vm_cpu_t, XMM4), .size = 128},
-			 {.name = "XMM5", .offset = offsetof(vm_cpu_t, XMM5), .size = 128},
-			 {.name = "XMM6", .offset = offsetof(vm_cpu_t, XMM6), .size = 128},
-			 {.name = "XMM7", .offset = offsetof(vm_cpu_t, XMM7), .size = 128},
-			 {.name = "XMM8", .offset = offsetof(vm_cpu_t, XMM8), .size = 128},
-			 {.name = "XMM9", .offset = offsetof(vm_cpu_t, XMM9), .size = 128},
-			 {.name = "XMM10", .offset = offsetof(vm_cpu_t, XMM10), .size = 128},
-			 {.name = "XMM11", .offset = offsetof(vm_cpu_t, XMM11), .size = 128},
-			 {.name = "XMM12", .offset = offsetof(vm_cpu_t, XMM12), .size = 128},
-			 {.name = "XMM13", .offset = offsetof(vm_cpu_t, XMM13), .size = 128},
-			 {.name = "XMM14", .offset = offsetof(vm_cpu_t, XMM14), .size = 128},
-			 {.name = "XMM15", .offset = offsetof(vm_cpu_t, XMM15), .size = 128},
+			 {.name = "XMM0", .offset = offsetof(struct vm_cpu, XMM0), .size = 128},
+			 {.name = "XMM1", .offset = offsetof(struct vm_cpu, XMM1), .size = 128},
+			 {.name = "XMM2", .offset = offsetof(struct vm_cpu, XMM2), .size = 128},
+			 {.name = "XMM3", .offset = offsetof(struct vm_cpu, XMM3), .size = 128},
+			 {.name = "XMM4", .offset = offsetof(struct vm_cpu, XMM4), .size = 128},
+			 {.name = "XMM5", .offset = offsetof(struct vm_cpu, XMM5), .size = 128},
+			 {.name = "XMM6", .offset = offsetof(struct vm_cpu, XMM6), .size = 128},
+			 {.name = "XMM7", .offset = offsetof(struct vm_cpu, XMM7), .size = 128},
+			 {.name = "XMM8", .offset = offsetof(struct vm_cpu, XMM8), .size = 128},
+			 {.name = "XMM9", .offset = offsetof(struct vm_cpu, XMM9), .size = 128},
+			 {.name = "XMM10", .offset = offsetof(struct vm_cpu, XMM10), .size = 128},
+			 {.name = "XMM11", .offset = offsetof(struct vm_cpu, XMM11), .size = 128},
+			 {.name = "XMM12", .offset = offsetof(struct vm_cpu, XMM12), .size = 128},
+			 {.name = "XMM13", .offset = offsetof(struct vm_cpu, XMM13), .size = 128},
+			 {.name = "XMM14", .offset = offsetof(struct vm_cpu, XMM14), .size = 128},
+			 {.name = "XMM15", .offset = offsetof(struct vm_cpu, XMM15), .size = 128},
 
-			 {.name = "tsc", .offset = offsetof(vm_cpu_t, tsc), .size = 64},
+			 {.name = "tsc", .offset = offsetof(struct vm_cpu, tsc), .size = 64},
 
-			 {.name = "exception_flags", .offset = offsetof(vm_cpu_t, exception_flags), .size = 32},
-			 {.name = "interrupt_num", .offset = offsetof(vm_cpu_t, interrupt_num), .size = 32},
+			 {.name = "exception_flags", .offset = offsetof(struct vm_cpu, exception_flags), .size = 32},
+			 {.name = "interrupt_num", .offset = offsetof(struct vm_cpu, interrupt_num), .size = 32},
 };
 
 
@@ -277,15 +277,15 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 
 PyObject * cpu_init_regs(JitCpu* self)
 {
-	memset(self->cpu, 0, sizeof(vm_cpu_t));
-	((vm_cpu_t*)self->cpu)->tsc = 0x1122334455667788ULL;
-	((vm_cpu_t*)self->cpu)->i_f = 1;
+	memset(self->cpu, 0, sizeof(struct vm_cpu));
+	((struct vm_cpu*)self->cpu)->tsc = 0x1122334455667788ULL;
+	((struct vm_cpu*)self->cpu)->i_f = 1;
 	Py_INCREF(Py_None);
 	return Py_None;
 
 }
 
-void dump_gpregs_16(vm_cpu_t* vmcpu)
+void dump_gpregs_16(struct vm_cpu* vmcpu)
 {
 	printf("EAX %.8"PRIX32" EBX %.8"PRIX32" ECX %.8"PRIX32" EDX %.8"PRIX32" ",
 	       (uint32_t)(vmcpu->RAX & 0xFFFFFFFF),
@@ -306,7 +306,7 @@ void dump_gpregs_16(vm_cpu_t* vmcpu)
 	       (uint32_t)(vmcpu->cf & 0x1));
 }
 
-void dump_gpregs_32(vm_cpu_t* vmcpu)
+void dump_gpregs_32(struct vm_cpu* vmcpu)
 {
 
 	printf("EAX %.8"PRIX32" EBX %.8"PRIX32" ECX %.8"PRIX32" EDX %.8"PRIX32" ",
@@ -329,7 +329,7 @@ void dump_gpregs_32(vm_cpu_t* vmcpu)
 
 }
 
-void dump_gpregs_64(vm_cpu_t* vmcpu)
+void dump_gpregs_64(struct vm_cpu* vmcpu)
 {
 
 	printf("RAX %.16"PRIX64" RBX %.16"PRIX64" RCX %.16"PRIX64" RDX %.16"PRIX64" ",
@@ -351,7 +351,7 @@ void dump_gpregs_64(vm_cpu_t* vmcpu)
 
 PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 {
-	vm_cpu_t* vmcpu;
+	struct vm_cpu* vmcpu;
 
 	vmcpu = self->cpu;
 	dump_gpregs_64(vmcpu);
@@ -362,7 +362,7 @@ PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 
 PyObject * cpu_dump_gpregs_with_attrib(JitCpu* self, PyObject* args)
 {
-	vm_cpu_t* vmcpu;
+	struct vm_cpu* vmcpu;
 	PyObject *item1;
 	uint64_t attrib;
 
@@ -396,14 +396,14 @@ PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 
 	PyGetInt_uint32_t(item1, exception_flags);
 
-	((vm_cpu_t*)self->cpu)->exception_flags = exception_flags;
+	((struct vm_cpu*)self->cpu)->exception_flags = exception_flags;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
 
 PyObject* cpu_get_exception(JitCpu* self, PyObject* args)
 {
-	return PyLong_FromUnsignedLongLong((uint64_t)(((vm_cpu_t*)self->cpu)->exception_flags));
+	return PyLong_FromUnsignedLongLong((uint64_t)(((struct vm_cpu*)self->cpu)->exception_flags));
 }
 
 PyObject* cpu_set_interrupt_num(JitCpu* self, PyObject* args)
@@ -416,14 +416,14 @@ PyObject* cpu_set_interrupt_num(JitCpu* self, PyObject* args)
 
 	PyGetInt_uint32_t(item1, exception_flags);
 
-	((vm_cpu_t*)self->cpu)->interrupt_num = exception_flags;
+	((struct vm_cpu*)self->cpu)->interrupt_num = exception_flags;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
 
 PyObject* cpu_get_interrupt_num(JitCpu* self, PyObject* args)
 {
-	return PyLong_FromUnsignedLongLong((uint64_t)(((vm_cpu_t*)self->cpu)->interrupt_num));
+	return PyLong_FromUnsignedLongLong((uint64_t)(((struct vm_cpu*)self->cpu)->interrupt_num));
 }
 
 PyObject* cpu_set_segm_base(JitCpu* self, PyObject* args)
@@ -436,7 +436,7 @@ PyObject* cpu_set_segm_base(JitCpu* self, PyObject* args)
 
 	PyGetInt_uint64_t(item1, segm_num);
 	PyGetInt_uint64_t(item2, segm_base);
-	((vm_cpu_t*)self->cpu)->segm_base[segm_num] = segm_base;
+	((struct vm_cpu*)self->cpu)->segm_base[segm_num] = segm_base;
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -451,13 +451,13 @@ PyObject* cpu_get_segm_base(JitCpu* self, PyObject* args)
 	if (!PyArg_ParseTuple(args, "O", &item1))
 		RAISE(PyExc_TypeError,"Cannot parse arguments");
 	PyGetInt_uint64_t(item1, segm_num);
-	v = PyLong_FromLong((long)(((vm_cpu_t*)self->cpu)->segm_base[segm_num]));
+	v = PyLong_FromLong((long)(((struct vm_cpu*)self->cpu)->segm_base[segm_num]));
 	return v;
 }
 
 uint64_t segm2addr(JitCpu* jitcpu, uint64_t segm, uint64_t addr)
 {
-	return addr + ((vm_cpu_t*)jitcpu->cpu)->segm_base[segm];
+	return addr + ((struct vm_cpu*)jitcpu->cpu)->segm_base[segm];
 }
 
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
@@ -549,9 +549,9 @@ static PyMethodDef JitCpu_methods[] = {
 static int
 JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 {
-	self->cpu = malloc(sizeof(vm_cpu_t));
+	self->cpu = malloc(sizeof(struct vm_cpu));
 	if (self->cpu == NULL) {
-		fprintf(stderr, "cannot alloc vm_cpu_t\n");
+		fprintf(stderr, "cannot alloc struct vm_cpu\n");
 		exit(EXIT_FAILURE);
 	}
 	return 0;
@@ -560,15 +560,15 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 #define getset_reg_E_u32(regname)						\
 	static PyObject *JitCpu_get_E ## regname  (JitCpu *self, void *closure) \
 	{								\
-		return PyLong_FromUnsignedLongLong((uint32_t)(((vm_cpu_t*)(self->cpu))->R ## regname & 0xFFFFFFFF  )); \
+		return PyLong_FromUnsignedLongLong((uint32_t)(self->cpu->R ## regname & 0xFFFFFFFF  )); \
 	}								\
 	static int JitCpu_set_E ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint64_t val;						\
 		PyGetInt_uint64_t_retneg(value, val);			\
 		val &= 0xFFFFFFFF;					\
-		val |= ((vm_cpu_t*)(self->cpu))->R ##regname & 0xFFFFFFFF00000000ULL; \
-		((vm_cpu_t*)(self->cpu))->R ## regname   = val;		\
+		val |= self->cpu->R ##regname & 0xFFFFFFFF00000000ULL; \
+		self->cpu->R ## regname   = val;		\
 		return 0;						\
 	}
 
@@ -577,15 +577,15 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 #define getset_reg_R_u16(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
-		return PyLong_FromUnsignedLongLong((uint16_t)(((vm_cpu_t*)(self->cpu))->R ## regname & 0xFFFF  )); \
+		return PyLong_FromUnsignedLongLong((uint16_t)(self->cpu->R ## regname & 0xFFFF  )); \
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint64_t val;						\
 		PyGetInt_uint64_t_retneg(value, val);			\
 		val &= 0xFFFF;						\
-		val |= ((vm_cpu_t*)(self->cpu))->R ##regname & 0xFFFFFFFFFFFF0000ULL; \
-		((vm_cpu_t*)(self->cpu))->R ## regname   = val;		\
+		val |= self->cpu->R ##regname & 0xFFFFFFFFFFFF0000ULL; \
+		self->cpu->R ## regname   = val;		\
 		return 0;						\
 	}
 

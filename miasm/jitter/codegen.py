@@ -97,7 +97,7 @@ class CGen(object):
     CODE_INIT = r"""
     int DST_case;
     uint64_t DST_value;
-    vm_cpu_t* mycpu = (vm_cpu_t*)jitcpu->cpu;
+    struct vm_cpu *mycpu = jitcpu->cpu;
 
     goto %s;
     """

@@ -13,42 +13,42 @@
 
 
 
-reg_dict gpreg_dict[] = { {.name = "ZERO", .offset = offsetof(vm_cpu_t, ZERO), .size = 32},
-			  {.name = "AT", .offset = offsetof(vm_cpu_t, AT), .size = 32},
-			  {.name = "V0", .offset = offsetof(vm_cpu_t, V0), .size = 32},
-			  {.name = "V1", .offset = offsetof(vm_cpu_t, V1), .size = 32},
-			  {.name = "A0", .offset = offsetof(vm_cpu_t, A0), .size = 32},
-			  {.name = "A1", .offset = offsetof(vm_cpu_t, A1), .size = 32},
-			  {.name = "A2", .offset = offsetof(vm_cpu_t, A2), .size = 32},
-			  {.name = "A3", .offset = offsetof(vm_cpu_t, A3), .size = 32},
-			  {.name = "T0", .offset = offsetof(vm_cpu_t, T0), .size = 32},
-			  {.name = "T1", .offset = offsetof(vm_cpu_t, T1), .size = 32},
-			  {.name = "T2", .offset = offsetof(vm_cpu_t, T2), .size = 32},
-			  {.name = "T3", .offset = offsetof(vm_cpu_t, T3), .size = 32},
-			  {.name = "T4", .offset = offsetof(vm_cpu_t, T4), .size = 32},
-			  {.name = "T5", .offset = offsetof(vm_cpu_t, T5), .size = 32},
-			  {.name = "T6", .offset = offsetof(vm_cpu_t, T6), .size = 32},
-			  {.name = "T7", .offset = offsetof(vm_cpu_t, T7), .size = 32},
-			  {.name = "S0", .offset = offsetof(vm_cpu_t, S0), .size = 32},
-			  {.name = "S1", .offset = offsetof(vm_cpu_t, S1), .size = 32},
-			  {.name = "S2", .offset = offsetof(vm_cpu_t, S2), .size = 32},
-			  {.name = "S3", .offset = offsetof(vm_cpu_t, S3), .size = 32},
-			  {.name = "S4", .offset = offsetof(vm_cpu_t, S4), .size = 32},
-			  {.name = "S5", .offset = offsetof(vm_cpu_t, S5), .size = 32},
-			  {.name = "S6", .offset = offsetof(vm_cpu_t, S6), .size = 32},
-			  {.name = "S7", .offset = offsetof(vm_cpu_t, S7), .size = 32},
-			  {.name = "T8", .offset = offsetof(vm_cpu_t, T8), .size = 32},
-			  {.name = "T9", .offset = offsetof(vm_cpu_t, T9), .size = 32},
-			  {.name = "K0", .offset = offsetof(vm_cpu_t, K0), .size = 32},
-			  {.name = "K1", .offset = offsetof(vm_cpu_t, K1), .size = 32},
-			  {.name = "GP", .offset = offsetof(vm_cpu_t, GP), .size = 32},
-			  {.name = "SP", .offset = offsetof(vm_cpu_t, SP), .size = 32},
-			  {.name = "FP", .offset = offsetof(vm_cpu_t, FP), .size = 32},
-			  {.name = "RA", .offset = offsetof(vm_cpu_t, RA), .size = 32},
-			  {.name = "PC", .offset = offsetof(vm_cpu_t, PC), .size = 32},
-			  {.name = "PC_FETCH", .offset = offsetof(vm_cpu_t, PC_FETCH), .size = 32},
-			  {.name = "R_LO", .offset = offsetof(vm_cpu_t, R_LO), .size = 32},
-			  {.name = "R_HI", .offset = offsetof(vm_cpu_t, R_HI), .size = 32},
+reg_dict gpreg_dict[] = { {.name = "ZERO", .offset = offsetof(struct vm_cpu, ZERO), .size = 32},
+			  {.name = "AT", .offset = offsetof(struct vm_cpu, AT), .size = 32},
+			  {.name = "V0", .offset = offsetof(struct vm_cpu, V0), .size = 32},
+			  {.name = "V1", .offset = offsetof(struct vm_cpu, V1), .size = 32},
+			  {.name = "A0", .offset = offsetof(struct vm_cpu, A0), .size = 32},
+			  {.name = "A1", .offset = offsetof(struct vm_cpu, A1), .size = 32},
+			  {.name = "A2", .offset = offsetof(struct vm_cpu, A2), .size = 32},
+			  {.name = "A3", .offset = offsetof(struct vm_cpu, A3), .size = 32},
+			  {.name = "T0", .offset = offsetof(struct vm_cpu, T0), .size = 32},
+			  {.name = "T1", .offset = offsetof(struct vm_cpu, T1), .size = 32},
+			  {.name = "T2", .offset = offsetof(struct vm_cpu, T2), .size = 32},
+			  {.name = "T3", .offset = offsetof(struct vm_cpu, T3), .size = 32},
+			  {.name = "T4", .offset = offsetof(struct vm_cpu, T4), .size = 32},
+			  {.name = "T5", .offset = offsetof(struct vm_cpu, T5), .size = 32},
+			  {.name = "T6", .offset = offsetof(struct vm_cpu, T6), .size = 32},
+			  {.name = "T7", .offset = offsetof(struct vm_cpu, T7), .size = 32},
+			  {.name = "S0", .offset = offsetof(struct vm_cpu, S0), .size = 32},
+			  {.name = "S1", .offset = offsetof(struct vm_cpu, S1), .size = 32},
+			  {.name = "S2", .offset = offsetof(struct vm_cpu, S2), .size = 32},
+			  {.name = "S3", .offset = offsetof(struct vm_cpu, S3), .size = 32},
+			  {.name = "S4", .offset = offsetof(struct vm_cpu, S4), .size = 32},
+			  {.name = "S5", .offset = offsetof(struct vm_cpu, S5), .size = 32},
+			  {.name = "S6", .offset = offsetof(struct vm_cpu, S6), .size = 32},
+			  {.name = "S7", .offset = offsetof(struct vm_cpu, S7), .size = 32},
+			  {.name = "T8", .offset = offsetof(struct vm_cpu, T8), .size = 32},
+			  {.name = "T9", .offset = offsetof(struct vm_cpu, T9), .size = 32},
+			  {.name = "K0", .offset = offsetof(struct vm_cpu, K0), .size = 32},
+			  {.name = "K1", .offset = offsetof(struct vm_cpu, K1), .size = 32},
+			  {.name = "GP", .offset = offsetof(struct vm_cpu, GP), .size = 32},
+			  {.name = "SP", .offset = offsetof(struct vm_cpu, SP), .size = 32},
+			  {.name = "FP", .offset = offsetof(struct vm_cpu, FP), .size = 32},
+			  {.name = "RA", .offset = offsetof(struct vm_cpu, RA), .size = 32},
+			  {.name = "PC", .offset = offsetof(struct vm_cpu, PC), .size = 32},
+			  {.name = "PC_FETCH", .offset = offsetof(struct vm_cpu, PC_FETCH), .size = 32},
+			  {.name = "R_LO", .offset = offsetof(struct vm_cpu, R_LO), .size = 32},
+			  {.name = "R_HI", .offset = offsetof(struct vm_cpu, R_HI), .size = 32},
 };
 
 /************************** JitCpu object **************************/
@@ -143,7 +143,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 
 PyObject * cpu_init_regs(JitCpu* self)
 {
-	memset(self->cpu, 0, sizeof(vm_cpu_t));
+	memset(self->cpu, 0, sizeof(struct vm_cpu));
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -151,7 +151,7 @@ PyObject * cpu_init_regs(JitCpu* self)
 }
 
 
-void dump_gpregs(vm_cpu_t* vmcpu)
+void dump_gpregs(struct vm_cpu* vmcpu)
 {
 
 	printf("ZR %.8"PRIX32" AT %.8"PRIX32" V0 %.8"PRIX32" V1 %.8"PRIX32" ",
@@ -177,7 +177,7 @@ void dump_gpregs(vm_cpu_t* vmcpu)
 
 PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 {
-	vm_cpu_t* vmcpu;
+	struct vm_cpu* vmcpu;
 
 	vmcpu = self->cpu;
 	dump_gpregs(vmcpu);
@@ -196,14 +196,14 @@ PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 
 	PyGetInt_uint32_t(item1, exception_flags);
 
-	((vm_cpu_t*)self->cpu)->exception_flags = exception_flags;
+	((struct vm_cpu*)self->cpu)->exception_flags = exception_flags;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
 
 PyObject* cpu_get_exception(JitCpu* self, PyObject* args)
 {
-	return PyLong_FromUnsignedLongLong((uint64_t)(((vm_cpu_t*)self->cpu)->exception_flags));
+	return PyLong_FromUnsignedLongLong((uint64_t)(((struct vm_cpu*)self->cpu)->exception_flags));
 }
 
 
@@ -307,9 +307,9 @@ static PyMethodDef JitCpu_methods[] = {
 static int
 JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 {
-	self->cpu = malloc(sizeof(vm_cpu_t));
+	self->cpu = malloc(sizeof(struct vm_cpu));
 	if (self->cpu == NULL) {
-		fprintf(stderr, "cannot alloc vm_cpu_t\n");
+		fprintf(stderr, "cannot alloc struct vm_cpu\n");
 		exit(EXIT_FAILURE);
 	}
 	return 0;

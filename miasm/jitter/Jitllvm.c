@@ -15,7 +15,7 @@
 PyObject* llvm_exec_block(PyObject* self, PyObject* args)
 {
 	uint64_t (*func)(void*, void*, void*, uint8_t*);
-	vm_cpu_t* cpu;
+	struct vm_cpu* cpu;
 	vm_mngr_t* vm;
 	uint64_t ret;
 	JitCpu* jitcpu;
