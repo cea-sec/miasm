@@ -254,7 +254,7 @@ PyObject* vm_get_mem(JitCpu *self, PyObject* args)
        }
        size_st = (size_t)size;
 
-       ret = vm_read_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, &buf_out, size);
+       ret = vm_read_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, &buf_out, size_st);
        if (ret < 0) {
 	       PyErr_SetString(PyExc_RuntimeError, "cannot find address");
 	       return NULL;

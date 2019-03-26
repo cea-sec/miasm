@@ -513,30 +513,23 @@ uint64_t vm_MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr)
 }
 
 
-int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t size)
+int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, size_t size)
 {
        char* buffer;
        size_t len;
-       size_t size_st;
        uint64_t addr_diff;
        size_t addr_diff_st;
        struct memory_page_node * mpn;
 
-       if (size > SIZE_MAX) {
-	       fprintf(stderr, "Size too big\n");
-	       exit(EXIT_FAILURE);
-       }
-
-       buffer = malloc((size_t)size);
+       buffer = malloc(size);
        *buffer_ptr = buffer;
        if (!buffer){
 	      fprintf(stderr, "Error: cannot alloc read\n");
 	      exit(EXIT_FAILURE);
        }
-       size_st = (size_t)size;
 
        /* read is multiple page wide */
-       while (size_st){
+       while (size){
 	      mpn = get_memory_page_from_address(vm_mngr, addr, 1);
 	      if (!mpn){
 		      free(*buffer_ptr);
@@ -550,17 +543,17 @@ int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t s
 		      exit(EXIT_FAILURE);
 	      }
 	      addr_diff_st = (size_t) addr_diff;
-	      len = MIN(size_st, mpn->size - addr_diff_st);
+	      len = MIN(size, mpn->size - addr_diff_st);
 	      memcpy(buffer, (char*)mpn->ad_hp + (addr_diff_st), len);
 	      buffer += len;
 	      addr += len;
-	      size_st -= len;
+	      size -= len;
        }
 
        return 0;
 }
 
-int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size)
+int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, size_t size)
 {
        size_t len;
        size_t size_st;

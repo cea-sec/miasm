@@ -207,8 +207,8 @@ unsigned short MEM_LOOKUP_16_PASSTHROUGH(uint64_t addr);
 unsigned int MEM_LOOKUP_32_PASSTHROUGH(uint64_t addr);
 uint64_t MEM_LOOKUP_64_PASSTHROUGH(uint64_t addr);
 
-int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t size);
-int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size);
+int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, size_t size);
+int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, size_t size);
 
 void memory_access_list_init(struct memory_access_list * access);
 void memory_access_list_reset(struct memory_access_list * access);

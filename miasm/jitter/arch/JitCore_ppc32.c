@@ -140,7 +140,7 @@ cpu_get_spr_access(JitCpu *self, PyObject *args) {
 }
 
 void
-check_automod(JitCpu *jitcpu, uint64_t addr, uint64_t size) {
+check_automod(JitCpu *jitcpu, uint64_t addr, size_t size) {
     PyObject *result;
 
     if (!(((VmMngr*)jitcpu->pyvm)->vm_mngr.exception_flags & EXCEPT_CODE_AUTOMOD))
@@ -182,7 +182,7 @@ vm_set_mem(JitCpu *self, PyObject *args) {
    Py_ssize_t py_length;
 
    char *buffer;
-   uint64_t size;
+   Py_ssize_t pysize;
    uint64_t addr;
    int ret = 0x1337;
 
@@ -194,13 +194,16 @@ vm_set_mem(JitCpu *self, PyObject *args) {
    if(!PyBytes_Check(py_buffer))
        RAISE(PyExc_TypeError,"arg must be bytes");
 
-   size = PyBytes_Size(py_buffer);
+   pysize = PyBytes_Size(py_buffer);
+   if (pysize < 0) {
+	   RAISE(PyExc_TypeError,"Python error");
+   }
    PyBytes_AsStringAndSize(py_buffer, &buffer, &py_length);
 
-   ret = vm_write_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, buffer, size);
+   ret = vm_write_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, buffer, pysize);
    if (ret < 0)
        RAISE(PyExc_TypeError,"arg must be str");
-   check_automod(self, addr, size*8);
+   check_automod(self, addr, (size_t)pysize);
 
    Py_INCREF(Py_None);
    return Py_None;

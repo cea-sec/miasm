@@ -162,7 +162,7 @@ PyObject* vm_set_mem(VmMngr* self, PyObject* args)
        Py_ssize_t py_length;
 
        char * buffer;
-       uint64_t size;
+       Py_ssize_t pysize;
        uint64_t addr;
        int ret;
 
@@ -174,14 +174,17 @@ PyObject* vm_set_mem(VmMngr* self, PyObject* args)
        if (!PyBytes_Check(py_buffer))
 	       RAISE(PyExc_TypeError,"arg must be bytes");
 
-       size = PyBytes_Size(py_buffer);
+       pysize = PyBytes_Size(py_buffer);
+       if (pysize < 0) {
+	       RAISE(PyExc_TypeError,"Python error");
+       }
        PyBytes_AsStringAndSize(py_buffer, &buffer, &py_length);
 
-       ret = vm_write_mem(&self->vm_mngr, addr, buffer, size);
+       ret = vm_write_mem(&self->vm_mngr, addr, buffer, pysize);
        if (ret < 0)
 	      RAISE(PyExc_TypeError, "Error in set_mem");
 
-       add_mem_write(&self->vm_mngr, addr, size);
+       add_mem_write(&self->vm_mngr, addr, (size_t)pysize);
        check_invalid_code_blocs(&self->vm_mngr);
 
        Py_INCREF(Py_None);
