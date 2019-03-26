@@ -139,38 +139,24 @@ cpu_get_spr_access(JitCpu *self, PyObject *args) {
     return PyLong_FromUnsignedLongLong(((struct vm_cpu *) self->cpu)->spr_access);
 }
 
-void
-check_automod(JitCpu *jitcpu, uint64_t addr, size_t size) {
-    PyObject *result;
-
-    if (!(((VmMngr*)jitcpu->pyvm)->vm_mngr.exception_flags & EXCEPT_CODE_AUTOMOD))
-	return;
-    result = PyObject_CallMethod(jitcpu->jitter, "automod_cb", "LL", addr, size);
-    Py_DECREF(result);
-}
-
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
 {
 	vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 8);
 }
 
 void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src)
 {
 	vm_MEM_WRITE_16(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 16);
 }
 
 void MEM_WRITE_32(JitCpu* jitcpu, uint64_t addr, uint32_t src)
 {
 	vm_MEM_WRITE_32(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 32);
 }
 
 void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src)
 {
 	vm_MEM_WRITE_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 64);
 }
 
 
@@ -203,7 +189,6 @@ vm_set_mem(JitCpu *self, PyObject *args) {
    ret = vm_write_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, buffer, pysize);
    if (ret < 0)
        RAISE(PyExc_TypeError,"arg must be str");
-   check_automod(self, addr, (size_t)pysize);
 
    Py_INCREF(Py_None);
    return Py_None;
