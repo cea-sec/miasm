@@ -84,7 +84,7 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	Py_ssize_t length;
 	uint64_t page_addr;
 	uint64_t page_access;
-	char* name_ptr;
+	const char *name_ptr;
 
 	struct memory_page_node * mpn;
 

@@ -118,7 +118,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
     PyObject* dict;
     PyObject *d_key, *d_value = NULL;
     Py_ssize_t pos = 0;
-    char* d_key_name;
+    const char *d_key_name;
     uint32_t val32;
     uint64_t val64;
     unsigned int i, found;

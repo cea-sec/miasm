@@ -25,7 +25,7 @@
 #define PyGetStr(dest, name)						\
 	if (!PyUnicode_Check((name)))					\
 		RAISE(PyExc_TypeError,"Page name must be bytes");	\
-	(dest) = (char*)PyUnicode_AsUTF8((name))
+	(dest) = PyUnicode_AsUTF8((name))
 
 
 
@@ -58,7 +58,7 @@
 #define PyGetStr(dest, name)						\
 	if (!PyString_Check((name)))					\
 		RAISE(PyExc_TypeError,"Page name must be bytes");	\
-	(dest) = (char*)PyString_AsString((name))
+	(dest) = PyString_AsString((name))
 
 #endif
 

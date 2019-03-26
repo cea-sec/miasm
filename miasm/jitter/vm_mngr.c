@@ -634,7 +634,7 @@ int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
        return 1;
 }
 
-struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size, unsigned int access, char* name)
+struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size, unsigned int access, const char *name)
 {
 	struct memory_page_node * mpn;
 	void* ad_hp;
