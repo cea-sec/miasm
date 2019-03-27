@@ -1,6 +1,7 @@
 #include <Python.h>
 #include "structmember.h"
 #include <stdint.h>
+#include <limits.h>
 #include <inttypes.h>
 #include "compat_py23.h"
 #include "queue.h"
@@ -235,6 +236,7 @@ PyObject* vm_get_mem(JitCpu *self, PyObject* args)
 
        uint64_t addr;
        uint64_t size;
+       size_t size_st;
        PyObject *obj_out;
        char * buf_out;
        int ret;
@@ -242,16 +244,23 @@ PyObject* vm_get_mem(JitCpu *self, PyObject* args)
        if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_len))
 	       return NULL;
 
-       PyGetInt(py_addr, addr);
-       PyGetInt(py_len, size);
+       PyGetInt_uint64_t(py_addr, addr);
+       PyGetInt_uint64_t(py_len, size);
 
-       ret = vm_read_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, &buf_out, size);
+
+       if (size > SSIZE_MAX) {
+	       fprintf(stderr, "Read size wider than supported system\n");
+	       exit(EXIT_FAILURE);
+       }
+       size_st = (size_t)size;
+
+       ret = vm_read_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, &buf_out, size_st);
        if (ret < 0) {
 	       PyErr_SetString(PyExc_RuntimeError, "cannot find address");
 	       return NULL;
        }
 
-       obj_out = PyBytes_FromStringAndSize(buf_out, size);
+       obj_out = PyBytes_FromStringAndSize(buf_out, (Py_ssize_t)size_st);
        free(buf_out);
        return obj_out;
 }

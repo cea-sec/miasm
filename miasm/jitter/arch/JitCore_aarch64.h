@@ -1,5 +1,5 @@
 
-typedef struct {
+struct vm_cpu {
 	uint32_t exception_flags;
 	uint32_t interrupt_num;
 
@@ -45,9 +45,9 @@ typedef struct {
 	uint32_t nf;
 	uint32_t of;
 	uint32_t cf;
-}vm_cpu_t;
+};
 
-_MIASM_EXPORT void dump_gpregs(vm_cpu_t* vmcpu);
+_MIASM_EXPORT void dump_gpregs(struct vm_cpu* vmcpu);
 
 _MIASM_EXPORT void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src);
 _MIASM_EXPORT void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src);

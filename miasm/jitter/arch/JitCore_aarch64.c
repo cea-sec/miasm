@@ -14,48 +14,48 @@
 
 
 reg_dict gpreg_dict[] = {
-	{.name = "X0", .offset = offsetof(vm_cpu_t, X0), .size = 64},
-	{.name = "X1", .offset = offsetof(vm_cpu_t, X1), .size = 64},
-	{.name = "X2", .offset = offsetof(vm_cpu_t, X2), .size = 64},
-	{.name = "X3", .offset = offsetof(vm_cpu_t, X3), .size = 64},
-	{.name = "X4", .offset = offsetof(vm_cpu_t, X4), .size = 64},
-	{.name = "X5", .offset = offsetof(vm_cpu_t, X5), .size = 64},
-	{.name = "X6", .offset = offsetof(vm_cpu_t, X6), .size = 64},
-	{.name = "X7", .offset = offsetof(vm_cpu_t, X7), .size = 64},
-	{.name = "X8", .offset = offsetof(vm_cpu_t, X8), .size = 64},
-	{.name = "X9", .offset = offsetof(vm_cpu_t, X9), .size = 64},
-	{.name = "X10", .offset = offsetof(vm_cpu_t, X10), .size = 64},
-	{.name = "X11", .offset = offsetof(vm_cpu_t, X11), .size = 64},
-	{.name = "X12", .offset = offsetof(vm_cpu_t, X12), .size = 64},
-	{.name = "X13", .offset = offsetof(vm_cpu_t, X13), .size = 64},
-	{.name = "X14", .offset = offsetof(vm_cpu_t, X14), .size = 64},
-	{.name = "X15", .offset = offsetof(vm_cpu_t, X15), .size = 64},
-	{.name = "X16", .offset = offsetof(vm_cpu_t, X16), .size = 64},
-	{.name = "X17", .offset = offsetof(vm_cpu_t, X17), .size = 64},
-	{.name = "X18", .offset = offsetof(vm_cpu_t, X18), .size = 64},
-	{.name = "X19", .offset = offsetof(vm_cpu_t, X19), .size = 64},
-	{.name = "X20", .offset = offsetof(vm_cpu_t, X20), .size = 64},
-	{.name = "X21", .offset = offsetof(vm_cpu_t, X21), .size = 64},
-	{.name = "X22", .offset = offsetof(vm_cpu_t, X22), .size = 64},
-	{.name = "X23", .offset = offsetof(vm_cpu_t, X23), .size = 64},
-	{.name = "X24", .offset = offsetof(vm_cpu_t, X24), .size = 64},
-	{.name = "X25", .offset = offsetof(vm_cpu_t, X25), .size = 64},
-	{.name = "X26", .offset = offsetof(vm_cpu_t, X26), .size = 64},
-	{.name = "X27", .offset = offsetof(vm_cpu_t, X27), .size = 64},
-	{.name = "X28", .offset = offsetof(vm_cpu_t, X28), .size = 64},
-	{.name = "X29", .offset = offsetof(vm_cpu_t, X29), .size = 64},
-	{.name = "LR", .offset = offsetof(vm_cpu_t, LR), .size = 64},
+	{.name = "X0", .offset = offsetof(struct vm_cpu, X0), .size = 64},
+	{.name = "X1", .offset = offsetof(struct vm_cpu, X1), .size = 64},
+	{.name = "X2", .offset = offsetof(struct vm_cpu, X2), .size = 64},
+	{.name = "X3", .offset = offsetof(struct vm_cpu, X3), .size = 64},
+	{.name = "X4", .offset = offsetof(struct vm_cpu, X4), .size = 64},
+	{.name = "X5", .offset = offsetof(struct vm_cpu, X5), .size = 64},
+	{.name = "X6", .offset = offsetof(struct vm_cpu, X6), .size = 64},
+	{.name = "X7", .offset = offsetof(struct vm_cpu, X7), .size = 64},
+	{.name = "X8", .offset = offsetof(struct vm_cpu, X8), .size = 64},
+	{.name = "X9", .offset = offsetof(struct vm_cpu, X9), .size = 64},
+	{.name = "X10", .offset = offsetof(struct vm_cpu, X10), .size = 64},
+	{.name = "X11", .offset = offsetof(struct vm_cpu, X11), .size = 64},
+	{.name = "X12", .offset = offsetof(struct vm_cpu, X12), .size = 64},
+	{.name = "X13", .offset = offsetof(struct vm_cpu, X13), .size = 64},
+	{.name = "X14", .offset = offsetof(struct vm_cpu, X14), .size = 64},
+	{.name = "X15", .offset = offsetof(struct vm_cpu, X15), .size = 64},
+	{.name = "X16", .offset = offsetof(struct vm_cpu, X16), .size = 64},
+	{.name = "X17", .offset = offsetof(struct vm_cpu, X17), .size = 64},
+	{.name = "X18", .offset = offsetof(struct vm_cpu, X18), .size = 64},
+	{.name = "X19", .offset = offsetof(struct vm_cpu, X19), .size = 64},
+	{.name = "X20", .offset = offsetof(struct vm_cpu, X20), .size = 64},
+	{.name = "X21", .offset = offsetof(struct vm_cpu, X21), .size = 64},
+	{.name = "X22", .offset = offsetof(struct vm_cpu, X22), .size = 64},
+	{.name = "X23", .offset = offsetof(struct vm_cpu, X23), .size = 64},
+	{.name = "X24", .offset = offsetof(struct vm_cpu, X24), .size = 64},
+	{.name = "X25", .offset = offsetof(struct vm_cpu, X25), .size = 64},
+	{.name = "X26", .offset = offsetof(struct vm_cpu, X26), .size = 64},
+	{.name = "X27", .offset = offsetof(struct vm_cpu, X27), .size = 64},
+	{.name = "X28", .offset = offsetof(struct vm_cpu, X28), .size = 64},
+	{.name = "X29", .offset = offsetof(struct vm_cpu, X29), .size = 64},
+	{.name = "LR", .offset = offsetof(struct vm_cpu, LR), .size = 64},
 
-	{.name = "SP", .offset = offsetof(vm_cpu_t, SP), .size = 64},
-	{.name = "PC", .offset = offsetof(vm_cpu_t, PC), .size = 64},
+	{.name = "SP", .offset = offsetof(struct vm_cpu, SP), .size = 64},
+	{.name = "PC", .offset = offsetof(struct vm_cpu, PC), .size = 64},
 
-	{.name = "zf", .offset = offsetof(vm_cpu_t, zf), .size = 8},
-	{.name = "nf", .offset = offsetof(vm_cpu_t, nf), .size = 8},
-	{.name = "of", .offset = offsetof(vm_cpu_t, of), .size = 8},
-	{.name = "cf", .offset = offsetof(vm_cpu_t, cf), .size = 8},
+	{.name = "zf", .offset = offsetof(struct vm_cpu, zf), .size = 8},
+	{.name = "nf", .offset = offsetof(struct vm_cpu, nf), .size = 8},
+	{.name = "of", .offset = offsetof(struct vm_cpu, of), .size = 8},
+	{.name = "cf", .offset = offsetof(struct vm_cpu, cf), .size = 8},
 
-	{.name = "exception_flags", .offset = offsetof(vm_cpu_t, exception_flags), .size = 32},
-	{.name = "interrupt_num", .offset = offsetof(vm_cpu_t, interrupt_num), .size = 32},
+	{.name = "exception_flags", .offset = offsetof(struct vm_cpu, exception_flags), .size = 32},
+	{.name = "interrupt_num", .offset = offsetof(struct vm_cpu, interrupt_num), .size = 32},
 
 };
 
@@ -118,8 +118,9 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
     PyObject* dict;
     PyObject *d_key, *d_value = NULL;
     Py_ssize_t pos = 0;
-    char* d_key_name;
-    uint64_t val;
+    const char *d_key_name;
+    uint32_t val32;
+    uint64_t val64;
     unsigned int i, found;
 
     if (!PyArg_ParseTuple(args, "O", &dict))
@@ -128,15 +129,24 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 	    RAISE(PyExc_TypeError, "arg must be dict");
     while(PyDict_Next(dict, &pos, &d_key, &d_value)){
 	    PyGetStr(d_key_name, d_key);
-	    PyGetInt(d_value, val);
-
 	    found = 0;
 	    for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
 		    if (strcmp(d_key_name, gpreg_dict[i].name))
 			    continue;
-		    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
 		    found = 1;
-		    break;
+		    switch (gpreg_dict[i].size) {
+			    default:
+				    RAISE(PyExc_TypeError, "Unsupported size");
+				    break;
+			    case 32:
+				    PyGetInt_uint32_t(d_value, val32);
+				    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val32;
+				    break;
+			    case 64:
+				    PyGetInt_uint64_t(d_value, val64);
+				    *((uint64_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val64;
+				    break;
+		    }
 	    }
 
 	    if (found)
@@ -151,13 +161,13 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 
 PyObject * cpu_init_regs(JitCpu* self)
 {
-	memset(self->cpu, 0, sizeof(vm_cpu_t));
+	memset(self->cpu, 0, sizeof(struct vm_cpu));
 
 	Py_INCREF(Py_None);
 	return Py_None;
 }
 
-void dump_gpregs(vm_cpu_t* vmcpu)
+void dump_gpregs(struct vm_cpu* vmcpu)
 {
 	printf("X0  %.16"PRIX64" X1  %.16"PRIX64" X2  %.16"PRIX64" X3  %.16"PRIX64" "\
 	       "X4  %.16"PRIX64" X5  %.16"PRIX64" X6  %.16"PRIX64" X7  %.16"PRIX64"\n",
@@ -185,7 +195,7 @@ void dump_gpregs(vm_cpu_t* vmcpu)
 
 PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 {
-	vm_cpu_t* vmcpu;
+	struct vm_cpu* vmcpu;
 
 	vmcpu = self->cpu;
 	dump_gpregs(vmcpu);
@@ -203,60 +213,42 @@ PyObject * cpu_dump_gpregs_with_attrib(JitCpu* self, PyObject* args)
 PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 {
 	PyObject *item1;
-	uint64_t i;
+	uint32_t exception_flags;
 
 	if (!PyArg_ParseTuple(args, "O", &item1))
 		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-	PyGetInt(item1, i);
+	PyGetInt_uint32_t(item1, exception_flags);
 
-	((vm_cpu_t*)self->cpu)->exception_flags = i;
+	((struct vm_cpu*)self->cpu)->exception_flags = exception_flags;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
 
 PyObject* cpu_get_exception(JitCpu* self, PyObject* args)
 {
-	return PyLong_FromUnsignedLongLong((uint64_t)(((vm_cpu_t*)self->cpu)->exception_flags));
+	return PyLong_FromUnsignedLongLong((uint64_t)(((struct vm_cpu*)self->cpu)->exception_flags));
 }
 
-
-
-
-
-void check_automod(JitCpu* jitcpu, uint64_t addr, uint64_t size)
-{
-	PyObject *result;
-
-	if (!(((VmMngr*)jitcpu->pyvm)->vm_mngr.exception_flags & EXCEPT_CODE_AUTOMOD))
-		return;
-	result = PyObject_CallMethod(jitcpu->jitter, "automod_cb", "LL", addr, size);
-	Py_DECREF(result);
-
-}
 
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
 {
 	vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 8);
 }
 
 void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src)
 {
 	vm_MEM_WRITE_16(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 16);
 }
 
 void MEM_WRITE_32(JitCpu* jitcpu, uint64_t addr, uint32_t src)
 {
 	vm_MEM_WRITE_32(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 32);
 }
 
 void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src)
 {
 	vm_MEM_WRITE_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 64);
 }
 
 
@@ -267,25 +259,27 @@ PyObject* vm_set_mem(JitCpu *self, PyObject* args)
        Py_ssize_t py_length;
 
        char * buffer;
-       uint64_t size;
+       Py_ssize_t pysize;
        uint64_t addr;
        int ret;
 
        if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
 	       RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt(py_addr, addr);
+       PyGetInt_uint64_t(py_addr, addr);
 
        if(!PyBytes_Check(py_buffer))
 	       RAISE(PyExc_TypeError,"arg must be bytes");
 
-       size = PyBytes_Size(py_buffer);
+       pysize = PyBytes_Size(py_buffer);
+       if (pysize < 0) {
+	       RAISE(PyExc_TypeError,"Python error");
+       }
        PyBytes_AsStringAndSize(py_buffer, &buffer, &py_length);
 
-       ret = vm_write_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, buffer, size);
+       ret = vm_write_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, buffer, pysize);
        if (ret < 0)
 	       RAISE(PyExc_TypeError,"arg must be str");
-       check_automod(self, addr, size*8);
 
        Py_INCREF(Py_None);
        return Py_None;
@@ -320,9 +314,9 @@ static PyMethodDef JitCpu_methods[] = {
 static int
 JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 {
-	self->cpu = malloc(sizeof(vm_cpu_t));
+	self->cpu = malloc(sizeof(struct vm_cpu));
 	if (self->cpu == NULL) {
-		fprintf(stderr, "cannot alloc vm_cpu_t\n");
+		fprintf(stderr, "cannot alloc struct vm_cpu\n");
 		exit(EXIT_FAILURE);
 	}
 	return 0;
@@ -543,20 +537,20 @@ static PyMethodDef JitCore_aarch64_Methods[] = {
 
 MOD_INIT(JitCore_aarch64)
 {
-	PyObject *module;
+	PyObject *module = NULL;
 
 	MOD_DEF(module, "JitCore_aarch64", "JitCore_aarch64 module", JitCore_aarch64_Methods);
 
 	if (module == NULL)
-		return NULL;
+		RET_MODULE;
 
 	if (PyType_Ready(&JitCpuType) < 0)
-		return NULL;
+		RET_MODULE;
 
 	Py_INCREF(&JitCpuType);
 	if (PyModule_AddObject(module, "JitCpu", (PyObject *)&JitCpuType) < 0)
-		return NULL;
+		RET_MODULE;
 
-	return module;
+	RET_MODULE;
 }
 

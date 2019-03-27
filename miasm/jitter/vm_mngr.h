@@ -85,7 +85,7 @@ LIST_HEAD(memory_breakpoint_info_head, memory_breakpoint_info);
 
 struct memory_page_node {
 	uint64_t ad;
-	uint64_t size;
+	size_t size;
 	uint64_t access;
 	void* ad_hp;
 	char* name;
@@ -98,8 +98,8 @@ struct memory_access {
 
 struct memory_access_list {
 	struct memory_access *array;
-	uint64_t allocated;
-	uint64_t num;
+	size_t allocated;
+	size_t num;
 };
 
 typedef struct {
@@ -185,7 +185,7 @@ int is_mem_mapped(vm_mngr_t* vm_mngr, uint64_t ad);
 uint64_t get_mem_base_addr(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t *addr_base);
 unsigned int MEM_LOOKUP(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t addr);
 
-int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
+int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, size_t size);
 void vm_throw(vm_mngr_t* vm_mngr, unsigned long flags);
 
 void vm_MEM_WRITE_08(vm_mngr_t* vm_mngr, uint64_t addr, unsigned char src);
@@ -207,8 +207,8 @@ unsigned short MEM_LOOKUP_16_PASSTHROUGH(uint64_t addr);
 unsigned int MEM_LOOKUP_32_PASSTHROUGH(uint64_t addr);
 uint64_t MEM_LOOKUP_64_PASSTHROUGH(uint64_t addr);
 
-int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t size);
-int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size);
+int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, size_t size);
+int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, size_t size);
 
 void memory_access_list_init(struct memory_access_list * access);
 void memory_access_list_reset(struct memory_access_list * access);
@@ -224,7 +224,7 @@ void hexdump(char* m, unsigned int l);
 struct code_bloc_node * create_code_bloc_node(uint64_t ad_start, uint64_t ad_stop);
 void add_code_bloc(vm_mngr_t* vm_mngr, struct code_bloc_node* cbp);
 
-struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size, unsigned int access, char* name);//memory_page* mp);
+struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size, unsigned int access, const char *name);//memory_page* mp);
 void init_memory_page_pool(vm_mngr_t* vm_mngr);
 void init_code_bloc_pool(vm_mngr_t* vm_mngr);
 void reset_memory_page_pool(vm_mngr_t* vm_mngr);

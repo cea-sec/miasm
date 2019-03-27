@@ -6,7 +6,7 @@
 #define _MIASM_EXPORT
 #endif
 
-typedef struct {
+struct vm_cpu {
 	uint32_t exception_flags;
 	uint32_t interrupt_num;
 
@@ -120,12 +120,12 @@ typedef struct {
 	bn_t XMM14;
 	bn_t XMM15;
 
-	uint32_t segm_base[0x10000];
+	uint64_t segm_base[0x10000];
 
-}vm_cpu_t;
+};
 
-_MIASM_EXPORT void dump_gpregs_32(vm_cpu_t* vmcpu);
-_MIASM_EXPORT void dump_gpregs_64(vm_cpu_t* vmcpu);
+_MIASM_EXPORT void dump_gpregs_32(struct vm_cpu* vmcpu);
+_MIASM_EXPORT void dump_gpregs_64(struct vm_cpu* vmcpu);
 _MIASM_EXPORT uint64_t segm2addr(JitCpu* jitcpu, uint64_t segm, uint64_t addr);
 
 _MIASM_EXPORT void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src);

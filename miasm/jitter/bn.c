@@ -67,10 +67,10 @@ bn_t bignum_from_int(DTYPE_TMP i)
 	n.array[0] = (i & 0x0000ffff);
 	n.array[1] = (i & 0xffff0000) >> 16;
  #elif (WORD_SIZE == 4)
-	n.array[0] = i;
+	n.array[0] = (DTYPE)i;
 	DTYPE_TMP num_32 = 32;
 	DTYPE_TMP tmp = i >> num_32; /* bit-shift with U64 operands to force 64-bit results */
-	n.array[1] = tmp;
+	n.array[1] = (DTYPE)tmp;
  #endif
 #endif
 
@@ -94,10 +94,10 @@ bn_t bignum_from_uint64(uint64_t i)
 	n.array[0] = (i & 0x0000ffff);
 	n.array[1] = (i & 0xffff0000) >> 16;
  #elif (WORD_SIZE == 4)
-	n.array[0] = i;
+	n.array[0] = (DTYPE)i;
 	DTYPE_TMP num_32 = 32;
 	DTYPE_TMP tmp = i >> num_32; /* bit-shift with U64 operands to force 64-bit results */
-	n.array[1] = tmp;
+	n.array[1] = (DTYPE)tmp;
  #endif
 #endif
 
@@ -242,7 +242,7 @@ bn_t bignum_inc(bn_t n)
 	//require(n, "n is null");
 
 	DTYPE res;
-	DTYPE_TMP tmp; /* copy of n */
+	DTYPE tmp; /* copy of n */
 
 	int i;
 	for (i = 0; i < BN_ARRAY_SIZE; ++i) {

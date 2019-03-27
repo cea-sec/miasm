@@ -15,7 +15,7 @@
 PyObject* llvm_exec_block(PyObject* self, PyObject* args)
 {
 	uint64_t (*func)(void*, void*, void*, uint8_t*);
-	vm_cpu_t* cpu;
+	struct vm_cpu* cpu;
 	vm_mngr_t* vm;
 	uint64_t ret;
 	JitCpu* jitcpu;
@@ -88,12 +88,9 @@ static PyMethodDef LLVMMethods[] = {
 
 MOD_INIT(Jitllvm)
 {
-	PyObject *module;
+	PyObject *module = NULL;
 
 	MOD_DEF(module, "Jitllvm", "llvm module", LLVMMethods);
 
-	if (module == NULL)
-		return NULL;
-
-	return module;
+	RET_MODULE;
 }
