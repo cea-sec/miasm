@@ -171,6 +171,9 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
             self.do_propagate_mem,
             self.do_propagate_expr,
             self.do_dead_simp_ssa,
+            self.do_remove_empty_assignblks,
+            self.do_del_unused_edges,
+            self.do_merge_blocks,
         ]
 
 
@@ -222,8 +225,15 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         @head: Location instance of the graph head
         """
         modified = self.propag_int.propagate(ssa, head)
-        modified |= ssa.graph.simplify(self.expr_simp)
-        modified |= del_unused_edges(ssa.graph, set([head]))
+        return modified
+
+    @fix_point
+    def do_del_unused_edges(self, ssa, head):
+        """
+        Del unused edges of the ssa graph
+        @head: Location instance of the graph head
+        """
+        modified = del_unused_edges(ssa.graph, set([head]))
         return modified
 
     @fix_point
@@ -233,8 +243,6 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         @head: Location instance of the graph head
         """
         modified = self.propag_mem.propagate(ssa, head)
-        modified |= ssa.graph.simplify(self.expr_simp)
-        modified |= del_unused_edges(ssa.graph, set([head]))
         return modified
 
     @fix_point
@@ -244,8 +252,24 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         @head: Location instance of the graph head
         """
         modified = self.propag_expr.propagate(ssa, head)
-        modified |= ssa.graph.simplify(self.expr_simp)
-        modified |= del_unused_edges(ssa.graph, set([head]))
+        return modified
+
+    @fix_point
+    def do_remove_empty_assignblks(self, ssa, head):
+        """
+        Remove empty assignblks
+        @head: Location instance of the graph head
+        """
+        modified = remove_empty_assignblks(ssa.graph)
+        return modified
+
+    @fix_point
+    def do_merge_blocks(self, ssa, head):
+        """
+        Merge blocks with one parent/son
+        @head: Location instance of the graph head
+        """
+        modified = merge_blocks(ssa.graph, set([head]))
         return modified
 
     @fix_point
@@ -262,10 +286,7 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         @ircfg: IRCFG instance to simplify
         @head: Location instance of the ircfg head
         """
-        modified = self.deadremoval(ssa)
-        modified |= remove_empty_assignblks(ssa.graph)
-        modified |= del_unused_edges(ssa.graph, set([head]))
-        modified |= merge_blocks(ssa.graph, set([head]))
+        modified = self.deadremoval(ssa.graph)
         return modified
 
     def do_simplify(self, ssa, head):
