@@ -73,9 +73,6 @@ class SSA(object):
         # IRCFG instance
         self.ircfg = ircfg
 
-        # SSA blocks
-        self.blocks = {}
-
         # stack for RHS
         self._stack_rhs = {}
         # stack for LHS
@@ -120,7 +117,6 @@ class SSA(object):
 
     def reset(self):
         """Resets SSA transformation"""
-        self.blocks = {}
         self.expressions = {}
         self._stack_rhs = {}
         self._stack_lhs = {}
