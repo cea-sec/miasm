@@ -4781,66 +4781,71 @@ def palignr(ir, instr, dst, src, imm):
     return [m2_expr.ExprAssign(dst, result)], []
 
 
-def _signed_saturation(expr, dst_size):
+def _signed_to_signed_saturation(expr, dst_size):
     """Saturate the expr @expr for @dst_size bit
     Signed saturation return MAX_INT / MIN_INT or value depending on the value
     """
     assert expr.size > dst_size
 
     median = 1 << (dst_size - 1)
+
     min_int = m2_expr.ExprInt(- median, dst_size)
     max_int = m2_expr.ExprInt(median - 1, dst_size)
-    signed = expr.msb()
-    value_unsigned = (expr ^ expr.mask) + m2_expr.ExprInt(1, expr.size)
-    # Re-use the sign bit
-    value = m2_expr.ExprCompose(expr[:dst_size - 1], signed)
 
-    # Bit hack: to avoid a double signed comparison, use mask
-    # ie., in unsigned, 0xXY > 0x0f iff X is not null
+    test_min_int = min_int.signExtend(expr.size)
+    test_max_int = max_int.signExtend(expr.size)
 
-    # if expr >s 0
-    #    if expr[dst_size - 1:] > 0: # bigger than max_int
-    #        -> max_int
-    #    else
-    #        -> value
-    # else # negative
-    #    if expr[dst_size:-1] > 0: # smaller than min_int
-    #        -> value
-    #    else
-    #        -> min_int
+    value = expr[:dst_size]
 
     return m2_expr.ExprCond(
-        signed,
-        m2_expr.ExprCond(value_unsigned[dst_size - 1:],
-                         min_int,
-                         value),
-        m2_expr.ExprCond(expr[dst_size - 1:],
-                         max_int,
-                         value),
+        m2_expr.ExprOp(
+            m2_expr.TOK_INF_EQUAL_SIGNED,
+            expr,
+            test_min_int
+        ),
+        min_int,
+        m2_expr.ExprCond(
+            m2_expr.ExprOp(
+                m2_expr.TOK_INF_SIGNED,
+                expr,
+                test_max_int
+            ),
+            value,
+            max_int
+        )
     )
 
 
-def _unsigned_saturation(expr, dst_size):
+def _signed_to_unsigned_saturation(expr, dst_size):
     """Saturate the expr @expr for @dst_size bit
     Unsigned saturation return MAX_INT or value depending on the value
     """
     assert expr.size > dst_size
 
     zero = m2_expr.ExprInt(0, dst_size)
+    test_zero = m2_expr.ExprInt(0, expr.size)
+
     max_int = m2_expr.ExprInt(-1, dst_size)
+    test_max_int = max_int.zeroExtend(expr.size)
+
     value = expr[:dst_size]
-    signed = expr.msb()
-
-
-    # Bit hack: to avoid a double signed comparison, use mask
-    # ie., in unsigned, 0xXY > 0x0f iff X is not null
 
     return m2_expr.ExprCond(
-        signed,
+        m2_expr.ExprOp(
+            m2_expr.TOK_INF_EQUAL_SIGNED,
+            expr,
+            test_zero
+        ),
         zero,
-        m2_expr.ExprCond(expr[dst_size:],
-                         max_int,
-                         value),
+        m2_expr.ExprCond(
+            m2_expr.ExprOp(
+                m2_expr.TOK_INF_SIGNED,
+                expr,
+                test_max_int
+            ),
+            value,
+            max_int
+        )
     )
 
 
@@ -4849,7 +4854,7 @@ def packsswb(ir, instr, dst, src):
     out = []
     for source in [dst, src]:
         for start in range(0, dst.size, 16):
-            out.append(_signed_saturation(source[start:start + 16], 8))
+            out.append(_signed_to_signed_saturation(source[start:start + 16], 8))
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out))], []
 
 
@@ -4857,7 +4862,7 @@ def packssdw(ir, instr, dst, src):
     out = []
     for source in [dst, src]:
         for start in range(0, dst.size, 32):
-            out.append(_signed_saturation(source[start:start + 32], 16))
+            out.append(_signed_to_signed_saturation(source[start:start + 32], 16))
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out))], []
 
 
@@ -4865,7 +4870,7 @@ def packuswb(ir, instr, dst, src):
     out = []
     for source in [dst, src]:
         for start in range(0, dst.size, 16):
-            out.append(_unsigned_saturation(source[start:start + 16], 8))
+            out.append(_signed_to_unsigned_saturation(source[start:start + 16], 8))
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out))], []
 
 
@@ -4876,7 +4881,7 @@ def _saturation_sub_unsigned(expr):
     # 0x48 - 0xd7 in 8 bit, should saturate
     arg1 = expr.args[0].zeroExtend(expr.size + 1)
     arg2 = expr.args[1].args[0].zeroExtend(expr.size + 1)
-    return _unsigned_saturation(arg1 - arg2, expr.size)
+    return _signed_to_unsigned_saturation(arg1 - arg2, expr.size)
 
 def _saturation_sub_signed(expr):
     assert expr.is_op("+") and len(expr.args) == 2 and expr.args[-1].is_op("-")
@@ -4884,7 +4889,7 @@ def _saturation_sub_signed(expr):
     # Compute the subtraction on two more bits, see _saturation_sub_unsigned
     arg1 = expr.args[0].signExtend(expr.size + 2)
     arg2 = expr.args[1].args[0].signExtend(expr.size + 2)
-    return _signed_saturation(arg1 - arg2, expr.size)
+    return _signed_to_signed_saturation(arg1 - arg2, expr.size)
 
 def _saturation_add(expr):
     assert expr.is_op("+") and len(expr.args) == 2
@@ -4895,7 +4900,7 @@ def _saturation_add(expr):
     arg1 = expr.args[0].zeroExtend(expr.size + 1)
     arg2 = expr.args[1].zeroExtend(expr.size + 1)
 
-    # We can also use _unsigned_saturation with two additional bits (to
+    # We can also use _signed_to_unsigned_saturation with two additional bits (to
     # distinguish minus and overflow case)
     # The resulting expression being more complicated with an impossible case
     # (signed=True), we rewrite the rule here
@@ -4911,7 +4916,7 @@ def _saturation_add_signed(expr):
     arg1 = expr.args[0].signExtend(expr.size + 2)
     arg2 = expr.args[1].signExtend(expr.size + 2)
 
-    return _signed_saturation(arg1 + arg2, expr.size)
+    return _signed_to_signed_saturation(arg1 + arg2, expr.size)
 
 
 # Saturate SSE operations

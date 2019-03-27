@@ -36,6 +36,16 @@ TOK_CMP_TO_BIGNUM_C = {
 }
 
 
+def get_c_common_next_pow2(size):
+    # For uncommon expression size, use at least uint8
+    size = max(size, 8)
+    next_power = 1
+    while next_power < size:
+        next_power <<= 1
+    size = next_power
+    return size
+
+
 class TranslatorC(Translator):
     "Translate a Miasm expression to an equivalent C code"
 
@@ -419,21 +429,28 @@ class TranslatorC(Translator):
                     TOK_INF_EQUAL_SIGNED,
                     TOK_INF_EQUAL_UNSIGNED,
             ]:
-                arg0 = self.from_expr(expr.args[0])
-                arg1 = self.from_expr(expr.args[1])
-
+                arg0, arg1 = expr.args
                 if expr.size <= self.NATIVE_INT_MAX_SIZE:
+                    size = get_c_common_next_pow2(arg0.size)
                     op = TOK_CMP_TO_NATIVE_C[expr.op]
                     if expr.op in [TOK_INF_SIGNED, TOK_INF_EQUAL_SIGNED]:
-                        cast = "(int%d_t)" % expr.args[0].size
+                        arg0 = arg0.signExtend(size)
+                        arg1 = arg1.signExtend(size)
+                        arg0_C = self.from_expr(arg0)
+                        arg1_C = self.from_expr(arg1)
+                        cast = "(int%d_t)" % size
                     else:
-                        cast = "(uint%d_t)" % expr.args[0].size
+                        arg0 = arg0.signExtend(size)
+                        arg1 = arg1.signExtend(size)
+                        arg0_C = self.from_expr(arg0)
+                        arg1_C = self.from_expr(arg1)
+                        cast = "(uint%d_t)" % size
                     out = '((%s%s %s %s%s)?1:0)' % (
                         cast,
-                        arg0,
+                        arg0_C,
                         op,
                         cast,
-                        arg1
+                        arg1_C
                     )
                 else:
                     op = TOK_CMP_TO_BIGNUM_C[expr.op]
@@ -484,17 +501,7 @@ class TranslatorC(Translator):
         if expr.size <= self.NATIVE_INT_MAX_SIZE:
 
             out = []
-            # XXX check mask for 64 bit & 32 bit compat
-            if expr.size in [8, 16, 32, 64, 128]:
-                size = expr.size
-            else:
-                # Uncommon expression size, use at least uint8
-                size = max(expr.size, 8)
-                next_power = 1
-                while next_power <= size:
-                    next_power <<= 1
-                size = next_power
-
+            size = get_c_common_next_pow2(expr.size)
             dst_cast = "uint%d_t" % size
             for index, arg in expr.iter_args():
                 out.append("(((%s)(%s & %s)) << %d)" % (
