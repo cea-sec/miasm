@@ -683,13 +683,11 @@ void init_memory_page_pool(vm_mngr_t* vm_mngr)
 void init_code_bloc_pool(vm_mngr_t* vm_mngr)
 {
 	LIST_INIT(&vm_mngr->code_bloc_pool);
-	vm_mngr->code_bloc_pool_ad_min = 0xffffffffffffffffULL;
+	vm_mngr->code_bloc_pool_ad_min = UINT64_MAX;
 	vm_mngr->code_bloc_pool_ad_max = 0;
 
 	memory_access_list_init(&(vm_mngr->memory_r));
 	memory_access_list_init(&(vm_mngr->memory_w));
-
-
 }
 
 void init_memory_breakpoint(vm_mngr_t* vm_mngr)
