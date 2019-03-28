@@ -7,7 +7,7 @@
 #define PyGetInt_uint_t(size_type, item, value)				\
 	if (PyLong_Check(item)) {					\
 		unsigned long long tmp;					\
-		tmp = PyLong_AsUnsignedLongLong(item);			\
+		tmp = PyLong_AsLongLong(item);				\
 		if ( tmp > (size_type) -1) {				\
 			RAISE(PyExc_TypeError, "Arg too big for " #size_type ""); \
 		}							\
@@ -21,7 +21,7 @@
 #define PyGetInt_uint_t_retneg(size_type, item, value)			\
 	if (PyLong_Check(item)) {					\
 		unsigned long long tmp;					\
-		tmp = PyLong_AsUnsignedLongLong(item);			\
+		tmp = PyLong_AsLongLong(item);				\
 		if ( tmp > (size_type) -1) {				\
 			PyErr_SetString(PyExc_TypeError, "Arg too big for " #size_type ""); \
 			return -1;					\
