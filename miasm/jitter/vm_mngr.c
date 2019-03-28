@@ -797,46 +797,38 @@ void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 char* dump(vm_mngr_t* vm_mngr)
 {
 	char buf[0x100];
-	int length;
-	char *buf_final;
+	char *buf_final, *tmp;
 	int i;
 	char buf_addr[0x20];
 	char buf_size[0x20];
+	size_t buf_final_len, length;
 	struct memory_page_node * mpn;
 	/*             0x1234567812345678 0x1234567812345678        */
-	char* intro = "Addr               Size               Access Comment\n";
-	size_t total_len = strlen(intro) + 1;
+	const char* intro = "Addr               Size               Access Comment\n";
 
-	buf_final = malloc(total_len);
-	if (buf_final == NULL) {
-		fprintf(stderr, "Error: cannot alloc char* buf_final\n");
-		exit(EXIT_FAILURE);
-	}
-	strcpy(buf_final, intro);
-	for (i=0; i< vm_mngr->memory_pages_number; i++) {
+	buf_final = strdup (intro);
+	buf_final_len = strlen (intro);
+	for (i = 0; i < vm_mngr->memory_pages_number; i++) {
 		mpn = &vm_mngr->memory_pages_array[i];
-		snprintf(buf_addr, sizeof(buf_addr),
-			 "0x%"PRIX64, (uint64_t)mpn->ad);
-		snprintf(buf_size, sizeof(buf_size),
-			 "0x%"PRIX64, (uint64_t)mpn->size);
+		snprintf(buf_addr, sizeof(buf_addr), "0x%"PRIX64, mpn->ad);
+		snprintf(buf_size, sizeof(buf_size), "0x%zx", mpn->size);
 
 		length = snprintf(buf, sizeof(buf) - 1,
-				  "%-18s %-18s %c%c%c    %s",
-				  buf_addr,
-				  buf_size,
-				  mpn->access & PAGE_READ? 'R':'_',
-				  mpn->access & PAGE_WRITE? 'W':'_',
-				  mpn->access & PAGE_EXEC? 'X':'_',
-				  mpn->name
-				  );
-		strcat(buf, "\n");
-		total_len += length + 1 + 1;
-		buf_final = realloc(buf_final, total_len);
-		if (buf_final == NULL) {
+				"%-18s %-18s %c%c%c    %s\n",
+				buf_addr,
+				buf_size,
+				mpn->access & PAGE_READ? 'R':'_',
+				mpn->access & PAGE_WRITE? 'W':'_',
+				mpn->access & PAGE_EXEC? 'X':'_',
+				mpn->name);
+		tmp = realloc(buf_final, buf_final_len + length + 1);
+		if (tmp == NULL) {
 			fprintf(stderr, "cannot realloc char* buf_final\n");
+			free(buf_final);
 			exit(EXIT_FAILURE);
 		}
-		strcat(buf_final, buf);
+		strcpy (buf_final + buf_final_len, buf);
+		buf_final_len += length;
 	}
 
 	return buf_final;
