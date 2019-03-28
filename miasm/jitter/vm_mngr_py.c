@@ -25,18 +25,13 @@
 #include "vm_mngr.h"
 #include "vm_mngr_py.h"
 
-#define MIN(a,b)  (((a)<(b))?(a):(b))
-#define MAX(a,b)  (((a)>(b))?(a):(b))
-
 extern struct memory_page_list_head memory_page_pool;
 extern struct code_bloc_list_head code_bloc_pool;
 
-#define RAISE(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return p;}
-
-
+#define RAISE(errtype, msg) do {PyObject* p; p = PyErr_Format( errtype, msg ); return p;} while(0)
 
 /* XXX POC signals */
-VmMngr* global_vmmngr;
+static VmMngr* global_vmmngr;
 
 PyObject* _vm_get_exception(unsigned int xcpt)
 {
@@ -957,9 +952,8 @@ static PyMethodDef VmMngr_Methods[] = {
 
 };
 
-char vm_mngr_mod_docs[] = "vm_mngr module.";
-char vm_mngr_mod_name[] = "VmMngr";
-
+const char vm_mngr_mod_docs[] = "vm_mngr module.";
+const char vm_mngr_mod_name[] = "VmMngr";
 
 MOD_INIT(VmMngr)
 {
