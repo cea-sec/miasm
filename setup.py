@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python
 
 from __future__ import print_function
 from distutils.core import setup, Extension
@@ -11,7 +11,7 @@ import sys
 
 is_win = platform.system() == "Windows"
 
-def buil_all():
+def build_all():
     packages=[
         "miasm",
         "miasm/arch",
@@ -209,5 +209,5 @@ def buil_all():
                 print("Copying", lib, "to", dst)
                 copy2(lib, dst)
 
-buil_all()
+build_all()
 
