@@ -5,7 +5,7 @@
 from future.utils import viewitems
 
 from miasm.expression.modint import mod_size2int, mod_size2uint
-from miasm.expression.expression import ExprId, ExprInt, ExprSlice, ExprMem, \
+from miasm.expression.expression import ExprInt, ExprSlice, ExprMem, \
     ExprCond, ExprOp, ExprCompose, TOK_INF_SIGNED, TOK_INF_UNSIGNED, \
     TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED, TOK_EQUAL
 from miasm.expression.expression_helper import parity, op_propag_cst, \
@@ -1574,6 +1574,13 @@ def simp_compose_and_mask(_, expr):
     if (int2 + 1) & int2 != 0:
         return expr
     mask_size = int2.bit_length() + 7 // 8
-    if not mask_size in [arg[0] for arg in ExprCompose(ExprId("a", 8), ExprInt(0x1234, 16), ExprId("b", 8)).iter_args()]:
-        return expr
-    return ExprSlice(arg1, 0, mask_size).zeroExtend(expr.size)
+    out = []
+    for offset, arg in arg1.iter_args():
+        if offset == mask_size:
+            return ExprCompose(*out).zeroExtend(expr.size)
+        elif mask_size > offset and mask_size < offset+arg.size and arg.is_int():
+            out.append(ExprSlice(arg, 0, mask_size-offset))
+            return ExprCompose(*out).zeroExtend(expr.size)
+        else:
+            out.append(arg)
+    return expr
