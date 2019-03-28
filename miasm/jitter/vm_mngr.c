@@ -212,9 +212,9 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 			new_size -= 8;
 			ad ++;
 		}
-		switch(my_size){
+		switch (my_size) {
 		case 8:
-			ret = ret;
+			// DO NOTHING // ret = ret;
 			break;
 		case 16:
 			ret = set_endian16(vm_mngr, (uint16_t)ret);
@@ -286,11 +286,10 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 		}
 	}
 	/* write is multiple page wide */
-	else{
-		switch(my_size){
-
+	else {
+		switch (my_size) {
 		case 8:
-			src = src;
+			// DO NOTHING src = src;
 			break;
 		case 16:
 			src = set_endian16(vm_mngr, (uint16_t)src);
