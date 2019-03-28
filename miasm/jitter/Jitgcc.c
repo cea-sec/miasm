@@ -1,3 +1,5 @@
+/* Copyright (C) 2011-2019 EADS France, Fabrice Desclaux <fabrice.desclaux@eads.net> */
+
 #include <Python.h>
 #include <inttypes.h>
 #include <stdint.h>

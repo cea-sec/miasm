@@ -1,3 +1,5 @@
+/* Copyright (C) 2011-2019 EADS France, Fabrice Desclaux <fabrice.desclaux@eads.net> */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

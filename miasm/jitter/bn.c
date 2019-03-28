@@ -1,3 +1,5 @@
+/* Copyright (C) 2011-2019 EADS France, Fabrice Desclaux <fabrice.desclaux@eads.net> */
+
 /*
 
 Big number library - arithmetic on multiple-precision unsigned integers.
