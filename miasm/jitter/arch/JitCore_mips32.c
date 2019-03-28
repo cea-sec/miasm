@@ -13,133 +13,128 @@
 
 
 
-reg_dict gpreg_dict[] = { {.name = "ZERO", .offset = offsetof(struct vm_cpu, ZERO), .size = 32},
-			  {.name = "AT", .offset = offsetof(struct vm_cpu, AT), .size = 32},
-			  {.name = "V0", .offset = offsetof(struct vm_cpu, V0), .size = 32},
-			  {.name = "V1", .offset = offsetof(struct vm_cpu, V1), .size = 32},
-			  {.name = "A0", .offset = offsetof(struct vm_cpu, A0), .size = 32},
-			  {.name = "A1", .offset = offsetof(struct vm_cpu, A1), .size = 32},
-			  {.name = "A2", .offset = offsetof(struct vm_cpu, A2), .size = 32},
-			  {.name = "A3", .offset = offsetof(struct vm_cpu, A3), .size = 32},
-			  {.name = "T0", .offset = offsetof(struct vm_cpu, T0), .size = 32},
-			  {.name = "T1", .offset = offsetof(struct vm_cpu, T1), .size = 32},
-			  {.name = "T2", .offset = offsetof(struct vm_cpu, T2), .size = 32},
-			  {.name = "T3", .offset = offsetof(struct vm_cpu, T3), .size = 32},
-			  {.name = "T4", .offset = offsetof(struct vm_cpu, T4), .size = 32},
-			  {.name = "T5", .offset = offsetof(struct vm_cpu, T5), .size = 32},
-			  {.name = "T6", .offset = offsetof(struct vm_cpu, T6), .size = 32},
-			  {.name = "T7", .offset = offsetof(struct vm_cpu, T7), .size = 32},
-			  {.name = "S0", .offset = offsetof(struct vm_cpu, S0), .size = 32},
-			  {.name = "S1", .offset = offsetof(struct vm_cpu, S1), .size = 32},
-			  {.name = "S2", .offset = offsetof(struct vm_cpu, S2), .size = 32},
-			  {.name = "S3", .offset = offsetof(struct vm_cpu, S3), .size = 32},
-			  {.name = "S4", .offset = offsetof(struct vm_cpu, S4), .size = 32},
-			  {.name = "S5", .offset = offsetof(struct vm_cpu, S5), .size = 32},
-			  {.name = "S6", .offset = offsetof(struct vm_cpu, S6), .size = 32},
-			  {.name = "S7", .offset = offsetof(struct vm_cpu, S7), .size = 32},
-			  {.name = "T8", .offset = offsetof(struct vm_cpu, T8), .size = 32},
-			  {.name = "T9", .offset = offsetof(struct vm_cpu, T9), .size = 32},
-			  {.name = "K0", .offset = offsetof(struct vm_cpu, K0), .size = 32},
-			  {.name = "K1", .offset = offsetof(struct vm_cpu, K1), .size = 32},
-			  {.name = "GP", .offset = offsetof(struct vm_cpu, GP), .size = 32},
-			  {.name = "SP", .offset = offsetof(struct vm_cpu, SP), .size = 32},
-			  {.name = "FP", .offset = offsetof(struct vm_cpu, FP), .size = 32},
-			  {.name = "RA", .offset = offsetof(struct vm_cpu, RA), .size = 32},
-			  {.name = "PC", .offset = offsetof(struct vm_cpu, PC), .size = 32},
-			  {.name = "PC_FETCH", .offset = offsetof(struct vm_cpu, PC_FETCH), .size = 32},
-			  {.name = "R_LO", .offset = offsetof(struct vm_cpu, R_LO), .size = 32},
-			  {.name = "R_HI", .offset = offsetof(struct vm_cpu, R_HI), .size = 32},
+reg_dict gpreg_dict[] = {
+	{.name = "ZERO", .offset = offsetof(struct vm_cpu, ZERO), .size = 32},
+	{.name = "AT", .offset = offsetof(struct vm_cpu, AT), .size = 32},
+	{.name = "V0", .offset = offsetof(struct vm_cpu, V0), .size = 32},
+	{.name = "V1", .offset = offsetof(struct vm_cpu, V1), .size = 32},
+	{.name = "A0", .offset = offsetof(struct vm_cpu, A0), .size = 32},
+	{.name = "A1", .offset = offsetof(struct vm_cpu, A1), .size = 32},
+	{.name = "A2", .offset = offsetof(struct vm_cpu, A2), .size = 32},
+	{.name = "A3", .offset = offsetof(struct vm_cpu, A3), .size = 32},
+	{.name = "T0", .offset = offsetof(struct vm_cpu, T0), .size = 32},
+	{.name = "T1", .offset = offsetof(struct vm_cpu, T1), .size = 32},
+	{.name = "T2", .offset = offsetof(struct vm_cpu, T2), .size = 32},
+	{.name = "T3", .offset = offsetof(struct vm_cpu, T3), .size = 32},
+	{.name = "T4", .offset = offsetof(struct vm_cpu, T4), .size = 32},
+	{.name = "T5", .offset = offsetof(struct vm_cpu, T5), .size = 32},
+	{.name = "T6", .offset = offsetof(struct vm_cpu, T6), .size = 32},
+	{.name = "T7", .offset = offsetof(struct vm_cpu, T7), .size = 32},
+	{.name = "S0", .offset = offsetof(struct vm_cpu, S0), .size = 32},
+	{.name = "S1", .offset = offsetof(struct vm_cpu, S1), .size = 32},
+	{.name = "S2", .offset = offsetof(struct vm_cpu, S2), .size = 32},
+	{.name = "S3", .offset = offsetof(struct vm_cpu, S3), .size = 32},
+	{.name = "S4", .offset = offsetof(struct vm_cpu, S4), .size = 32},
+	{.name = "S5", .offset = offsetof(struct vm_cpu, S5), .size = 32},
+	{.name = "S6", .offset = offsetof(struct vm_cpu, S6), .size = 32},
+	{.name = "S7", .offset = offsetof(struct vm_cpu, S7), .size = 32},
+	{.name = "T8", .offset = offsetof(struct vm_cpu, T8), .size = 32},
+	{.name = "T9", .offset = offsetof(struct vm_cpu, T9), .size = 32},
+	{.name = "K0", .offset = offsetof(struct vm_cpu, K0), .size = 32},
+	{.name = "K1", .offset = offsetof(struct vm_cpu, K1), .size = 32},
+	{.name = "GP", .offset = offsetof(struct vm_cpu, GP), .size = 32},
+	{.name = "SP", .offset = offsetof(struct vm_cpu, SP), .size = 32},
+	{.name = "FP", .offset = offsetof(struct vm_cpu, FP), .size = 32},
+	{.name = "RA", .offset = offsetof(struct vm_cpu, RA), .size = 32},
+	{.name = "PC", .offset = offsetof(struct vm_cpu, PC), .size = 32},
+	{.name = "PC_FETCH", .offset = offsetof(struct vm_cpu, PC_FETCH), .size = 32},
+	{.name = "R_LO", .offset = offsetof(struct vm_cpu, R_LO), .size = 32},
+	{.name = "R_HI", .offset = offsetof(struct vm_cpu, R_HI), .size = 32},
 };
 
 /************************** JitCpu object **************************/
 
-
-
 PyObject* cpu_get_gpreg(JitCpu* self)
 {
-    PyObject *dict = PyDict_New();
-    PyObject *o;
+	PyObject *dict = PyDict_New();
+	PyObject *o;
 
-    get_reg(ZERO);
-    get_reg(AT);
-    get_reg(V0);
-    get_reg(V1);
-    get_reg(A0);
-    get_reg(A1);
-    get_reg(A2);
-    get_reg(A3);
-    get_reg(T0);
-    get_reg(T1);
-    get_reg(T2);
-    get_reg(T3);
-    get_reg(T4);
-    get_reg(T5);
-    get_reg(T6);
-    get_reg(T7);
-    get_reg(S0);
-    get_reg(S1);
-    get_reg(S2);
-    get_reg(S3);
-    get_reg(S4);
-    get_reg(S5);
-    get_reg(S6);
-    get_reg(S7);
-    get_reg(T8);
-    get_reg(T9);
-    get_reg(K0);
-    get_reg(K1);
-    get_reg(GP);
-    get_reg(SP);
-    get_reg(FP);
-    get_reg(RA);
-    get_reg(PC);
-    get_reg(PC_FETCH);
-    get_reg(R_LO);
-    get_reg(R_HI);
+	get_reg(ZERO);
+	get_reg(AT);
+	get_reg(V0);
+	get_reg(V1);
+	get_reg(A0);
+	get_reg(A1);
+	get_reg(A2);
+	get_reg(A3);
+	get_reg(T0);
+	get_reg(T1);
+	get_reg(T2);
+	get_reg(T3);
+	get_reg(T4);
+	get_reg(T5);
+	get_reg(T6);
+	get_reg(T7);
+	get_reg(S0);
+	get_reg(S1);
+	get_reg(S2);
+	get_reg(S3);
+	get_reg(S4);
+	get_reg(S5);
+	get_reg(S6);
+	get_reg(S7);
+	get_reg(T8);
+	get_reg(T9);
+	get_reg(K0);
+	get_reg(K1);
+	get_reg(GP);
+	get_reg(SP);
+	get_reg(FP);
+	get_reg(RA);
+	get_reg(PC);
+	get_reg(PC_FETCH);
+	get_reg(R_LO);
+	get_reg(R_HI);
 
-    return dict;
+	return dict;
 }
-
-
-
 
 PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 {
-    PyObject* dict;
-    PyObject *d_key, *d_value = NULL;
-    Py_ssize_t pos = 0;
-    const char *d_key_name;
-    uint32_t val;
-    unsigned int i, found;
+	PyObject* dict;
+	PyObject *d_key, *d_value = NULL;
+	Py_ssize_t pos = 0;
+	const char *d_key_name;
+	uint32_t val;
+	unsigned int i;
+	bool found;
 
-    if (!PyArg_ParseTuple(args, "O", &dict))
-	    RAISE(PyExc_TypeError,"Cannot parse arguments");
-    if(!PyDict_Check(dict))
-	    RAISE(PyExc_TypeError, "arg must be dict");
-    while(PyDict_Next(dict, &pos, &d_key, &d_value)){
-	    PyGetStr(d_key_name, d_key);
-	    PyGetInt_uint32_t(d_value, val);
+	if (!PyArg_ParseTuple(args, "O", &dict)) {
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
+	}
+	if(!PyDict_Check(dict)) {
+		RAISE(PyExc_TypeError, "arg must be dict");
+	}
+	while(PyDict_Next(dict, &pos, &d_key, &d_value)) {
+		PyGetStr(d_key_name, d_key);
+		PyGetInt_uint32_t(d_value, val);
 
-	    found = 0;
-	    for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
-		    if (strcmp(d_key_name, gpreg_dict[i].name))
-			    continue;
-		    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
-		    found = 1;
-		    break;
-	    }
-
-	    if (found)
-		    continue;
-	    fprintf(stderr, "unknown key: %s\n", d_key_name);
-	    RAISE(PyExc_ValueError, "unknown reg");
-    }
-    Py_INCREF(Py_None);
-    return Py_None;
+		found = false;
+		for (i = 0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++) {
+			if (strcmp(d_key_name, gpreg_dict[i].name))
+				continue;
+			*((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
+			found = true;
+			break;
+		}
+		if (found)
+			continue;
+		fprintf(stderr, "unknown key: %s\n", d_key_name);
+		RAISE(PyExc_ValueError, "unknown reg");
+	}
+	Py_INCREF(Py_None);
+	return Py_None;
 }
-
-
-
 
 PyObject * cpu_init_regs(JitCpu* self)
 {

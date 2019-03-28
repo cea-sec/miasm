@@ -48,7 +48,7 @@
 		}							\
 		value = (size_type) tmp;				\
 	}								\
-	else if (PyLong_Check(item)){					\
+	else if (PyLong_Check(item)) {					\
 		unsigned long long tmp;					\
 		tmp = PyLong_AsUnsignedLongLong(item);			\
 		if ( tmp > (size_type) -1) {				\
@@ -71,7 +71,7 @@
 		}							\
 		value = (size_type) tmp;				\
 	}								\
-	else if (PyLong_Check(item)){					\
+	else if (PyLong_Check(item)) {					\
 		unsigned long long tmp;					\
 		tmp = PyLong_AsUnsignedLongLong(item);			\
 		if ( tmp > (size_type) -1) {				\

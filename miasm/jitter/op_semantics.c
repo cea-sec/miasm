@@ -93,10 +93,12 @@ unsigned int mul_lo_op(unsigned int size, unsigned int a, unsigned int b)
 	unsigned int mask;
 
 	switch (size) {
-		case 8: mask = 0xff; break;
-		case 16: mask = 0xffff; break;
-		case 32: mask = 0xffffffff; break;
-		default: fprintf(stderr, "inv size in mul %d\n", size); exit(EXIT_FAILURE);
+	case 8: mask = 0xff; break;
+	case 16: mask = 0xffff; break;
+	case 32: mask = 0xffffffff; break;
+	default:
+		fprintf(stderr, "inv size in mul %d\n", size);
+		exit(EXIT_FAILURE);
 	}
 
 	a &= mask;
@@ -110,10 +112,12 @@ unsigned int mul_hi_op(unsigned int size, unsigned int a, unsigned int b)
 	unsigned int mask;
 
 	switch (size) {
-		case 8: mask = 0xff; break;
-		case 16: mask = 0xffff; break;
-		case 32: mask = 0xffffffff; break;
-		default: fprintf(stderr, "inv size in mul %d\n", size); exit(EXIT_FAILURE);
+	case 8: mask = 0xff; break;
+	case 16: mask = 0xffff; break;
+	case 32: mask = 0xffffffff; break;
+	default:
+		fprintf(stderr, "inv size in mul %d\n", size);
+		exit(EXIT_FAILURE);
 	}
 
 	a &= mask;
@@ -177,74 +181,74 @@ uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b)
 
     b = b & 0x3F;
     b %= size;
-    switch(size){
-	    case 8:
-		    tmp = (a << b) | ((a & 0xFF) >> (size - b));
-		    return tmp & 0xFF;
-	    case 16:
-		    tmp = (a << b) | ((a & 0xFFFF) >> (size - b));
-		    return tmp & 0xFFFF;
-	    case 32:
-		    tmp = (a << b) | ((a & 0xFFFFFFFF) >> (size - b));
-		    return tmp & 0xFFFFFFFF;
-	    case 64:
-		    tmp = (a << b) | ((a&0xFFFFFFFFFFFFFFFF) >> (size - b));
-		    return tmp & 0xFFFFFFFFFFFFFFFF;
+    switch(size) {
+    case 8:
+	    tmp = (a << b) | ((a & 0xFF) >> (size - b));
+	    return tmp & 0xFF;
+    case 16:
+	    tmp = (a << b) | ((a & 0xFFFF) >> (size - b));
+	    return tmp & 0xFFFF;
+    case 32:
+	    tmp = (a << b) | ((a & 0xFFFFFFFF) >> (size - b));
+	    return tmp & 0xFFFFFFFF;
+    case 64:
+	    tmp = (a << b) | ((a&0xFFFFFFFFFFFFFFFF) >> (size - b));
+	    return tmp & 0xFFFFFFFFFFFFFFFF;
 
-	    /* Support cases for rcl */
-	    case 9:
-		    tmp = (a << b) | ((a & 0x1FF) >> (size - b));
-		    return tmp & 0x1FF;
-	    case 17:
-		    tmp = (a << b) | ((a & 0x1FFFF) >> (size - b));
-		    return tmp & 0x1FFFF;
-	    case 33:
-		    tmp = (a << b) | ((a & 0x1FFFFFFFF) >> (size - b));
-		    return tmp & 0x1FFFFFFFF;
-	    /* TODO XXX: support rcl in 64 bit mode */
+    /* Support cases for rcl */
+    case 9:
+	    tmp = (a << b) | ((a & 0x1FF) >> (size - b));
+	    return tmp & 0x1FF;
+    case 17:
+	    tmp = (a << b) | ((a & 0x1FFFF) >> (size - b));
+	    return tmp & 0x1FFFF;
+    case 33:
+	    tmp = (a << b) | ((a & 0x1FFFFFFFF) >> (size - b));
+	    return tmp & 0x1FFFFFFFF;
+    /* TODO XXX: support rcl in 64 bit mode */
 
-	    default:
-		    fprintf(stderr, "inv size in rotleft %"PRIX64"\n", size);
-		    exit(EXIT_FAILURE);
+    default:
+	    fprintf(stderr, "inv size in rotleft %"PRIX64"\n", size);
+	    exit(EXIT_FAILURE);
     }
 }
 
 uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b)
 {
-    uint64_t tmp;
+	uint64_t tmp;
 
-    b = b & 0x3F;
-    b %= size;
-    switch(size){
-	    case 8:
-		    tmp = ((a & 0xFF) >> b) | (a << (size - b));
-		    return tmp & 0xff;
-	    case 16:
-		    tmp = ((a & 0xFFFF) >> b) | (a << (size - b));
-		    return tmp & 0xFFFF;
-	    case 32:
-		    tmp = ((a & 0xFFFFFFFF) >> b) | (a << (size - b));
-		    return tmp & 0xFFFFFFFF;
-	    case 64:
-		    tmp = ((a & 0xFFFFFFFFFFFFFFFF) >> b) | (a << (size - b));
-		    return tmp & 0xFFFFFFFFFFFFFFFF;
+	b = b & 0x3F;
+	b %= size;
+	switch (size) {
+	case 8:
+		tmp = ((a & 0xFF) >> b) | (a << (size - b));
+		return tmp & 0xff;
+	case 16:
+		tmp = ((a & 0xFFFF) >> b) | (a << (size - b));
+		return tmp & 0xFFFF;
+	case 32:
+		tmp = ((a & 0xFFFFFFFF) >> b) | (a << (size - b));
+		return tmp & 0xFFFFFFFF;
+	case 64:
+		tmp = ((a & 0xFFFFFFFFFFFFFFFF) >> b) | (a << (size - b));
+		return tmp & 0xFFFFFFFFFFFFFFFF;
 
-	    /* Support cases for rcr */
-	    case 9:
-		    tmp = ((a & 0x1FF) >> b) | (a << (size - b));
-		    return tmp & 0x1FF;
-	    case 17:
-		    tmp = ((a & 0x1FFFF) >> b) | (a << (size - b));
-		    return tmp & 0x1FFFF;
-	    case 33:
-		    tmp = ((a & 0x1FFFFFFFF) >> b) | (a << (size - b));
-		    return tmp & 0x1FFFFFFFF;
-	    /* TODO XXX: support rcr in 64 bit mode */
+		/* Support cases for rcr */
+	case 9:
+		tmp = ((a & 0x1FF) >> b) | (a << (size - b));
+		return tmp & 0x1FF;
+	case 17:
+		tmp = ((a & 0x1FFFF) >> b) | (a << (size - b));
+		return tmp & 0x1FFFF;
+	case 33:
+		tmp = ((a & 0x1FFFFFFFF) >> b) | (a << (size - b));
+		return tmp & 0x1FFFFFFFF;
+		/* TODO XXX: support rcr in 64 bit mode */
 
-	    default:
-		    fprintf(stderr, "inv size in rotright %"PRIX64"\n", size);
-		    exit(EXIT_FAILURE);
-    }
+	default:
+		fprintf(stderr, "inv size in rotright %"PRIX64"\n", size);
+		exit(EXIT_FAILURE);
+	}
 }
 
 /*
@@ -259,7 +263,7 @@ uint64_t cntleadzeros(uint64_t size, uint64_t src)
 {
 	int64_t i;
 
-	for (i=(int64_t)size-1; i>=0; i--){
+	for (i=(int64_t)size-1; i>=0; i--) {
 		if (src & (1ull << i))
 			return (uint64_t)(size - (i + 1));
 	}
@@ -277,7 +281,7 @@ uint64_t cntleadzeros(uint64_t size, uint64_t src)
 unsigned int cnttrailzeros(uint64_t size, uint64_t src)
 {
 	uint64_t i;
-	for (i=0; i<size; i++){
+	for (i=0; i<size; i++) {
 		if (src & (1ull << i))
 			return (unsigned int)i;
 	}
@@ -296,17 +300,15 @@ unsigned int my_imul08(unsigned int a, unsigned int b)
 	return (int)a16;
 }
 
-
-
 unsigned int x86_cpuid(unsigned int a, unsigned int reg_num)
 {
-	if (reg_num >3){
+	if (reg_num >3) {
 		fprintf(stderr, "not implemented x86_cpuid reg %x\n", reg_num);
 		exit(EXIT_FAILURE);
 	}
 	// cases are output: EAX: 0; EBX: 1; ECX: 2; EDX: 3
-	if (a == 0){
-		switch(reg_num){
+	if (a == 0) {
+		switch(reg_num) {
 		case 0:
 			return 0xa;
 		// "GenuineIntel"
@@ -319,8 +321,8 @@ unsigned int x86_cpuid(unsigned int a, unsigned int reg_num)
 		}
 	}
 
-	else if (a == 1){
-		switch(reg_num){
+	else if (a == 1) {
+		switch(reg_num) {
 		case 0:
 			// Using a version too high will enable recent
 			// instruction set
@@ -344,8 +346,8 @@ unsigned int x86_cpuid(unsigned int a, unsigned int reg_num)
 		}
 	}
 	// Cache and TLB
-	else if (a == 2){
-		switch(reg_num){
+	else if (a == 2) {
+		switch(reg_num) {
 		case 0:
 			return 0x00000000;
 		case 1:
@@ -357,8 +359,8 @@ unsigned int x86_cpuid(unsigned int a, unsigned int reg_num)
 		}
 	}
 	// Intel thread/core and cache topology
-	else if (a == 4){
-		switch(reg_num){
+	else if (a == 4) {
+		switch(reg_num) {
 		case 0:
 			return 0x00000000;
 		case 1:
@@ -370,8 +372,8 @@ unsigned int x86_cpuid(unsigned int a, unsigned int reg_num)
 		}
 	}
 	// Extended features
-	else if (a == 7){
-		switch(reg_num){
+	else if (a == 7) {
+		switch(reg_num) {
 		case 0:
 			return 0x00000000;
 		case 1:
@@ -381,8 +383,7 @@ unsigned int x86_cpuid(unsigned int a, unsigned int reg_num)
 		case 3:
 			return 0x00000000;
 		}
-	}
-	else{
+	} else {
 		fprintf(stderr, "WARNING not implemented x86_cpuid index %X!\n", a);
 		exit(EXIT_FAILURE);
 	}
