@@ -3,6 +3,7 @@
 #include <Python.h>
 #include <inttypes.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "compat_py23.h"
 
 typedef struct {
@@ -25,7 +26,7 @@ PyObject* gcc_exec_block(PyObject* self, PyObject* args)
 	block_id BlockDst;
 	uint64_t max_exec_per_call = 0;
 	uint64_t cpt;
-	int do_cpt;
+	bool do_cpt;
 
 
 	if (!PyArg_ParseTuple(args, "OOOO|K",
@@ -37,35 +38,32 @@ PyObject* gcc_exec_block(PyObject* self, PyObject* args)
 	Py_INCREF(retaddr);
 
 	if (max_exec_per_call == 0) {
-		do_cpt = 0;
+		do_cpt = false;
 		cpt = 1;
 	} else {
-		do_cpt = 1;
+		do_cpt = true;
 		cpt = max_exec_per_call;
 	}
 
-
-
-	for (;;) {
-		if (cpt == 0)
-			return retaddr;
-		if (do_cpt)
+	while (cpt) {
+		if (do_cpt) {
 			cpt --;
+		}
 		// Init
 		BlockDst.is_local = 0;
 		BlockDst.address = 0;
 
 		// Get the expected jitted function address
 		func_py = PyDict_GetItem(lbl2ptr, retaddr);
-		if (func_py)
+		if (func_py) {
 			func = (jitted_func) PyLong_AsVoidPtr((PyObject*) func_py);
-		else {
+		} else {
 			if (BlockDst.is_local == 1) {
 				fprintf(stderr, "return on local label!\n");
 				exit(EXIT_FAILURE);
 			}
 			// retaddr is not jitted yet
-			return retaddr;
+			break;
 		}
 		// Execute it
 		status = func(&BlockDst, jitcpu);

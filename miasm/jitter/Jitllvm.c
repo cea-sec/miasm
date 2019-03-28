@@ -26,7 +26,7 @@ PyObject* llvm_exec_block(PyObject* self, PyObject* args)
 	PyObject* retaddr = NULL;
 	uint64_t max_exec_per_call = 0;
 	uint64_t cpt;
-	int do_cpt;
+	bool do_cpt;
 
 	if (!PyArg_ParseTuple(args, "OOOO|K",
 			      &retaddr, &jitcpu, &lbl2ptr, &stop_offsets,
@@ -39,27 +39,25 @@ PyObject* llvm_exec_block(PyObject* self, PyObject* args)
 	Py_INCREF(retaddr);
 
 	if (max_exec_per_call == 0) {
-		do_cpt = 0;
+		do_cpt = false;
 		cpt = 1;
 	} else {
-		do_cpt = 1;
+		do_cpt = true;
 		cpt = max_exec_per_call;
 	}
 
-	for (;;) {
-		// Handle cpt
-		if (cpt == 0)
-			return retaddr;
-		if (do_cpt)
+	while (cpt) {
+		if (do_cpt) {
 			cpt --;
-
+		}
 		// Get the expected jitted function address
 		func_py = PyDict_GetItem(lbl2ptr, retaddr);
+		if (!func_py) {
+			break;
+		}
 		if (func_py)
 			func = PyLong_AsVoidPtr((PyObject*) func_py);
 		else
-			// retaddr is not jitted yet
-			return retaddr;
 
 		// Execute it
 		ret = func((void*) jitcpu, (void*)(intptr_t) cpu, (void*)(intptr_t) vm, &status);
@@ -67,13 +65,17 @@ PyObject* llvm_exec_block(PyObject* self, PyObject* args)
 		retaddr = PyLong_FromUnsignedLongLong(ret);
 
 		// Check exception
-		if (status)
-			return retaddr;
+		if (status) {
+			break;
+		}
 
 		// Check stop offsets
-		if (PySet_Contains(stop_offsets, retaddr))
-			return retaddr;
+		if (PySet_Contains(stop_offsets, retaddr)) {
+			break;
+		}
 	}
+	// retaddr is not jitted yet
+	return retaddr;
 }
 
 
