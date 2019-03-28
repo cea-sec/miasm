@@ -1,8 +1,6 @@
 #ifndef __COMPAT_PY23_H__
 #define __COMPAT_PY23_H__
 
-
-
 #if PY_MAJOR_VERSION >= 3
 #define PyGetInt_uint_t(size_type, item, value)				\
 	if (PyLong_Check(item)) {					\
@@ -95,8 +93,6 @@
 
 #endif
 
-
-
 #define PyGetInt_size_t(item, value) PyGetInt_uint_t(size_t, item, value)
 
 #define PyGetInt_uint8_t(item, value) PyGetInt_uint_t(uint8_t, item, value)
@@ -130,9 +126,5 @@
 
 #define RET_MODULE return
 #endif
-
-
-
-
 
 #endif

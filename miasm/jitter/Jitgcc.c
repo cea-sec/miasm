@@ -71,24 +71,23 @@ PyObject* gcc_exec_block(PyObject* self, PyObject* args)
 		retaddr = PyLong_FromUnsignedLongLong(BlockDst.address);
 
 		// Check exception
-		if (status)
-			return retaddr;
+		if (status) {
+			break;
+		}
 
 		// Check stop offsets
-		if (PySet_Contains(stop_offsets, retaddr))
-			return retaddr;
+		if (PySet_Contains(stop_offsets, retaddr)) {
+			break;
+		}
 	}
+	return retaddr;
 }
-
-
 
 static PyMethodDef GccMethods[] = {
     {"gcc_exec_block",  gcc_exec_block, METH_VARARGS,
      "gcc exec block"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
-
-
 
 MOD_INIT(Jitgcc)
 {

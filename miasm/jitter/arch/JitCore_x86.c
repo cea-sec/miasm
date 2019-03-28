@@ -308,7 +308,6 @@ void dump_gpregs_16(struct vm_cpu* vmcpu)
 
 void dump_gpregs_32(struct vm_cpu* vmcpu)
 {
-
 	printf("EAX %.8"PRIX32" EBX %.8"PRIX32" ECX %.8"PRIX32" EDX %.8"PRIX32" ",
 	       (uint32_t)(vmcpu->RAX & 0xFFFFFFFF),
 	       (uint32_t)(vmcpu->RBX & 0xFFFFFFFF),
@@ -331,7 +330,6 @@ void dump_gpregs_32(struct vm_cpu* vmcpu)
 
 void dump_gpregs_64(struct vm_cpu* vmcpu)
 {
-
 	printf("RAX %.16"PRIX64" RBX %.16"PRIX64" RCX %.16"PRIX64" RDX %.16"PRIX64" ",
 	       vmcpu->RAX, vmcpu->RBX, vmcpu->RCX, vmcpu->RDX);
 	printf("RSI %.16"PRIX64" RDI %.16"PRIX64" RSP %.16"PRIX64" RBP %.16"PRIX64" ",
@@ -346,7 +344,6 @@ void dump_gpregs_64(struct vm_cpu* vmcpu)
 
 	printf("zf %.1d nf %.1d of %.1d cf %.1d\n",
 	       vmcpu->zf, vmcpu->nf, vmcpu->of, vmcpu->cf);
-
 }
 
 PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
@@ -358,7 +355,6 @@ PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
 
 PyObject * cpu_dump_gpregs_with_attrib(JitCpu* self, PyObject* args)
 {
@@ -383,8 +379,6 @@ PyObject * cpu_dump_gpregs_with_attrib(JitCpu* self, PyObject* args)
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
-
 
 PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 {
@@ -480,8 +474,6 @@ void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src)
 	vm_MEM_WRITE_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
 }
 
-
-
 PyObject* vm_set_mem(JitCpu *self, PyObject* args)
 {
        PyObject *py_addr;
@@ -576,8 +568,6 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 		return 0;						\
 	}
 
-
-
 #define getset_reg_R_u16(regname)					\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
@@ -593,7 +583,6 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 		self->cpu->R ## regname = val64;			\
 		return 0;						\
 	}
-
 
 getset_reg_u64(RAX);
 getset_reg_u64(RBX);
@@ -781,7 +770,6 @@ PyObject* get_gpreg_offset_all(void)
 
     return dict;
 }
-
 
 static PyGetSetDef JitCpu_getseters[] = {
     {"vmmngr",

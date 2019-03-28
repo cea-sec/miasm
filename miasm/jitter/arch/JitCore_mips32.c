@@ -150,10 +150,8 @@ PyObject * cpu_init_regs(JitCpu* self)
 
 }
 
-
 void dump_gpregs(struct vm_cpu* vmcpu)
 {
-
 	printf("ZR %.8"PRIX32" AT %.8"PRIX32" V0 %.8"PRIX32" V1 %.8"PRIX32" ",
 	       vmcpu->ZERO, vmcpu->AT, vmcpu->V0, vmcpu->V1);
 	printf("A0 %.8"PRIX32" A1 %.8"PRIX32" A2 %.8"PRIX32" A3 %.8"PRIX32" ",
@@ -174,7 +172,6 @@ void dump_gpregs(struct vm_cpu* vmcpu)
 	       vmcpu->PC);
 }
 
-
 PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 {
 	struct vm_cpu* vmcpu;
@@ -184,7 +181,6 @@ PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
 
 PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 {
@@ -206,7 +202,6 @@ PyObject* cpu_get_exception(JitCpu* self, PyObject* args)
 	return PyLong_FromUnsignedLongLong((uint64_t)(((struct vm_cpu*)self->cpu)->exception_flags));
 }
 
-
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
 {
 	vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
@@ -226,7 +221,6 @@ void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src)
 {
 	vm_MEM_WRITE_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
 }
-
 
 PyObject* vm_set_mem(JitCpu *self, PyObject* args)
 {
@@ -478,21 +472,10 @@ static PyTypeObject JitCpuType = {
     JitCpu_new,                /* tp_new */
 };
 
-
-
 static PyMethodDef JitCore_mips32_Methods[] = {
-
-	/*
-
-	*/
 	{"get_gpreg_offset_all", (PyCFunction)get_gpreg_offset_all, METH_NOARGS},
 	{NULL, NULL, 0, NULL}        /* Sentinel */
-
 };
-
-
-
-
 
 MOD_INIT(JitCore_mips32)
 {
@@ -500,15 +483,15 @@ MOD_INIT(JitCore_mips32)
 
 	MOD_DEF(module, "JitCore_mips32", "JitCore_mips32 module", JitCore_mips32_Methods);
 
-	if (module == NULL)
+	if (module == NULL) {
 		RET_MODULE;
-
-	if (PyType_Ready(&JitCpuType) < 0)
+	}
+	if (PyType_Ready(&JitCpuType) < 0) {
 		RET_MODULE;
-
+	}
 	Py_INCREF(&JitCpuType);
-	if (PyModule_AddObject(module, "JitCpu", (PyObject *)&JitCpuType) < 0)
+	if (PyModule_AddObject(module, "JitCpu", (PyObject *)&JitCpuType) < 0) {
 		RET_MODULE;
-
+	}
 	RET_MODULE;
 }

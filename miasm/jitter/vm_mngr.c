@@ -25,15 +25,9 @@
 
 #include "queue.h"
 
-
-
 /****************memory manager**************/
 
-
-
-
 #define MIN(a,b)  (((a)<(b))?(a):(b))
-#define MAX(a,b)  (((a)>(b))?(a):(b))
 
 // #define DEBUG_MIASM_AUTOMOD_CODE
 
@@ -109,11 +103,10 @@ void print_val(uint64_t base, uint64_t addr)
 	fprintf(stderr, "addr 0x%"PRIX64" val 0x%"PRIX64"\n", addr-base, *ptr);
 }
 
-int midpoint(int imin, int imax)
+static int midpoint(int imin, int imax)
 {
 	return (imin + imax) / 2;
 }
-
 
 int find_page_node(struct memory_page_node * array, uint64_t key, int imin, int imax)
 {
@@ -363,7 +356,6 @@ void add_range_to_list(struct memory_access_list * access, uint64_t addr1, uint6
 	memory_access_list_add(access, addr1, addr2);
 }
 
-
 void add_mem_read(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
 {
 	add_range_to_list(&(vm_mngr->memory_r), addr, addr + size);
@@ -402,7 +394,6 @@ void check_invalid_code_blocs(vm_mngr_t* vm_mngr)
 	}
 }
 
-
 void check_memory_breakpoint(vm_mngr_t* vm_mngr)
 {
 	size_t i;
@@ -432,7 +423,6 @@ void check_memory_breakpoint(vm_mngr_t* vm_mngr)
 		}
 	}
 }
-
 
 PyObject* get_memory_pylist(vm_mngr_t* vm_mngr, struct memory_access_list* memory_list)
 {
@@ -512,7 +502,6 @@ uint64_t vm_MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr)
 	return ret;
 }
 
-
 int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, size_t size)
 {
        char* buffer;
@@ -588,8 +577,6 @@ int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, size_t size)
 
        return 0;
 }
-
-
 
 int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, size_t size)
 {
@@ -673,7 +660,6 @@ struct code_bloc_node * create_code_bloc_node(uint64_t ad_start, uint64_t ad_sto
 	return cbp;
 }
 
-
 void add_code_bloc(vm_mngr_t* vm_mngr, struct code_bloc_node* cbp)
 {
 	LIST_INSERT_HEAD(&vm_mngr->code_bloc_pool, cbp, next);
@@ -687,13 +673,12 @@ void dump_code_bloc_pool(vm_mngr_t* vm_mngr)
 {
 	struct code_bloc_node * cbp;
 
-	LIST_FOREACH(cbp, &vm_mngr->code_bloc_pool, next){
+	LIST_FOREACH(cbp, &vm_mngr->code_bloc_pool, next) {
 		printf("ad start %"PRIX64" ad_stop %"PRIX64"\n",
 		       cbp->ad_start,
 		       cbp->ad_stop);
 	}
 }
-
 
 void init_memory_page_pool(vm_mngr_t* vm_mngr)
 {
@@ -733,7 +718,6 @@ void reset_memory_page_pool(vm_mngr_t* vm_mngr)
 	vm_mngr->memory_pages_array = NULL;
 	vm_mngr->memory_pages_number = 0;
 }
-
 
 void reset_code_bloc_pool(vm_mngr_t* vm_mngr)
 {
@@ -814,7 +798,6 @@ void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 		exit(EXIT_FAILURE);
 	}
 
-
 	memmove(&vm_mngr->memory_pages_array[i+1],
 		&vm_mngr->memory_pages_array[i],
 		sizeof(struct memory_page_node) * (vm_mngr->memory_pages_number - i)
@@ -886,7 +869,6 @@ void dump_memory_breakpoint_pool(vm_mngr_t* vm_mngr)
 		       );
 	}
 }
-
 
 void add_memory_breakpoint(vm_mngr_t* vm_mngr, uint64_t ad, uint64_t size, unsigned int access)
 {

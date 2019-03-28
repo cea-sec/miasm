@@ -37,8 +37,6 @@ static bn_t _lshift_word(bn_t a, int nwords);
 static bn_t _rshift_word(bn_t a, int nwords);
 
 
-
-
 /* Public / Exported functions. */
 bn_t bignum_init(void)
 {
@@ -51,7 +49,6 @@ bn_t bignum_init(void)
 
 	return n;
 }
-
 
 bn_t bignum_from_int(DTYPE_TMP i)
 {
@@ -79,8 +76,6 @@ bn_t bignum_from_int(DTYPE_TMP i)
 	return n;
 }
 
-
-
 bn_t bignum_from_uint64(uint64_t i)
 {
 	bn_t n;
@@ -106,13 +101,8 @@ bn_t bignum_from_uint64(uint64_t i)
 	return n;
 }
 
-
-
-
-
 int bignum_to_int(bn_t n)
 {
-
 	int ret = 0;
 
 	/* Endianness issue if machine is not little-endian? */
@@ -127,15 +117,11 @@ int bignum_to_int(bn_t n)
 #elif (WORD_SIZE == 4)
 	ret += n.array[0];
 #endif
-
-
 	return ret;
 }
 
-
 uint64_t bignum_to_uint64(bn_t n)
 {
-
 	uint64_t ret = 0;
 
 	/* Endianness issue if machine is not little-endian? */
@@ -149,8 +135,6 @@ uint64_t bignum_to_uint64(bn_t n)
 	ret += (uint64_t)(n.array[5]) << 40;
 	ret += (uint64_t)(n.array[6]) << 48;
 	ret += (uint64_t)(n.array[7]) << 56;
-
-
 #elif (WORD_SIZE == 2)
 	ret += (uint64_t)(n.array[0]);
 	ret += (uint64_t)(n.array[1]) << 16;
@@ -160,16 +144,11 @@ uint64_t bignum_to_uint64(bn_t n)
 	ret += n.array[0];
 	ret += (uint64_t)(n.array[1]) << 32;
 #endif
-
 	return ret;
 }
 
-
-
-
 bn_t bignum_from_string(char* str, int nbytes)
 {
-
 	require(str, "str is null");
 	require(nbytes > 0, "nbytes must be positive");
 	require((nbytes & 1) == 0, "string format must be in hex -> equal number of bytes");
@@ -215,8 +194,6 @@ void bignum_to_string(bn_t n, char* str, int nbytes)
 	str[i] = 0;
 }
 
-
-
 bn_t bignum_dec(bn_t n)
 {
 	//require(n, "n is null");
@@ -237,7 +214,6 @@ bn_t bignum_dec(bn_t n)
 
 	return n;
 }
-
 
 bn_t bignum_inc(bn_t n)
 {
@@ -260,8 +236,6 @@ bn_t bignum_inc(bn_t n)
 	return n;
 }
 
-
-
 bn_t bignum_add(bn_t a, bn_t b)
 {
 	//require(a, "a is null");
@@ -280,7 +254,6 @@ bn_t bignum_add(bn_t a, bn_t b)
 
 	return c;
 }
-
 
 bn_t bignum_sub(bn_t a, bn_t b)
 {
@@ -304,9 +277,6 @@ bn_t bignum_sub(bn_t a, bn_t b)
 
 	return c;
 }
-
-
-
 
 bn_t bignum_mul(bn_t a, bn_t b)
 {
@@ -338,7 +308,6 @@ bn_t bignum_mul(bn_t a, bn_t b)
 
 	return c;
 }
-
 
 bn_t bignum_udiv(bn_t a, bn_t b)
 {
@@ -384,8 +353,6 @@ bn_t bignum_udiv(bn_t a, bn_t b)
 	return c;
 }
 
-
-
 bn_t bignum_lshift(bn_t a, int nbits)
 {
 	//require(a, "a is null");
@@ -414,7 +381,6 @@ bn_t bignum_lshift(bn_t a, int nbits)
 	return b;
 }
 
-
 bn_t bignum_rshift(bn_t a, int nbits)
 {
 	//require(a, "a is null");
@@ -442,8 +408,6 @@ bn_t bignum_rshift(bn_t a, int nbits)
 
 	return b;
 }
-
-
 
 bn_t bignum_a_rshift(bn_t a, int size, int nbits)
 {
@@ -490,8 +454,6 @@ bn_t bignum_not(bn_t a)
 	return b;
 }
 
-
-
 bn_t bignum_umod(bn_t a, bn_t b)
 {
 	/*
@@ -513,7 +475,6 @@ bn_t bignum_umod(bn_t a, bn_t b)
 	return d;
 }
 
-
 bn_t bignum_and(bn_t a, bn_t b)
 {
 	//require(a, "a is null");
@@ -529,7 +490,6 @@ bn_t bignum_and(bn_t a, bn_t b)
 	return c;
 }
 
-
 bn_t bignum_or(bn_t a, bn_t b)
 {
 	//require(a, "a is null");
@@ -544,7 +504,6 @@ bn_t bignum_or(bn_t a, bn_t b)
 	return c;
 }
 
-
 bn_t bignum_xor(bn_t a, bn_t b)
 {
 	//require(a, "a is null");
@@ -558,7 +517,6 @@ bn_t bignum_xor(bn_t a, bn_t b)
 	}
 	return c;
 }
-
 
 int bignum_cmp(bn_t a, bn_t b)
 {
@@ -667,7 +625,6 @@ bn_t bignum_assign(bn_t src)
 	return dst;
 }
 
-
 bn_t bignum_mask(bn_t src, int bits)
 {
 	bn_t dst;
@@ -707,7 +664,6 @@ static bn_t _rshift_word(bn_t a, int nwords)
 	return a;
 }
 
-
 static bn_t _lshift_word(bn_t a, int nwords)
 {
 	//require(a, "a is null");
@@ -734,7 +690,6 @@ static bn_t _lshift_word(bn_t a, int nwords)
 	return a;
 }
 
-
 static bn_t _lshift_one_bit(bn_t a)
 {
 	//require(a, "a is null");
@@ -747,7 +702,6 @@ static bn_t _lshift_one_bit(bn_t a)
 
 	return a;
 }
-
 
 static bn_t _rshift_one_bit(bn_t a)
 {
@@ -762,7 +716,6 @@ static bn_t _rshift_one_bit(bn_t a)
 	return a;
 }
 
-
 bn_t bignum_rol(bn_t a, int size, int nbits)
 {
 	bn_t c;
@@ -774,7 +727,6 @@ bn_t bignum_rol(bn_t a, int size, int nbits)
 	c = bignum_mask(c, size);
 	return c;
 }
-
 
 bn_t bignum_ror(bn_t a, int size, int nbits)
 {
@@ -801,8 +753,6 @@ int bignum_getbit(bn_t a, int pos)
 
 }
 
-
-
 /*
  * Count leading zeros - count the number of zero starting at the most
  * significant bit
@@ -826,8 +776,6 @@ int bignum_cntleadzeros(bn_t n, int size)
 	return i;
 }
 
-
-
 /*
  * Count trailing zeros - count the number of zero starting at the least
  * significant bit
@@ -850,9 +798,6 @@ int bignum_cnttrailzeros(bn_t n, int size)
 
 	return i;
 }
-
-
-
 
 bn_t bignum_sdiv(bn_t a, bn_t b, int size)
 {
@@ -887,8 +832,6 @@ bn_t bignum_sdiv(bn_t a, bn_t b, int size)
 	c = bignum_mask(c, size);
 	return c;
 }
-
-
 
 bn_t bignum_smod(bn_t a, bn_t b, int size)
 {

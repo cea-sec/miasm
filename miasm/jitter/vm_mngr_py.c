@@ -70,8 +70,6 @@ PyObject* set_alarm(VmMngr* self)
 	return Py_None;
 }
 
-
-
 PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 {
 	PyObject *addr;
@@ -126,8 +124,6 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
-
 
 PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 {
@@ -497,7 +493,6 @@ PyObject* vm_add_memory_breakpoint(VmMngr* self, PyObject* args)
 	return Py_None;
 }
 
-
 PyObject* vm_remove_memory_breakpoint(VmMngr* self, PyObject* args)
 {
 	PyObject *ad;
@@ -515,7 +510,6 @@ PyObject* vm_remove_memory_breakpoint(VmMngr* self, PyObject* args)
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
 
 PyObject* vm_set_exception(VmMngr* self, PyObject* args)
 {
@@ -646,7 +640,6 @@ PyObject* vm_dump_memory_breakpoint(VmMngr* self, PyObject* args)
 	return Py_None;
 }
 
-
 PyObject* vm_get_all_memory(VmMngr* self, PyObject* args)
 {
 	PyObject *o;
@@ -655,13 +648,12 @@ PyObject* vm_get_all_memory(VmMngr* self, PyObject* args)
 	PyObject *dict2;
 	int i;
 
-
-	dict =  PyDict_New();
+	dict = PyDict_New();
 
 	for (i=0;i<self->vm_mngr.memory_pages_number; i++) {
 		mpn = &self->vm_mngr.memory_pages_array[i];
 
-		dict2 =  PyDict_New();
+		dict2 = PyDict_New();
 
 		o = PyBytes_FromStringAndSize(mpn->ad_hp, mpn->size);
 		PyDict_SetItemString(dict2, "data", o);
@@ -683,23 +675,19 @@ PyObject* vm_get_all_memory(VmMngr* self, PyObject* args)
 	return dict;
 }
 
-
 PyObject* vm_reset_memory_page_pool(VmMngr* self, PyObject* args)
 {
-    reset_memory_page_pool(&self->vm_mngr);
-    Py_INCREF(Py_None);
-    return Py_None;
-
+	reset_memory_page_pool(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_reset_code_bloc_pool(VmMngr* self, PyObject* args)
 {
-    reset_code_bloc_pool(&self->vm_mngr);
-    Py_INCREF(Py_None);
-    return Py_None;
-
+	reset_code_bloc_pool(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
-
 
 PyObject* vm_add_code_bloc(VmMngr *self, PyObject *args)
 {
@@ -768,12 +756,10 @@ PyObject* vm_get_memory_write(VmMngr* self, PyObject* args)
 	return result;
 }
 
-
-
 static PyObject *
 vm_set_big_endian(VmMngr *self, PyObject *value, void *closure)
 {
-	self->vm_mngr.sex   = __BIG_ENDIAN;
+	self->vm_mngr.sex = __BIG_ENDIAN;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -781,11 +767,10 @@ vm_set_big_endian(VmMngr *self, PyObject *value, void *closure)
 static PyObject *
 vm_set_little_endian(VmMngr *self, PyObject *value, void *closure)
 {
-	self->vm_mngr.sex   = __LITTLE_ENDIAN;
+	self->vm_mngr.sex = __LITTLE_ENDIAN;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
 
 static PyObject *
 vm_is_little_endian(VmMngr *self, PyObject *value, void *closure)

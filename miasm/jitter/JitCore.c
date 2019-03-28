@@ -98,7 +98,6 @@ bn_t MEM_LOOKUP_BN_BN(JitCpu* jitcpu, int size, bn_t addr)
 	return val;
 }
 
-
 uint64_t MEM_LOOKUP_BN_INT(JitCpu* jitcpu, int size, bn_t addr)
 {
 	uint64_t ptr;
@@ -145,7 +144,6 @@ bn_t MEM_LOOKUP_INT_BN(JitCpu* jitcpu, int size, uint64_t addr)
 	return val;
 }
 
-
 void MEM_LOOKUP_INT_BN_TO_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr)
 {
 	bn_t ret;
@@ -158,7 +156,6 @@ void MEM_LOOKUP_INT_BN_TO_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr
 	ret = MEM_LOOKUP_INT_BN(jitcpu, size, addr);
 	memcpy(ptr, (char*)&ret, size / 8);
 }
-
 
 void MEM_WRITE_BN_BN(JitCpu* jitcpu, int size, bn_t addr, bn_t src)
 {
@@ -214,7 +211,6 @@ void MEM_WRITE_INT_BN(JitCpu* jitcpu, int size, uint64_t addr, bn_t src)
 	}
 }
 
-
 void MEM_WRITE_INT_BN_FROM_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr)
 {
 	bn_t val;
@@ -228,8 +224,6 @@ void MEM_WRITE_INT_BN_FROM_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* pt
 	memcpy(&val, ptr, size / 8);
 	MEM_WRITE_INT_BN(jitcpu, size, addr, val);
 }
-
-
 
 PyObject* vm_get_mem(JitCpu *self, PyObject* args)
 {
@@ -248,7 +242,6 @@ PyObject* vm_get_mem(JitCpu *self, PyObject* args)
 
        PyGetInt_uint64_t(py_addr, addr);
        PyGetInt_uint64_t(py_len, size);
-
 
        if (size > SSIZE_MAX) {
 	       fprintf(stderr, "Read size wider than supported system\n");
