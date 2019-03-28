@@ -214,6 +214,53 @@ class ContainerELF(Container):
             fill_loc_db_with_symbols(self._executable, self.loc_db, addr)
 
 
+class ContainerWasm(Container):
+    "Container abstraction for ELF"
+
+    def parse(self, data, vm=None, addr=0, apply_reloc=False, **kwargs):
+        """Load a wasm from @data
+        @data: bytes containing the wasm bytes bytes
+        """
+        #from miasm.jitter.loader.elf import vm_load_elf, guess_arch, \
+        #    fill_loc_db_with_symbols
+        from miasm.loader import wasm_init
+        
+        self._executable = wasm_init.Wasm(data)
+
+        # Parse signature
+        #if not data.startswith(b'\x7fELF'):
+        #    raise ContainerSignatureException()
+
+        # Build executable instance
+        # try:
+        #     if vm is not None:
+        #         self._executable = vm_load_elf(
+        #             vm,
+        #             data,
+        #             loc_db=self.loc_db,
+        #             base_addr=addr,
+        #             apply_reloc=apply_reloc
+        #         )
+        #     else:
+        #         self._executable = elf_init.ELF(data)
+        # except Exception as error:
+        #     raise ContainerParsingException('Cannot read ELF: %s' % error)
+
+        # Set the architecture
+        self._arch = 'wasm'
+
+        # Build the bin_stream instance and set the entry point
+        try:
+            #self._bin_stream = bin_stream_wasm(self._executable)
+            self._entry_point = self._executable.content.entry
+        except Exception as error:
+            self._entry_point = None
+            #raise ContainerParsingException('Cannot read ELF: %s' % error)
+
+        #if vm is None:
+        #    # Add known symbols (vm_load_elf already does it)
+        #    fill_loc_db_with_symbols(self._executable, self.loc_db, addr)
+
 
 class ContainerUnknown(Container):
     "Container abstraction for unknown format"
@@ -233,4 +280,5 @@ class ContainerUnknown(Container):
 ## Register containers
 Container.register_container(ContainerPE)
 Container.register_container(ContainerELF)
+Container.register_container(ContainerWasm)
 Container.register_fallback(ContainerUnknown)

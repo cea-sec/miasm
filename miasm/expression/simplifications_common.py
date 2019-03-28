@@ -115,6 +115,14 @@ def simp_cst_propagation(e_s, expr):
             i -= 1
         return ExprInt(expr.size - (i + 1), args[0].size)
 
+    # cntones(int) => int
+    if op_name == "cntones" and args[0].is_int():
+        cnt = 0
+        for i in range(args[0].size):
+            if args[0].arg & (1 << i) != 0:
+                cnt += 1
+        return ExprInt(cnt, args[0].size)
+
     # -(-(A)) => A
     if (op_name == '-' and len(args) == 1 and args[0].is_op('-') and
         len(args[0].args) == 1):

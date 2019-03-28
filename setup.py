@@ -31,6 +31,7 @@ def buil_all():
         "miasm/arch/sh4",
         "miasm/arch/mips32",
         "miasm/arch/ppc",
+        "miasm/arch/wasm",
         "miasm/core",
         "miasm/expression",
         "miasm/ir",
