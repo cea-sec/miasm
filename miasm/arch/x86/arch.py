@@ -3212,6 +3212,14 @@ class bs_mem(object):
         self.value = v
         return v != 0b11
 
+class bs_reg(object):
+    def encode(self):
+        return self.value == 0b11
+
+    def decode(self, v):
+        self.value = v
+        return v == 0b11
+
 d_imm64 = bs(l=0, fname="imm64")
 
 d_eax = bs(l=0, cls=(bs_eax, ), fname='eax')
@@ -3239,6 +3247,7 @@ msegoff = bs(l=16, cls=(bs_msegoff,), fname="mseg")
 movoff = bs(l=0, cls=(bs_movoff,), fname="off")
 mod = bs(l=2, fname="mod")
 mod_mem = bs(l=2, cls=(bs_mem,), fname="mod")
+mod_reg = bs(l=2, cls=(bs_reg,), fname="mod")
 
 rmreg = bs(l=3, cls=(x86_rm_reg, ), order =1, fname = "reg")
 reg = bs(l=3, cls=(x86_reg, ), order =1, fname = "reg")
@@ -4621,7 +4630,7 @@ addop("maskmovdqu", [bs8(0x0f), bs8(0xf7), pref_66] +
 addop("emms", [bs8(0x0f), bs8(0x77)])
 
 addop("incssp", [pref_f3, bs8(0x0f), bs8(0xae)] + rmmod(d5))
-addop("rdssp", [pref_f3, bs8(0x0f), bs8(0x1e)] + rmmod(d1))
+addop("rdssp", [pref_f3, bs8(0x0f), bs8(0x1e)] + rmmod(d1, modrm=mod_reg))
 addop("saveprevssp", [pref_f3, bs8(0x0f), bs8(0x01), bs8(0xea)])
 addop("rstorssp", [pref_f3, bs8(0x0f), bs8(0x01)] + rmmod(d5, rm_arg_xmm, modrm=mod_mem))
 addop("wrss", [bs8(0x0f), bs8(0x38), bs8(0xf6)] + rmmod(rmreg, rm_arg), [rm_arg, rmreg])
