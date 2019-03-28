@@ -5,7 +5,7 @@
 from future.utils import viewitems
 
 from miasm.expression.modint import mod_size2int, mod_size2uint
-from miasm.expression.expression import ExprInt, ExprSlice, ExprMem, \
+from miasm.expression.expression import ExprId, ExprInt, ExprSlice, ExprMem, \
     ExprCond, ExprOp, ExprCompose, TOK_INF_SIGNED, TOK_INF_UNSIGNED, \
     TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED, TOK_EQUAL
 from miasm.expression.expression_helper import parity, op_propag_cst, \
@@ -1556,9 +1556,9 @@ def simp_add_multiple(_, expr):
 
 def simp_compose_and_mask(_, expr):
     """
-    {X 0 8, Y 8 16} & 0xFF => X
-    {X 0 32} & 0xFFFF => X[0:16]
-    {X 0 8, Y 8 24, Z 24 32} & 0xFFFFFF => X|Y
+    {X 0 8, Y 8 32} & 0xFF => zeroExt(X)
+    {X 0 8, Y 8 16, Z 16 32} & 0xFFFF => {X 0 8, Y 8 16, 0x0 16 32}
+    {X 0 8, 0x123456 8 32} & 0xFFFFFF => {X 0 8, 0x1234 8 24, 0x0 24 32}
     """
     if not expr.is_op('&'):
         return expr
@@ -1570,8 +1570,10 @@ def simp_compose_and_mask(_, expr):
         return expr
     if not arg2.is_int():
         return expr
-    int2 = arg2.arg
+    int2 = int(arg2)
     if (int2 + 1) & int2 != 0:
         return expr
-    mask_size = int2.arg.bit_length() + 7 // 8
+    mask_size = int2.bit_length() + 7 // 8
+    if not mask_size in [arg[0] for arg in ExprCompose(ExprId("a", 8), ExprInt(0x1234, 16), ExprId("b", 8)).iter_args()]:
+        return expr
     return ExprSlice(arg1, 0, mask_size).zeroExtend(expr.size)
