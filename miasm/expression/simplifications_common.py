@@ -607,7 +607,6 @@ def simp_compose(e_s, expr):
         return ExprCond(cond, arg1, arg2)
     return ExprCompose(*args)
 
-
 def simp_cond(_, expr):
     """
     Common simplifications on ExprCond.
@@ -1554,3 +1553,34 @@ def simp_add_multiple(_, expr):
     if len(out) == 1:
         return out[0]
     return ExprOp('+', *out)
+
+def simp_compose_and_mask(_, expr):
+    """
+    {X 0 8, Y 8 32} & 0xFF => zeroExt(X)
+    {X 0 8, Y 8 16, Z 16 32} & 0xFFFF => {X 0 8, Y 8 16, 0x0 16 32}
+    {X 0 8, 0x123456 8 32} & 0xFFFFFF => {X 0 8, 0x1234 8 24, 0x0 24 32}
+    """
+    if not expr.is_op('&'):
+        return expr
+    # handle the case where arg2 = arg1.mask
+    if len(expr.args) != 2:
+        return expr
+    arg1, arg2 = expr.args
+    if not arg1.is_compose():
+        return expr
+    if not arg2.is_int():
+        return expr
+    int2 = int(arg2)
+    if (int2 + 1) & int2 != 0:
+        return expr
+    mask_size = int2.bit_length() + 7 // 8
+    out = []
+    for offset, arg in arg1.iter_args():
+        if offset == mask_size:
+            return ExprCompose(*out).zeroExtend(expr.size)
+        elif mask_size > offset and mask_size < offset+arg.size and arg.is_int():
+            out.append(ExprSlice(arg, 0, mask_size-offset))
+            return ExprCompose(*out).zeroExtend(expr.size)
+        else:
+            out.append(arg)
+    return expr

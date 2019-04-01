@@ -58,7 +58,7 @@ class ExpressionSimplifier(object):
             simplifications_common.simp_test_signext_inf,
             simplifications_common.simp_test_zeroext_inf,
             simplifications_common.simp_cond_inf_eq_unsigned_zero,
-
+            simplifications_common.simp_compose_and_mask,
         ],
 
         m2_expr.ExprSlice: [
