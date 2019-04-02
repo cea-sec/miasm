@@ -111,7 +111,7 @@ class Z3MemStateful(object):
 
     The structure of that class is adapted/based on class "Z3Mem" from
     miasm2/ir/translators/z3_ir.py.
-    Especially the structure (or methods) of endianess (is_little_endian, is_big_endian), alignment and
+    Especially the structure (or methods) of endianness (is_little_endian, is_big_endian), alignment and
     read access (Z3Mem.get) are used.
     """
 
