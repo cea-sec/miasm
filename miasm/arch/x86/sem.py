@@ -4981,6 +4981,38 @@ def emms(ir, instr):
     # Implemented as a NOP
     return [], []
 
+def incssp(ir, instr, dst):
+    # Implemented as a NOP
+    return [], []
+
+def rdssp(ir, instr, dst):
+    # Implemented as a NOP
+    return [], []
+
+def saveprevssp(ir, instr):
+    # Implemented as a NOP
+    return [], []
+
+def rstorssp(ir, instr, dst):
+    # Implemented as a NOP
+    return [], []
+
+def wrss(ir, instr, src, dst):
+    # Implemented as a NOP
+    return [], []
+
+def wruss(ir, instr, src, dst):
+    # Implemented as a NOP
+    return [], []
+
+def setssbsy(ir, instr):
+    # Implemented as a NOP
+    return [], []
+
+def clrssbsy(ir, instr, dst):
+    # Implemented as a NOP
+    return [], []
+
 def endbr64(ir, instr):
     # Implemented as a NOP
     return [], []
@@ -5635,6 +5667,16 @@ mnemo_func = {'mov': mov,
               "movmskpd": movmskpd,
               "stmxcsr": stmxcsr,
               "ldmxcsr": ldmxcsr,
+
+              # CET (Control-flow Enforcement Technology)
+              "incssp": incssp,
+              "rdssp": rdssp,
+              "saveprevssp": saveprevssp,
+              "rstorssp": rstorssp,
+              "wrss": wrss,
+              "wruss": wruss,
+              "setssbsy": setssbsy,
+              "clrssbsy": clrssbsy,
               "endbr64": endbr64,
               "endbr32": endbr32,
               }
