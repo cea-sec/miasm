@@ -78,7 +78,7 @@ elf_phdr_header = next(
 # Prepare the desired environment
 argv = [args.target.encode()] + [arg.encode() for arg in args.extra_args]
 if args.flags:
-    argv += ["-%s" % args.flags]
+    argv += [("-%s" % args.flags).encode()]
 envp = {b"PATH": b"/usr/local/bin", b"USER": linux_env.user_name}
 auxv = environment.AuxVec(
     elf_base_addr + elf_phdr_header.vaddr,
