@@ -457,6 +457,7 @@ for i, test_args in enumerate(test_args):
 for script in ["jitload.py",
                "vm_mngr.py",
                "jit_options.py",
+               "jitcore.py",
                "test_post_instr.py",
                "bad_block.py",
                "jmp_out_mem.py",
