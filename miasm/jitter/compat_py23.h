@@ -1,6 +1,8 @@
 #ifndef __COMPAT_PY23_H__
 #define __COMPAT_PY23_H__
 
+
+
 #if PY_MAJOR_VERSION >= 3
 #include "bn.h"
 #define PyGetInt_uint_t(size_type, item, value)				\
@@ -34,17 +36,15 @@
 			Py_DECREF(py_tmp);				\
 			bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp), 8 * j)); \
 		}							\
-		tmp = bignum_to_uint64(bn);				\
 									\
-		if (neg) {						\
-			if ( tmp > (size_type) -1) {                \
-				RAISE(PyExc_TypeError, "Arg too big for " #size_type ""); \
-			} 						\
-			tmp = (1<<(sizeof(size_type)*8))-tmp; 		\
-		}							\
-		else if ( tmp > (size_type) -1) {                       \
+		bn_t mask_bn = bignum_lshift(bignum_from_int(1), sizeof(size_type)*8); \
+		if (bignum_is_inf_unsigned(mask_bn, bn)) {		\
 			RAISE(PyExc_TypeError, "Arg too big for " #size_type ""); \
+		}	 						\
+		if (neg) {						\
+			bn = bignum_sub(mask_bn, bn);			\
 		}							\
+		tmp = bignum_to_uint64(bn);				\
 		value = (size_type) tmp;				\
 	}								\
 	else{								\
@@ -83,19 +83,16 @@
 			Py_DECREF(py_tmp);				\
 			bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp), 8 * j)); \
 		}							\
-		tmp = bignum_to_uint64(bn);				\
 									\
-		if (neg) {						\
-			if ( tmp > (size_type) -1) {                \
-				PyErr_SetString(PyExc_TypeError, "Arg too big for " #size_type ""); \
-				return -1; 				\
-			} 						\
-			tmp = (1<<(sizeof(size_type)*8))-tmp; 		\
-		}							\
-		else if ( tmp > (size_type) -1) {                       \
+		bn_t mask_bn = bignum_lshift(bignum_from_int(1), sizeof(size_type)*8); \
+		if (bignum_is_inf_unsigned(mask_bn, bn)) {		\
 			PyErr_SetString(PyExc_TypeError, "Arg too big for " #size_type ""); \
-			return -1; 					\
+			return -1;					\
+		}	 						\
+		if (neg) {						\
+			bn = bignum_sub(mask_bn, bn);			\
 		}							\
+		tmp = bignum_to_uint64(bn);				\
 		value = (size_type) tmp;				\
 	}								\
 	else{								\
