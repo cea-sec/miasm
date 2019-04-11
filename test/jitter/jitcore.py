@@ -24,7 +24,14 @@ try:
 except TypeError as te:
         pass
 else:
-        raise Exception("Should see that 0x1ffffffffffffffff is to big for RAX")
+        raise Exception("Should see that 0x1ffffffffffffffff is too big for RAX")
+
+try:
+        jitter.cpu.RAX = 0x10000000000000000
+except TypeError as te:
+        pass
+else:
+        raise Exception("Should see that 0x10000000000000000 is too big for RAX")
 
 jitter.cpu.EAX = -0xefffffff
 assert jitter.cpu.EAX == 0x10000001
@@ -37,4 +44,4 @@ try:
 except TypeError as te:
         pass
 else:
-        raise Exception("Should see that -0x1ffffffff is to big for EAX")
+        raise Exception("Should see that -0x1ffffffff is too big for EAX")

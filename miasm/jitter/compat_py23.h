@@ -2,14 +2,14 @@
 #define __COMPAT_PY23_H__
 
 
-
-#if PY_MAJOR_VERSION >= 3
 #include "bn.h"
+#if PY_MAJOR_VERSION >= 3
 #define PyGetInt_uint_t(size_type, item, value)				\
 	if (PyLong_Check(item)) {					\
+		Py_INCREF(item);					\
+		PyObject* py_long = item;				\
 		bn_t bn;						\
 		int j;							\
-		PyObject* py_long = item;				\
 		PyObject* py_long_new;					\
 		PyObject* py_tmp;					\
 		PyObject* cst_32;					\
@@ -37,8 +37,12 @@
 			bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp), 8 * j)); \
 		}							\
 									\
+		Py_DECREF(py_long);					\
+		Py_DECREF(cst_32);					\
+		Py_DECREF(cst_ffffffff);				\
+									\
 		bn_t mask_bn = bignum_lshift(bignum_from_int(1), sizeof(size_type)*8); \
-		if (bignum_is_inf_unsigned(mask_bn, bn)) {		\
+		if (bignum_is_inf_equal_unsigned(mask_bn, bn)) {		\
 			RAISE(PyExc_TypeError, "Arg too big for " #size_type ""); \
 		}	 						\
 		if (neg) {						\
@@ -54,9 +58,10 @@
 
 #define PyGetInt_uint_t_retneg(size_type, item, value)			\
 	if (PyLong_Check(item)) {					\
+		Py_INCREF(item);					\
+		PyObject* py_long = item;				\
 		bn_t bn;						\
 		int j;							\
-		PyObject* py_long = item;				\
 		PyObject* py_long_new;					\
 		PyObject* py_tmp;					\
 		PyObject* cst_32;					\
@@ -84,8 +89,12 @@
 			bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp), 8 * j)); \
 		}							\
 									\
+		Py_DECREF(py_long);					\
+		Py_DECREF(cst_32);					\
+		Py_DECREF(cst_ffffffff);				\
+									\
 		bn_t mask_bn = bignum_lshift(bignum_from_int(1), sizeof(size_type)*8); \
-		if (bignum_is_inf_unsigned(mask_bn, bn)) {		\
+		if (bignum_is_inf_equal_unsigned(mask_bn, bn)) {		\
 			PyErr_SetString(PyExc_TypeError, "Arg too big for " #size_type ""); \
 			return -1;					\
 		}	 						\
@@ -112,17 +121,61 @@
 	if (PyInt_Check(item)) {					\
 		long tmp;						\
 		tmp = PyInt_AsLong(item);				\
-		if ( tmp > (size_type) -1) {				\
+									\
+		if (Py_SIZE(item) < 0) {				\
+			if (-tmp > ((size_type) -1)) {			\
+				RAISE(PyExc_TypeError, "Arg too big for " #size_type ""); \
+			}						\
+		}							\
+		else if (tmp > (size_type) -1) {			\
 			RAISE(PyExc_TypeError, "Arg too big for " #size_type ""); \
 		}							\
 		value = (size_type) tmp;				\
 	}								\
 	else if (PyLong_Check(item)){					\
-		unsigned long long tmp;					\
-		tmp = PyLong_AsUnsignedLongLong(item);			\
-		if ( tmp > (size_type) -1) {				\
-			RAISE(PyExc_TypeError, "Arg too big for " #size_type ""); \
+		Py_INCREF(item);					\
+		PyObject* py_long = item;				\
+		bn_t bn;						\
+		int j;							\
+		PyObject* py_long_new;					\
+		PyObject* py_tmp;					\
+		PyObject* cst_32;					\
+		PyObject* cst_ffffffff;					\
+		uint64_t tmp;						\
+		cst_ffffffff = PyLong_FromLong(0xffffffff);		\
+		cst_32 = PyLong_FromLong(32);				\
+		bn = bignum_from_int(0);				\
+		int neg = 0;    					\
+									\
+		if (Py_SIZE(py_long) < 0) {				\
+			neg = 1;					\
+			py_long_new = PyObject_CallMethod(py_long, "__neg__", NULL); \
+			Py_DECREF(py_long);				\
+			py_long = py_long_new;				\
 		}							\
+									\
+		for (j = 0; j < BN_BYTE_SIZE; j += 4) {			\
+			py_tmp = PyObject_CallMethod(py_long, "__and__", "O", cst_ffffffff); \
+			py_long_new = PyObject_CallMethod(py_long, "__rshift__", "O", cst_32); \
+			Py_DECREF(py_long);				\
+			py_long = py_long_new;				\
+			tmp = PyLong_AsUnsignedLongLongMask(py_tmp);	\
+			Py_DECREF(py_tmp);				\
+			bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp), 8 * j)); \
+		}							\
+									\
+		Py_DECREF(py_long);					\
+		Py_DECREF(cst_32);					\
+		Py_DECREF(cst_ffffffff);				\
+									\
+		bn_t mask_bn = bignum_lshift(bignum_from_int(1), sizeof(size_type)*8); \
+		if (bignum_is_inf_equal_unsigned(mask_bn, bn)) {		\
+			RAISE(PyExc_TypeError, "Arg too big for " #size_type ""); \
+		}	 						\
+		if (neg) {						\
+			bn = bignum_sub(mask_bn, bn);			\
+		}							\
+		tmp = bignum_to_uint64(bn);				\
 		value = (size_type) tmp;				\
 	}								\
 	else{								\
@@ -133,20 +186,65 @@
 #define PyGetInt_uint_t_retneg(size_type, item, value)			\
 	if (PyInt_Check(item)) {					\
 		long tmp;						\
-		tmp = PyLong_AsLong(item);				\
-		if ( tmp > (size_type) -1) {				\
+		tmp = PyInt_AsLong(item);				\
+									\
+		if (Py_SIZE(item) < 0) {				\
+			if (-tmp > ((size_type) -1)) {			\
+				PyErr_SetString(PyExc_TypeError, "Arg too big for " #size_type ""); \
+				return -1;				\
+			}						\
+		}							\
+		else if (tmp > (size_type) -1) {			\
 			PyErr_SetString(PyExc_TypeError, "Arg too big for " #size_type ""); \
 			return -1;					\
 		}							\
 		value = (size_type) tmp;				\
 	}								\
 	else if (PyLong_Check(item)){					\
-		unsigned long long tmp;					\
-		tmp = PyLong_AsUnsignedLongLong(item);			\
-		if ( tmp > (size_type) -1) {				\
+		Py_INCREF(item);					\
+		PyObject* py_long = item;				\
+		bn_t bn;						\
+		int j;							\
+		PyObject* py_long_new;					\
+		PyObject* py_tmp;					\
+		PyObject* cst_32;					\
+		PyObject* cst_ffffffff;					\
+		uint64_t tmp;						\
+		cst_ffffffff = PyLong_FromLong(0xffffffff);		\
+		cst_32 = PyLong_FromLong(32);				\
+		bn = bignum_from_int(0);				\
+		int neg = 0;    					\
+									\
+		if (Py_SIZE(py_long) < 0) {				\
+			neg = 1;					\
+			py_long_new = PyObject_CallMethod(py_long, "__neg__", NULL); \
+			Py_DECREF(py_long);				\
+			py_long = py_long_new;				\
+		}							\
+									\
+		for (j = 0; j < BN_BYTE_SIZE; j += 4) {			\
+			py_tmp = PyObject_CallMethod(py_long, "__and__", "O", cst_ffffffff); \
+			py_long_new = PyObject_CallMethod(py_long, "__rshift__", "O", cst_32); \
+			Py_DECREF(py_long);				\
+			py_long = py_long_new;				\
+			tmp = PyLong_AsUnsignedLongLongMask(py_tmp);	\
+			Py_DECREF(py_tmp);				\
+			bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp), 8 * j)); \
+		}							\
+									\
+		Py_DECREF(py_long);					\
+		Py_DECREF(cst_32);					\
+		Py_DECREF(cst_ffffffff);				\
+									\
+		bn_t mask_bn = bignum_lshift(bignum_from_int(1), sizeof(size_type)*8); \
+		if (bignum_is_inf_equal_unsigned(mask_bn, bn)) {	\
 			PyErr_SetString(PyExc_TypeError, "Arg too big for " #size_type ""); \
 			return -1;					\
+		}	 						\
+		if (neg) {						\
+			bn = bignum_sub(mask_bn, bn);			\
 		}							\
+		tmp = bignum_to_uint64(bn);				\
 		value = (size_type) tmp;				\
 	}								\
 	else{								\
