@@ -1,7 +1,9 @@
 from __future__ import print_function
 from collections import namedtuple
 import functools
+import logging
 import os
+import re
 import struct
 import termios
 
@@ -10,6 +12,8 @@ from future.utils import viewitems
 from miasm.core.interval import interval
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
+
+REGEXP_T = type(re.compile(''))
 
 StatInfo = namedtuple("StatInfo", [
     "st_dev", "st_ino", "st_nlink", "st_mode", "st_uid", "st_gid", "st_rdev",
@@ -21,6 +25,11 @@ StatFSInfo = namedtuple("StatFSInfo", [
     "f_ffree", "f_fsid", "f_namelen", "f_frsize", "f_flags", "f_spare",
 ])
 
+log = logging.getLogger("environment")
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+log.addHandler(console_handler)
+log.setLevel(logging.WARNING)
 
 class FileDescriptor(object):
     """Stand for a file descriptor on a system
@@ -206,24 +215,73 @@ class FileSystem(object):
 
     def resolve_path(self, path, follow_link=True):
         """Resolve @path to the corresponding sandboxed path"""
+
+        # path_bytes is used for Python 2 / Python 3 compatibility
+        path_bytes = not isinstance(path, str)
+        path_sep = os.path.sep.encode() if path_bytes else os.path.sep
+
+        if path_bytes:
+            def _convert(subpath):
+                if not isinstance(subpath, str):
+                    return subpath
+                return subpath.encode()
+            def _convert_re(expr):
+                if isinstance(expr.pattern, str):
+                    try:
+                        return re.compile(
+                            expr.pattern.encode(),
+                            flags=expr.flags & ~re.UNICODE
+                        )
+                    except UnicodeEncodeError:
+                        # Will never match
+                        log.warning(
+                            'Cannot convert regexp to bytes %r %r',
+                            expr.pattern,
+                            expr.flags,
+                            exc_info=True,
+                        )
+                        return re.compile(b'$X')
+                return expr
+        else:
+            def _convert(subpath):
+                if not isinstance(subpath, str):
+                    return subpath.decode()
+                return subpath
+            def _convert_re(expr):
+                if not isinstance(expr.pattern, str):
+                    try:
+                        return re.compile(
+                            expr.pattern.decode(),
+                            flags=expr.flags & re.UNICODE
+                        )
+                    except UnicodeDecodeError:
+                        # Will never match
+                        log.warning(
+                            'Cannot convert regexp to str %r %r',
+                            expr.pattern,
+                            expr.flags,
+                            exc_info=True,
+                        )
+                        return re.compile('$X')
+                return expr
+
         # Remove '../', etc.
         path = os.path.normpath(path)
 
         # Passthrough
         for passthrough in self.passthrough:
-            if hasattr(passthrough, "match"):
-                if passthrough.match(path):
+            if isinstance(passthrough, REGEXP_T):
+                if _convert_re(passthrough).match(path):
                     return path
-            elif passthrough == path:
+            elif _convert(passthrough) == path:
                 return path
 
-        # Remove leading '/' if any (multiple '//' are handled by 'abspath'
-        if path.startswith(os.path.sep):
-            path = path[1:]
+        # Remove leading '/' if any
+        path = path.lstrip(path_sep)
 
-        base_path = os.path.abspath(self.base_path)
+        base_path = os.path.abspath(_convert(self.base_path))
         out_path = os.path.join(base_path, path)
-        assert out_path.startswith(base_path + os.path.sep)
+        assert out_path.startswith(base_path + path_sep)
         if os.path.islink(out_path):
             link_target = os.readlink(out_path)
             # Link can be absolute or relative -> absolute
@@ -463,7 +521,7 @@ class LinuxEnvironment(object):
         if not isinstance(fdesc, FileDescriptorDirectory):
             raise RuntimeError("Not implemented")
 
-        out = ""
+        out = b""
         # fdesc.listdir continues from where it stopped
         for name in fdesc.listdir():
             d_ino = 1 # Not the real one
