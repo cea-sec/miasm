@@ -35,14 +35,18 @@
 
 #ifdef __APPLE__
 #define __BYTE_ORDER __BYTE_ORDER__
+#ifndef __BIG_ENDIAN
+#define __BIG_ENDIAN '>'
+#define __LITTLE_ENDIAN '<'
+#endif
 #elif defined(__NetBSD__) || defined(__OpenBSD__)
 #define __BYTE_ORDER _BYTE_ORDER
 #define __BIG_ENDIAN _BIG_ENDIAN
 #define __LITTLE_ENDIAN _LITTLE_ENDIAN
 #elif defined(_WIN32) || defined(_WIN64)
+#define __BYTE_ORDER __LITTLE_ENDIAN
 #define __BIG_ENDIAN '>'
 #define __LITTLE_ENDIAN '<'
-#define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
 
