@@ -21,7 +21,7 @@ assert jitter.cpu.RAX == 1
 
 try:
         jitter.cpu.RAX = 0x1ffffffffffffffff
-except TypeError as te:
+except TypeError:
         pass
 else:
         raise Exception("Should see that 0x1ffffffffffffffff is too big for RAX")
