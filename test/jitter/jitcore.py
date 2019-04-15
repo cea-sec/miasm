@@ -41,7 +41,7 @@ assert jitter.cpu.EAX == 1
 
 try:
         jitter.cpu.EAX = -0x1ffffffff
-except TypeError as te:
+except TypeError:
         pass
 else:
         raise Exception("Should see that -0x1ffffffff is too big for EAX")
