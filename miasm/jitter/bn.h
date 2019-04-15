@@ -32,6 +32,7 @@ Code slightly modified to support ast generation calculus style from Expr.
 */
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <assert.h>
 
 
@@ -136,15 +137,15 @@ _MIASM_EXPORT bn_t bignum_not(bn_t a); /* c = ~a */
 
 /* Special operators and comparison */
 _MIASM_EXPORT int bignum_cmp(bn_t a, bn_t b);                      /* Compare: returns LARGER, EQUAL or SMALLER */
-_MIASM_EXPORT int bignum_is_equal(bn_t a, bn_t b);                 /* Return 1 if a == b else 0 */
-_MIASM_EXPORT int bignum_is_inf_unsigned(bn_t a, bn_t b);          /* Return 1 if a <u b else 0 */
-_MIASM_EXPORT int bignum_is_inf_equal_unsigned(bn_t a, bn_t b);    /* Return 1 if a <=u b else 0 */
-_MIASM_EXPORT int bignum_is_inf_signed(bn_t a, bn_t b);            /* Return 1 if a <s b else 0 */
-_MIASM_EXPORT int bignum_is_inf_equal_signed(bn_t a, bn_t b);      /* Return 1 if a <=s b else 0 */
+_MIASM_EXPORT bool bignum_is_equal(bn_t a, bn_t b);                 /* Return 1 if a == b else 0 */
+_MIASM_EXPORT bool bignum_is_inf_unsigned(bn_t a, bn_t b);          /* Return 1 if a <u b else 0 */
+_MIASM_EXPORT bool bignum_is_inf_equal_unsigned(bn_t a, bn_t b);    /* Return 1 if a <=u b else 0 */
+_MIASM_EXPORT bool bignum_is_inf_signed(bn_t a, bn_t b);            /* Return 1 if a <s b else 0 */
+_MIASM_EXPORT bool bignum_is_inf_equal_signed(bn_t a, bn_t b);      /* Return 1 if a <=s b else 0 */
 
 
 
-_MIASM_EXPORT int  bignum_is_zero(bn_t n);                         /* For comparison with zero */
+_MIASM_EXPORT bool bignum_is_zero(bn_t n);                         /* For comparison with zero */
 _MIASM_EXPORT bn_t bignum_inc(bn_t n);                             /* Increment: add one to n */
 _MIASM_EXPORT bn_t bignum_dec(bn_t n);                             /* Decrement: subtract one from n */
 //bn_t bignum_pow(bn_t a, bn_t b, bn_t c); /* Calculate a^b -- e.g. 2^10 => 1024 */

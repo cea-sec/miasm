@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2011 EADS France, Fabrice Desclaux <fabrice.desclaux@eads.net>
+** Copyright (C) 2011-2019 EADS France, Fabrice Desclaux <fabrice.desclaux@eads.net>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -8,7 +8,7 @@
 **
 ** This program is distributed in the hope that it will be useful,
 ** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 ** GNU General Public License for more details.
 **
 ** You should have received a copy of the GNU General Public License along
@@ -25,18 +25,13 @@
 #include "vm_mngr.h"
 #include "vm_mngr_py.h"
 
-#define MIN(a,b)  (((a)<(b))?(a):(b))
-#define MAX(a,b)  (((a)>(b))?(a):(b))
-
 extern struct memory_page_list_head memory_page_pool;
 extern struct code_bloc_list_head code_bloc_pool;
 
-#define RAISE(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return p;}
-
-
+#define RAISE(errtype, msg) do {PyObject* p; p = PyErr_Format( errtype, msg ); return p;} while(0)
 
 /* XXX POC signals */
-VmMngr* global_vmmngr;
+static VmMngr* global_vmmngr;
 
 PyObject* _vm_get_exception(unsigned int xcpt)
 {
@@ -45,13 +40,12 @@ PyObject* _vm_get_exception(unsigned int xcpt)
 	if (!xcpt)
 		p = NULL;
 	else if (xcpt & EXCEPT_CODE_AUTOMOD)
-		p = PyErr_Format( PyExc_RuntimeError, "EXCEPT_CODE_AUTOMOD" );
+		p = PyErr_Format(PyExc_RuntimeError, "EXCEPT_CODE_AUTOMOD");
 	else if (xcpt & EXCEPT_UNK_EIP)
-		p = PyErr_Format( PyExc_RuntimeError, "EXCEPT_UNK_EIP" );
+		p = PyErr_Format(PyExc_RuntimeError, "EXCEPT_UNK_EIP");
 	else if (xcpt & EXCEPT_UNK_MEM_AD)
-		p = PyErr_Format( PyExc_RuntimeError, "EXCEPT_UNK_MEM_AD" );
-
-	else  p = PyErr_Format( PyExc_RuntimeError, "EXCEPT_UNKNOWN" );
+		p = PyErr_Format(PyExc_RuntimeError, "EXCEPT_UNK_MEM_AD");
+	else p = PyErr_Format(PyExc_RuntimeError, "EXCEPT_UNKNOWN");
 	return p;
 }
 
@@ -69,8 +63,6 @@ PyObject* set_alarm(VmMngr* self)
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
-
 
 PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 {
@@ -115,8 +107,8 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	}
 
 	if (buf_size > SIZE_MAX) {
-		      fprintf(stderr, "Size too big\n");
-		      exit(EXIT_FAILURE);
+		fprintf(stderr, "Size too big\n");
+		exit(EXIT_FAILURE);
 	}
 	buf_size_st = (size_t) buf_size;
 
@@ -126,8 +118,6 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
-
 
 PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 {
@@ -144,7 +134,7 @@ PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 	PyGetInt_uint64_t(access, page_access);
 
 	mpn = get_memory_page_from_address(&self->vm_mngr, page_addr, 1);
-	if (!mpn){
+	if (!mpn) {
 		PyErr_SetString(PyExc_RuntimeError, "cannot find address");
 		return 0;
 	}
@@ -157,41 +147,39 @@ PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 
 PyObject* vm_set_mem(VmMngr* self, PyObject* args)
 {
-       PyObject *py_addr;
-       PyObject *py_buffer;
-       Py_ssize_t py_length;
+	PyObject *py_addr;
+	PyObject *py_buffer;
+	Py_ssize_t py_length;
 
-       char * buffer;
-       Py_ssize_t pysize;
-       uint64_t addr;
-       int ret;
+	char * buffer;
+	Py_ssize_t pysize;
+	uint64_t addr;
+	int ret;
 
-       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+	if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt_uint64_t(py_addr, addr);
+	PyGetInt_uint64_t(py_addr, addr);
 
-       if (!PyBytes_Check(py_buffer))
-	       RAISE(PyExc_TypeError,"arg must be bytes");
+	if (!PyBytes_Check(py_buffer))
+		RAISE(PyExc_TypeError,"arg must be bytes");
 
-       pysize = PyBytes_Size(py_buffer);
-       if (pysize < 0) {
-	       RAISE(PyExc_TypeError,"Python error");
-       }
-       PyBytes_AsStringAndSize(py_buffer, &buffer, &py_length);
+	pysize = PyBytes_Size(py_buffer);
+	if (pysize < 0) {
+		RAISE(PyExc_TypeError,"Python error");
+	}
+	PyBytes_AsStringAndSize(py_buffer, &buffer, &py_length);
 
-       ret = vm_write_mem(&self->vm_mngr, addr, buffer, pysize);
-       if (ret < 0)
-	      RAISE(PyExc_TypeError, "Error in set_mem");
+	ret = vm_write_mem(&self->vm_mngr, addr, buffer, pysize);
+	if (ret < 0)
+		RAISE(PyExc_TypeError, "Error in set_mem");
 
-       add_mem_write(&self->vm_mngr, addr, (size_t)pysize);
-       check_invalid_code_blocs(&self->vm_mngr);
+	add_mem_write(&self->vm_mngr, addr, (size_t)pysize);
+	check_invalid_code_blocs(&self->vm_mngr);
 
-       Py_INCREF(Py_None);
-       return Py_None;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
-
-
 
 PyObject* vm_get_mem_access(VmMngr* self, PyObject* args)
 {
@@ -205,7 +193,7 @@ PyObject* vm_get_mem_access(VmMngr* self, PyObject* args)
 	PyGetInt_uint64_t(py_addr, page_addr);
 
 	mpn = get_memory_page_from_address(&self->vm_mngr, page_addr, 1);
-	if (!mpn){
+	if (!mpn) {
 		PyErr_SetString(PyExc_RuntimeError, "cannot find address");
 		return 0;
 	}
@@ -215,257 +203,252 @@ PyObject* vm_get_mem_access(VmMngr* self, PyObject* args)
 
 PyObject* vm_get_mem(VmMngr* self, PyObject* args)
 {
-       PyObject *py_addr;
-       PyObject *py_len;
+	PyObject *py_addr;
+	PyObject *py_len;
 
-       uint64_t addr;
-       uint64_t size;
-       size_t size_st;
-       PyObject *obj_out;
-       char * buf_out;
-       int ret;
+	uint64_t addr;
+	uint64_t size;
+	size_t size_st;
+	PyObject *obj_out;
+	char * buf_out;
+	int ret;
 
-       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_len))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+	if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_len)) {
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
+	}
 
-       PyGetInt_uint64_t(py_addr, addr);
-       PyGetInt_uint64_t(py_len, size);
+	PyGetInt_uint64_t(py_addr, addr);
+	PyGetInt_uint64_t(py_len, size);
 
-       if (size > SIZE_MAX) {
-	       fprintf(stderr, "Size too big\n");
-	       exit(EXIT_FAILURE);
-       }
-       size_st = (size_t) size;
+	if (size > SIZE_MAX) {
+		fprintf(stderr, "Size too big\n");
+		exit(EXIT_FAILURE);
+	}
+	size_st = (size_t) size;
 
-       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, size_st);
-       if (ret < 0) {
-	       RAISE(PyExc_RuntimeError,"Cannot find address");
-       }
-
-       obj_out = PyBytes_FromStringAndSize(buf_out, size_st);
-       free(buf_out);
-       return obj_out;
+	ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, size_st);
+	if (ret < 0) {
+		RAISE(PyExc_RuntimeError,"Cannot find address");
+	}
+	obj_out = PyBytes_FromStringAndSize(buf_out, size_st);
+	free(buf_out);
+	return obj_out;
 }
 
 PyObject* vm_get_u8(VmMngr* self, PyObject* args)
 {
-       PyObject *py_addr;
+	PyObject *py_addr;
 
-       uint64_t addr;
-       PyObject *obj_out;
-       char * buf_out;
-       int ret;
-       uint32_t value;
+	uint64_t addr;
+	PyObject *obj_out;
+	char * buf_out;
+	int ret;
+	uint32_t value;
 
-       if (!PyArg_ParseTuple(args, "O", &py_addr))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+	if (!PyArg_ParseTuple(args, "O", &py_addr))
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt_uint64_t(py_addr, addr);
+	PyGetInt_uint64_t(py_addr, addr);
 
-       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 1);
-       if (ret < 0) {
-	       RAISE(PyExc_RuntimeError,"Cannot find address");
-       }
+	ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 1);
+	if (ret < 0) {
+		RAISE(PyExc_RuntimeError,"Cannot find address");
+	}
 
-       value = *(uint8_t*)buf_out;
+	value = *(uint8_t*)buf_out;
 
-       obj_out = PyLong_FromUnsignedLongLong(value);
-       free(buf_out);
-       return obj_out;
+	obj_out = PyLong_FromUnsignedLongLong(value);
+	free(buf_out);
+	return obj_out;
 }
 
 PyObject* vm_get_u16(VmMngr* self, PyObject* args)
 {
-       PyObject *py_addr;
+	PyObject *py_addr;
 
-       uint64_t addr;
-       PyObject *obj_out;
-       char * buf_out;
-       int ret;
-       uint16_t value;
+	uint64_t addr;
+	PyObject *obj_out;
+	char * buf_out;
+	int ret;
+	uint16_t value;
 
-       if (!PyArg_ParseTuple(args, "O", &py_addr))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+	if (!PyArg_ParseTuple(args, "O", &py_addr))
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt_uint64_t(py_addr, addr);
+	PyGetInt_uint64_t(py_addr, addr);
 
-       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 2);
-       if (ret < 0) {
-	       RAISE(PyExc_RuntimeError,"Cannot find address");
-       }
+	ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 2);
+	if (ret < 0) {
+		RAISE(PyExc_RuntimeError,"Cannot find address");
+	}
 
-       value = set_endian16(&self->vm_mngr, *(uint16_t*)buf_out);
+	value = set_endian16(&self->vm_mngr, *(uint16_t*)buf_out);
 
-       obj_out = PyLong_FromUnsignedLongLong(value);
-       free(buf_out);
-       return obj_out;
+	obj_out = PyLong_FromUnsignedLongLong(value);
+	free(buf_out);
+	return obj_out;
 }
 
 PyObject* vm_get_u32(VmMngr* self, PyObject* args)
 {
-       PyObject *py_addr;
+	PyObject *py_addr;
 
-       uint64_t addr;
-       PyObject *obj_out;
-       char * buf_out;
-       int ret;
-       uint32_t value;
+	uint64_t addr;
+	PyObject *obj_out;
+	char * buf_out;
+	int ret;
+	uint32_t value;
 
-       if (!PyArg_ParseTuple(args, "O", &py_addr))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+	if (!PyArg_ParseTuple(args, "O", &py_addr))
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt_uint64_t(py_addr, addr);
+	PyGetInt_uint64_t(py_addr, addr);
 
-       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 4);
-       if (ret < 0) {
-	       RAISE(PyExc_RuntimeError,"Cannot find address");
-       }
+	ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 4);
+	if (ret < 0) {
+		RAISE(PyExc_RuntimeError,"Cannot find address");
+	}
 
-       value = set_endian32(&self->vm_mngr, *(uint32_t*)buf_out);
+	value = set_endian32(&self->vm_mngr, *(uint32_t*)buf_out);
 
-       obj_out = PyLong_FromUnsignedLongLong(value);
-       free(buf_out);
-       return obj_out;
+	obj_out = PyLong_FromUnsignedLongLong(value);
+	free(buf_out);
+	return obj_out;
 }
-
 
 PyObject* vm_get_u64(VmMngr* self, PyObject* args)
 {
-       PyObject *py_addr;
+	PyObject *py_addr;
 
-       uint64_t addr;
-       PyObject *obj_out;
-       char * buf_out;
-       int ret;
-       uint64_t value;
+	uint64_t addr;
+	PyObject *obj_out;
+	char * buf_out;
+	int ret;
+	uint64_t value;
 
-       if (!PyArg_ParseTuple(args, "O", &py_addr))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+	if (!PyArg_ParseTuple(args, "O", &py_addr))
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt_uint64_t(py_addr, addr);
+	PyGetInt_uint64_t(py_addr, addr);
 
-       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 8);
-       if (ret < 0) {
-	       RAISE(PyExc_RuntimeError,"Cannot find address");
-       }
+	ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 8);
+	if (ret < 0) {
+		RAISE(PyExc_RuntimeError,"Cannot find address");
+	}
 
-       value = set_endian64(&self->vm_mngr, *(uint64_t*)buf_out);
+	value = set_endian64(&self->vm_mngr, *(uint64_t*)buf_out);
 
-       obj_out = PyLong_FromUnsignedLongLong(value);
-       free(buf_out);
-       return obj_out;
+	obj_out = PyLong_FromUnsignedLongLong(value);
+	free(buf_out);
+	return obj_out;
 }
-
 
 PyObject* vm_set_u8(VmMngr* self, PyObject* args)
 {
-       PyObject *py_addr;
-       PyObject *py_val;
-       uint8_t value;
-       uint64_t addr;
-       int ret;
+	PyObject *py_addr;
+	PyObject *py_val;
+	uint8_t value;
+	uint64_t addr;
+	int ret;
 
-       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+	if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt_uint64_t(py_addr, addr);
-       PyGetInt_uint8_t(py_val, value);
+	PyGetInt_uint64_t(py_addr, addr);
+	PyGetInt_uint8_t(py_val, value);
 
-       ret = vm_write_mem(&self->vm_mngr, addr, (char*)&value, 1);
-       if (ret < 0)
-	      RAISE(PyExc_TypeError, "Error in set_mem");
+	ret = vm_write_mem(&self->vm_mngr, addr, (char*)&value, 1);
+	if (ret < 0) {
+		RAISE(PyExc_TypeError, "Error in set_mem");
+	}
 
-       add_mem_write(&self->vm_mngr, addr, 1);
-       check_invalid_code_blocs(&self->vm_mngr);
+	add_mem_write(&self->vm_mngr, addr, 1);
+	check_invalid_code_blocs(&self->vm_mngr);
 
-       Py_INCREF(Py_None);
-       return Py_None;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_set_u16(VmMngr* self, PyObject* args)
 {
-       PyObject *py_addr;
-       PyObject *py_val;
-       uint16_t value;
+	PyObject *py_addr;
+	PyObject *py_val;
+	uint16_t value;
 
-       uint64_t addr;
-       int ret;
+	uint64_t addr;
+	int ret;
 
-       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+	if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt_uint64_t(py_addr, addr);
-       PyGetInt_uint16_t(py_val, value);
+	PyGetInt_uint64_t(py_addr, addr);
+	PyGetInt_uint16_t(py_val, value);
 
-       value = set_endian16(&self->vm_mngr, value);
-       ret = vm_write_mem(&self->vm_mngr, addr, (char*)&value, 2);
-       if (ret < 0)
-	      RAISE(PyExc_TypeError, "Error in set_mem");
+	value = set_endian16(&self->vm_mngr, value);
+	ret = vm_write_mem(&self->vm_mngr, addr, (char*)&value, 2);
+	if (ret < 0)
+		RAISE(PyExc_TypeError, "Error in set_mem");
 
-       add_mem_write(&self->vm_mngr, addr, 2);
-       check_invalid_code_blocs(&self->vm_mngr);
+	add_mem_write(&self->vm_mngr, addr, 2);
+	check_invalid_code_blocs(&self->vm_mngr);
 
-       Py_INCREF(Py_None);
-       return Py_None;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_set_u32(VmMngr* self, PyObject* args)
 {
-       PyObject *py_addr;
-       PyObject *py_val;
-       uint32_t value;
-       uint64_t addr;
-       int ret;
+	PyObject *py_addr;
+	PyObject *py_val;
+	uint32_t value;
+	uint64_t addr;
+	int ret;
 
-       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+	if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt_uint64_t(py_addr, addr);
-       PyGetInt_uint32_t(py_val, value);
+	PyGetInt_uint64_t(py_addr, addr);
+	PyGetInt_uint32_t(py_val, value);
 
-       value = set_endian32(&self->vm_mngr, value);
+	value = set_endian32(&self->vm_mngr, value);
 
-       ret = vm_write_mem(&self->vm_mngr, addr, (char*)&value, 4);
-       if (ret < 0)
-	      RAISE(PyExc_TypeError, "Error in set_mem");
+	ret = vm_write_mem(&self->vm_mngr, addr, (char*)&value, 4);
+	if (ret < 0)
+		RAISE(PyExc_TypeError, "Error in set_mem");
 
-       add_mem_write(&self->vm_mngr, addr, 4);
-       check_invalid_code_blocs(&self->vm_mngr);
+	add_mem_write(&self->vm_mngr, addr, 4);
+	check_invalid_code_blocs(&self->vm_mngr);
 
-       Py_INCREF(Py_None);
-       return Py_None;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_set_u64(VmMngr* self, PyObject* args)
 {
-       PyObject *py_addr;
-       PyObject *py_val;
-       uint64_t value;
-       uint64_t addr;
-       int ret;
+	PyObject *py_addr;
+	PyObject *py_val;
+	uint64_t value;
+	uint64_t addr;
+	int ret;
 
-       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+	if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt_uint64_t(py_addr, addr);
-       PyGetInt_uint64_t(py_val, value);
+	PyGetInt_uint64_t(py_addr, addr);
+	PyGetInt_uint64_t(py_val, value);
 
-       value = set_endian64(&self->vm_mngr, value);
+	value = set_endian64(&self->vm_mngr, value);
 
-       ret = vm_write_mem(&self->vm_mngr, addr, (char*)&value, 8);
-       if (ret < 0)
-	      RAISE(PyExc_TypeError, "Error in set_mem");
+	ret = vm_write_mem(&self->vm_mngr, addr, (char*)&value, 8);
+	if (ret < 0)
+		RAISE(PyExc_TypeError, "Error in set_mem");
 
-       add_mem_write(&self->vm_mngr, addr, 8);
-       check_invalid_code_blocs(&self->vm_mngr);
+	add_mem_write(&self->vm_mngr, addr, 8);
+	check_invalid_code_blocs(&self->vm_mngr);
 
-       Py_INCREF(Py_None);
-       return Py_None;
+	Py_INCREF(Py_None);
+	return Py_None;
 }
-
-
-
-
 
 PyObject* vm_add_memory_breakpoint(VmMngr* self, PyObject* args)
 {
@@ -497,7 +480,6 @@ PyObject* vm_add_memory_breakpoint(VmMngr* self, PyObject* args)
 	return Py_None;
 }
 
-
 PyObject* vm_remove_memory_breakpoint(VmMngr* self, PyObject* args)
 {
 	PyObject *ad;
@@ -515,7 +497,6 @@ PyObject* vm_remove_memory_breakpoint(VmMngr* self, PyObject* args)
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
 
 PyObject* vm_set_exception(VmMngr* self, PyObject* args)
 {
@@ -537,45 +518,39 @@ PyObject* vm_get_exception(VmMngr* self, PyObject* args)
 	return PyLong_FromUnsignedLongLong((uint64_t)self->vm_mngr.exception_flags);
 }
 
-
-
-
 PyObject* vm_init_memory_page_pool(VmMngr* self, PyObject* args)
 {
-    init_memory_page_pool(&self->vm_mngr);
-    Py_INCREF(Py_None);
-    return Py_None;
+	init_memory_page_pool(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_init_code_bloc_pool(VmMngr* self, PyObject* args)
 {
-    init_code_bloc_pool(&self->vm_mngr);
-    Py_INCREF(Py_None);
-    return Py_None;
-
+	init_code_bloc_pool(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_init_memory_breakpoint(VmMngr* self, PyObject* args)
 {
-    init_memory_breakpoint(&self->vm_mngr);
-    Py_INCREF(Py_None);
-    return Py_None;
-
+	init_memory_breakpoint(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_reset_memory_breakpoint(VmMngr* self, PyObject* args)
 {
-    reset_memory_breakpoint(&self->vm_mngr);
-    Py_INCREF(Py_None);
-    return Py_None;
-
+	reset_memory_breakpoint(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_reset_memory_access(VmMngr* self, PyObject* args)
 {
-    reset_memory_access(&self->vm_mngr);
-    Py_INCREF(Py_None);
-    return Py_None;
+	reset_memory_access(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* py_add_mem_read(VmMngr* self, PyObject* args)
@@ -616,16 +591,16 @@ PyObject* py_add_mem_write(VmMngr* self, PyObject* args)
 
 PyObject* vm_check_invalid_code_blocs(VmMngr* self, PyObject* args)
 {
-    check_invalid_code_blocs(&self->vm_mngr);
-    Py_INCREF(Py_None);
-    return Py_None;
+	check_invalid_code_blocs(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_check_memory_breakpoint(VmMngr* self, PyObject* args)
 {
-    check_memory_breakpoint(&self->vm_mngr);
-    Py_INCREF(Py_None);
-    return Py_None;
+	check_memory_breakpoint(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject *vm_dump(PyObject* self)
@@ -646,7 +621,6 @@ PyObject* vm_dump_memory_breakpoint(VmMngr* self, PyObject* args)
 	return Py_None;
 }
 
-
 PyObject* vm_get_all_memory(VmMngr* self, PyObject* args)
 {
 	PyObject *o;
@@ -655,13 +629,12 @@ PyObject* vm_get_all_memory(VmMngr* self, PyObject* args)
 	PyObject *dict2;
 	int i;
 
-
-	dict =  PyDict_New();
+	dict = PyDict_New();
 
 	for (i=0;i<self->vm_mngr.memory_pages_number; i++) {
 		mpn = &self->vm_mngr.memory_pages_array[i];
 
-		dict2 =  PyDict_New();
+		dict2 = PyDict_New();
 
 		o = PyBytes_FromStringAndSize(mpn->ad_hp, mpn->size);
 		PyDict_SetItemString(dict2, "data", o);
@@ -683,23 +656,19 @@ PyObject* vm_get_all_memory(VmMngr* self, PyObject* args)
 	return dict;
 }
 
-
 PyObject* vm_reset_memory_page_pool(VmMngr* self, PyObject* args)
 {
-    reset_memory_page_pool(&self->vm_mngr);
-    Py_INCREF(Py_None);
-    return Py_None;
-
+	reset_memory_page_pool(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_reset_code_bloc_pool(VmMngr* self, PyObject* args)
 {
-    reset_code_bloc_pool(&self->vm_mngr);
-    Py_INCREF(Py_None);
-    return Py_None;
-
+	reset_code_bloc_pool(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
-
 
 PyObject* vm_add_code_bloc(VmMngr *self, PyObject *args)
 {
@@ -768,12 +737,10 @@ PyObject* vm_get_memory_write(VmMngr* self, PyObject* args)
 	return result;
 }
 
-
-
 static PyObject *
 vm_set_big_endian(VmMngr *self, PyObject *value, void *closure)
 {
-	self->vm_mngr.sex   = __BIG_ENDIAN;
+	self->vm_mngr.sex = __BIG_ENDIAN;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -781,11 +748,10 @@ vm_set_big_endian(VmMngr *self, PyObject *value, void *closure)
 static PyObject *
 vm_set_little_endian(VmMngr *self, PyObject *value, void *closure)
 {
-	self->vm_mngr.sex   = __LITTLE_ENDIAN;
+	self->vm_mngr.sex = __LITTLE_ENDIAN;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
 
 static PyObject *
 vm_is_little_endian(VmMngr *self, PyObject *value, void *closure)
@@ -797,24 +763,22 @@ vm_is_little_endian(VmMngr *self, PyObject *value, void *closure)
 	}
 }
 
-
-static void
+	static void
 VmMngr_dealloc(VmMngr* self)
 {
-    vm_reset_memory_page_pool(self, NULL);
-    vm_reset_code_bloc_pool(self, NULL);
-    vm_reset_memory_breakpoint(self, NULL);
-    Py_TYPE(self)->tp_free((PyObject*)self);
+	vm_reset_memory_page_pool(self, NULL);
+	vm_reset_code_bloc_pool(self, NULL);
+	vm_reset_memory_breakpoint(self, NULL);
+	Py_TYPE(self)->tp_free((PyObject*)self);
 }
-
 
 static PyObject *
 VmMngr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    VmMngr *self;
+	VmMngr *self;
 
-    self = (VmMngr *)type->tp_alloc(type, 0);
-    return (PyObject *)self;
+	self = (VmMngr *)type->tp_alloc(type, 0);
+	return (PyObject *)self;
 }
 
 static PyObject *
@@ -831,7 +795,7 @@ VmMngr_set_vmmngr(VmMngr *self, PyObject *value, void *closure)
 }
 
 static PyMemberDef VmMngr_members[] = {
-    {NULL}  /* Sentinel */
+	{NULL}  /* Sentinel */
 };
 
 static PyMethodDef VmMngr_methods[] = {
@@ -935,52 +899,52 @@ VmMngr_init(VmMngr *self, PyObject *args, PyObject *kwds)
 }
 
 static PyGetSetDef VmMngr_getseters[] = {
-    {"vmmngr",
-     (getter)VmMngr_get_vmmngr, (setter)VmMngr_set_vmmngr,
-     "vmmngr object",
-     NULL},
-    {NULL}  /* Sentinel */
+	{"vmmngr",
+		(getter)VmMngr_get_vmmngr, (setter)VmMngr_set_vmmngr,
+		"vmmngr object",
+		NULL},
+	{NULL}  /* Sentinel */
 };
 
 static PyTypeObject VmMngrType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    "VmMngr",                  /*tp_name*/
-    sizeof(VmMngr),            /*tp_basicsize*/
-    0,                         /*tp_itemsize*/
-    (destructor)VmMngr_dealloc,/*tp_dealloc*/
-    0,                         /*tp_print*/
-    0,                         /*tp_getattr*/
-    0,                         /*tp_setattr*/
-    0,                         /*tp_compare*/
-    vm_dump,                   /*tp_repr*/
-    0,                         /*tp_as_number*/
-    0,                         /*tp_as_sequence*/
-    0,                         /*tp_as_mapping*/
-    0,                         /*tp_hash */
-    0,                         /*tp_call*/
-    0,                         /*tp_str*/
-    0,                         /*tp_getattro*/
-    0,                         /*tp_setattro*/
-    0,                         /*tp_as_buffer*/
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
-    "VmMngr object",           /* tp_doc */
-    0,			       /* tp_traverse */
-    0,			       /* tp_clear */
-    0,			       /* tp_richcompare */
-    0,			       /* tp_weaklistoffset */
-    0,			       /* tp_iter */
-    0,			       /* tp_iternext */
-    VmMngr_methods,            /* tp_methods */
-    VmMngr_members,            /* tp_members */
-    VmMngr_getseters,          /* tp_getset */
-    0,                         /* tp_base */
-    0,                         /* tp_dict */
-    0,                         /* tp_descr_get */
-    0,                         /* tp_descr_set */
-    0,                         /* tp_dictoffset */
-    (initproc)VmMngr_init,     /* tp_init */
-    0,                         /* tp_alloc */
-    VmMngr_new,                /* tp_new */
+	PyVarObject_HEAD_INIT(NULL, 0)
+		"VmMngr",                  /*tp_name*/
+	sizeof(VmMngr),            /*tp_basicsize*/
+	0,                         /*tp_itemsize*/
+	(destructor)VmMngr_dealloc,/*tp_dealloc*/
+	0,                         /*tp_print*/
+	0,                         /*tp_getattr*/
+	0,                         /*tp_setattr*/
+	0,                         /*tp_compare*/
+	vm_dump,                   /*tp_repr*/
+	0,                         /*tp_as_number*/
+	0,                         /*tp_as_sequence*/
+	0,                         /*tp_as_mapping*/
+	0,                         /*tp_hash */
+	0,                         /*tp_call*/
+	0,                         /*tp_str*/
+	0,                         /*tp_getattro*/
+	0,                         /*tp_setattro*/
+	0,                         /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
+	"VmMngr object",           /* tp_doc */
+	0,			       /* tp_traverse */
+	0,			       /* tp_clear */
+	0,			       /* tp_richcompare */
+	0,			       /* tp_weaklistoffset */
+	0,			       /* tp_iter */
+	0,			       /* tp_iternext */
+	VmMngr_methods,            /* tp_methods */
+	VmMngr_members,            /* tp_members */
+	VmMngr_getseters,          /* tp_getset */
+	0,                         /* tp_base */
+	0,                         /* tp_dict */
+	0,                         /* tp_descr_get */
+	0,                         /* tp_descr_set */
+	0,                         /* tp_dictoffset */
+	(initproc)VmMngr_init,     /* tp_init */
+	0,                         /* tp_alloc */
+	VmMngr_new,                /* tp_new */
 };
 
 static PyMethodDef VmMngr_Methods[] = {
@@ -988,9 +952,8 @@ static PyMethodDef VmMngr_Methods[] = {
 
 };
 
-char vm_mngr_mod_docs[] = "vm_mngr module.";
-char vm_mngr_mod_name[] = "VmMngr";
-
+const char vm_mngr_mod_docs[] = "vm_mngr module.";
+const char vm_mngr_mod_name[] = "VmMngr";
 
 MOD_INIT(VmMngr)
 {
@@ -998,15 +961,18 @@ MOD_INIT(VmMngr)
 
 	MOD_DEF(module, "VmMngr", "vm_mngr module", VmMngr_Methods);
 
-	if (module == NULL)
+	if (module == NULL) {
 		RET_MODULE;
+	}
 
-	if (PyType_Ready(&VmMngrType) < 0)
+	if (PyType_Ready(&VmMngrType) < 0) {
 		RET_MODULE;
+	}
 
 	Py_INCREF(&VmMngrType);
-	if (PyModule_AddObject(module, "Vm", (PyObject *)&VmMngrType) < 0)
+	if (PyModule_AddObject(module, "Vm", (PyObject *)&VmMngrType) < 0) {
 		RET_MODULE;
+	}
 
 	RET_MODULE;
 }

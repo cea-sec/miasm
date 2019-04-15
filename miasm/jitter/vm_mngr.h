@@ -78,7 +78,7 @@ LIST_HEAD(memory_breakpoint_info_head, memory_breakpoint_info);
 #define BREAKPOINT_READ 1
 #define BREAKPOINT_WRITE 2
 
-#define BREAK_SIGALARM 1<<5
+#define BREAK_SIGALARM (1<<5)
 
 #define MAX_MEMORY_PAGE_POOL_TAB 0x100000
 #define MEMORY_PAGE_POOL_MASK_BIT 12
@@ -130,14 +130,9 @@ typedef struct {
 
 }vm_mngr_t;
 
-
-
 typedef struct {
 	PyObject *func;
 }func_resolver;
-
-
-
 
 //extern vm_mngr_t vmmngr;
 
@@ -155,8 +150,6 @@ struct memory_breakpoint_info {
 	uint64_t access;
 	LIST_ENTRY(memory_breakpoint_info)   next;
 };
-
-
 
 #define PAGE_READ 1
 #define PAGE_WRITE 2
@@ -252,21 +245,15 @@ _MIASM_EXPORT void reset_memory_access(vm_mngr_t* vm_mngr);
 PyObject* get_memory_read(vm_mngr_t* vm_mngr);
 PyObject* get_memory_write(vm_mngr_t* vm_mngr);
 
-
 char* dump(vm_mngr_t* vm_mngr);
 void dump_memory_breakpoint_pool(vm_mngr_t* vm_mngr);
 PyObject* addr2BlocObj(vm_mngr_t* vm_mngr, uint64_t addr);
-
-
-
 
 /********************************************/
 unsigned int get_memory_page_max_address(void);
 unsigned int get_memory_page_max_user_address(void);
 
-
 int is_mpn_in_tab(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a);
-
 
 void _func_free(void);
 void _func_alloc(void);
@@ -280,7 +267,6 @@ void _func_virtualalloc_memory_page(void);
 void _func_virtualfree_memory_page(void);
 void _func_loadlib_fake(void);
 void _func_getproc_fake(void);
-
 
 void func_free(void);
 void func_alloc(void);

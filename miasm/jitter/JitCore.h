@@ -58,7 +58,7 @@
 		PyObject* cst_32;					\
 		PyObject* cst_ffffffff;					\
 		uint64_t tmp;						\
-		if (PyLong_Check(py_long)){				\
+		if (PyLong_Check(py_long)) {				\
 				Py_INCREF(py_long);			\
 			} else {					\
 				RAISE(PyExc_TypeError,"arg must be int"); \
@@ -125,13 +125,12 @@
 		PyObject* cst_ffffffff;					\
 		uint64_t tmp;						\
 									\
-		if (PyInt_Check(py_long)){				\
+		if (PyInt_Check(py_long)) {				\
 			tmp = (uint64_t)PyInt_AsLong(py_long);		\
 			py_long = PyLong_FromLong((long)tmp);		\
-		} else if (PyLong_Check(py_long)){			\
+		} else if (PyLong_Check(py_long)) {			\
 			Py_INCREF(py_long);				\
-		}							\
-		else{							\
+		} else {						\
 			RAISE(PyExc_TypeError,"arg must be int");	\
 		}							\
 									\
