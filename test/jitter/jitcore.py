@@ -28,7 +28,7 @@ else:
 
 try:
         jitter.cpu.RAX = 0x10000000000000000
-except TypeError as te:
+except TypeError:
         pass
 else:
         raise Exception("Should see that 0x10000000000000000 is too big for RAX")
