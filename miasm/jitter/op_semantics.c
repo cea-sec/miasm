@@ -380,6 +380,41 @@ unsigned int x86_cpuid(unsigned int a, unsigned int reg_num)
 			return 0x00000000;
 		}
 	}
+	// Extended Function CPUID Information
+	else if (a == 0x80000000){
+		switch(reg_num){
+		case 0:
+			// Pentium 4 Processor supporting Hyper-Threading
+			// Technology to Intel Xeon Processor 5100 Series
+			return 0x80000008;
+		case 1:
+			return 0x00000000;
+		case 2:
+			return 0x00000000;
+		case 3:
+			return 0x00000000;
+		}
+	}
+	else if (a == 0x80000001){
+		switch(reg_num){
+		case 0:
+			// Extended Processor Signature and Extended Feature
+			// Bits
+			return 0x00000000;
+		case 1:
+			return 0x00000000;
+		case 2:
+			return (/* LAHF-SAHF */ 1 << 0)
+			| (/* LZCNT */ 0 << 5)
+			| (/* PREFETCHW */ 1 << 8);
+		case 3:
+			return (/* SYSCALL/SYSRET */ 1 << 11)
+			| (/* Execute Disable Bit available */ 0 << 20)
+			| (/* 1-GByte pages available */ 0 << 26)
+			| (/* RDTSCP and IA32_TSC_AUX available */ 0 << 27)
+			| (/* Intel ® 64 Architecture available */ 1 << 29);
+		}
+	}
 	else{
 		fprintf(stderr, "WARNING not implemented x86_cpuid index %X!\n", a);
 		exit(EXIT_FAILURE);
