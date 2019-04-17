@@ -156,7 +156,7 @@ PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 	return Py_None;
 }
 
-PyObject* vm_set_mem(VmMngr* self, PyObject* args)
+PyObject* vm_set_mem_vmmngr(VmMngr* self, PyObject* args)
 {
        PyObject *py_addr;
        PyObject *py_buffer;
@@ -214,7 +214,7 @@ PyObject* vm_get_mem_access(VmMngr* self, PyObject* args)
 	return PyLong_FromUnsignedLongLong((uint64_t)mpn->access);
 }
 
-PyObject* vm_get_mem(VmMngr* self, PyObject* args)
+PyObject* vm_get_mem_vmmngr(VmMngr* self, PyObject* args)
 {
        PyObject *py_addr;
        PyObject *py_len;
@@ -844,7 +844,7 @@ static PyMethodDef VmMngr_methods[] = {
 	 "init_code_bloc_pool() -> Initialize the VmMngr jitted code blocks"},
 	{"set_mem_access", (PyCFunction)vm_set_mem_access, METH_VARARGS,
 	 "set_mem_access(address, access) -> Change the protection of the page at @address with @access"},
-	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
+	{"set_mem", (PyCFunction)vm_set_mem_vmmngr, METH_VARARGS,
 	 "set_mem(address, data) -> Set a @data in memory at @address"},
 	{"is_mapped", (PyCFunction)vm_is_mapped, METH_VARARGS,
 	 "is_mapped(address, size) -> Check if the memory region at @address of @size bytes is fully mapped"},
@@ -852,7 +852,7 @@ static PyMethodDef VmMngr_methods[] = {
 	 "add_code_bloc(address_start, address_stop) -> Add a jitted code block between [@address_start, @address_stop["},
 	{"get_mem_access", (PyCFunction)vm_get_mem_access, METH_VARARGS,
 	 "get_mem_access(address) -> Retrieve the memory protection of the page at @address"},
-	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
+	{"get_mem", (PyCFunction)vm_get_mem_vmmngr, METH_VARARGS,
 	 "get_mem(addr, size) -> Get the memory content at @address of @size bytes"},
 
 	{"get_u8", (PyCFunction)vm_get_u8, METH_VARARGS,

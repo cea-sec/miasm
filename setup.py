@@ -49,6 +49,7 @@ def buil_all():
             [
                 "miasm/jitter/JitCore.c",
                 "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
                 "miasm/jitter/arch/JitCore_x86.c"
@@ -59,6 +60,7 @@ def buil_all():
             [
                 "miasm/jitter/JitCore.c",
                 "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
                 "miasm/jitter/arch/JitCore_arm.c"
@@ -69,6 +71,7 @@ def buil_all():
             [
                 "miasm/jitter/JitCore.c",
                 "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
                 "miasm/jitter/arch/JitCore_aarch64.c"
@@ -79,6 +82,7 @@ def buil_all():
             [
                 "miasm/jitter/JitCore.c",
                 "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
                 "miasm/jitter/arch/JitCore_msp430.c"
@@ -89,6 +93,7 @@ def buil_all():
             [
                 "miasm/jitter/JitCore.c",
                 "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/bn.c",
                 "miasm/jitter/arch/JitCore_mep.c"
             ]
@@ -98,6 +103,7 @@ def buil_all():
             [
                 "miasm/jitter/JitCore.c",
                 "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
                 "miasm/jitter/arch/JitCore_mips32.c"
@@ -108,6 +114,7 @@ def buil_all():
             [
                 "miasm/jitter/JitCore.c",
                 "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
                 "miasm/jitter/arch/JitCore_ppc32.c"

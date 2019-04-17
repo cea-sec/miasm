@@ -5,8 +5,8 @@
 #include "../compat_py23.h"
 #include "../queue.h"
 #include "../vm_mngr.h"
-#include "../vm_mngr_py.h"
 #include "../bn.h"
+#include "../vm_mngr_py.h"
 #include "../JitCore.h"
 #include "JitCore_msp430.h"
 
