@@ -13,6 +13,8 @@ from miasm.core.interval import interval
 from miasm.expression.expression_helper import possible_values
 from miasm.analysis.ssa import get_phi_sources_parent_block, \
     irblock_has_phi
+from miasm.expression.expression_helper import get_expr_base_offset, \
+    INTERNAL_INTBASE_NAME
 
 
 class ReachingDefinitions(dict):
@@ -1720,3 +1722,337 @@ class DiGraphLivenessSSA(DiGraphLivenessIRA):
 
         parent_block.infos[-1].var_out = var_info
         todo.add(parent)
+
+
+
+class ExprPropagationHelper(object):
+    """
+    Compute and store interferences between expressions
+    """
+
+    def __init__(self, ir_arch):
+        self.ir_arch = ir_arch
+        self.variable_values = {}
+        self.dependencies = {}
+
+    def extract_interferences(self, dst, src):
+        """
+        Extract interference sources from @expr (here, ExprMem)
+        """
+        exprs = src.get_r(mem_read=True)
+        interferences = set([expr for expr in exprs if expr.is_mem()])
+
+        if dst.is_mem():
+            exprs = dst.ptr.get_r(mem_read=True)
+            interferences.update(expr for expr in exprs if expr.is_mem())
+        return interferences
+
+
+    def test_interference(self, expr_a, expr_b):
+        """
+        Return True if @expr_a interfers with @expr_b
+        """
+        if not expr_a.is_mem():
+            return False
+        if not expr_b.is_mem():
+            return False
+        ptr_a = expr_a.ptr
+        ptr_b = expr_b.ptr
+
+        ptr_base_a, ptr_offset_a = get_expr_base_offset(ptr_a)
+        ptr_base_b, ptr_offset_b = get_expr_base_offset(ptr_b)
+
+
+        if ptr_base_a == ptr_base_b:
+            # Same symbolic based ExprMem
+            diff = ptr_offset_b - ptr_offset_a
+
+            mem_a, mem_b = expr_a, expr_b
+            if diff < 0:
+                mem_a, mem_b = mem_b, mem_a
+                diff = -diff
+
+            base1, base2 = 0, diff
+            size1, size2 = mem_a.size // 8, mem_b.size // 8
+            interval1 = interval([(base1, base1 + size1 - 1)])
+            interval2 = interval([(base2, base2 + size2 - 1)])
+            result = interval1 & interval2
+            if result.empty:
+                return False
+            return True
+
+        # Case: two memories with different symbolic bases
+
+        if ((ptr_a.is_int() and ptr_base_b == self.ir_arch.sp) or
+            (ptr_b.is_int() and ptr_base_a == self.ir_arch.sp)):
+            # Stack based versus global => consider don't interfere
+            return False
+        return True
+
+    def can_propagate(self, dst, src):
+        """
+        Return True if @src can be propagated in @dst
+        """
+        if src.is_op("Phi"):
+            # Do not propagate phi
+            return False
+        if src.is_function_call():
+            # Do not propagate function call
+            return False
+        return True
+
+
+    def del_interfered_variables(self, assignblk):
+        """
+        Del variables which interfer with @assignblk
+        """
+        interferences = set()
+        for dst, src in viewitems(assignblk):
+            # For each assignment, check if destination interfer with mem store
+            for mem, mem_deps in viewitems(self.dependencies):
+                for mem_dep in mem_deps:
+                    if self.test_interference(dst, mem_dep):
+                        interferences.add(mem)
+                        break
+
+        # Remove interfered variables from store
+        for dst in interferences:
+            del self.variable_values[dst]
+            del self.dependencies[dst]
+
+    def update_interferences(self, assignblk):
+        """
+        Compute and apply interferences from @assignblk
+        """
+        self.del_interfered_variables(assignblk)
+
+        # Compute mem dependencies
+        assignment_dependencies = {}
+        for dst, src in viewitems(assignblk):
+            assignment_dependencies[dst] = self.extract_interferences(dst, src)
+
+        # Filter out self interferences
+        out = {}
+        for dst, src in viewitems(assignblk):
+            if not self.can_propagate(dst, src):
+                continue
+            var_dependencies = assignment_dependencies[dst]
+            interfer = False
+            for var_dependency in var_dependencies:
+                for var_dst in assignblk:
+                    if self.test_interference(var_dst, var_dependency):
+                        # Self assignblock interference
+                        interfer = True
+                        break
+                if interfer:
+                    break
+            if not interfer:
+                # No interference found, keep assignment
+                out[dst] = src
+
+        for dst, src in viewitems(out):
+            self.variable_values[dst] = src
+            self.dependencies[dst] = assignment_dependencies[dst].union(set([dst]))
+
+    def propagate_intra_block(self, block):
+        assignblks = []
+        modified = False
+
+        self.variable_values = {}
+        self.dependencies = {}
+
+        for index, assignblk in enumerate(block):
+            out = {}
+            interferences = set()
+            for dst, src in viewitems(assignblk):
+                if src.is_op('Phi'):
+                    new_src = src
+                else:
+                    new_src = expr_simp(src.replace_expr(self.variable_values))
+                if src != new_src:
+                    modified = True
+                if dst.is_mem():
+                    new_dst = expr_simp(ExprMem(dst.ptr.replace_expr(self.variable_values), dst.size))
+                    if dst != new_dst:
+                        modified = True
+                else:
+                    new_dst = dst
+
+                src = new_src
+                dst = new_dst
+                out[dst] = src
+            self.update_interferences(out)
+            assignblks.append(AssignBlock(out, assignblk.instr))
+        if modified:
+            block = IRBlock(block.loc_key, assignblks)
+        return modified, block
+
+
+    def propagage_memory_block(self, ssa, block):
+        assignblks = []
+        modified, block = self.propagate_intra_block(block)
+        if modified:
+            ssa.graph.blocks[block.loc_key] = block
+        return modified
+
+    def propagage_memory(self, ssa, head):
+        modified = False
+        for block in ssa.graph.blocks.values():
+            modified |= self.propagage_memory_block(ssa, block)
+        return modified
+
+
+
+
+def del_dummy_phi(ssa, head):
+    ids_to_src = {}
+    for block in viewvalues(ssa.graph.blocks):
+        for index, assignblock in enumerate(block):
+            for dst, src in viewitems(assignblock):
+                if not dst.is_id():
+                    continue
+                ids_to_src[dst] = src
+
+    modified = False
+    for block in ssa.graph.blocks.values():
+        if not irblock_has_phi(block):
+            continue
+        assignblk = block[0]
+        modified_assignblk = False
+        for dst, phi_src in viewitems(assignblk):
+            true_values = set()
+            assert phi_src.is_op('Phi')
+            for src in phi_src.args:
+                if src == dst:
+                    # Source is phi dst => skip
+                    continue
+                true_src = ids_to_src[src]
+                if true_src == dst:
+                    # Source is phi dst => skip
+                    continue
+                true_values.add(true_src)
+            if len(true_values) != 1:
+                continue
+            true_value = true_values.pop()
+            if expr_has_mem(true_value):
+                continue
+            fixed_phis = {}
+            for old_dst, old_phi_src in viewitems(assignblk):
+                if old_dst == dst:
+                    continue
+                fixed_phis[old_dst] = old_phi_src
+
+            modified = True
+
+            assignblks = list(block)
+            assignblks[0] = AssignBlock(fixed_phis, assignblk.instr)
+            assignblks[1:1] = [AssignBlock({dst: true_value}, assignblk.instr)]
+            new_irblock = IRBlock(block.loc_key, assignblks)
+            ssa.graph.blocks[block.loc_key] = new_irblock
+
+    return modified
+
+
+
+
+class DelDupMemWrite(object):
+    """
+    Remove duplicate memory write to the same target without reference between
+    writes
+    """
+    def __init__(self, ir_arch):
+        self.ir_arch = ir_arch
+
+    def is_dup_write_mem_candidate(self, dst):
+        """
+        Return True if @dst could be removed in case of positive duplicate write
+        """
+        if not dst.is_mem():
+            return False
+        ptr = dst.ptr
+        if ptr.is_int():
+            return True
+
+        base, offset = get_expr_base_offset(ptr)
+        return base == self.ir_arch.sp
+
+    def is_known_read_memory(self, mem):
+        """
+        Return True if @mem is at a known destination
+        """
+        base, offset = get_expr_base_offset(mem.ptr)
+        return base == self.ir_arch.sp
+
+    def filter_deads(self, assignblk, read_mems, deads):
+        all_reads_known = True
+        for mem in read_mems:
+            if not self.is_known_read_memory(mem):
+                deads.clear()
+                return
+
+        # If we have function call, we may have unknown memory reads
+        for src in assignblk.values():
+            if src.is_function_call():
+                deads.clear()
+                return
+
+    def get_memory_reads(self, assignblk):
+        """
+        Return read memory from @assignblk
+        """
+        reads = assignblk.get_r(mem_read=True)
+        read_mems = [expr for expr in reads if expr.is_mem()]
+        return read_mems
+
+    def remove_dup_writes(self, block, deads):
+        # Remove unused stack assignments
+        assignblks = []
+        modified = False
+        for index, assignblk in enumerate(block):
+            out = {}
+            for dst, src in viewitems(assignblk):
+                if dst in deads[index]:
+                    modified = True
+                else:
+                    out[dst] = src
+            assignblks.append(AssignBlock(out, assignblk.instr))
+
+        if modified:
+            block = IRBlock(block.loc_key, assignblks)
+            modified = True
+        return block, modified
+
+    def del_dup_write_mem(self, ssa, head):
+        sp = self.ir_arch.sp
+        modified = False
+        for block in ssa.graph.blocks.values():
+            block_modified = False
+            cur_dead = set()
+            # Last block has no dead
+            deads = []
+            for index, assignblk in list(enumerate(list(block)))[::-1]:
+                unknown_read = False
+                write_mems = set()
+                read_mems = self.get_memory_reads(assignblk)
+                self.filter_deads(assignblk, read_mems, cur_dead)
+
+                for dst in assignblk:
+                    if self.is_dup_write_mem_candidate(dst):
+                        write_mems.add(dst)
+
+                cur_dead.update(write_mems)
+                cur_dead.difference_update(read_mems)
+                deads.append(set(cur_dead))
+
+            # No dead in entry
+            deads.pop()
+
+            deads.reverse()
+            deads.append(set())
+
+            block, block_modified = self.remove_dup_writes(block, deads)
+            if block_modified:
+                ssa.graph.blocks[block.loc_key] = block
+                modified = True
+
+        return modified

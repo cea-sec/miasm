@@ -626,3 +626,30 @@ def possible_values(expr):
         raise RuntimeError("Unsupported type for expr: %s" % type(expr))
 
     return consvals
+
+
+
+INTERNAL_INTBASE_NAME = "__INTERNAL_INTBASE__"
+
+
+def get_expr_base_offset(expr):
+    """Return a couple representing the symbolic/concrete part of an addition
+    expression.
+
+    If there is no symbolic part, ExprId(INTERNAL_INTBASE_NAME) is used
+    If there is not concrete part, 0 is used
+    @expr: Expression instance
+
+    """
+    if expr.is_int():
+        internal_intbase = m2_expr.ExprId(INTERNAL_INTBASE_NAME, expr.size)
+        return internal_intbase, int(expr)
+
+    if not expr.is_op('+'):
+        return expr, 0
+    if expr.args[-1].is_int():
+        args, offset = expr.args[:-1], int(expr.args[-1])
+        if len(args) == 1:
+            return args[0], offset
+        return m2_expr.ExprOp('+', *args), offset
+    return expr, 0

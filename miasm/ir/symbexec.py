@@ -7,6 +7,8 @@ from future.utils import viewitems
 
 from miasm.expression.expression import ExprOp, ExprId, ExprLoc, ExprInt, \
     ExprMem, ExprCompose, ExprSlice, ExprCond
+from miasm.expression.expression_helper import get_expr_base_offset, \
+    INTERNAL_INTBASE_NAME
 from miasm.expression.simplifications import expr_simp_explicit
 from miasm.ir.ir import AssignBlock
 
@@ -86,32 +88,6 @@ class SymbolicState(StateEngine):
     def symbols(self):
         """Return the dictionary of known symbols"""
         return dict(self._symbols)
-
-
-INTERNAL_INTBASE_NAME = "__INTERNAL_INTBASE__"
-
-
-def get_expr_base_offset(expr):
-    """Return a couple representing the symbolic/concrete part of an addition
-    expression.
-
-    If there is no symbolic part, ExprId(INTERNAL_INTBASE_NAME) is used
-    If there is not concrete part, 0 is used
-    @expr: Expression instance
-
-    """
-    if expr.is_int():
-        internal_intbase = ExprId(INTERNAL_INTBASE_NAME, expr.size)
-        return internal_intbase, int(expr)
-
-    if not expr.is_op('+'):
-        return expr, 0
-    if expr.args[-1].is_int():
-        args, offset = expr.args[:-1], int(expr.args[-1])
-        if len(args) == 1:
-            return args[0], offset
-        return ExprOp('+', *args), offset
-    return expr, 0
 
 
 class MemArray(MutableMapping):

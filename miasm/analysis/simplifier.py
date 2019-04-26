@@ -12,7 +12,8 @@ from miasm.ir.ir import AssignBlock, IRBlock
 from miasm.analysis.data_flow import DeadRemoval, \
     merge_blocks, remove_empty_assignblks, \
     PropagateExprIntThroughExprId, PropagateThroughExprId, \
-    PropagateThroughExprMem, del_unused_edges
+    PropagateThroughExprMem, del_unused_edges, \
+    del_dummy_phi, ExprPropagationHelper, DelDupMemWrite
 
 
 log = logging.getLogger("simplifier")
@@ -147,6 +148,8 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         self.propag_expr = PropagateThroughExprId()
         self.propag_mem = PropagateThroughExprMem()
         self.deadremoval = DeadRemoval(self.ir_arch, self.all_ssa_vars)
+        self.expr_propag_mem = ExprPropagationHelper(self.ir_arch)
+        self.del_dup_write_mem = DelDupMemWrite(self.ir_arch)
 
     def get_forbidden_regs(self):
         """
@@ -171,9 +174,12 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
             self.do_propagate_mem,
             self.do_propagate_expr,
             self.do_dead_simp_ssa,
+            self.do_del_dup_write_mem,
             self.do_remove_empty_assignblks,
             self.do_del_unused_edges,
             self.do_merge_blocks,
+            self.do_del_dummy_phi,
+            self.do_expr_propag_mem,
         ]
 
 
@@ -287,6 +293,33 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         @head: Location instance of the ircfg head
         """
         modified = self.deadremoval(ssa.graph)
+        return modified
+
+    @fix_point
+    def do_del_dummy_phi(self, ssa, head):
+        """
+        Del unused edges of the ssa graph
+        @head: Location instance of the graph head
+        """
+        modified = del_dummy_phi(ssa, head)
+        return modified
+
+    @fix_point
+    def do_del_dup_write_mem(self, ssa, head):
+        """
+        Del double write to the same memory without read
+        @head: Location instance of the graph head
+        """
+        modified = self.del_dup_write_mem.del_dup_write_mem(ssa, head)
+        return modified
+
+    @fix_point
+    def do_expr_propag_mem(self, ssa, head):
+        """
+        Del unused edges of the ssa graph
+        @head: Location instance of the graph head
+        """
+        modified = self.expr_propag_mem.propagage_memory(ssa, head)
         return modified
 
     def do_simplify(self, ssa, head):

@@ -256,7 +256,7 @@ class AssignBlock(object):
 
     def __str__(self):
         out = []
-        for dst, src in sorted(viewitems(self._assigns)):
+        for dst, src in viewitems(self._assigns):
             out.append("%s = %s" % (dst, src))
         return "\n".join(out)
 
@@ -279,6 +279,40 @@ class AssignBlock(object):
             new_dst = simplifier(dst)
             new_assignblk[new_dst] = new_src
         return AssignBlock(irs=new_assignblk, instr=self.instr)
+
+    def replace_is_modified(self, dct):
+        modified = False
+        out = {}
+        for dst, src in viewitems(self):
+            new_dst = dst.replace_expr(dct)
+            new_src = src.replace_expr(dct)
+            out[new_dst] = new_src
+            modified |= new_dst != dst
+            modified |= new_src != src
+        return modified, AssignBlock(out, self.instr)
+
+    def replace(self, dct):
+        _modifed, result = self.replace_is_modified(dct)
+        return result
+
+    def replace_is_modified_srcs(self, dct):
+        out = {}
+        modified = False
+        for dst, src in viewitems(self):
+            if dst.is_mem():
+                ptr = dst.ptr.replace_expr(dct)
+                new_dst = m2_expr.ExprMem(ptr, dst.size)
+                modified |= new_dst != dst
+            else:
+                new_dst = dst
+            new_src = src.replace_expr(dct)
+            modified |= new_src != src
+            out[new_dst] = new_src
+        return modified, AssignBlock(out, self.instr)
+
+    def replace_srcs(self, dct):
+        _modifed, result = self.replace_is_modified_srcs(dct)
+        return result
 
     def to_string(self, loc_db=None):
         out = []
@@ -464,6 +498,31 @@ class IRBlock(object):
             assignblks.append(new_assignblk)
         return modified, IRBlock(self.loc_key, assignblks)
 
+    def replace_is_modified(self, dct):
+        modified = False
+        assignblks = list(self)
+        for index, assignblk in enumerate(assignblks):
+            is_modified, new_assignblk = assignblk.replace_is_modified(dct)
+            modified |= is_modified
+            assignblks[index] = new_assignblk
+        return modified, IRBlock(self.loc_key, assignblks)
+
+    def replace(self, dct):
+        _modifed, irblock = self.replace_is_modified(dct)
+        return irbock
+
+    def replace_is_modified_srcs(self, dct):
+        modified = False
+        assignblks = list(self)
+        for index, assignblk in enumerate(assignblks):
+            is_modified, new_assignblk = assignblk.replace_is_modified_srcs(dct)
+            modified |= is_modified
+            assignblks[index] = new_assignblk
+        return modified, IRBlock(self.loc_key, assignblks)
+
+    def replace_srcs(self, dct):
+        _modifed, irblock = self.replace_is_modified_srcs(dct)
+        return irbock
 
 class irbloc(IRBlock):
     """
@@ -638,6 +697,32 @@ class IRCFG(DiGraph):
                 assignblks.append(new_assignblk)
             self.blocks[loc_key] = IRBlock(loc_key, assignblks)
         return modified
+
+
+    def replace(self, dct):
+        """
+        Replace expressions in each irblocks
+        @dct: replace dict
+        """
+        modified = False
+        for loc_key, block in viewitems(self.blocks):
+            is_modified, new_block = block.replace_is_modified(dct)
+            modified |= is_modified
+            self.blocks[loc_key] = new_block
+        return modified
+
+    def replace_srcs(self, dct):
+        """
+        Replace expressions in each irblocks
+        @dct: replace dict
+        """
+        modified = False
+        for loc_key, block in viewitems(self.blocks):
+            is_modified, new_block = block.replace_is_modified_srcs(dct)
+            modified |= is_modified
+            self.blocks[loc_key] = new_block
+        return modified
+
 
     def get_rw(self, regs_ids=None):
         """
