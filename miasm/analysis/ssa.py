@@ -423,12 +423,13 @@ class SSADiGraph(SSA):
         a set of IRBlocks in which the variable gets assigned
         """
 
+        visited_loc = set()
         for loc_key in self.graph.walk_depth_first_forward(head):
             irblock = self.get_block(loc_key)
             if irblock is None:
                 # Incomplete graph
                 continue
-
+            visited_loc.add(loc_key)
             # search for block's IR definitions/destinations
             for assignblk in irblock.assignblks:
                 for dst in assignblk:
@@ -439,6 +440,8 @@ class SSADiGraph(SSA):
                             continue
                         # map variable definition to blocks
                         self.defs.setdefault(dst, set()).add(irblock.loc_key)
+        if visited_loc != set(self.graph.blocks):
+            raise RuntimeError("Cannot operate on a non connected graph")
 
     def _place_phi(self, head):
         """
