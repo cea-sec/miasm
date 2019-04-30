@@ -1878,6 +1878,33 @@ class ExprPropagationHelper(object):
         return modified
 
 
+def get_phi_sources(phi_src, phi_dsts, ids_to_src):
+    true_values = set()
+    for src in phi_src.args:
+        if src in phi_dsts:
+            # Source is phi dst => skip
+            continue
+        true_src = ids_to_src[src]
+        if true_src in phi_dsts:
+            # Source is phi dst => skip
+            continue
+        # Chec if src is not also a phi
+        if true_src.is_op('Phi'):
+            phi_dsts.add(src)
+            true_src = get_phi_sources(true_src, phi_dsts, ids_to_src)
+        if true_src is False:
+            return False
+        if true_src is True:
+            continue
+        true_values.add(true_src)
+        if len(true_values) != 1:
+            return False
+    if not true_values:
+        return True
+    if len(true_values) != 1:
+        return False
+    true_value = true_values.pop()
+    return true_value
 
 
 def del_dummy_phi(ssa, head):
@@ -1896,20 +1923,11 @@ def del_dummy_phi(ssa, head):
         assignblk = block[0]
         modified_assignblk = False
         for dst, phi_src in viewitems(assignblk):
-            true_values = set()
             assert phi_src.is_op('Phi')
-            for src in phi_src.args:
-                if src == dst:
-                    # Source is phi dst => skip
-                    continue
-                true_src = ids_to_src[src]
-                if true_src == dst:
-                    # Source is phi dst => skip
-                    continue
-                true_values.add(true_src)
-            if len(true_values) != 1:
+            true_value = get_phi_sources(phi_src, set([dst]), ids_to_src)
+            if true_value is False:
                 continue
-            true_value = true_values.pop()
+            assert true_value != True:
             if expr_has_mem(true_value):
                 continue
             fixed_phis = {}
