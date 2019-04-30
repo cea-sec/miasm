@@ -852,26 +852,6 @@ class PropagateThroughExprId(object):
                     def_dct[dst] = node, index
         return def_dct
 
-    def phi_has_identical_sources(self, ssa, def_dct, var):
-        """
-        If phi operation has identical source values, return it; else None
-        @ssa: SSADiGraph instance
-        @def_dct: dictionary linking variable to its assignment location
-        @var: Phi destination variable
-        """
-        loc_key, index = def_dct[var]
-        sources = ssa.graph.blocks[loc_key][index][var]
-        assert sources.is_op('Phi')
-        sources_values = set()
-        for src in sources.args:
-            assert src in def_dct
-            loc_key, index = def_dct[src]
-            value = ssa.graph.blocks[loc_key][index][src]
-            sources_values.add(value)
-        if len(sources_values) != 1:
-            return None
-        return list(sources_values)[0]
-
     def get_candidates(self, ssa, head, max_expr_depth):
         def_dct = self.get_var_definitions(ssa)
         defuse = SSADefUse.from_ssa(ssa)
@@ -888,10 +868,6 @@ class PropagateThroughExprId(object):
             if node.var.is_mem():
                 continue
             if src.is_op('Phi'):
-                ret = self.phi_has_identical_sources(ssa, def_dct, node.var)
-                if ret:
-                    to_replace[node.var] = ret
-                    node_to_reg[node] = node.var
                 continue
             to_replace[node.var] = src
             node_to_reg[node] = node.var
