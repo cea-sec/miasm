@@ -15,7 +15,7 @@ from miasm.analysis.ssa import get_phi_sources_parent_block, \
     irblock_has_phi
 from miasm.expression.expression_helper import get_expr_base_offset, \
     INTERNAL_INTBASE_NAME
-
+from miasm.ir.symbexec import SymbolicExecutionEngine
 
 class ReachingDefinitions(dict):
     """
@@ -918,6 +918,8 @@ class PropagateThroughExprId(object):
                         new_dst = dst.replace_expr(replace)
                         if not (new_dst.is_id() or new_dst.is_mem()):
                             new_dst = dst
+                    new_dst = expr_simp(new_dst)
+                    new_src = expr_simp(new_src)
                     if src != new_src or dst != new_dst:
                         modified = True
                     out[new_dst] = new_src
@@ -2050,3 +2052,240 @@ class DelDupMemWrite(object):
                 modified = True
 
         return modified
+
+
+
+class SymbexecDelInterferences(SymbolicExecutionEngine):
+    def test_may_alias(self, expr_a, expr_b):
+        """
+        Return True if @expr_a overlap with @expr_b
+        """
+        if expr_a.is_id() and expr_b.is_id():
+            return expr_a == expr_b
+        elif expr_a.is_id() or expr_b.is_id():
+            return False
+
+        ptr_a = expr_a.ptr
+        ptr_b = expr_b.ptr
+
+        ptr_base_a, ptr_offset_a = get_expr_base_offset(ptr_a)
+        ptr_base_b, ptr_offset_b = get_expr_base_offset(ptr_b)
+
+
+        sp_p4 = ExprMem(self.ir_arch.arch.regs.ESP + ExprInt(4, 32), 32)
+        if ptr_base_a != ptr_base_b:
+            # XXX TODO: move custom rulez to extern code
+            if set([ptr_base_a, ptr_base_b]) == set([self.ir_arch.arch.regs.ESP, self.ir_arch.arch.regs.EBP]):
+                return False
+            if ExprId('arg0', 32) in set([ptr_base_a, ptr_base_b]):
+                return False
+            #if (sp_p4 in ptr_base_a or
+            #    sp_p4 in ptr_base_b):
+            #    return False
+            ##print("MAY ALIAS", ptr_base_a, ptr_base_b)
+            return True
+
+        # Same symbolic based ExprMem
+        diff = ptr_offset_b - ptr_offset_a
+
+        mem_a, mem_b = expr_a, expr_b
+        if diff < 0:
+            mem_a, mem_b = mem_b, mem_a
+            diff = -diff
+
+        base1, base2 = 0, diff
+        size1, size2 = mem_a.size // 8, mem_b.size // 8
+        interval1 = interval([(base1, base1 + size1 - 1)])
+        interval2 = interval([(base2, base2 + size2 - 1)])
+        result = interval1 & interval2
+        if result.empty:
+            return False
+        return True
+
+
+    def eval_updt_assignblk(self, assignblk):
+        """
+        Apply an AssignBlock on the current state
+        @assignblk: AssignBlock instance
+        """
+        mem_dst = []
+        dst_src = self.eval_assignblk(assignblk)
+        self.do_dst_src(dst_src)
+        """
+        for dst, src in viewitems(dst_src):
+            self.apply_change(dst, src)
+            if dst.is_mem():
+                mem_dst.append(dst)
+        """
+        return []
+
+    def do_dst_src(self, dst_src):
+        out = {}
+        all_dsts = dst_src.keys()
+        for dst, src in dst_src.items():
+            to_del = set()
+
+            # Remove all symbols which may alias with our dst
+            for key, value in viewitems(self.symbols):
+                uses = key.get_r(mem_read=True).union(value.get_r(mem_read=True))
+                for use in uses:
+                    if self.test_may_alias(dst, use):
+                        to_del.add(key)
+                        break
+
+            for key in to_del:
+                del(self.symbols[key])
+
+            # Don't update store if dst may alias with it's own sources
+            uses = src.get_r(mem_read=True)
+            skip = False
+            for dst_test in all_dsts:
+                for use in uses:
+                    if self.test_may_alias(dst_test, use):
+                        skip = True
+                        break
+                if skip:
+                    break
+            if skip:
+                continue
+            if src.is_op('Phi') or src.is_function_call():
+                continue
+            out[dst] = src
+        for dst, src in out.items():
+            super(SymbexecDelInterferences, self).apply_change(dst, src)
+
+
+class SymbexecDelInterferencesAndFix(SymbexecDelInterferences):
+
+    def eval_exprloc(self, expr, **kwargs):
+        """[DEV]: Evaluate an ExprLoc using the current state"""
+        return expr
+
+    def eval_updt_irblock(self, irb, step=False):
+        """
+        Symbolic execution of the @irb on the current state
+        @irb: irbloc instance
+        @step: display intermediate steps
+        """
+        irs = []
+        modified = False
+        for assignblk in irb:
+            if step:
+                print('Instr', assignblk.instr)
+                print('Assignblk:')
+                print(assignblk)
+                print('_' * 80)
+
+            out = {}
+            for dst, src in viewitems(assignblk):
+                if src.is_op('Phi'):
+                    new_src = src
+                else:
+                    new_src = self.eval_expr(src)
+                if dst.is_mem():
+                    new_dst = ExprMem(self.eval_expr(dst.ptr), dst.size)
+                else:
+                    new_dst = dst
+                if new_dst == new_src:
+                    continue
+                out[new_dst] = new_src
+                if new_src != src or new_dst != dst:
+                    modified = True
+
+            irs.append(AssignBlock(out, assignblk.instr))
+            self.eval_updt_assignblk(assignblk)
+            if step:
+                self.dump(mems=False)
+                self.dump(ids=False)
+                print('_' * 80)
+
+        return modified, IRBlock(irb.loc_key, irs)
+
+
+class PropagateWithSymbolicExec(object):
+    def __init__(self, ir_arch):
+        self.ir_arch = ir_arch
+
+    def merge_states(self, states):
+        if len(states) == 1:
+            return states[0]
+        dct = set([(expr_simp(dst), expr_simp(src)) for (dst, src) in dict(states.pop()).items()])
+        for state in states:
+            dct.intersection_update(set([(expr_simp(dst), expr_simp(src)) for (dst, src) in dict(state).items()]))
+
+        return dict(dct)
+
+    def emul_block(self, block, state):
+        symb_exec = SymbexecDelInterferences(self.ir_arch, state=state)
+        symb_exec.eval_updt_irblock(block)
+        return symb_exec.state
+
+    def get_states(self, head):
+        todo = set([head])
+        self.states = {}
+        sp = self.ir_arch.arch.regs.ESP
+        for loc_key in todo:
+            # TODO XXX: take initial state as input?
+            self.states[loc_key] = {
+                self.ir_arch.arch.regs.df: ExprInt(0, 1),
+                ExprMem(sp + ExprInt(4, 32), 32): ExprId('arg0', 32),
+                ExprMem(sp + ExprInt(8, 32), 32): ExprId('arg1', 32),
+            }
+
+        while todo:
+            loc_key = todo.pop()
+            if loc_key not in self.ircfg.blocks:
+                continue
+            if loc_key == head:
+                merged_state = self.states[loc_key]
+            else:
+                pred_states = []
+                for pred in self.ircfg.predecessors(loc_key):
+                    pred_state = self.states.get(pred, None)
+                    if pred_state is None:
+                        continue
+                    pred_states.append(pred_state)
+                merged_state = self.merge_states(pred_states)
+
+            new_state = self.emul_block(self.ircfg.blocks[loc_key], dict(merged_state))
+
+            if self.states.get(loc_key, None) == new_state:
+                # Fix point
+                continue
+
+            self.states[loc_key] = new_state
+            for succ in self.ircfg.successors(loc_key):
+                todo.add(succ)
+
+    def do_replacement(self, head):
+        modified = False
+        for loc_key, state in viewitems(self.states):
+            if loc_key == head:
+                merged_state = self.states[loc_key]
+            else:
+                pred_states = []
+                for pred in self.ircfg.predecessors(loc_key):
+                    pred_state = self.states.get(pred, None)
+                    if pred_state is None:
+                        continue
+                    pred_states.append(pred_state)
+                merged_state = self.merge_states(pred_states)
+
+            symb_exec = SymbexecDelInterferencesAndFix(
+                self.ir_arch,
+                state=dict(merged_state),
+                sb_expr_simp = expr_simp
+            )
+            irblock = self.ircfg.blocks[loc_key]
+            modified_block, new_irblock = symb_exec.eval_updt_irblock(irblock)
+            modified |= modified_block
+            self.ircfg.blocks[new_irblock.loc_key] = new_irblock
+        return modified
+
+    def simplify(self, ssa, head):
+        self.ircfg = ssa.graph
+        self.get_states(head)
+        modified = self.do_replacement(head)
+        return modified
+
+

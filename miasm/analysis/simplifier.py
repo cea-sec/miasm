@@ -13,7 +13,8 @@ from miasm.analysis.data_flow import DeadRemoval, \
     merge_blocks, remove_empty_assignblks, \
     PropagateExprIntThroughExprId, PropagateThroughExprId, \
     PropagateThroughExprMem, del_unused_edges, \
-    del_dummy_phi, ExprPropagationHelper, DelDupMemWrite
+    del_dummy_phi, ExprPropagationHelper, DelDupMemWrite, \
+    PropagateWithSymbolicExec
 
 
 log = logging.getLogger("simplifier")
@@ -150,6 +151,7 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         self.deadremoval = DeadRemoval(self.ir_arch, self.all_ssa_vars)
         self.expr_propag_mem = ExprPropagationHelper(self.ir_arch)
         self.del_dup_write_mem = DelDupMemWrite(self.ir_arch)
+        self.symb_propag = PropagateWithSymbolicExec(self.ir_arch)
 
     def get_forbidden_regs(self):
         """
@@ -180,6 +182,7 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
             self.do_merge_blocks,
             self.do_del_dummy_phi,
             self.do_expr_propag_mem,
+            self.do_symb_propag,
         ]
 
 
@@ -320,6 +323,15 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         @head: Location instance of the graph head
         """
         modified = self.expr_propag_mem.propagage_memory(ssa, head)
+        return modified
+
+    @fix_point
+    def do_symb_propag(self, ssa, head):
+        """
+        Del unused edges of the ssa graph
+        @head: Location instance of the graph head
+        """
+        modified = self.symb_propag.simplify(ssa, head)
         return modified
 
     def do_simplify(self, ssa, head):
