@@ -2060,23 +2060,19 @@ class DelDupMemWrite(object):
         return modified
 
 
+class ComputeAlias(object):
+    def __init__(self, ir_arch):
+        self.ir_arch = ir_arch
 
-class SymbexecDelInterferences(SymbolicExecutionEngine):
-    def test_may_alias(self, expr_a, expr_b):
+    def test_same_base(self, expr_a, expr_b):
         """
-        Return True if @expr_a overlap with @expr_b
+        Return True if @expr_a overlap @expr_b (@expr_a and @expr_b are ExprMem)
         """
-        if expr_a.is_id() and expr_b.is_id():
-            return expr_a == expr_b
-        elif expr_a.is_id() or expr_b.is_id():
-            return False
+        ptr_base_a, ptr_offset_a = get_expr_base_offset(expr_a.ptr)
+        ptr_base_b, ptr_offset_b = get_expr_base_offset(expr_b.ptr)
 
-        ptr_a = expr_a.ptr
-        ptr_b = expr_b.ptr
-
-        ptr_base_a, ptr_offset_a = get_expr_base_offset(ptr_a)
-        ptr_base_b, ptr_offset_b = get_expr_base_offset(ptr_b)
-
+        assert ptr_base_a == ptr_base_b
+        mask = int(ptr_base_a.mask)
 
         # Same symbolic based ExprMem
         diff = ptr_offset_b - ptr_offset_a
@@ -2088,14 +2084,62 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
 
         base1, base2 = 0, diff
         size1, size2 = mem_a.size // 8, mem_b.size // 8
-        interval1 = interval([(base1, base1 + size1 - 1)])
-        interval2 = interval([(base2, base2 + size2 - 1)])
-        result = interval1 & interval2
-        if result.empty:
+
+        assert size1 <= mask
+        assert size2 <= mask
+
+        if base1 <= base2 < base1 + size1:
+            return True
+        if base2 + size2 > mask + 1:
+            # Overflow, so overlap
+            return True
+        return False
+
+    def test_different_base(self, expr_a, expr_b):
+        # By default, different bases may alias
+        #return True
+        #print("diff base", expr_a, expr_b)
+        ptr_base_a, ptr_offset_a = get_expr_base_offset(expr_a.ptr)
+        ptr_base_b, ptr_offset_b = get_expr_base_offset(expr_b.ptr)
+
+        sp_p4 = ExprMem(self.ir_arch.arch.regs.ESP + ExprInt(4, 32), 32)
+        # XXX TODO: move custom rulez to extern code
+        if set([ptr_base_a, ptr_base_b]) == set([self.ir_arch.arch.regs.ESP, self.ir_arch.arch.regs.EBP]):
             return False
+        if ExprId('arg0', 32) in set([ptr_base_a, ptr_base_b]):
+            return False
+        #if (sp_p4 in ptr_base_a or
+        #    sp_p4 in ptr_base_b):
+        #    return False
+        ##print("MAY ALIAS", ptr_base_a, ptr_base_b)
         return True
 
 
+    def test_may_alias(self, expr_a, expr_b):
+        """
+        Return True if @expr_a overlap with @expr_b
+        """
+        if expr_a.is_id() and expr_b.is_id():
+            return expr_a == expr_b
+        elif expr_a.is_id() or expr_b.is_id():
+            return False
+
+        assert expr_a.is_mem()
+        assert expr_b.is_mem()
+
+        ptr_a = expr_a.ptr
+        ptr_b = expr_b.ptr
+
+        ptr_base_a, ptr_offset_a = get_expr_base_offset(ptr_a)
+        ptr_base_b, ptr_offset_b = get_expr_base_offset(ptr_b)
+
+        if ptr_base_a == ptr_base_b:
+            return self.test_same_base(expr_a, expr_b)
+
+        return self.test_different_base(expr_a, expr_b)
+
+
+class SymbexecDelInterferences(SymbolicExecutionEngine):
     def eval_updt_assignblk(self, assignblk):
         """
         Apply an AssignBlock on the current state
@@ -2113,6 +2157,7 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
         return []
 
     def do_dst_src(self, dst_src):
+        compute_alias = ComputeAlias(self.ir_arch)
         out = {}
         all_dsts = dst_src.keys()
         for dst, src in dst_src.items():
@@ -2122,7 +2167,7 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
             for key, value in viewitems(self.symbols):
                 uses = key.get_r(mem_read=True).union(value.get_r(mem_read=True))
                 for use in uses:
-                    if self.test_may_alias(dst, use):
+                    if compute_alias.test_may_alias(dst, use):
                         to_del.add(key)
                         break
 
@@ -2134,7 +2179,7 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
             skip = False
             for dst_test in all_dsts:
                 for use in uses:
-                    if self.test_may_alias(dst_test, use):
+                    if compute_alias.test_may_alias(dst_test, use):
                         skip = True
                         break
                 if skip:
