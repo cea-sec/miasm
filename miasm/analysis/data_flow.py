@@ -1910,6 +1910,10 @@ def get_phi_sources(phi_src, phi_dsts, ids_to_src):
 
 
 def del_dummy_phi(ssa, head):
+    """
+    Remove phi with unique source
+    Handle interdependent Phi variables
+    """
     ids_to_src = {}
     for block in viewvalues(ssa.graph.blocks):
         for index, assignblock in enumerate(block):
@@ -1923,28 +1927,30 @@ def del_dummy_phi(ssa, head):
         if not irblock_has_phi(block):
             continue
         assignblk = block[0]
-        modified_assignblk = False
+        final_phis = dict(assignblk)
+        fixed_values = {}
+        local_modified = False
         for dst, phi_src in viewitems(assignblk):
             assert phi_src.is_op('Phi')
             true_value = get_phi_sources(phi_src, set([dst]), ids_to_src)
             if true_value is False:
                 continue
-            assert true_value != True:
+            assert true_value != True
             if expr_has_mem(true_value):
                 continue
-            fixed_phis = {}
-            for old_dst, old_phi_src in viewitems(assignblk):
-                if old_dst == dst:
-                    continue
-                fixed_phis[old_dst] = old_phi_src
 
-            modified = True
+            del(final_phis[dst])
+            fixed_values[dst] = true_value
+            local_modified = True
 
-            assignblks = list(block)
-            assignblks[0] = AssignBlock(fixed_phis, assignblk.instr)
-            assignblks[1:1] = [AssignBlock({dst: true_value}, assignblk.instr)]
-            new_irblock = IRBlock(block.loc_key, assignblks)
-            ssa.graph.blocks[block.loc_key] = new_irblock
+        if not local_modified:
+            continue
+        assignblks = list(block)
+        assignblks[0] = AssignBlock(final_phis, assignblk.instr)
+        assignblks[1:1] = [AssignBlock(fixed_values, assignblk.instr)]
+        new_irblock = IRBlock(block.loc_key, assignblks)
+        ssa.graph.blocks[block.loc_key] = new_irblock
+        modified = True
 
     return modified
 
