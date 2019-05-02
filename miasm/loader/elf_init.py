@@ -104,6 +104,8 @@ class WRel64(StructWrapper):
     wrapped._fields.append(("type", "u32"))
 
     def get_sym(self):
+        if not hasattr(self.parent.linksection, 'symtab'):
+            return None
         return self.parent.linksection.symtab[self.cstr.info >> 32].name
 
     def get_type(self):
