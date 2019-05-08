@@ -2501,7 +2501,7 @@ def propagate_stk_lvl(ir_arch, ssa, head, stk_lvl):
                     continue
 
             if stk_lvl_cur is None:
-                if assignblk_has_sp_mem_access(ir_arch, assignblk):
+                if can_assignblock_access_stk(assignblk, stk_lvl):
                     continue
                 stk_lvl_cur = assignblk[stk_lvl]
                 continue
@@ -2526,7 +2526,7 @@ def propagate_stk_lvl(ir_arch, ssa, head, stk_lvl):
                 block_modified = True
                 #print(irs[idx])
 
-            if assignblk_has_sp_mem_access(ir_arch, assignblk):
+            if can_assignblock_access_stk(assignblk, stk_lvl):
                 stk_lvl_cur = None
         if block_modified:
             ssa.graph.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
@@ -2543,7 +2543,9 @@ def propagate_stk_lvl(ir_arch, ssa, head, stk_lvl):
 
 
 
-def assignblk_has_sp_mem_access(ir_arch, assignblk):
+def can_assignblock_access_stk(assignblk, stk_lvl):
+    stk_lvl_cur = assignblk[stk_lvl]
+    sp_base, sp_offset = get_expr_base_offset(stk_lvl_cur)
     reads = set()
     for dst, src in viewitems(assignblk):
         assign = ExprAssign(dst, src)
@@ -2551,7 +2553,7 @@ def assignblk_has_sp_mem_access(ir_arch, assignblk):
     mems = set(expr for expr in reads if expr.is_mem())
     for mem in mems:
         ptr, offset = get_expr_base_offset(mem.ptr)
-        if ptr == ir_arch.sp:
+        if ptr == sp_base:
             return True
     return False
 
@@ -2571,7 +2573,7 @@ def do_del_stk_above(ir_arch, assignblk, stk_lvl):
         return assignblk, False
     if not does_sp_mem_write(assignblk, stk_lvl):
         return assignblk, False
-    if assignblk_has_sp_mem_access(ir_arch, assignblk):
+    if can_assignblock_access_stk(assignblk, stk_lvl):
         return assignblk, False
     out = {}
 
