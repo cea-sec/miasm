@@ -862,10 +862,14 @@ class PropagateThroughExprId(object):
         for node in defuse.nodes():
             if node.var in ssa.immutable_ids:
                 continue
+            if node.var.is_id() and node.var.name.startswith("tmp"):
+                continue
             src = defuse.get_node_target(node)
             if max_expr_depth is not None and len(str(src)) > max_expr_depth:
                 continue
             if src.is_function_call():
+                continue
+            if expr_has_mem(src):
                 continue
             if node.var.is_mem():
                 continue
@@ -1000,6 +1004,10 @@ class PropagateThroughExprMem(object):
                 out = dict(assignblk)
                 out_new = {}
                 for dst, src in viewitems(out):
+                    if dst.is_id() and dst.name.startswith("tmp"):
+                        out_new[dst] = src
+                        continue
+
                     if dst.is_mem():
                         write_mem = True
                         ptr = dst.ptr.replace_expr({mem_dst:mem_src})
@@ -1777,6 +1785,8 @@ class ExprPropagationHelper(object):
         if src.is_function_call():
             # Do not propagate function call
             return False
+        if dst.is_id() and dst.name.startswith("tmp"):
+            return False
         return True
 
 
@@ -2097,7 +2107,7 @@ class ComputeAlias(object):
 
     def test_different_base(self, expr_a, expr_b):
         # By default, different bases may alias
-        #return True
+        return True
         #print("diff base", expr_a, expr_b)
         ptr_base_a, ptr_offset_a = get_expr_base_offset(expr_a.ptr)
         ptr_base_b, ptr_offset_b = get_expr_base_offset(expr_b.ptr)
@@ -2111,7 +2121,7 @@ class ComputeAlias(object):
         #if (sp_p4 in ptr_base_a or
         #    sp_p4 in ptr_base_b):
         #    return False
-        ##print("MAY ALIAS", ptr_base_a, ptr_base_b)
+        print("MAY ALIAS", ptr_base_a, ptr_base_b)
         return True
 
 
@@ -2139,6 +2149,8 @@ class ComputeAlias(object):
         return self.test_different_base(expr_a, expr_b)
 
 
+
+
 class SymbexecDelInterferences(SymbolicExecutionEngine):
     def eval_updt_assignblk(self, assignblk):
         """
@@ -2146,6 +2158,8 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
         @assignblk: AssignBlock instance
         """
         mem_dst = []
+        print("EXEC")
+        print(assignblk)
         dst_src = self.eval_assignblk(assignblk)
         self.do_dst_src(dst_src)
         """
@@ -2156,26 +2170,107 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
         """
         return []
 
+    def test_dependency(self, assignblk):
+        all_dsts = set(dst_src.keys())
+        to_del = set()
+        for dst, src in viewitems(assignblk):
+            uses = key.get_r(mem_read=True).union(value.get_r(mem_read=True))
+            if uses & all_dsts:
+                to_del.add(dst)
+        return to_del
+
     def do_dst_src(self, dst_src):
         compute_alias = ComputeAlias(self.ir_arch)
         out = {}
-        all_dsts = dst_src.keys()
-        for dst, src in dst_src.items():
-            to_del = set()
+        all_dsts = set(dst_src.keys())
+        to_del = set()
+        # First remove known symbols with updated sources
+        for dst, src in viewitems(self.symbols):
+            #if dst.is_id() and dst.name.startswith("tmp"):
+            #    to_del.add(dst)
+            #    continue
 
-            # Remove all symbols which may alias with our dst
-            for key, value in viewitems(self.symbols):
-                uses = key.get_r(mem_read=True).union(value.get_r(mem_read=True))
-                for use in uses:
-                    if compute_alias.test_may_alias(dst, use):
-                        to_del.add(key)
-                        break
 
-            for key in to_del:
-                del(self.symbols[key])
-
-            # Don't update store if dst may alias with it's own sources
             uses = src.get_r(mem_read=True)
+            if dst.is_mem():
+                uses.update(dst.ptr.get_r(mem_read=True))
+            if uses & all_dsts:
+                to_del.add(dst)
+        for dst in to_del:
+            del(self.symbols[dst])
+
+
+        to_del = set()
+        # Then remove known symbols which may alias to updated sources
+        for dst, src in viewitems(self.symbols):
+            uses = src.get_r(mem_read=True)
+            if dst.is_mem():
+                uses.update(dst.ptr.get_r(mem_read=True))
+            skip = False
+            for dst_test in all_dsts:
+                for use in uses:
+                    if compute_alias.test_may_alias(dst_test, use):
+                        to_del.add(dst)
+                        skip = True
+                        break
+                if skip:
+                    break
+        for dst in to_del:
+            del(self.symbols[dst])
+
+        to_del = set()
+        # Then remove update with self reference
+        for dst, src in viewitems(dst_src):
+            uses = src.get_r(mem_read=True)
+            if dst.is_mem():
+                uses.update(dst.ptr.get_r(mem_read=True))
+            if uses & all_dsts:
+                to_del.add(dst)
+        for dst in to_del:
+            del(dst_src[dst])
+
+
+
+        # Don't propagate local stack after their stack high limit
+        #stk_lvl_cur = self.symbols[ExprId("stk_lvl", 32)]
+        stk_lvl_cur = dst_src.get(ExprId("stk_lvl", 32), None)
+        if stk_lvl_cur is not None:
+            sp_base, sp_offset = get_expr_base_offset(stk_lvl_cur)
+        else:
+            sp_base = None
+
+        to_del = set()
+        for dst, src in viewitems(dst_src):
+            #uses = src.get_r(mem_read=True)
+            #if dst.is_mem():
+            #    uses.update(dst.ptr.get_r(mem_read=True))
+            uses = set([dst])
+            uses = set(use for use in uses if use.is_mem())
+            for use in uses:
+                mem_base, mem_offset = get_expr_base_offset(use.ptr)
+                if mem_base != sp_base:
+                    print("Dont1 propagate stack after stk limit high")
+                    print("%s = %s" % (dst, src))
+                    to_del.add(dst)
+                    break
+                print("LVLS", use.ptr, stk_lvl_cur)
+                diff = expr_simp((use.ptr - stk_lvl_cur).msb())
+                if diff.is_int() and int(diff) == 1:
+                    print("Dont2 propagate stack after stk limit high")
+                    print("%s = %s" % (dst, src))
+                    to_del.add(dst)
+                    break
+        for dst in to_del:
+            del(dst_src[dst])
+
+        # Don't update store if dst may alias with it's own sources
+        for dst, src in dst_src.items():
+            #if dst.is_id() and dst.name.startswith("tmp"):
+
+
+            uses = src.get_r(mem_read=True)
+            if dst.is_mem():
+                uses.update(dst.ptr.get_r(mem_read=True))
             skip = False
             for dst_test in all_dsts:
                 for use in uses:
@@ -2185,10 +2280,15 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
                 if skip:
                     break
             if skip:
+                if dst in self.symbols:
+                    del self.symbols[dst]
                 continue
             if src.is_op('Phi') or src.is_function_call():
                 continue
             out[dst] = src
+
+        all_dsts = set(out.keys())
+
         for dst, src in out.items():
             super(SymbexecDelInterferences, self).apply_change(dst, src)
 
@@ -2216,12 +2316,39 @@ class SymbexecDelInterferencesAndFix(SymbexecDelInterferences):
 
             out = {}
             for dst, src in viewitems(assignblk):
+                #if dst.is_id() and dst.name.startswith("tmp"):
+                #    continue
                 if src.is_op('Phi'):
                     new_src = src
                 else:
-                    new_src = self.eval_expr(src)
+                    # TEST propag memory tmp_x
+                    # XXX
+                    if dst.is_mem():
+                        replace = {}
+                        uses = src.get_r(mem_read=True)
+                        uses = set(expr for expr in uses if expr.is_id() and expr.name.startswith('tmp'))
+                        if uses:
+                            xxx = dict((expr, expr) for expr in uses)
+                            new_src = self.eval_expr(src, xxx)
+                        else:
+                            new_src = self.eval_expr(src)
+                    else:
+                        new_src = self.eval_expr(src)
                 if dst.is_mem():
-                    new_dst = ExprMem(self.eval_expr(dst.ptr), dst.size)
+
+                    ptr = dst.ptr
+                    replace = {}
+                    uses = ptr.get_r(mem_read=True)
+                    uses = set(expr for expr in uses if expr.is_id() and expr.name.startswith('tmp'))
+                    if uses:
+                        xxx = dict((expr, expr) for expr in uses)
+                        new_ptr = self.eval_expr(ptr, xxx)
+                        fds
+                    else:
+                        new_ptr = self.eval_expr(ptr)
+
+
+                    new_dst = ExprMem(new_ptr, dst.size)
                 else:
                     new_dst = dst
                 if new_dst == new_src:

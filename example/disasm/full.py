@@ -11,18 +11,20 @@ from miasm.analysis.machine import Machine
 from miasm.analysis.data_flow import \
     DiGraphDefUse, ReachingDefinitions, \
     replace_stack_vars, load_from_int, \
-    expr_has_mem, ExprPropagationHelper
+    expr_has_mem, ExprPropagationHelper, \
+    ComputeAlias
 from miasm.analysis.ssa import SSADiGraph
 from miasm.ir.ir import AssignBlock
 from miasm.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
 
 from miasm.expression.expression import ExprMem, ExprAssign, ExprId, \
-    ExprInt, ExprLoc, ExprOp
+    ExprInt, ExprLoc, ExprOp, ExprAssign
 from miasm.expression.simplifications import expr_simp
 from miasm.ir.ir import AssignBlock, IRBlock
 from miasm.core.interval import interval
 from miasm.analysis.ssa import irblock_has_phi
 
+from miasm.expression.expression_helper import get_expr_base_offset
 
 log = logging.getLogger("dis")
 console_handler = logging.StreamHandler()
@@ -199,6 +201,159 @@ if args.gen_ir:
 
 
 if args.propagexpr:
+    open("start.dot", "w").write(ircfg_a.dot())
+
+
+    interfer_index = 0
+    def assignblk_has_sp_mem_access(assignblk):
+        reads = set()
+        for dst, src in viewitems(assignblk):
+            assign = ExprAssign(dst, src)
+            reads.update(assign.get_r(mem_read=True))
+        mems = set(expr for expr in reads if expr.is_mem())
+        for mem in mems:
+            ptr, offset = get_expr_base_offset(mem.ptr)
+            if ptr == ir_arch_a.sp:
+                return True
+        return False
+
+    def remove_self_interference(ssa, head):
+        global interfer_index
+        compute_alias = ComputeAlias(ir_arch_a)
+        modified = False
+        for block in list(viewvalues(ssa.graph.blocks)):
+            print(block)
+            irs = []
+            stk_lvl_cur = None
+            for idx, assignblk in enumerate(block):
+                print(idx)
+                all_dsts = set(assignblk.keys())
+                aliasing_mems = set()
+                for dst, src in viewitems(assignblk):
+                    uses = src.get_r(mem_read=True)
+                    if dst.is_mem():
+                        uses.update(dst.ptr.get_r(mem_read=True))
+                    uses = set(expr for expr in uses if expr.is_mem())
+                    for use in uses:
+                        for dst in all_dsts:
+                            if compute_alias.test_may_alias(dst, use):
+                                aliasing_mems.add(use)
+                if aliasing_mems:
+                    out = {}
+                    interfer_srcs = {}
+                    for expr in aliasing_mems:
+                        interfer_srcs[expr] = ExprId("tmp_%d" % interfer_index, expr.size)
+                        interfer_index += 1
+                    print(interfer_srcs)
+                    for dst, src in viewitems(assignblk):
+                        if dst.is_mem():
+                            dst = ExprMem(dst.ptr.replace_expr(interfer_srcs), dst.size)
+                        src = src.replace_expr(interfer_srcs)
+                        out[dst] = src
+                    new_vars = dict((src, dst) for dst, src in viewitems(interfer_srcs))
+                    print("NEW", new_vars)
+                    irs.append(
+                        AssignBlock(
+                            new_vars,
+                            assignblk.instr
+                        )
+                    )
+                    irs.append(AssignBlock(out, assignblk.instr))
+                    modified = True
+                else:
+                    irs.append(assignblk)
+            print(irs)
+            ssa.graph.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
+        if modified:
+            open('ttt.dot', 'w').write(ssa.graph.dot())
+        return modified
+
+    def does_sp_mem_write(assignblk):
+        for dst in assignblk:
+            if not dst.is_mem():
+                continue
+            base, offset = get_expr_base_offset(dst.ptr)
+            if base == ir_arch_a.sp:
+                return True
+        return False
+
+    def do_del_stk_above(assignblk):
+        if not stk_lvl in assignblk:
+            return assignblk
+        if not does_sp_mem_write(assignblk):
+            return assignblk
+        if assignblk_has_sp_mem_access(assignblk):
+            return assignblk
+        out = {}
+
+        stk_lvl_cur = assignblk[stk_lvl]
+        sp_base, sp_offset = get_expr_base_offset(stk_lvl_cur)
+
+        for dst, src in viewitems(assignblk):
+            if not dst.is_mem():
+                out[dst] = src
+                continue
+            base, offset = get_expr_base_offset(dst.ptr)
+            if base != ir_arch_a.sp:
+                out[dst] = src
+                continue
+            ptr = dst.ptr
+            diff = expr_simp((stk_lvl_cur - ptr).msb())
+            if diff.is_int() and int(diff) == 1:
+                continue
+        return AssignBlock(out, assignblk.instr)
+
+    def propagate_stk_lvl(ssa, head):
+        print("START STK LVL PROPAG")
+        for block in list(viewvalues(ssa.graph.blocks)):
+            print(block)
+            irs = list(block)
+            stk_lvl_cur = None
+            for idx, assignblk in reversed(list(enumerate(block))):
+                print('*'*30, stk_lvl_cur)
+                print(assignblk)
+                if stk_lvl_cur is None:
+                    if assignblk_has_sp_mem_access(assignblk):
+                        continue
+                    if stk_lvl in assignblk:
+                        stk_lvl_cur = assignblk[stk_lvl]
+                    continue
+
+                if stk_lvl in assignblk:
+                    stk_lvl_local = assignblk[stk_lvl]
+                    diff = expr_simp((stk_lvl_local - stk_lvl_cur).msb())
+                    if diff.is_int() and int(diff) == 1:
+                        print('REPLACE')
+                        print(assignblk)
+                        out = dict(assignblk)
+                        out[stk_lvl] = stk_lvl_cur
+                        new_assignblk = AssignBlock(out, assignblk.instr)
+                        new_assignblk = do_del_stk_above(new_assignblk)
+                        irs[idx] = new_assignblk
+
+                        print(irs[idx])
+                else:
+                    if does_sp_mem_write(assignblk):
+                        out = dict(assignblk)
+                        out[stk_lvl] = stk_lvl_cur
+                        new_assignblk = AssignBlock(out, assignblk.instr)
+                        new_assignblk = do_del_stk_above(new_assignblk)
+                        irs[idx] = new_assignblk
+
+                if assignblk_has_sp_mem_access(assignblk):
+                    stk_lvl_cur = None
+                """
+                new_assignblk = dict(assignblk)
+                for lval in assignblk:
+                    if AssignblkNode(block.loc_key, idx, lval) not in useful:
+                        del new_assignblk[lval]
+                        modified = True
+                irs.append(AssignBlock(new_assignblk, assignblk.instr))
+                """
+            ssa.graph.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
+        return False
+
+
 
     def is_addr_ro_variable(bs, addr, size):
         """
@@ -215,9 +370,12 @@ if args.propagexpr:
             return False
         return True
 
+
     class CustomIRCFGSimplifierSSA(IRCFGSimplifierSSA):
         def do_simplify(self, ssa, head):
             modified = super(CustomIRCFGSimplifierSSA, self).do_simplify(ssa, head)
+            #open('/tmp/oo_%d.dot' % self.cpt, 'w').write(ssa.graph.dot())
+            #self.cpt += 1
             if args.loadint:
                 modified |= load_from_int(ssa.graph, bs, is_addr_ro_variable)
             return modified
@@ -230,11 +388,117 @@ if args.propagexpr:
             if args.stack2var:
                 replace_stack_vars(self.ir_arch, ircfg)
 
+            open('out.dot', 'w').write(ssa.graph.dot())
+
             ircfg_simplifier = IRCFGSimplifierCommon(self.ir_arch)
             ircfg_simplifier.deadremoval.add_expr_to_original_expr(ssa.ssa_variable_to_expr)
             ircfg_simplifier.simplify(ircfg, head)
             return ircfg
 
+
+    sp = ir_arch_a.arch.regs.ESP
+    """
+    top_num = 0
+    for block in list(viewvalues(ircfg_a.blocks)):
+        irs = []
+        for idx, assignblk in enumerate(block):
+            if sp not in assignblk:
+                irs.append(assignblk)
+                continue
+            value = assignblk[sp]
+            diff = expr_simp((value - sp).msb())
+            if not diff.is_int():
+                irs.append(assignblk)
+                continue
+            diff = int(diff)
+            if diff:
+                irs.append(assignblk)
+                continue
+            out = dict(assignblk)
+            offset = int(expr_simp(value - sp))
+            for x in range(0, offset, 4):
+                out[ExprMem(sp + ExprInt(x, 32), 32)] = ExprId("TOP_%d" % top_num, 32)#ExprInt(0, 32)
+                top_num += 1
+            new_assignblk = AssignBlock(out, assignblk.instr)
+            print(new_assignblk)
+            irs.append(AssignBlock(new_assignblk, assignblk.instr))
+        ircfg_a.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
+    """
+
+    stk_lvl = ExprId('stk_lvl', ir_arch_a.sp.size)
+    top_num = 0
+    open("eee.dot", "w").write(ircfg_a.dot())
+    for block in list(viewvalues(ircfg_a.blocks)):
+        irs = []
+        for idx, assignblk in enumerate(block):
+            insert_stk = False
+            if sp not in assignblk:
+                irs.append(assignblk)
+                continue
+            for dst, src in viewitems(assignblk):
+                if dst.is_mem():
+                    insert_stk = True
+                    break
+                if expr_has_mem(src):
+                    insert_stk = True
+                    break
+            if not insert_stk:
+                irs.append(assignblk)
+                continue
+            value = assignblk[sp]
+            """
+            if sp not in assignblk:
+                irs.append(assignblk)
+                continue
+            diff = expr_simp((value - sp).msb())
+            if not diff.is_int():
+                irs.append(assignblk)
+                continue
+            #diff = int(diff)
+            #if diff:
+            #    irs.append(assignblk)
+            #    continue
+            """
+            out = dict(assignblk)
+            offset = expr_simp(value - sp)
+            if not offset.is_int():
+                continue
+            out[stk_lvl] = value
+            new_assignblk = AssignBlock(out, assignblk.instr)
+            print(new_assignblk)
+            irs.append(AssignBlock(new_assignblk, assignblk.instr))
+        ircfg_a.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
+
+
+    open('xxx.dot', 'w').write(ircfg_a.dot())
+    #fds
     simplifier = CustomIRCFGSimplifierSSA(ir_arch_a)
+
+    simplifier.ssa_forbidden_regs.add(stk_lvl)
+
+    def my_is_unkillable(self, lval, rval):
+        print(lval)
+        if old_unkillable(lval, rval):
+            return True
+        if lval == stk_lvl:
+            return True
+        return False
+
+    old_unkillable = simplifier.deadremoval.is_unkillable_destination
+    simplifier.deadremoval.is_unkillable_destination = lambda lval, rval: my_is_unkillable(simplifier.deadremoval, lval, rval)
+
+    simplifier.passes.append(propagate_stk_lvl)
+    simplifier.passes.append(remove_self_interference)
+
+    simplifier.cpt = 0
     ircfg = simplifier.simplify(ircfg_a, head)
     open('final.dot', 'w').write(ircfg.dot())
+
+    """
+    from miasm.analysis.data_flow import PropagateWithSymbolicExec
+    print("PROPAG")
+    xx = PropagateWithSymbolicExec(ir_arch_a, ircfg_a)
+    xx.simplify(head)
+    xx.do_replacement(head)
+    open('out.dot', 'w').write(ircfg.dot())
+    """

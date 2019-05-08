@@ -173,7 +173,7 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         self.passes = [
             self.simplify_ssa,
             self.do_propagate_int,
-            self.do_propagate_mem,
+            #self.do_propagate_mem,
             self.do_propagate_expr,
             self.do_dead_simp_ssa,
             self.do_del_dup_write_mem,
@@ -198,6 +198,7 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         ssa.immutable_ids.update(self.ssa_forbidden_regs)
         ssa.ssa_variable_to_expr.update(self.all_ssa_vars)
         ssa.transform(head)
+        open('ssa.dot', 'w').write(ssa.graph.dot())
         self.all_ssa_vars.update(ssa.ssa_variable_to_expr)
         self.ir_arch.ssa_var.update(ssa.ssa_variable_to_expr)
         return ssa
