@@ -389,10 +389,10 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         return ssa
 
     def do_propagate_stk_lvl(self, ssa, head):
-        return propagate_stk_lvl(self.ir_arch, ssa, head, self.stk_lvl)
+        return propagate_stk_lvl(self.alias_mngr, ssa, head, self.stk_lvl)
 
     def do_del_above_stk_write(self, ssa, head):
-        return del_above_stk_write(self.ir_arch, ssa, head, self.stk_lvl)
+        return del_above_stk_write(self.alias_mngr, ssa, head, self.stk_lvl)
 
     def do_remove_self_interference(self, ssa, head):
         interfer_index, modified = remove_self_interference(

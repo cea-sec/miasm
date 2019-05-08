@@ -2035,7 +2035,6 @@ class DelDupMemWrite(object):
         return block, modified
 
     def del_dup_write_mem(self, ssa, head):
-        sp = self.ir_arch.sp
         modified = False
         for block in ssa.graph.blocks.values():
             block_modified = False
@@ -2467,7 +2466,7 @@ def insert_stk_lvl(ir_arch, ircfg, stk_lvl):
 
 
 
-def propagate_stk_lvl(ir_arch, ssa, head, stk_lvl):
+def propagate_stk_lvl(alias_mngr, ssa, head, stk_lvl):
     """
     Upward propagate the stk_lvl for each block.
     Conditions of propagation:
@@ -2501,7 +2500,7 @@ def propagate_stk_lvl(ir_arch, ssa, head, stk_lvl):
                     continue
 
             if stk_lvl_cur is None:
-                if can_assignblock_access_stk(assignblk, stk_lvl):
+                if can_assignblock_read_stk(alias_mngr, stk_lvl, assignblk):
                     continue
                 stk_lvl_cur = assignblk[stk_lvl]
                 continue
@@ -2526,7 +2525,7 @@ def propagate_stk_lvl(ir_arch, ssa, head, stk_lvl):
                 block_modified = True
                 #print(irs[idx])
 
-            if can_assignblock_access_stk(assignblk, stk_lvl):
+            if can_assignblock_read_stk(alias_mngr, stk_lvl, assignblk):
                 stk_lvl_cur = None
         if block_modified:
             ssa.graph.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
@@ -2543,37 +2542,35 @@ def propagate_stk_lvl(ir_arch, ssa, head, stk_lvl):
 
 
 
-def can_assignblock_access_stk(assignblk, stk_lvl):
+def can_assignblock_read_stk(alias_mngr, stk_lvl, assignblk):
     stk_lvl_cur = assignblk[stk_lvl]
     sp_base, sp_offset = get_expr_base_offset(stk_lvl_cur)
-    reads = set()
-    for dst, src in viewitems(assignblk):
-        assign = ExprAssign(dst, src)
-        reads.update(assign.get_r(mem_read=True))
+    reads = assignblk.get_r(mem_read=True)
     mems = set(expr for expr in reads if expr.is_mem())
     for mem in mems:
-        ptr, offset = get_expr_base_offset(mem.ptr)
-        if ptr == sp_base:
+        # Test alias against whole stack
+        if alias_mngr.test_may_alias(mem, ExprMem(sp_base, 8*int(sp_base.mask))):
             return True
+
     return False
 
-def does_sp_mem_write(assignblk, stk_lvl):
+def can_assignblock_write_stk(alias_mngr, stk_lvl, assignblk):
     stk_lvl_cur = assignblk[stk_lvl]
     sp_base, sp_offset = get_expr_base_offset(stk_lvl_cur)
     for dst in assignblk:
         if not dst.is_mem():
             continue
-        base, offset = get_expr_base_offset(dst.ptr)
-        if base == sp_base:
+        # Test alias against whole stack
+        if alias_mngr.test_may_alias(dst, ExprMem(sp_base, 8*int(sp_base.mask))):
             return True
     return False
 
-def do_del_stk_above(ir_arch, assignblk, stk_lvl):
+def do_del_stk_above(alias_mngr, assignblk, stk_lvl):
     if not stk_lvl in assignblk:
         return assignblk, False
-    if not does_sp_mem_write(assignblk, stk_lvl):
+    if not can_assignblock_write_stk(alias_mngr, stk_lvl, assignblk):
         return assignblk, False
-    if can_assignblock_access_stk(assignblk, stk_lvl):
+    if can_assignblock_read_stk(alias_mngr, stk_lvl, assignblk):
         return assignblk, False
     out = {}
 
@@ -2600,7 +2597,7 @@ def do_del_stk_above(ir_arch, assignblk, stk_lvl):
 
 
 
-def del_above_stk_write(ir_arch, ssa, head, stk_lvl):
+def del_above_stk_write(alias_mngr, ssa, head, stk_lvl):
     """
     Del writes to memory above stack level
     """
@@ -2610,7 +2607,7 @@ def del_above_stk_write(ir_arch, ssa, head, stk_lvl):
         irs = []
         modified_block = False
         for assignblk in block:
-            new_assignblk, assignblk_modified = do_del_stk_above(ir_arch, assignblk, stk_lvl)
+            new_assignblk, assignblk_modified = do_del_stk_above(alias_mngr, assignblk, stk_lvl)
             irs.append(new_assignblk)
             if assignblk_modified:
                 modified_block = True
