@@ -2121,7 +2121,7 @@ class ComputeAlias(object):
         #if (sp_p4 in ptr_base_a or
         #    sp_p4 in ptr_base_b):
         #    return False
-        print("MAY ALIAS", ptr_base_a, ptr_base_b)
+        #print("MAY ALIAS", ptr_base_a, ptr_base_b)
         return True
 
 
@@ -2158,8 +2158,8 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
         @assignblk: AssignBlock instance
         """
         mem_dst = []
-        print("EXEC")
-        print(assignblk)
+        #print("EXEC")
+        #print(assignblk)
         dst_src = self.eval_assignblk(assignblk)
         self.do_dst_src(dst_src)
         """
@@ -2253,7 +2253,7 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
                     print("%s = %s" % (dst, src))
                     to_del.add(dst)
                     break
-                print("LVLS", use.ptr, stk_lvl_cur)
+                #print("LVLS", use.ptr, stk_lvl_cur)
                 diff = expr_simp((use.ptr - stk_lvl_cur).msb())
                 if diff.is_int() and int(diff) == 1:
                     print("Dont2 propagate stack after stk limit high")
