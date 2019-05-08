@@ -9,12 +9,15 @@ from miasm.analysis.outofssa import UnSSADiGraph
 from miasm.analysis.data_flow import DiGraphLivenessSSA
 from miasm.expression.simplifications import expr_simp
 from miasm.ir.ir import AssignBlock, IRBlock
+from miasm.expression.expression import ExprId
 from miasm.analysis.data_flow import DeadRemoval, \
     merge_blocks, remove_empty_assignblks, \
     PropagateExprIntThroughExprId, PropagateThroughExprId, \
     PropagateThroughExprMem, del_unused_edges, \
     del_dummy_phi, ExprPropagationHelper, DelDupMemWrite, \
-    PropagateWithSymbolicExec
+    PropagateWithSymbolicExec, insert_stk_lvl, \
+    propagate_stk_lvl, del_above_stk_write, remove_self_interference, \
+    AliasMngr
 
 
 log = logging.getLogger("simplifier")
@@ -144,6 +147,10 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         self.all_ssa_vars = {}
 
         self.ssa_forbidden_regs = self.get_forbidden_regs()
+        self.stk_lvl = ExprId('stk_lvl', self.ir_arch.sp.size)
+        self.interfer_index = 0
+        self.alias_mngr = AliasMngr(self.ir_arch)
+
 
         self.propag_int = PropagateExprIntThroughExprId()
         self.propag_expr = PropagateThroughExprId()
@@ -183,6 +190,10 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
             self.do_del_dummy_phi,
             self.do_expr_propag_mem,
             self.do_symb_propag,
+            self.do_propagate_stk_lvl,
+            self.do_del_above_stk_write,
+            self.do_remove_self_interference,
+
         ]
 
 
@@ -355,6 +366,21 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
             ssa = self.ircfg_to_ssa(ssa.graph, head)
         return ssa
 
+    def do_propagate_stk_lvl(self, ssa, head):
+        return propagate_stk_lvl(self.ir_arch, ssa, head, self.stk_lvl)
+
+    def do_del_above_stk_write(self, ssa, head):
+        return del_above_stk_write(self.ir_arch, ssa, head, self.stk_lvl)
+
+    def do_remove_self_interference(self, ssa, head):
+        interfer_index, modified = remove_self_interference(
+            ssa, head,
+            self.alias_mngr, self.interfer_index
+        )
+        self.interfer_index = interfer_index
+        return modified
+
+
     def simplify(self, ircfg, head):
         """
         Add access to "abi out regs" in each leaf block
@@ -369,6 +395,7 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         @head: Location instance of the ircfg head
         """
 
+        insert_stk_lvl(self.ir_arch, ircfg, self.stk_lvl)
         ssa = self.ircfg_to_ssa(ircfg, head)
         ssa = self.do_simplify_loop(ssa, head)
         ircfg = self.ssa_to_unssa(ssa, head)

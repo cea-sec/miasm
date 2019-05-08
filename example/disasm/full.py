@@ -12,7 +12,8 @@ from miasm.analysis.data_flow import \
     DiGraphDefUse, ReachingDefinitions, \
     replace_stack_vars, load_from_int, \
     expr_has_mem, ExprPropagationHelper, \
-    ComputeAlias
+    insert_stk_lvl
+
 from miasm.analysis.ssa import SSADiGraph
 from miasm.ir.ir import AssignBlock
 from miasm.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
@@ -205,217 +206,6 @@ if args.propagexpr:
 
 
     interfer_index = 0
-    def assignblk_has_sp_mem_access(assignblk):
-        reads = set()
-        for dst, src in viewitems(assignblk):
-            assign = ExprAssign(dst, src)
-            reads.update(assign.get_r(mem_read=True))
-        mems = set(expr for expr in reads if expr.is_mem())
-        for mem in mems:
-            ptr, offset = get_expr_base_offset(mem.ptr)
-            if ptr == ir_arch_a.sp:
-                return True
-        return False
-
-    def remove_self_interference(ssa, head):
-        global interfer_index
-        compute_alias = ComputeAlias(ir_arch_a)
-        modified = False
-        for block in list(viewvalues(ssa.graph.blocks)):
-            #print(block)
-            irs = []
-            stk_lvl_cur = None
-            for idx, assignblk in enumerate(block):
-                #print(idx)
-                all_dsts = set(assignblk.keys())
-                aliasing_mems = set()
-                for dst, src in viewitems(assignblk):
-                    uses = src.get_r(mem_read=True)
-                    if dst.is_mem():
-                        uses.update(dst.ptr.get_r(mem_read=True))
-                    uses = set(expr for expr in uses if expr.is_mem())
-                    for use in uses:
-                        for dst in all_dsts:
-                            if compute_alias.test_may_alias(dst, use):
-                                aliasing_mems.add(use)
-                if aliasing_mems:
-                    out = {}
-                    interfer_srcs = {}
-                    for expr in aliasing_mems:
-                        interfer_srcs[expr] = ExprId("tmp_%d" % interfer_index, expr.size)
-                        interfer_index += 1
-                    #print(interfer_srcs)
-                    for dst, src in viewitems(assignblk):
-                        if dst.is_mem():
-                            dst = ExprMem(dst.ptr.replace_expr(interfer_srcs), dst.size)
-                        src = src.replace_expr(interfer_srcs)
-                        out[dst] = src
-                    new_vars = dict((src, dst) for dst, src in viewitems(interfer_srcs))
-                    #print("NEW", new_vars)
-                    irs.append(
-                        AssignBlock(
-                            new_vars,
-                            assignblk.instr
-                        )
-                    )
-                    irs.append(AssignBlock(out, assignblk.instr))
-                    modified = True
-                else:
-                    irs.append(assignblk)
-            #print(irs)
-            ssa.graph.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
-        if modified:
-            open('ttt.dot', 'w').write(ssa.graph.dot())
-        return modified
-
-    def does_sp_mem_write(assignblk):
-        for dst in assignblk:
-            if not dst.is_mem():
-                continue
-            base, offset = get_expr_base_offset(dst.ptr)
-            if base == ir_arch_a.sp:
-                return True
-        return False
-
-    def do_del_stk_above(assignblk):
-        if not stk_lvl in assignblk:
-            return assignblk, False
-        if not does_sp_mem_write(assignblk):
-            return assignblk, False
-        if assignblk_has_sp_mem_access(assignblk):
-            return assignblk, False
-        out = {}
-
-        stk_lvl_cur = assignblk[stk_lvl]
-        sp_base, sp_offset = get_expr_base_offset(stk_lvl_cur)
-
-        modified = False
-        for dst, src in viewitems(assignblk):
-            if not dst.is_mem():
-                out[dst] = src
-                continue
-            base, offset = get_expr_base_offset(dst.ptr)
-            if base != sp_base:
-                out[dst] = src
-                continue
-            ptr = dst.ptr
-            diff = expr_simp((ptr - stk_lvl_cur).msb())
-            if diff.is_int() and int(diff) == 1:
-                modified = True
-                continue
-        if not modified:
-            return assignblk, False
-        return AssignBlock(out, assignblk.instr), True
-
-    def propagate_stk_lvl(ssa, head):
-        """
-        Upward propagate the stk_lvl for each block.
-        Conditions of propagation:
-        - no memory access which may alias to stack
-        """
-        print("START STK LVL PROPAG")
-        worklist = set((loc_key, None) for loc_key in ssa.graph.blocks)
-        done = set()
-        while worklist:
-            job = worklist.pop()
-            if job in done:
-                continue
-            done.add(job)
-
-            loc_key, stk_lvl_cur = job
-            block = ssa.graph.blocks[loc_key]
-            print("Analyse stk", stk_lvl_cur)
-            print(block)
-            irs = list(block)
-            for idx, assignblk in reversed(list(enumerate(block))):
-                if stk_lvl not in assignblk:
-                    # Should be Phi assignblk
-                    if idx == 0:
-                        # XXX TODO: check if stk_lvl does not come from a Phi
-                        # => In this case, don't propagate to predecessors
-                        continue
-                    else:
-                        stk_lvl_cur = None
-                        continue
-
-                if stk_lvl_cur is None:
-                    if assignblk_has_sp_mem_access(assignblk):
-                        continue
-                    stk_lvl_cur = assignblk[stk_lvl]
-                    continue
-
-                stk_lvl_local = assignblk[stk_lvl]
-                #print('*'*30, stk_lvl_cur)
-                #print(assignblk)
-
-                diff = expr_simp((stk_lvl_local - stk_lvl_cur).msb())
-                if diff.is_int() and int(diff) == 1:
-                    # The stack level of the next block is above us
-                    # so we can set our new stack level
-                    print('REPLACE')
-                    print(assignblk)
-                    out = dict(assignblk)
-                    out[stk_lvl] = stk_lvl_cur
-                    new_assignblk = AssignBlock(out, assignblk.instr)
-                    # XXXXXXXXXXXXXXXXXXX DEL
-                    #new_assignblk = do_del_stk_above(new_assignblk)
-                    irs[idx] = new_assignblk
-                    assignblk = new_assignblk
-                    #print(irs[idx])
-                """
-                # XXXXXXXXXXXXXXXXXXX DEL
-                #new_assignblk = do_del_stk_above(new_assignblk)
-                else:
-                    if does_sp_mem_write(assignblk):
-                        out = dict(assignblk)
-                        out[stk_lvl] = stk_lvl_cur
-                        new_assignblk = AssignBlock(out, assignblk.instr)
-                        new_assignblk = do_del_stk_above(new_assignblk)
-                        irs[idx] = new_assignblk
-                """
-
-                if assignblk_has_sp_mem_access(assignblk):
-                    stk_lvl_cur = None
-                """
-                new_assignblk = dict(assignblk)
-                for lval in assignblk:
-                    if AssignblkNode(block.loc_key, idx, lval) not in useful:
-                        del new_assignblk[lval]
-                        modified = True
-                irs.append(AssignBlock(new_assignblk, assignblk.instr))
-                """
-            ssa.graph.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
-            # Propagate to predecessors
-            if stk_lvl_cur is not None:
-                print("Propagate stk lvl to predecessors", stk_lvl_cur)
-                print(block)
-                for pred in ssa.graph.predecessors(loc_key):
-                    worklist.add((pred, stk_lvl_cur))
-
-
-
-        return False
-
-
-    def del_above_stk_write(ssa, head):
-        """
-        Del writes to memory above stack level
-        """
-        print("TEST DEL ABOVE")
-        modified = False
-        for block in list(viewvalues(ssa.graph.blocks)):
-            irs = []
-            modified_block = False
-            for assignblk in block:
-                new_assignblk, assignblk_modified = do_del_stk_above(assignblk)
-                irs.append(new_assignblk)
-                if assignblk_modified:
-                    modified_block = True
-            if modified_block:
-                ssa.graph.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
-                modified = True
-        return modified
-
 
     def is_addr_ro_variable(bs, addr, size):
         """
@@ -443,14 +233,15 @@ if args.propagexpr:
             return modified
 
         def simplify(self, ircfg, head):
+            insert_stk_lvl(self.ir_arch, ircfg, self.stk_lvl)
             ssa = self.ircfg_to_ssa(ircfg, head)
             ssa = self.do_simplify_loop(ssa, head)
+            open('last_ssa.dot', 'w').write(ssa.graph.dot())
             ircfg = self.ssa_to_unssa(ssa, head)
 
             if args.stack2var:
                 replace_stack_vars(self.ir_arch, ircfg)
 
-            open('last_ssa.dot', 'w').write(ssa.graph.dot())
 
             ircfg_simplifier = IRCFGSimplifierCommon(self.ir_arch)
             ircfg_simplifier.deadremoval.add_expr_to_original_expr(ssa.ssa_variable_to_expr)
@@ -458,57 +249,12 @@ if args.propagexpr:
             return ircfg
 
 
-    sp = ir_arch_a.arch.regs.ESP
-    """
-    top_num = 0
-    for block in list(viewvalues(ircfg_a.blocks)):
-        irs = []
-        for idx, assignblk in enumerate(block):
-            if sp not in assignblk:
-                irs.append(assignblk)
-                continue
-            value = assignblk[sp]
-            diff = expr_simp((value - sp).msb())
-            if not diff.is_int():
-                irs.append(assignblk)
-                continue
-            diff = int(diff)
-            if diff:
-                irs.append(assignblk)
-                continue
-            out = dict(assignblk)
-            offset = int(expr_simp(value - sp))
-            for x in range(0, offset, 4):
-                out[ExprMem(sp + ExprInt(x, 32), 32)] = ExprId("TOP_%d" % top_num, 32)#ExprInt(0, 32)
-                top_num += 1
-            new_assignblk = AssignBlock(out, assignblk.instr)
-            print(new_assignblk)
-            irs.append(AssignBlock(new_assignblk, assignblk.instr))
-        ircfg_a.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
-    """
-
-    def insert_stk_lvl(ircfg, stk_lvl):
-        """
-        Insert in each assignblock the stack level *after* it's execution
-        """
-        for block in list(viewvalues(ircfg_a.blocks)):
-            irs = []
-            for assignblk in block:
-                if sp not in assignblk:
-                    stk_value = sp
-                else:
-                    stk_value = assignblk[sp]
-                out = dict(assignblk)
-                out[stk_lvl] = stk_value
-                new_assignblk = AssignBlock(out, assignblk.instr)
-                irs.append(AssignBlock(new_assignblk, assignblk.instr))
-            ircfg_a.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
 
     stk_lvl = ExprId('stk_lvl', ir_arch_a.sp.size)
-    insert_stk_lvl(ircfg_a, stk_lvl)
 
     open('xxx.dot', 'w').write(ircfg_a.dot())
-    #fds
+
+
     simplifier = CustomIRCFGSimplifierSSA(ir_arch_a)
 
     simplifier.ssa_forbidden_regs.add(stk_lvl)
@@ -524,9 +270,9 @@ if args.propagexpr:
     old_unkillable = simplifier.deadremoval.is_unkillable_destination
     simplifier.deadremoval.is_unkillable_destination = lambda lval, rval: my_is_unkillable(simplifier.deadremoval, lval, rval)
 
-    simplifier.passes.append(propagate_stk_lvl)
-    simplifier.passes.append(del_above_stk_write)
-    simplifier.passes.append(remove_self_interference)
+    #simplifier.passes.append(propagate_stk_lvl)
+    #simplifier.passes.append(del_above_stk_write)
+    #simplifier.passes.append(remove_self_interference)
 
     simplifier.cpt = 0
     ircfg = simplifier.simplify(ircfg_a, head)
