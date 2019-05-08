@@ -45,6 +45,23 @@ def fix_point(func):
     return ret_func
 
 
+class CustomDeadRemoval(DeadRemoval):
+    def __init__(self, ir_arch, stk_lvl, expr_to_original_expr=None):
+        super(CustomDeadRemoval, self).__init__(ir_arch, expr_to_original_expr)
+        self.stk_lvl = stk_lvl
+
+    def is_unkillable_destination(self, lval, rval):
+        if (
+                lval.is_mem() or
+                self.ir_arch.IRDst == lval or
+                lval.is_id("exception_flags") or
+                rval.is_function_call() or
+                lval == self.stk_lvl
+        ):
+            return True
+        return False
+
+
 class IRCFGSimplifier(object):
     """
     Simplify an IRCFG
@@ -146,8 +163,8 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         self.ir_arch.ssa_var = {}
         self.all_ssa_vars = {}
 
-        self.ssa_forbidden_regs = self.get_forbidden_regs()
         self.stk_lvl = ExprId('stk_lvl', self.ir_arch.sp.size)
+        self.ssa_forbidden_regs = self.get_forbidden_regs()
         self.interfer_index = 0
         self.alias_mngr = AliasMngr(self.ir_arch)
 
@@ -155,7 +172,11 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         self.propag_int = PropagateExprIntThroughExprId()
         self.propag_expr = PropagateThroughExprId()
         self.propag_mem = PropagateThroughExprMem()
-        self.deadremoval = DeadRemoval(self.ir_arch, self.all_ssa_vars)
+        self.deadremoval = CustomDeadRemoval(
+            self.ir_arch,
+            self.stk_lvl,
+            self.all_ssa_vars
+        )
         self.expr_propag_mem = ExprPropagationHelper(self.ir_arch)
         self.del_dup_write_mem = DelDupMemWrite(self.ir_arch)
         self.symb_propag = PropagateWithSymbolicExec(self.ir_arch)
@@ -168,7 +189,8 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
             [
                 self.ir_arch.pc,
                 self.ir_arch.IRDst,
-                self.ir_arch.arch.regs.exception_flags
+                self.ir_arch.arch.regs.exception_flags,
+                self.stk_lvl,
             ]
         )
         return regs

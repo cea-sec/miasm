@@ -249,40 +249,12 @@ if args.propagexpr:
             return ircfg
 
 
-
-    stk_lvl = ExprId('stk_lvl', ir_arch_a.sp.size)
-
     open('xxx.dot', 'w').write(ircfg_a.dot())
 
 
     simplifier = CustomIRCFGSimplifierSSA(ir_arch_a)
 
-    simplifier.ssa_forbidden_regs.add(stk_lvl)
-
-    def my_is_unkillable(self, lval, rval):
-        #print(lval)
-        if old_unkillable(lval, rval):
-            return True
-        if lval == stk_lvl:
-            return True
-        return False
-
-    old_unkillable = simplifier.deadremoval.is_unkillable_destination
-    simplifier.deadremoval.is_unkillable_destination = lambda lval, rval: my_is_unkillable(simplifier.deadremoval, lval, rval)
-
-    #simplifier.passes.append(propagate_stk_lvl)
-    #simplifier.passes.append(del_above_stk_write)
-    #simplifier.passes.append(remove_self_interference)
 
     simplifier.cpt = 0
     ircfg = simplifier.simplify(ircfg_a, head)
     open('final.dot', 'w').write(ircfg.dot())
-
-    """
-    from miasm.analysis.data_flow import PropagateWithSymbolicExec
-    print("PROPAG")
-    xx = PropagateWithSymbolicExec(ir_arch_a, ircfg_a)
-    xx.simplify(head)
-    xx.do_replacement(head)
-    open('out.dot', 'w').write(ircfg.dot())
-    """
