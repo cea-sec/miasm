@@ -2555,19 +2555,21 @@ def assignblk_has_sp_mem_access(ir_arch, assignblk):
             return True
     return False
 
-def does_sp_mem_write(ir_arch, assignblk):
+def does_sp_mem_write(assignblk, stk_lvl):
+    stk_lvl_cur = assignblk[stk_lvl]
+    sp_base, sp_offset = get_expr_base_offset(stk_lvl_cur)
     for dst in assignblk:
         if not dst.is_mem():
             continue
         base, offset = get_expr_base_offset(dst.ptr)
-        if base == ir_arch.sp:
+        if base == sp_base:
             return True
     return False
 
 def do_del_stk_above(ir_arch, assignblk, stk_lvl):
     if not stk_lvl in assignblk:
         return assignblk, False
-    if not does_sp_mem_write(ir_arch, assignblk):
+    if not does_sp_mem_write(assignblk, stk_lvl):
         return assignblk, False
     if assignblk_has_sp_mem_access(ir_arch, assignblk):
         return assignblk, False
