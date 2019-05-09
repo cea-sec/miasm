@@ -704,7 +704,7 @@ class ExampleLoader(Example):
     example_dir = "loader"
 
 
-testset += ExampleLoader(["test_pe.py"], products=["uu.bin"])
+testset += ExampleLoader(["build_pe.py"], products=["fresh_pe.exe"])
 # A sample is required, so "minidump_to_pe.py" is disabled for now
 
 
