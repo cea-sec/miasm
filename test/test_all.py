@@ -696,6 +696,18 @@ for script in [["basic_op.py"],
                ]:
     testset += ExampleExpression(script)
 
+## Loader
+class ExampleLoader(Example):
+    """Loader examples specificities:
+    - script path begins with "loader/"
+    """
+    example_dir = "loader"
+
+
+testset += ExampleLoader(["build_pe.py"], products=["fresh_pe.exe"])
+# A sample is required, so "minidump_to_pe.py" is disabled for now
+
+
 ## Symbolic Execution
 class ExampleSymbolExec(Example):
     """Symbol Exec examples specificities:
