@@ -11,24 +11,19 @@ from distutils.sysconfig import get_python_inc
 from miasm.jitter import Jitgcc
 from miasm.jitter.jitcore_cc_base import JitCore_Cc_Base, gen_core
 
-is_win = platform.system() == "Windows"
-
-class JitCore_Gcc(JitCore_Cc_Base):
+class JitCore_MSVC(JitCore_Cc_Base):
     "JiT management, using a C compiler as backend"
 
     def __init__(self, ir_arch, bin_stream):
-        super(JitCore_Gcc, self).__init__(ir_arch, bin_stream)
+        super(JitCore_MSVC, self).__init__(ir_arch, bin_stream)
         self.exec_wrapper = Jitgcc.gcc_exec_block
 
     def deleteCB(self, offset):
         """Free the state associated to @offset and delete it
-        @offset: gcc state offset
+        @offset: msvc state offset
         """
         flib = None
-        if is_win:
-            flib = _ctypes.FreeLibrary
-        else:
-            flib = _ctypes.dlclose
+        flib = _ctypes.FreeLibrary
         flib(self.states[offset]._handle)
         del self.states[offset]
 
@@ -47,7 +42,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
         block_hash = self.hash_block(block)
         ext = sysconfig.get_config_var('EXT_SUFFIX')
         if ext is None:
-            ext = ".so" if not is_win else ".pyd"
+            ext = ".pyd"
         fname_out = os.path.join(self.tempdir, "%s%s" % (block_hash, ext))
 
         if not os.access(fname_out, os.R_OK | os.X_OK):
@@ -64,16 +59,38 @@ class JitCore_Gcc(JitCore_Cc_Base):
 
             inc_dir = ["-I%s" % inc for inc in self.include_files]
             libs = ["%s" % lib for lib in self.libs]
-            args = [
-                "cc" if not is_win else "gcc",
-                "-O3",
-                "-shared",
-                "-fPIC",
-                fname_in,
-                "-o",
-                fname_tmp
+            libs.append(
+                os.path.join(
+                    get_python_inc(),
+                    "..",
+                    "libs",
+                    "python27.lib"
+                )
+            )
+            cl = [
+                "cl", "/nologo", "/W3", "/MP",
+                "/Od", "/DNDEBUG", "/D_WINDOWS", "/Gm-", "/EHsc",
+                "/RTC1", "/MD", "/GS",
+                fname_in
             ] + inc_dir + libs
-            check_call(args)
+            cl += ["/link", "/DLL", "/OUT:" + fname_tmp]
+            out_dir, _ = os.path.split(fname_tmp)
+            check_call(cl, cwd = out_dir)
+            basename_out, _ = os.path.splitext(fname_tmp)
+            basename_in, _ = os.path.splitext(os.path.basename(fname_in))
+            for ext in ('.obj', '.exp', '.lib'):
+                artifact_out_path = os.path.join(
+                    out_dir,
+                    basename_out + ext
+                )
+                if os.path.isfile(artifact_out_path):
+                    os.remove(artifact_out_path)
+                artifact_in_path = os.path.join(
+                    out_dir,
+                    basename_in + ext
+                )
+                if os.path.isfile(artifact_in_path):
+                    os.remove(artifact_in_path)
 
             # Move temporary file to final file
             try:
@@ -107,4 +124,4 @@ class JitCore_Gcc(JitCore_Cc_Base):
         return c_source
 
     def _get_ext(self):
-        return ".so" if not is_win else ".pyd"
+        return ".lib"
