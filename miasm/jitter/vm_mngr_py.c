@@ -1041,3 +1041,30 @@ bn_t PyLong_to_bn(PyObject* py_long)
 
 	return bn;
 }
+
+PyObject* bn_to_PyLong(bn_t bn)
+{
+	int j;
+	PyObject* py_long;
+	PyObject* py_long_new;
+	PyObject* py_tmp;
+	PyObject* cst_32;
+	uint64_t tmp;
+
+	py_long = PyLong_FromLong(0);
+	cst_32 = PyLong_FromLong(32);
+
+	for (j = BN_BYTE_SIZE - 4; j >= 0 ; j -= 4) {
+		tmp = bignum_to_uint64(bignum_mask(bignum_rshift(bn, 8 * j), 32));
+		py_tmp = PyLong_FromUnsignedLong((unsigned long)tmp);
+		py_long_new = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32);
+		Py_DECREF(py_long);
+		py_long = PyObject_CallMethod(py_long_new, "__add__", "O", py_tmp);
+		Py_DECREF(py_long_new);
+		Py_DECREF(py_tmp);
+	}
+
+	Py_DECREF(cst_32);
+
+	return py_long;
+}
