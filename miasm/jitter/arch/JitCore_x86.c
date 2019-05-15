@@ -209,13 +209,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 			    case 128:
 				    {
 					    bn_t bn;
-					    int j;
 					    PyObject* py_long = d_value;
-					    PyObject* py_long_new;
-					    PyObject* py_tmp;
-					    PyObject* cst_32;
-					    PyObject* cst_ffffffff;
-					    uint64_t tmp;
 
 
 #if PY_MAJOR_VERSION >= 3
@@ -227,6 +221,8 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 						    RAISE(PyExc_TypeError,"arg must be int");
 					    }
 #else
+					    uint64_t tmp;
+
 					    if (PyInt_Check(py_long)){
 						    tmp = (uint64_t)PyInt_AsLong(py_long);
 						    py_long = PyLong_FromLong((long)tmp);
@@ -240,25 +236,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 					    }
 #endif
 
-
-					    cst_ffffffff = PyLong_FromLong(0xffffffff);
-					    cst_32 = PyLong_FromLong(32);
-					    bn = bignum_from_int(0);
-
-					    for (j = 0; j < BN_BYTE_SIZE; j += 4) {
-						    py_tmp = PyObject_CallMethod(py_long, "__and__", "O", cst_ffffffff);
-						    tmp = PyLong_AsUnsignedLongMask(py_tmp);
-						    Py_DECREF(py_tmp);
-						    bn = bignum_lshift(bn, 32);
-						    bn = bignum_or(bn, bignum_from_uint64(tmp));
-
-						    py_long_new = PyObject_CallMethod(py_long, "__rshift__", "O", cst_32);
-						    Py_DECREF(py_long);
-						    py_long = py_long_new;
-					    }
-					    Py_DECREF(py_long);
-					    Py_DECREF(cst_32);
-					    Py_DECREF(cst_ffffffff);
+					    bn = PyLong_to_bn(py_long);
 					    *(bn_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset) = bignum_mask(bn, 128);
 				    }
 				    break;

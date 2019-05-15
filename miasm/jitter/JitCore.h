@@ -51,37 +51,16 @@
 	static PyObject *JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		bn_t bn;						\
-		int j;							\
 		PyObject* py_long = value;				\
-		PyObject* py_long_new;					\
-		PyObject* py_tmp;					\
-		PyObject* cst_32;					\
-		PyObject* cst_ffffffff;					\
-		uint64_t tmp;						\
 		if (PyLong_Check(py_long)){				\
 				Py_INCREF(py_long);			\
 			} else {					\
 				RAISE(PyExc_TypeError,"arg must be int"); \
 			}						\
 									\
-		cst_ffffffff = PyLong_FromLong(0xffffffff);		\
-		cst_32 = PyLong_FromLong(32);				\
-		bn = bignum_from_int(0);				\
-									\
-		for (j = 0; j < BN_BYTE_SIZE; j += 4) {			\
-			py_tmp = PyObject_CallMethod(py_long, "__and__", "O", cst_ffffffff); \
-			py_long_new = PyObject_CallMethod(py_long, "__rshift__", "O", cst_32); \
-			Py_DECREF(py_long);				\
-			py_long = py_long_new;				\
-			tmp = PyLong_AsUnsignedLongMask(py_tmp);	\
-			Py_DECREF(py_tmp);				\
-			bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp), 8 * j)); \
-		}							\
+		bn = PyLong_to_bn(py_long);				\
 									\
 		(self->cpu)->regname = bignum_mask(bn, (size));		\
-		Py_DECREF(py_long);					\
-		Py_DECREF(cst_32);					\
-		Py_DECREF(cst_ffffffff);				\
 		return 0;						\
 	}
 
@@ -117,12 +96,7 @@
 	static PyObject *JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		bn_t bn;						\
-		int j;							\
 		PyObject* py_long = value;				\
-		PyObject* py_long_new;					\
-		PyObject* py_tmp;					\
-		PyObject* cst_32;					\
-		PyObject* cst_ffffffff;					\
 		uint64_t tmp;						\
 									\
 		if (PyInt_Check(py_long)){				\
@@ -135,24 +109,9 @@
 			RAISE(PyExc_TypeError,"arg must be int");	\
 		}							\
 									\
-		cst_ffffffff = PyLong_FromLong(0xffffffff);		\
-		cst_32 = PyLong_FromLong(32);				\
-		bn = bignum_from_int(0);				\
-									\
-		for (j = 0; j < BN_BYTE_SIZE; j += 4) {			\
-			py_tmp = PyObject_CallMethod(py_long, "__and__", "O", cst_ffffffff); \
-			py_long_new = PyObject_CallMethod(py_long, "__rshift__", "O", cst_32); \
-			Py_DECREF(py_long);				\
-			py_long = py_long_new;				\
-			tmp = PyLong_AsUnsignedLongMask(py_tmp);	\
-			Py_DECREF(py_tmp);				\
-			bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp), 8 * j)); \
-		}							\
+		bn = PyLong_to_bn(py_long);				\
 									\
 		self->cpu->regname = bignum_mask(bn, (size));		\
-		Py_DECREF(py_long);					\
-		Py_DECREF(cst_32);					\
-		Py_DECREF(cst_ffffffff);				\
 		return 0;						\
 	}
 #endif

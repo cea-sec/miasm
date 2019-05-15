@@ -23,6 +23,7 @@
 #include "compat_py23.h"
 #include "queue.h"
 #include "vm_mngr.h"
+#include "bn.h"
 #include "vm_mngr_py.h"
 
 #define MIN(a,b)  (((a)<(b))?(a):(b))
@@ -1009,4 +1010,34 @@ MOD_INIT(VmMngr)
 		RET_MODULE;
 
 	RET_MODULE;
+}
+
+bn_t PyLong_to_bn(PyObject* py_long)
+{
+	int j;
+	uint64_t tmp_mask;
+	PyObject* py_tmp;
+	PyObject* py_long_tmp;
+	PyObject* cst_32;
+	PyObject* cst_ffffffff;
+	bn_t bn;
+
+	cst_ffffffff = PyLong_FromLong(0xffffffff);
+	cst_32 = PyLong_FromLong(32);
+	bn = bignum_from_int(0);
+
+	for (j = 0; j < BN_BYTE_SIZE; j += 4) {
+		py_tmp = PyObject_CallMethod(py_long, "__and__", "O", cst_ffffffff);
+		py_long_tmp = PyObject_CallMethod(py_long, "__rshift__", "O", cst_32);
+		Py_DECREF(py_long);
+		py_long = py_long_tmp;
+		tmp_mask = PyLong_AsUnsignedLongLongMask(py_tmp);
+		Py_DECREF(py_tmp);
+		bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp_mask), 8 * j));
+	}
+
+	Py_DECREF(cst_32);
+	Py_DECREF(cst_ffffffff);
+
+	return bn;
 }
