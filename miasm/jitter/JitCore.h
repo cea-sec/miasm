@@ -226,8 +226,6 @@ _MIASM_EXPORT void MEM_WRITE_BN_INT(JitCpu* jitcpu, int size, bn_t addr, uint64_
 _MIASM_EXPORT void MEM_WRITE_INT_BN(JitCpu* jitcpu, int size, uint64_t addr, bn_t src);
 
 
-PyObject* vm_get_mem(JitCpu *self, PyObject* args);
-
 _MIASM_EXPORT void MEM_LOOKUP_INT_BN_TO_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr);
 _MIASM_EXPORT void MEM_WRITE_INT_BN_FROM_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr);
 
