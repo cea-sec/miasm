@@ -187,7 +187,7 @@ class CGen(object):
 
     def add_local_var(self, dst_var, dst_index, expr):
         """
-        Add local variable used to store temporay result
+        Add local variable used to store temporary result
         @dst_var: dictionary of Expr -> local_var_expr
         @dst_index : dictionary of size -> local var count
         @expr: Expression source

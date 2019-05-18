@@ -22,12 +22,12 @@ class TestMisc(object):
         for mn_str, mn_hex in unit_tests:
             print("-" * 49)  # Tests separation
 
-            # Dissassemble
+            # Disassemble
             mn_bin = decode_hex(mn_hex)
             mn = mn_mep.dis(mn_bin, "b")
 
             print("dis: %s -> %s" % (mn_hex.rjust(20), str(mn).rjust(20)))
-            assert(str(mn) == mn_str)  # dissassemble assertion
+            assert(str(mn) == mn_str)  # disassemble assertion
 
             # Assemble and return all possible candidates
             instr = mn_mep.fromstring(str(mn), "b")

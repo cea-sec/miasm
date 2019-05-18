@@ -1720,7 +1720,7 @@ class LLVMFunction(object):
             self.gen_bad_block(asmblock)
             return
 
-        # Create basic blocks (for label branchs)
+        # Create basic blocks (for label branches)
         entry_bbl, builder = self.entry_bbl, self.builder
         for instr in asmblock.lines:
             lbl = self.llvm_context.ir_arch.loc_db.get_or_create_offset_location(instr.offset)
