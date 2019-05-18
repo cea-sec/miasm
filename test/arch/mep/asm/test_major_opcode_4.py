@@ -107,7 +107,7 @@ class TestMajor4(object):
         check_instruction("LBU $4, 0x22($TP)", "4ca2", multi=2)
         # Note: the following instruction can not be easily manipulated due to
         # expressions simplifications performed by miasm at assembly and
-        # dissassembly, i.e. ExprMem($TP + 0) is simplified into ExprMem($TP)
+        # disassembly, i.e. ExprMem($TP + 0) is simplified into ExprMem($TP)
         #check_instruction("LBU $6, 0x0($TP)", "4e80", multi=2)
         check_instruction("LBU $7, 0x3C($TP)", "4fbc", multi=2)
         check_instruction("LBU $2, 0x4($TP)", "4a84", multi=2)

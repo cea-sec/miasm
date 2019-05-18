@@ -978,7 +978,7 @@ class MatchGraph(DiGraph):
         """
         # Partial solution: nodes corrects, edges between these nodes corrects
         # A partial solution is a dictionary MatchGraphJoker -> @graph's node
-        todo = list()  # Dictionnaries containing partial solution
+        todo = list()  # Dictionaries containing partial solution
         done = list()  # Already computed partial solutions
 
         # Elect first candidates

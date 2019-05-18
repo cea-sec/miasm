@@ -293,7 +293,7 @@ class mn_mep(cls_mn):
     """
 
     # Define variables that stores information used to disassemble & assemble
-    # Notes: - theses variables are mandatory
+    # Notes: - these variables are mandatory
     #        - they could be moved to the cls_mn class
 
     num = 0  # holds the number of mnemonics

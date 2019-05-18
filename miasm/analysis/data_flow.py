@@ -185,7 +185,7 @@ class DiGraphDefUse(DiGraph):
         self._edge_attr[(src, dst)] = edge_label
 
     def add_data_edge(self, src, dst):
-        """Adds an edge representing a data dependencie
+        """Adds an edge representing a data dependency
         and sets the label accordingly"""
         self.add_uniq_labeled_edge(src, dst, ATTR_DEP)
 

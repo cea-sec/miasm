@@ -357,7 +357,7 @@ class DependencyResultImplicit(DependencyResult):
             conds = z3.Or(*out)
         else:
             # Ex: expr: lblgen1, expected: 0x1234
-            # -> Avoid unconsistent solution lblgen1 = 0x1234
+            # -> Avoid inconsistent solution lblgen1 = 0x1234
             conds = translator.from_expr(self.unsat_expr)
         return conds
 
