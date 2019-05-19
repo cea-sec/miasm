@@ -51,6 +51,7 @@ from builtins import range
 from collections import namedtuple
 
 from miasm.arch.arm.sem import *
+from miasm.core.asmblock import AsmBlockBad
 
 try:
     import z3
@@ -356,6 +357,12 @@ class DSEEngine(object):
         if len(self.symb.expr_simp.simplified_exprs) > 100000:
             self.symb.expr_simp.simplified_exprs.clear()
 
+        # for IT instruction check
+        asm_block = self.mdis.dis_block(cur_addr)
+        instr = None
+        if not isinstance(asm_block, AsmBlockBad):
+            instr = asm_block.lines[0]
+
         # Get IR blocks
         if cur_addr in self.addr_to_cacheblocks:
             self.ircfg.blocks.clear()
@@ -365,14 +372,8 @@ class DSEEngine(object):
             ## Reset cache structures
             self.ircfg.blocks.clear()# = {}
 
-            ## Update current state
-            asm_block = self.mdis.dis_block(cur_addr)
-
             # check if IT instrs
-            instr = asm_block.lines[0]
-            if instr.name.startswith("IT"):
-
-                # it is IT instr
+            if instr and instr.name.startswith("IT"):
 
                 assert len(self.then_offsets) == 0
                 assert len(self.else_offsets) == 0
@@ -481,9 +482,6 @@ class DSEEngine(object):
 
             self.ir_arch.add_asmblock_to_ircfg(asm_block, self.ircfg)
             self.addr_to_cacheblocks[cur_addr] = dict(self.ircfg.blocks)
-
-        asm_block = self.mdis.dis_block(cur_addr)
-        instr = asm_block.lines[0]
 
         # offset behind IT instruction
         if len(self.then_offsets):
