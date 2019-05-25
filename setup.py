@@ -3,6 +3,7 @@
 from __future__ import print_function
 from distutils.core import setup, Extension
 from distutils.util import get_platform
+from distutils.sysconfig import get_python_lib, get_config_vars
 import io
 import os
 import platform
@@ -10,6 +11,13 @@ from shutil import copy2
 import sys
 
 is_win = platform.system() == "Windows"
+is_mac = platform.system() == "Darwin"
+
+def set_extension_compile_args(extension):
+    rel_lib_path = extension.name.replace('.', '/')
+    abs_lib_path = os.path.join(get_python_lib(), rel_lib_path)
+    lib_name = abs_lib_path + '.so'
+    extension.extra_link_args = [ '-Wl,-install_name,' + lib_name]
 
 def buil_all():
     packages=[
@@ -132,6 +140,11 @@ def buil_all():
         # Force setuptools to use whatever msvc version installed
         os.environ['MSSdk'] = '1'
         os.environ['DISTUTILS_USE_SDK'] = '1'
+    elif is_mac:
+        for extension in ext_modules_all:
+            set_extension_compile_args(extension)
+        cfg_vars = get_config_vars()
+        cfg_vars['LDSHARED'] = cfg_vars['LDSHARED'].replace('-bundle', '-dynamiclib')
 
     print("building")
     build_ok = False
