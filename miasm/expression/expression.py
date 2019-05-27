@@ -279,6 +279,11 @@ class Expr(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __lt__(self, other):
+        weight1 = EXPR_ORDER_DICT[self.__class__]
+        weight2 = EXPR_ORDER_DICT[other.__class__]
+        return weight1 < weight2
+
     def __add__(self, other):
         return ExprOp('+', self, other)
 
