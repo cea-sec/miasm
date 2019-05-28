@@ -82,6 +82,7 @@ class IRATest(ira):
         super(IRATest, self).__init__(arch, 32, loc_db)
         self.IRDst = IRDst
         self.ret_reg = r
+        self.addrsize = 32
 
     def get_out_regs(self, xx):
         out = set()
