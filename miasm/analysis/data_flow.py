@@ -2072,19 +2072,6 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
         ptr_base_b, ptr_offset_b = get_expr_base_offset(ptr_b)
 
 
-        sp_p4 = ExprMem(self.ir_arch.arch.regs.ESP + ExprInt(4, 32), 32)
-        if ptr_base_a != ptr_base_b:
-            # XXX TODO: move custom rulez to extern code
-            if set([ptr_base_a, ptr_base_b]) == set([self.ir_arch.arch.regs.ESP, self.ir_arch.arch.regs.EBP]):
-                return False
-            if ExprId('arg0', 32) in set([ptr_base_a, ptr_base_b]):
-                return False
-            #if (sp_p4 in ptr_base_a or
-            #    sp_p4 in ptr_base_b):
-            #    return False
-            ##print("MAY ALIAS", ptr_base_a, ptr_base_b)
-            return True
-
         # Same symbolic based ExprMem
         diff = ptr_offset_b - ptr_offset_a
 
@@ -2223,14 +2210,8 @@ class PropagateWithSymbolicExec(object):
     def get_states(self, head):
         todo = set([head])
         self.states = {}
-        sp = self.ir_arch.arch.regs.ESP
         for loc_key in todo:
-            # TODO XXX: take initial state as input?
-            self.states[loc_key] = {
-                self.ir_arch.arch.regs.df: ExprInt(0, 1),
-                ExprMem(sp + ExprInt(4, 32), 32): ExprId('arg0', 32),
-                ExprMem(sp + ExprInt(8, 32), 32): ExprId('arg1', 32),
-            }
+            self.states[loc_key] = {}
 
         while todo:
             loc_key = todo.pop()
