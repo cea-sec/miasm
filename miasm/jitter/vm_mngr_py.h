@@ -11,5 +11,7 @@ typedef struct {
 	vm_mngr_t vm_mngr;
 } VmMngr;
 
-
 #endif// VM_MNGR_PY_H
+
+bn_t PyLong_to_bn(PyObject* py_long);
+PyObject* bn_to_PyLong(bn_t bn);

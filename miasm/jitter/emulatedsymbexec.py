@@ -75,7 +75,7 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
             return super(EmulatedSymbExec, self).mem_read(expr_mem)
         addr = int(addr)
         size = expr_mem.size // 8
-        value = self.cpu.get_mem(addr, size)
+        value = self.vm.get_mem(addr, size)
         if self.vm.is_little_endian():
             value = value[::-1]
         self.vm.add_mem_read(addr, size)
@@ -107,8 +107,7 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
             content = content[::-1]
 
         # Write in VmMngr context
-        self.cpu.set_mem(addr, content)
-        self.vm.add_mem_write(addr, len(content))
+        self.vm.set_mem(addr, content)
 
     # Interaction symbexec <-> jitter
     def update_cpu_from_engine(self):

@@ -5,8 +5,8 @@
 #include "../compat_py23.h"
 #include "../queue.h"
 #include "../vm_mngr.h"
-#include "../vm_mngr_py.h"
 #include "../bn.h"
+#include "../vm_mngr_py.h"
 #include "../JitCore.h"
 #include "../op_semantics.h"
 #include "JitCore_x86.h"
@@ -209,13 +209,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 			    case 128:
 				    {
 					    bn_t bn;
-					    int j;
 					    PyObject* py_long = d_value;
-					    PyObject* py_long_new;
-					    PyObject* py_tmp;
-					    PyObject* cst_32;
-					    PyObject* cst_ffffffff;
-					    uint64_t tmp;
 
 
 #if PY_MAJOR_VERSION >= 3
@@ -227,6 +221,8 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 						    RAISE(PyExc_TypeError,"arg must be int");
 					    }
 #else
+					    uint64_t tmp;
+
 					    if (PyInt_Check(py_long)){
 						    tmp = (uint64_t)PyInt_AsLong(py_long);
 						    py_long = PyLong_FromLong((long)tmp);
@@ -240,25 +236,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 					    }
 #endif
 
-
-					    cst_ffffffff = PyLong_FromLong(0xffffffff);
-					    cst_32 = PyLong_FromLong(32);
-					    bn = bignum_from_int(0);
-
-					    for (j = 0; j < BN_BYTE_SIZE; j += 4) {
-						    py_tmp = PyObject_CallMethod(py_long, "__and__", "O", cst_ffffffff);
-						    tmp = PyLong_AsUnsignedLongMask(py_tmp);
-						    Py_DECREF(py_tmp);
-						    bn = bignum_lshift(bn, 32);
-						    bn = bignum_or(bn, bignum_from_uint64(tmp));
-
-						    py_long_new = PyObject_CallMethod(py_long, "__rshift__", "O", cst_32);
-						    Py_DECREF(py_long);
-						    py_long = py_long_new;
-					    }
-					    Py_DECREF(py_long);
-					    Py_DECREF(cst_32);
-					    Py_DECREF(cst_ffffffff);
+					    bn = PyLong_to_bn(py_long);
 					    *(bn_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset) = bignum_mask(bn, 128);
 				    }
 				    break;
@@ -482,39 +460,6 @@ void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src)
 
 
 
-PyObject* vm_set_mem(JitCpu *self, PyObject* args)
-{
-       PyObject *py_addr;
-       PyObject *py_buffer;
-       Py_ssize_t py_length;
-
-       char * buffer;
-       Py_ssize_t pysize;
-       uint64_t addr;
-       int ret;
-
-       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
-
-       PyGetInt_uint64_t(py_addr, addr);
-
-       if(!PyBytes_Check(py_buffer))
-	       RAISE(PyExc_TypeError,"arg must be bytes");
-
-       pysize = PyBytes_Size(py_buffer);
-       if (pysize < 0) {
-	       RAISE(PyExc_TypeError,"Python error");
-       }
-       PyBytes_AsStringAndSize(py_buffer, &buffer, &py_length);
-
-       ret = vm_write_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, buffer, pysize);
-       if (ret < 0)
-	       RAISE(PyExc_TypeError,"arg must be str");
-
-       Py_INCREF(Py_None);
-       return Py_None;
-}
-
 static PyMemberDef JitCpu_members[] = {
     {NULL}  /* Sentinel */
 };
@@ -537,10 +482,6 @@ static PyMethodDef JitCpu_methods[] = {
 	{"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS,
 	 "X"},
 	{"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS,
-	 "X"},
-	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
-	 "X"},
-	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
 	 "X"},
 	{"get_interrupt_num", (PyCFunction)cpu_get_interrupt_num, METH_VARARGS,
 	 "X"},

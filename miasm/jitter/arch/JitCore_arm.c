@@ -5,8 +5,8 @@
 #include "../compat_py23.h"
 #include "../queue.h"
 #include "../vm_mngr.h"
-#include "../vm_mngr_py.h"
 #include "../bn.h"
+#include "../vm_mngr_py.h"
 #include "../JitCore.h"
 #include "../op_semantics.h"
 #include "JitCore_arm.h"
@@ -204,39 +204,6 @@ void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src)
 	vm_MEM_WRITE_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
 }
 
-PyObject* vm_set_mem(JitCpu *self, PyObject* args)
-{
-       PyObject *py_addr;
-       PyObject *py_buffer;
-       Py_ssize_t py_length;
-
-       char * buffer;
-       Py_ssize_t pysize;
-       uint64_t addr;
-       int ret;
-
-       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
-	       RAISE(PyExc_TypeError,"Cannot parse arguments");
-
-       PyGetInt_uint64_t(py_addr, addr);
-
-       if(!PyBytes_Check(py_buffer))
-	       RAISE(PyExc_TypeError,"arg must be bytes");
-
-       pysize = PyBytes_Size(py_buffer);
-       if (pysize < 0) {
-	       RAISE(PyExc_TypeError,"Python error");
-       }
-       PyBytes_AsStringAndSize(py_buffer, &buffer, &py_length);
-
-       ret = vm_write_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, buffer, pysize);
-       if (ret < 0)
-	       RAISE(PyExc_TypeError,"arg must be str");
-
-       Py_INCREF(Py_None);
-       return Py_None;
-}
-
 PyObject* cpu_set_interrupt_num(JitCpu* self, PyObject* args)
 {
 	PyObject *item1;
@@ -279,10 +246,6 @@ static PyMethodDef JitCpu_methods[] = {
 	{"get_interrupt_num", (PyCFunction)cpu_get_interrupt_num, METH_VARARGS,
 	 "X"},
 	{"set_interrupt_num", (PyCFunction)cpu_set_interrupt_num, METH_VARARGS,
-	 "X"},
-	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
-	 "X"},
-	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
 	 "X"},
 	{NULL}  /* Sentinel */
 };
