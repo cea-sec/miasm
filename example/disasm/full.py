@@ -234,6 +234,7 @@ if args.propagexpr:
 
         def simplify(self, ircfg, head):
             insert_stk_lvl(self.ir_arch, ircfg, self.stk_lvl)
+            open('stk_ssa.dot', 'w').write(ircfg.dot())
             ssa = self.ircfg_to_ssa(ircfg, head)
             ssa = self.do_simplify_loop(ssa, head)
             open('last_ssa.dot', 'w').write(ssa.graph.dot())

@@ -89,6 +89,7 @@ class IRCFGSimplifier(object):
         """
         modified = False
         for simplify_pass in self.passes:
+            print('\t', "PASS", simplify_pass)
             modified |= simplify_pass(ircfg, head)
         return modified
 
@@ -178,7 +179,7 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
             self.all_ssa_vars
         )
         self.expr_propag_mem = ExprPropagationHelper(self.ir_arch)
-        self.del_dup_write_mem = DelDupMemWrite(self.ir_arch)
+        self.del_dup_write_mem = DelDupMemWrite(self.ir_arch, self.stk_lvl)
         self.symb_propag = PropagateWithSymbolicExec(self.ir_arch)
 
     def get_forbidden_regs(self):
@@ -396,7 +397,7 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
 
     def do_remove_self_interference(self, ssa, head):
         interfer_index, modified = remove_self_interference(
-            ssa, head,
+            ssa, head, self.stk_lvl,
             self.alias_mngr, self.interfer_index
         )
         self.interfer_index = interfer_index

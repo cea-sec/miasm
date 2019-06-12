@@ -1972,35 +1972,47 @@ class DelDupMemWrite(object):
     Remove duplicate memory write to the same target without reference between
     writes
     """
-    def __init__(self, ir_arch):
+    def __init__(self, ir_arch, stk_lvl):
         self.ir_arch = ir_arch
+        self.stk_lvl = stk_lvl
+        self.compute_alias = AliasMngr(self.ir_arch)
 
-    def is_dup_write_mem_candidate(self, dst):
+
+    def is_dup_write_mem_candidate(self, dst, stk_lvl_base):
         """
         Return True if @dst could be removed in case of positive duplicate write
         """
         if not dst.is_mem():
             return False
-        ptr = dst.ptr
-        if ptr.is_int():
-            return True
+        return True
 
-        base, offset = get_expr_base_offset(ptr)
-        return base == self.ir_arch.sp
+        # ptr = dst.ptr
+        # if ptr.is_int():
+        #     return True
 
-    def is_known_read_memory(self, mem):
+        # base, offset = get_expr_base_offset(ptr)
+        # return base == stk_lvl_base
+
+    def is_known_read_memory(self, mem, stk_lvl_base):
         """
         Return True if @mem is at a known destination
         """
         base, offset = get_expr_base_offset(mem.ptr)
-        return base == self.ir_arch.sp
+        return base == stk_lvl_base
 
-    def filter_deads(self, assignblk, read_mems, deads):
+    def filter_deads(self, assignblk, read_mems, deads, stk_lvl_base):
         all_reads_known = True
+        deads_to_del = set()
         for mem in read_mems:
-            if not self.is_known_read_memory(mem):
+            """
+            if not self.is_known_read_memory(mem, stk_lvl_base):
                 deads.clear()
                 return
+            """
+            for dead in deads:
+                if self.compute_alias.test_may_alias(mem, dead):
+                    deads_to_del.add(dead)
+        deads.difference_update(deads_to_del)
 
         # If we have function call, we may have unknown memory reads
         for src in assignblk.values():
@@ -2042,13 +2054,19 @@ class DelDupMemWrite(object):
             # Last block has no dead
             deads = []
             for index, assignblk in list(enumerate(list(block)))[::-1]:
+                if self.stk_lvl in assignblk:
+                    stk_lvl_cur = assignblk[self.stk_lvl]
+                    stk_lvl_base, _ = get_expr_base_offset(stk_lvl_cur)
+                else:
+                    stk_lvl_base = None
+
                 unknown_read = False
                 write_mems = set()
                 read_mems = self.get_memory_reads(assignblk)
-                self.filter_deads(assignblk, read_mems, cur_dead)
+                self.filter_deads(assignblk, read_mems, cur_dead, stk_lvl_base)
 
                 for dst in assignblk:
-                    if self.is_dup_write_mem_candidate(dst):
+                    if self.is_dup_write_mem_candidate(dst, stk_lvl_base):
                         write_mems.add(dst)
 
                 cur_dead.update(write_mems)
@@ -2227,6 +2245,10 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
                 to_del.add(dst)
         for dst in to_del:
             del(dst_src[dst])
+            try:
+                del(self.symbols[dst])
+            except:
+                pass
 
 
 
@@ -2261,6 +2283,38 @@ class SymbexecDelInterferences(SymbolicExecutionEngine):
                     break
         for dst in to_del:
             del(dst_src[dst])
+            try:
+                del(self.symbols[dst])
+            except:
+                pass
+
+
+        # Don't propagate read memory with undetermined offset from stack
+        to_del = set()
+        for dst, src in viewitems(dst_src):
+            #uses = src.get_r(mem_read=True)
+            #if dst.is_mem():
+            #    uses.update(dst.ptr.get_r(mem_read=True))
+            assign = ExprAssign(dst, src)
+            uses = assign.get_r(mem_read=True)
+            uses = set(use for use in uses if use.is_mem())
+
+            for use in uses:
+                mem_base, mem_offset = get_expr_base_offset(use.ptr)
+                if mem_base != sp_base:
+                    print("READ: Dont1 propagate stack after stk limit high")
+                    print("%s = %s" % (dst, src))
+                    to_del.add(dst)
+                    break
+        for dst in to_del:
+            del(dst_src[dst])
+            try:
+                del(self.symbols[dst])
+            except:
+                pass
+
+
+
 
         # Don't update store if dst may alias with it's own sources
         for dst, src in dst_src.items():
@@ -2342,7 +2396,6 @@ class SymbexecDelInterferencesAndFix(SymbexecDelInterferences):
                     if uses:
                         xxx = dict((expr, expr) for expr in uses)
                         new_ptr = self.eval_expr(ptr, xxx)
-                        fds
                     else:
                         new_ptr = self.eval_expr(ptr)
 
@@ -2441,11 +2494,20 @@ class PropagateWithSymbolicExec(object):
         return modified
 
     def simplify(self, ssa, head):
+        print("Papag with symb exec")
+        for block in ssa.graph.blocks.values():
+            print(block)
         self.ircfg = ssa.graph
         self.get_states(head)
         modified = self.do_replacement(head)
         return modified
 
+
+"""
+XXXXXXXXXX
+XXXXXXXXXX
+il faut creer un stk_lvl en meme temps que les tmpX
+"""
 
 def insert_stk_lvl(ir_arch, ircfg, stk_lvl):
     """
@@ -2489,6 +2551,8 @@ def propagate_stk_lvl(alias_mngr, ssa, head, stk_lvl):
         irs = list(block)
         block_modified = False
         for idx, assignblk in reversed(list(enumerate(block))):
+            print('XXX')
+            print(assignblk)
             if stk_lvl not in assignblk:
                 # Should be Phi assignblk
                 if idx == 0:
@@ -2505,9 +2569,13 @@ def propagate_stk_lvl(alias_mngr, ssa, head, stk_lvl):
                 stk_lvl_cur = assignblk[stk_lvl]
                 continue
 
+
             stk_lvl_local = assignblk[stk_lvl]
             #print('*'*30, stk_lvl_cur)
             #print(assignblk)
+            print("yyy")
+            print(stk_lvl_cur)
+            print(stk_lvl_local)
 
             diff = expr_simp((stk_lvl_local - stk_lvl_cur).msb())
             if diff.is_int() and int(diff) == 1:
@@ -2525,7 +2593,8 @@ def propagate_stk_lvl(alias_mngr, ssa, head, stk_lvl):
                 block_modified = True
                 #print(irs[idx])
 
-            if can_assignblock_read_stk(alias_mngr, stk_lvl, assignblk):
+            if can_assignblock_read_stk_above(alias_mngr, stk_lvl, stk_lvl_local, assignblk):
+                print("read stk!! del stk cur")
                 stk_lvl_cur = None
         if block_modified:
             ssa.graph.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
@@ -2536,10 +2605,30 @@ def propagate_stk_lvl(alias_mngr, ssa, head, stk_lvl):
             print(block)
             for pred in ssa.graph.predecessors(loc_key):
                 worklist.add((pred, stk_lvl_cur))
-
+    print("TTT")
+    for block in ssa.graph.blocks.values():
+        print(block)
     return modified
 
 
+
+
+def can_assignblock_read_stk_above(alias_mngr, stk_lvl, stk_lvl_cur, assignblk):
+    stk_lvl_cur = assignblk[stk_lvl]
+    sp_base, sp_offset = get_expr_base_offset(stk_lvl_cur)
+    reads = assignblk.get_r(mem_read=True)
+    mems = set(expr for expr in reads if expr.is_mem())
+    offset = 1 << (sp_base.size - 1)
+    offset_expr = ExprInt(offset, sp_base.size)
+    test_mem = ExprMem(sp_base + offset_expr, 8*offset)
+    for mem in mems:
+        # Test alias against whole stack
+        print("MAY ALIAS", mem, test_mem)
+        if alias_mngr.test_may_alias(mem, test_mem):
+            print("TRU!!")
+            return True
+
+    return False
 
 
 def can_assignblock_read_stk(alias_mngr, stk_lvl, assignblk):
@@ -2570,11 +2659,15 @@ def do_del_stk_above(alias_mngr, assignblk, stk_lvl):
         return assignblk, False
     if not can_assignblock_write_stk(alias_mngr, stk_lvl, assignblk):
         return assignblk, False
-    if can_assignblock_read_stk(alias_mngr, stk_lvl, assignblk):
+    #if can_assignblock_read_stk(alias_mngr, stk_lvl, assignblk):
+    #    return assignblk, False
+    stk_lvl_cur = assignblk[stk_lvl]
+
+    if can_assignblock_read_stk_above(alias_mngr, stk_lvl, stk_lvl_cur, assignblk):
         return assignblk, False
+
     out = {}
 
-    stk_lvl_cur = assignblk[stk_lvl]
     sp_base, sp_offset = get_expr_base_offset(stk_lvl_cur)
 
     modified = False
@@ -2617,8 +2710,9 @@ def del_above_stk_write(alias_mngr, ssa, head, stk_lvl):
     return modified
 
 
-def remove_self_interference(ssa, head, alias_mngr, interfer_index):
+def remove_self_interference(ssa, head, stk_lvl, alias_mngr, interfer_index):
     modified = False
+    stk_lvl_last = None
     for block in list(viewvalues(ssa.graph.blocks)):
         #print(block)
         irs = []
@@ -2649,6 +2743,8 @@ def remove_self_interference(ssa, head, alias_mngr, interfer_index):
                     out[dst] = src
                 new_vars = dict((src, dst) for dst, src in viewitems(interfer_srcs))
                 #print("NEW", new_vars)
+                assert stk_lvl_last is not None
+                new_vars[stk_lvl] = stk_lvl_last
                 irs.append(
                     AssignBlock(
                         new_vars,
@@ -2659,6 +2755,12 @@ def remove_self_interference(ssa, head, alias_mngr, interfer_index):
                 modified = True
             else:
                 irs.append(assignblk)
+
+            if stk_lvl in assignblk:
+                stk_lvl_last = assignblk[stk_lvl]
+            else:
+                stk_lvl_last = None
+
         #print(irs)
         ssa.graph.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
     if modified:
