@@ -110,8 +110,6 @@ for script in ["x86/sem.py",
         if jitter in blacklist.get(script, []):
             continue
         tags = [TAGS[jitter]] if jitter in TAGS else []
-        if is_win and script.endswith("mn_div.py"):
-            continue
         testset += ArchUnitTest(script, jitter, base_dir="arch", tags=tags)
 
 testset += ArchUnitTest("x86/unit/access_xmm.py", "python", base_dir="arch", tags=[TAGS["python"]])
