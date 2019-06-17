@@ -268,7 +268,7 @@ def xor_w(ir, instr, a, b):
     e += [ExprAssign(zf, ExprOp('FLAG_EQ_CMP', arg2, arg1))]
     e += update_flag_nf(res)
     e += reset_sr_res()
-    e += update_flag_cf_inv_zf(c)
+    e += update_flag_cf_inv_zf(res)
     e.append(ExprAssign(of, arg2.msb() & arg1.msb()))
 
     return e, []
