@@ -35,8 +35,7 @@ def mem_breakpoint_handler(jitter):
     return True
 
 machine = Machine("aarch64l")
-# jitter = machine.jitter(sys.argv[1])
-jitter = machine.jitter("gcc")
+jitter = machine.jitter(sys.argv[1])
 
 start_addr = 0xFFFFFF8008080000
 end_addr = start_addr + 0x8000000
