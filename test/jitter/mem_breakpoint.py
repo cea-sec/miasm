@@ -39,9 +39,7 @@ jitter = machine.jitter(sys.argv[1])
 
 start_addr = 0xFFFFFF8008080000
 end_addr = start_addr + 0x8000000
-while start_addr <= end_addr:
-    jitter.vm.add_memory_page(start_addr, PAGE_READ|PAGE_WRITE, b"\x00"*0x1000, "code page")
-    start_addr = start_addr + 0x1000
+jitter.vm.add_memory_page(start_addr, PAGE_READ|PAGE_WRITE, b"\x00"*(end_addr - start_addr), "code page")
 
 jitter.vm.add_memory_page(0x10000000, PAGE_READ|PAGE_WRITE, b"\x00"*0x1000, "stack")
 jitter.cpu.SP = 0x10000000 + 0x1000
