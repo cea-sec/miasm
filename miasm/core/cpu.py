@@ -514,7 +514,7 @@ class bs(object):
         return v & self.fmask == self.fbits
 
     @classmethod
-    def flen(cls, v):
+    def flen(cls, mode, v):
         raise NotImplementedError('not fully functional')
 
 
