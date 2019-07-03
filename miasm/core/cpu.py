@@ -514,7 +514,7 @@ class bs(object):
         return v & self.fmask == self.fbits
 
     @classmethod
-    def flen(cls, mode, v):
+    def flen(cls, mode, v, bs):
         raise NotImplementedError('not fully functional')
 
 
@@ -1085,7 +1085,7 @@ class cls_mn(with_metaclass(metamn, object)):
             (l, fmask, fbits, fname, flen), vals = branch
 
             if flen is not None:
-                l = flen(attrib, fname_values)
+                l = flen(attrib, fname_values, bs)
             if l is not None:
                 try:
                     v = cls.getbits(bs, attrib, offset_b, l)
@@ -1214,7 +1214,7 @@ class cls_mn(with_metaclass(metamn, object)):
             total_l = 0
             for i, f in enumerate(c.fields_order):
                 if f.flen is not None:
-                    l = f.flen(mode, fname_values)
+                    l = f.flen(mode, fname_values, bs)
                 else:
                     l = f.l
                 if l is not None:
