@@ -516,7 +516,7 @@ class bs(object):
         return v & self.fmask == self.fbits
 
     @classmethod
-    def flen(cls, mode, v, bs):
+    def flen(cls, mode, v, bs, offset_b):
         raise NotImplementedError('not fully functional')
 
 
@@ -1088,7 +1088,7 @@ class cls_mn(with_metaclass(metamn, object)):
 
             if flen is not None:
                 try:
-                    l = flen(attrib, fname_values, bs)
+                    l = flen(attrib, fname_values, bs, offset_b)
                 except NotImplementedError:
                     pass
             if l is not None:
@@ -1220,7 +1220,7 @@ class cls_mn(with_metaclass(metamn, object)):
             for i, f in enumerate(c.fields_order):
                 if f.flen is not None:
                     try:
-                        l = f.flen(mode, fname_values, bs)
+                        l = f.flen(mode, fname_values, bs, offset_b)
                     except NotImplementedError:
                         pass
                 else:

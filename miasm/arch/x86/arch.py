@@ -2671,7 +2671,7 @@ class bs_cond_scale(bs_cond):
     ll = 2
 
     @classmethod
-    def flen(cls, mode, v, bs):
+    def flen(cls, mode, v, bs, offset_b):
         return sib_cond(cls, mode, v)
 
     def encode(self):
@@ -2690,7 +2690,7 @@ class bs_cond_index(bs_cond_scale):
     ll = 3
 
     @classmethod
-    def flen(cls, mode, v, bs):
+    def flen(cls, mode, v, bs, offset_b):
         return sib_cond(cls, mode, v)
 
 
@@ -2698,7 +2698,7 @@ class bs_cond_disp(bs_cond):
     # cond must return field len
 
     @classmethod
-    def flen(cls, mode, v, bs):
+    def flen(cls, mode, v, bs, offset_b):
         if admode_prefix((mode, v['opmode'], v['admode'])) == 16:
             if v['mod'] == 0b00:
                 if v['rm'] == 0b110:
@@ -2780,7 +2780,7 @@ class bs_cond_imm(bs_cond_scale, x86_arg):
         return start, stop
 
     @classmethod
-    def flen(cls, mode, v, bs):
+    def flen(cls, mode, v, bs, offset_b):
         if 'w8' not in v or v['w8'] == 1:
             if 'se' in v and v['se'] == 1:
                 return 8
@@ -2868,7 +2868,7 @@ class bs_cond_imm64(bs_cond_imm):
         return 64
 
     @classmethod
-    def flen(cls, mode, v, bs):
+    def flen(cls, mode, v, bs, offset_b):
         if 'w8' not in v or v['w8'] == 1:
             if 'se' in v and v['se'] == 1:
                 return 8
@@ -2899,7 +2899,7 @@ class bs_rel_off(bs_cond_imm):
         return start, stop
 
     @classmethod
-    def flen(cls, mode, v, bs):
+    def flen(cls, mode, v, bs, offset_b):
         osize = v_opmode_info(mode, v['opmode'], v['rex_w'], 0)
         if osize == 16:
             return 16
@@ -2941,7 +2941,7 @@ class bs_s08(bs_rel_off):
     parser = base_expr
 
     @classmethod
-    def flen(cls, mode, v, bs):
+    def flen(cls, mode, v, bs, offset_b):
         return 8
 
     def encode(self):
@@ -2974,14 +2974,14 @@ class bs_s08(bs_rel_off):
 class bs_rel_off08(bs_rel_off):
 
     @classmethod
-    def flen(cls, mode, v, bs):
+    def flen(cls, mode, v, bs, offset_b):
         return 8
 
 
 class bs_moff(bsi):
 
     @classmethod
-    def flen(cls, mode, v, bs):
+    def flen(cls, mode, v, bs, offset_b):
         osize = v_opmode_info(mode, v['opmode'], v['rex_w'], 0)
         if osize == 16:
             return 16
@@ -3046,7 +3046,7 @@ class bs_movoff(x86_arg):
         return start, stop
 
     @classmethod
-    def flen(cls, mode, v, bs):
+    def flen(cls, mode, v, bs, offset_b):
         if mode == 64:
             if v['admode']:
                 return 32
