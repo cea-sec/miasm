@@ -460,8 +460,10 @@ class bs(object):
         # gen conditional field
         if cls:
             for b in cls:
-                if 'flen' in b.__dict__:
+                try:
                     flen = getattr(b, 'flen')
+                except AttributeError:
+                    pass
 
         self.strbits = strbits
         self.l = l
@@ -1085,7 +1087,10 @@ class cls_mn(with_metaclass(metamn, object)):
             (l, fmask, fbits, fname, flen), vals = branch
 
             if flen is not None:
-                l = flen(attrib, fname_values, bs)
+                try:
+                    l = flen(attrib, fname_values, bs)
+                except NotImplementedError:
+                    pass
             if l is not None:
                 try:
                     v = cls.getbits(bs, attrib, offset_b, l)
@@ -1214,7 +1219,10 @@ class cls_mn(with_metaclass(metamn, object)):
             total_l = 0
             for i, f in enumerate(c.fields_order):
                 if f.flen is not None:
-                    l = f.flen(mode, fname_values, bs)
+                    try:
+                        l = f.flen(mode, fname_values, bs)
+                    except NotImplementedError:
+                        pass
                 else:
                     l = f.l
                 if l is not None:
