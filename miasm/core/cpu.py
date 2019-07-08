@@ -1091,6 +1091,8 @@ class cls_mn(with_metaclass(metamn, object)):
                     l = flen(attrib, fname_values, bs, offset_b)
                 except NotImplementedError:
                     pass
+                except IOError:
+                    continue
             if l is not None:
                 try:
                     v = cls.getbits(bs, attrib, offset_b, l)
@@ -1223,6 +1225,9 @@ class cls_mn(with_metaclass(metamn, object)):
                         l = f.flen(mode, fname_values, bs, offset_b)
                     except NotImplementedError:
                         pass
+                    except IOError:
+                        bs_o.leave_atomic_mode()
+                        raise
                 else:
                     l = f.l
                 if l is not None:
