@@ -226,7 +226,7 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 		}
 		switch(my_size){
 		case 8:
-			ret = ret;
+			/*ret = ret*/;
 			break;
 		case 16:
 			ret = set_endian16(vm_mngr, (uint16_t)ret);
@@ -302,7 +302,7 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 		switch(my_size){
 
 		case 8:
-			src = src;
+			/*src = src*/;
 			break;
 		case 16:
 			src = set_endian16(vm_mngr, (uint16_t)src);
@@ -926,7 +926,7 @@ void hexdump(char* m, unsigned int l)
       if (!(i%0x10) && i){
       last = i;
       printf("    ");
-      for (j=-0x10;j<0;j++){
+      for (j=-0x10;(int)j<0;j++){
 	      if (isprint(m[i+j])){
 		      printf("%c", m[i+j]);
 	      }
