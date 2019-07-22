@@ -294,6 +294,14 @@ class mn_msp430(cls_mn):
     def getnextflow(self, loc_db):
         raise NotImplementedError('not fully functional')
 
+    def cond_to_branch(self, cond_name):
+        """
+        returns branch which is alternative to IR @cond_name
+        """
+        raise RuntimeError("Not implemented")
+        assert cond_name in cond_dct_inv, "Unknown cond name"
+        cond_num = cond_dct_inv[cond_name]
+        return cond_to_br[cond_num]
 
 def addop(name, fields, args=None, alias=False):
     dct = {"fields": fields}

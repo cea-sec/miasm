@@ -512,6 +512,14 @@ class mn_aarch64(cls_mn):
         if hasattr(self, "sf"):
             self.sf.value = None
 
+    def cond_to_branch(self, cond_name):
+        """
+        returns branch which is alternative to IR @cond_name
+        """
+        raise RuntimeError("Not implemented")
+        assert cond_name in cond_dct_inv, "Unknown cond name"
+        cond_num = cond_dct_inv[cond_name]
+        return cond_to_br[cond_num]
 
 def aarch64op(name, fields, args=None, alias=False):
     dct = {"fields": fields, "alias":alias}

@@ -852,6 +852,142 @@ class AsmCFG(DiGraph):
         if rebuild_needed:
             self.rebuild_edges()
 
+    def ChangeSuccessor(self, block, old_successor, new_successor, mnemo, attrib, **args):
+        """
+        changes relation between a node and its successor
+        perhaps changes c_next constraint to c_to and updates 
+        @mnemo is cls_mn instance of particular architecture
+        @attrib is bit number(e.g. 16, 32, 64 bit)
+        @args:  @uncond_jmp if set creates an unconditional branch instead of c_next or conditional branch
+                @cond_name if set changes previous branch instruction to the specific architecture alternative of its IR conditional representation
+        """
+        from miasm.expression.expression import ExprLoc
+        successors = self.successors(block.loc_key)
+        csts = self.edges2constraint.get((block.loc_key, old_successor), None)
+        assert csts != None, 'Couldn\'t find edge: %s -> %s'%(old_successor, new_successor)
+        assert len(successors) < 3, 'Jump tables are currently not supported'
+        assert csts == 'c_next' or csts == 'c_to'
+        assert block.lines[-1].splitflow()
+        self.del_edge(block.loc_key, old_successor)
+        uncond_jmp = args.get("uncond_jmp", None)
+        cond_name = args.get("cond_name", None)
+        if csts == 'c_next':
+            if uncond_jmp is not None:
+                lockey = self.loc_db.add_location()
+                rs_block = AsmBlock(lockey)
+                inst = mnemo.instruction(mnemo.uncond_branch[0], attrib, [ExprLoc(new_successor, attrib)])
+                rs_block.addline(inst)
+                self.add_block(rs_block)
+                self.add_edge(block.loc_key, lockey, "c_next")
+                self.add_edge(rs_block.loc_key, new_successor, "c_to")
+            else:
+                self.add_edge(block.loc_key, new_successor, "c_next")
+        else:
+            last_ln = block.lines[-1]
+            if last_ln.name not in mnemo.uncond_branch + mnemo.cond_branch:
+            #perhaps loop in x86
+                block.lines[-1].args[0] = ExprLoc(new_successor, attrib)
+            else:
+                if cond_name is not None:
+                    block.lines[-1] = mnemo.instruction(mnemo().cond_to_branch(cond_name), attrib, [ExprLoc(new_successor, attrib)])
+                elif uncond_jmp is not None:
+                    block.lines[-1] = mnemo.instruction(mnemo.uncond_branch[0], attrib, [ExprLoc(new_successor, attrib)])
+                else:
+                    block.lines[-1].args[0] = ExprLoc(new_successor, attrib)
+            self.add_edge(block.loc_key, new_successor, "c_to")
+            
+    def FixMultipleNextConstraints(self, mnemo, attrib):
+        """
+        fixes multiple next constraints error by changing c_next constraints to c_to with unconditional branches
+        """
+        for loc_key in set(self.nodes()):
+            next_edges = {edge: constraint for edge, constraint in self.edges2constraint.iteritems() if constraint == AsmConstraint.c_next}
+            pred_next = list(ploc_key for (ploc_key, dloc_key) in next_edges if dloc_key == loc_key)
+            if len(pred_next) > 1:
+                for i in range(1, len(pred_next)):
+                    self.ChangeSuccessor(self.loc_key_to_block(pred_next[i]), loc_key, loc_key, mnemo, attrib, uncond_jmp = 1)
+            
+    def PasteBlockTo(self, block, mnemo, attrib, c_next_as_jmp = None, **args):
+        """
+        Puts a node before, behind or between particular nodes
+        @block AsmBlock to be pasted
+        @c_next_as_jmp flag if set changes c_next to c_to by creating a block which consists of only 1 unconditional branch right behind @block
+        @args:  @loc_key_before is loc_key of AsmBlock which should be @blocks predecessor
+                @head is loc_key of @loc_key_befores successor which should be replaced by @block
+                @loc_key_after is loc_key of AsmBlock which should be @blocks successor
+                @tail is loc_key of @blocks successor which should be replaced by @loc_key_after
+        """
+        if args.get('loc_key_before', None) != None and args.get('head', None) != None:
+            self.ChangeSuccessor(self.loc_key_to_block(args['loc_key_before']), args['head'], block.loc_key, mnemo, attrib, uncond_jmp=args.get("uncond_jmp", None))		
+        if args.get('loc_key_after', None) != None and args.get('tail', None) != None:
+            self.ChangeSuccessor(block, args['tail'], args['loc_key_after'], mnemo, attrib, uncond_jmp=args.get("uncond_jmp", None))
+            
+    def PasteSubAsmcfgTo(self, sub_asmcfg_head, mnemo, attrib, **args):
+        """
+        Puts a series of basic blocks before, behind or between particular nodes
+        @sub_asmcfg_head is first AsmBlock of the series
+        @args:  @loc_key_before is loc_key of AsmBlock which should be @sub_asmcfg_heads predecessor
+                @head is loc_key of @loc_key_befores successor which should be replaced by @sub_asmcfg_heads
+                @loc_key_after is loc_key of AsmBlock which should be @sub_asmcfg_heads successor
+                @tail is loc_key of @sub_asmcfg_heads successor which should be replaced by @loc_key_after
+        """
+        if args.get('loc_key_before', None) != None and args.get('head', None) != None:
+            self.PasteBlockTo(self.loc_key_to_block(sub_asmcfg_head), mnemo, attrib, loc_key_before=args['loc_key_before'], head=args['head'])
+        if args.get('tail', None) != None and args.get('loc_key_after', None) != None:
+            nodes = set(self.reachable_sons_stop_node(sub_asmcfg_head, args['tail']))
+            for pred in self.predecessors(args['tail']):
+                if pred in nodes:
+                    self.PasteBlockTo(self.loc_key_to_block(pred), mnemo, attrib, loc_key_after=args['loc_key_after'], tail=args['tail'])
+                    
+    def CopyBlock(self, block, mnemo, sv = 1):
+        """
+        creates and returns a copy of @block
+        if flag @sv is set, adds it to current AsmCfg
+        """
+        lockey = self.loc_db.add_location()
+        rs_block = AsmBlock(lockey)
+        for ln in block.lines:
+            tmp_ln = mnemo.instruction(ln.name, ln.mode, ln.args, ln.additional_info)
+            rs_block.addline(tmp_ln)
+        rs_block.bto = set(block.bto)
+        rs_block.alignment = block.alignment
+        if sv:
+            self.add_block(rs_block)
+        return rs_block
+        
+    def CopySubAsmcfg(self, head, tails, mnemo, attrib, prev = None, done = None):
+        """
+        copies all basic blocks from @head to @tails
+        @prev is loc_key of block to have changed successor from @head loc_key to copy of @head
+        @done is set of already processed blocks
+        returns the first new basic block
+        """
+        if done == None:
+            done = {}
+        if head in tails:
+            return prev
+        if head not in done:
+            done[head] = 1
+            new_block = self.CopyBlock(self.loc_key_to_block(head), mnemo, 1)
+            if prev != None:
+                self.PasteBlockTo(new_block, mnemo, attrib, loc_key_before=prev, head=head)
+            for succ in self.successors(head):
+                self.CopySubAsmcfg(succ, tails, mnemo, attrib, new_block.loc_key, done)
+        else:
+            return None
+        return new_block
+        
+    def RemoveRedundantBlocks(self, src):
+        """
+        deletes all blocks which are not reachable from @src
+        @src is loc_key of beginning of the function
+        """
+        reachable_nodes = set(self.reachable_sons(src))
+        all_nodes = set(self.nodes())
+        for loc_key in all_nodes:
+            if loc_key not in reachable_nodes:
+                self.del_block(self.loc_key_to_block(loc_key))
+
     def __str__(self):
         out = []
         for block in self.blocks:

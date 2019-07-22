@@ -31,6 +31,22 @@ conditional_branch = ["JO", "JNO", "JB", "JAE",
 
 unconditional_branch = ['JMP', 'JMPF']
 
+cond_to_br = {  COND_EQ: "jz",
+                COND_NE: "jnz",
+                COND_CS: "jae",
+                COND_CC: "jb",
+                COND_MI: "js",
+                COND_PL: "jns",
+                COND_VS: "jo",
+                COND_VC: "jno",
+                COND_HI: "ja",
+                COND_LS: "jbe",
+                COND_GE: "jge",
+                COND_LT: "jl",
+                COND_GT: "jg",
+                COND_LE: "jle"
+}
+
 f_isad = "AD"
 f_s08 = "S08"
 f_u08 = "U08"
@@ -461,6 +477,9 @@ class instruction_x86(instruction):
 
     def __init__(self, *args, **kargs):
         super(instruction_x86, self).__init__(*args, **kargs)
+        if self.additional_info == None:
+           self.additional_info = additional_info()
+           self.additional_info.g1.value = 0
 
     def v_opmode(self):
         return self.additional_info.v_opmode
@@ -622,6 +641,8 @@ class mn_x86(cls_mn):
     sp = {16: SP, 32: ESP, 64: RSP}
     instruction = instruction_x86
     max_instruction_len = 15
+    cond_branch = conditional_branch
+    uncond_branch = unconditional_branch
 
     @classmethod
     def getpc(cls, attrib):
@@ -936,6 +957,14 @@ class mn_x86(cls_mn):
         cand_same_mode.sort(key=len)
         cand_diff_mode.sort(key=len)
         return cand_same_mode + cand_diff_mode
+
+    def cond_to_branch(self, cond_name):
+        """
+        returns branch which is alternative to IR @cond_name
+        """
+        assert cond_name in cond_dct_inv, "Unknown cond name"
+        cond_num = cond_dct_inv[cond_name]
+        return cond_to_br[cond_num]
 
 
 class bs_modname_size(bs_divert):
