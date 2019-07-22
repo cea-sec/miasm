@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pdb import pm
 import sys
 import subprocess
@@ -9,12 +10,10 @@ dg = subprocess.Popen([sys.executable] + sys.argv[2:], stdout=subprocess.PIPE)
 
 stdout, _ = dg.communicate()
 expected = json.load(open(expected_file))
-result = json.loads(stdout)
+result = json.loads(stdout.decode())
 
 
-expected.sort()
-result.sort()
+assert len(expected) == len(result)
 
-print expected
-print result
-assert expected == result
+assert all(r in result for r in expected)
+assert all(r in expected for r in result)

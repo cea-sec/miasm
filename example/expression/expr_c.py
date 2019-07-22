@@ -3,11 +3,12 @@ Parse C expression to access variables and retrieve information:
 * Miasm expression to access this variable
 * variable type
 """
+from __future__ import print_function
 
-from miasm2.core.ctypesmngr import CTypeStruct, CAstTypes, CTypePtr
-from miasm2.arch.x86.ctype import CTypeAMD64_unk
-from miasm2.core.objc import CTypesManagerNotPacked, CHandler
-from miasm2.expression.expression import ExprId
+from miasm.core.ctypesmngr import CTypeStruct, CAstTypes, CTypePtr
+from miasm.arch.x86.ctype import CTypeAMD64_unk
+from miasm.core.objc import CTypesManagerNotPacked, CHandler
+from miasm.expression.expression import ExprId
 
 
 """
@@ -42,7 +43,7 @@ ptr_rectangle = types_mngr.get_objc(CTypePtr(CTypeStruct('rectangle')))
 
 ptr = ExprId('ptr', 64)
 c_context = {ptr.name: ptr_rectangle}
-mychandler = CHandler(types_mngr, {})
+mychandler = CHandler(types_mngr, C_types=c_context)
 
 # Parse some C accesses
 c_acceses = ["ptr->width",
@@ -54,8 +55,8 @@ c_acceses = ["ptr->width",
             ]
 
 for c_str in c_acceses:
-    expr = mychandler.c_to_expr(c_str, c_context)
-    c_type = mychandler.c_to_type(c_str, c_context)
-    print 'C access:', c_str
-    print '\tExpr:', expr
-    print '\tType:', c_type
+    expr = mychandler.c_to_expr(c_str)
+    c_type = mychandler.c_to_type(c_str)
+    print('C access:', c_str)
+    print('\tExpr:', expr)
+    print('\tType:', c_type)

@@ -1,5 +1,5 @@
-from miasm2.expression.expression import ExprId, ExprInt, ExprMem
-from miasm2.expression.expression_reduce import ExprReducer
+from miasm.expression.expression import ExprId, ExprInt, ExprMem
+from miasm.expression.expression_reduce import ExprReducer
 
 
 class StructLookup(ExprReducer):

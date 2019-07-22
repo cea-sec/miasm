@@ -1,13 +1,15 @@
 import sys
 import os
 
-from miasm2.arch.aarch64.arch import mn_aarch64, base_expr, variable
-from miasm2.core import parse_asm
-from miasm2.expression.expression import *
-from miasm2.core import asmblock
-from elfesteem.strpatchwork import StrPatchwork
-from miasm2.analysis.machine import Machine
-from miasm2.jitter.csts import *
+from future.utils import viewitems
+
+from miasm.arch.aarch64.arch import mn_aarch64, base_expr, variable
+from miasm.core import parse_asm
+from miasm.expression.expression import *
+from miasm.core import asmblock
+from miasm.loader.strpatchwork import StrPatchwork
+from miasm.analysis.machine import Machine
+from miasm.jitter.csts import *
 
 reg_and_id = dict(mn_aarch64.regs.all_regs_ids_byname)
 
@@ -28,10 +30,10 @@ class Asm_Test(object):
         loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
         s = StrPatchwork()
         patches = asmblock.asm_resolve_final(mn_aarch64, blocks, loc_db)
-        for offset, raw in patches.items():
+        for offset, raw in viewitems(patches):
             s[offset] = raw
 
-        self.assembly = str(s)
+        self.assembly = bytes(s)
 
     def run(self):
         run_addr = 0

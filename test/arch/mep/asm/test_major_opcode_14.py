@@ -4,7 +4,7 @@
 from ut_helpers_asm import check_instruction
 
 
-class TestMajor14:
+class TestMajor14(object):
 
     def test_BEQI(self):
         """Test the BEQI instruction"""

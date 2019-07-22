@@ -1,13 +1,15 @@
 import sys
 from pdb import pm
 
-from elfesteem.strpatchwork import StrPatchwork
-from miasm2.core import parse_asm
-from miasm2.expression.expression import ExprCompose, ExprOp, ExprInt, ExprId
-from miasm2.core.asmblock import asm_resolve_final
-from miasm2.analysis.machine import Machine
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.analysis.dse import DSEEngine
+from future.utils import viewitems
+
+from miasm.loader.strpatchwork import StrPatchwork
+from miasm.core import parse_asm
+from miasm.expression.expression import ExprCompose, ExprOp, ExprInt, ExprId
+from miasm.core.asmblock import asm_resolve_final
+from miasm.analysis.machine import Machine
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.dse import DSEEngine
 
 
 class DSETest(object):
@@ -80,10 +82,10 @@ class DSETest(object):
         loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
         output = StrPatchwork()
         patches = asm_resolve_final(mn_x86, blocks, loc_db)
-        for offset, raw in patches.items():
+        for offset, raw in viewitems(patches):
             output[offset] = raw
 
-        self.assembly = str(output)
+        self.assembly = bytes(output)
 
     def check(self):
         regs = self.dse.ir_arch.arch.regs

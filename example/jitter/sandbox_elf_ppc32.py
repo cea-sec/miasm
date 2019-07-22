@@ -1,15 +1,9 @@
 import os
 from pdb import pm
-from miasm2.analysis.sandbox import Sandbox_Linux_ppc32b
-from miasm2.jitter.csts import *
-from miasm2.jitter.jitload import log_func
+from miasm.analysis.sandbox import Sandbox_Linux_ppc32b
+from miasm.jitter.csts import *
+from miasm.jitter.jitload import log_func
 import logging
-
-
-# Python auto completion
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
 
 # Insert here user defined methods
 

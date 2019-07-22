@@ -1,8 +1,9 @@
+from __future__ import print_function
 import os
 import logging
 from pdb import pm
-from elfesteem import pe
-from miasm2.analysis.sandbox import Sandbox_Win_x86_32
+from miasm.loader import pe
+from miasm.analysis.sandbox import Sandbox_Win_x86_32
 
 # User defined methods
 
@@ -12,12 +13,12 @@ def kernel32_GetProcAddress(jitter):
 
     # When the function is called, EBX is a pointer to the destination buffer
     dst_ad = jitter.cpu.EBX
-    logging.info('EBX ' + hex(dst_ad))
+    logging.error('EBX ' + hex(dst_ad))
 
     # Handle ordinal imports
     fname = (args.fname if args.fname < 0x10000
              else jitter.get_str_ansi(args.fname))
-    logging.info(fname)
+    logging.error(fname)
 
     # Get the generated address of the library, and store it in memory to
     # dst_ad
@@ -38,6 +39,7 @@ parser.add_argument("--graph",
                     action="store_true")
 options = parser.parse_args()
 options.load_hdr = True
+
 sb = Sandbox_Win_x86_32(options.filename, options, globals(),
                         parse_reloc=False)
 
@@ -48,7 +50,7 @@ else:
     logging.basicConfig(level=logging.WARNING)
 
 if options.verbose is True:
-    print sb.jitter.vm
+    print(sb.jitter.vm)
 
 # Ensure there is one and only one leave (for OEP discovering)
 mdis = sb.machine.dis_engine(sb.jitter.bs)
@@ -70,7 +72,7 @@ if options.graph is True:
 
 
 if options.verbose is True:
-    print sb.jitter.vm
+    print(sb.jitter.vm)
 
 
 def update_binary(jitter):
@@ -91,7 +93,7 @@ sb.jitter.add_breakpoint(end_offset, update_binary)
 sb.run()
 
 # Rebuild PE
-# Alternative solution: miasm2.jitter.loader.pe.vm2pe(sb.jitter, out_fname,
+# Alternative solution: miasm.jitter.loader.pe.vm2pe(sb.jitter, out_fname,
 # libs=sb.libs, e_orig=sb.pe)
 new_dll = []
 
@@ -114,4 +116,4 @@ sb.pe.NThdr.optentries[pe.DIRECTORY_ENTRY_DELAY_IMPORT].rva = 0
 
 bname, fname = os.path.split(options.filename)
 fname = os.path.join(bname, fname.replace('.', '_'))
-open(fname + '_unupx.bin', 'w').write(str(sb.pe))
+open(fname + '_unupx.bin', 'wb').write(bytes(sb.pe))

@@ -1,14 +1,12 @@
 """ Test cases for dead code elimination"""
-from pdb import pm
-from pprint import pprint as pp
-from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, ExprMem, \
-    ExprCond, ExprOp, ExprLoc
-from miasm2.core.locationdb import LocationDB
-from miasm2.analysis.data_flow import DiGraphLivenessSSA, dead_simp, PropagateExpr
-from miasm2.ir.analysis import ira
-from miasm2.ir.ir import IRCFG, IRBlock, AssignBlock
-from miasm2.analysis.ssa import SSADiGraph
-from miasm2.analysis.outofssa import UnSSADiGraph
+from future.utils import viewvalues
+
+from miasm.expression.expression import ExprId, ExprInt, ExprAssign, ExprMem, \
+    ExprCond, ExprLoc
+from miasm.core.locationdb import LocationDB
+from miasm.analysis.simplifier import IRCFGSimplifierSSA
+from miasm.ir.analysis import ira
+from miasm.ir.ir import IRCFG, IRBlock, AssignBlock
 
 loc_db = LocationDB()
 
@@ -572,7 +570,7 @@ class IRAOutRegs(IRATest):
                     continue
                 if reg in regs_todo:
                     out[reg] = dst
-        return set(out.values())
+        return set(viewvalues(out))
 
 
 
@@ -595,6 +593,18 @@ def add_out_reg_end(ir_arch_a, ircfg_a):
 ir_arch_a = IRAOutRegs(loc_db)
 
 
+class CustomIRCFGSimplifierSSA(IRCFGSimplifierSSA):
+    def get_forbidden_regs(self):
+        """
+        Return a set of immutable register during SSA transformation
+        """
+        regs = set(
+            [
+                self.ir_arch.pc,
+                self.ir_arch.IRDst,
+            ]
+        )
+        return regs
 
 for test_nb, ircfg in enumerate(
         [
@@ -615,39 +625,13 @@ for test_nb, ircfg in enumerate(
 
     # Save a copy of ircfg
     ircfg_orig = IRCFG(IRDst, loc_db)
-    for irblock in ircfg.blocks.values():
+    for irblock in viewvalues(ircfg.blocks):
         ircfg_orig.add_irblock(irblock)
 
     # SSA
     head = LBL0
-    ssa = SSADiGraph(ircfg)
-    ssa.transform(head)
-
-    ir_arch_a.ssa_var = ssa.ssa_variable_to_expr
-    dead_simp(ir_arch_a, ssa.graph)
-
-    open("ssa_%d.dot" % test_nb, "wb").write(ssa.graph.dot())
-
-
-
-    # Un SSA
-    ir_arch_a.ssa_var = ssa.ssa_variable_to_expr
-
-    propagate_expr = PropagateExpr()
-    modified = True
-    while modified:
-        modified = False
-        modified |= propagate_expr.propagate(ssa, head)
-
-    open('tmp_%d.dot' % test_nb, 'w').write(ssa.graph.dot())
-
-    cfg_liveness = DiGraphLivenessSSA(ssa.graph)
-    cfg_liveness.init_var_info(ir_arch_a)
-    cfg_liveness.compute_liveness()
-
-    open('liveness_%d.dot' % test_nb, 'w').write(cfg_liveness.dot())
-
-    unssa = UnSSADiGraph(ssa, head, cfg_liveness)
-    open('final_%d.dot' % test_nb, 'w').write(unssa.ssa.graph.dot())
+    simplifier = CustomIRCFGSimplifierSSA(ir_arch_a)
+    ircfg = simplifier(ircfg, head)
+    open('final_%d.dot' % test_nb, 'w').write(ircfg.dot())
 
     # XXX TODO: add real regression test

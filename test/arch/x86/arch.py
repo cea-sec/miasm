@@ -1,11 +1,14 @@
+from __future__ import print_function
 import time
 from pdb import pm
-import miasm2.expression.expression as m2_expr
-from miasm2.arch.x86.arch import mn_x86, deref_mem_ad, \
+
+from miasm.core.utils import decode_hex, encode_hex
+import miasm.expression.expression as m2_expr
+from miasm.arch.x86.arch import mn_x86, deref_mem_ad, \
     base_expr, rmarg, print_size
-from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
-from miasm2.core.bin_stream import bin_stream_str
-from miasm2.core.locationdb import LocationDB
+from miasm.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
+from miasm.core.bin_stream import bin_stream_str
+from miasm.core.locationdb import LocationDB
 
 loc_db = LocationDB()
 
@@ -22,7 +25,7 @@ reg_and_id.update({'mylabel16': mylabel16,
 
 
 def h2i(s):
-    return int(s.replace(' ', '').decode('hex')[::].encode('hex'), 16)
+    return int(encode_hex(decode_hex(s.replace(' ', ''))[::]), 16)
 
 
 m16 = 16  # (16, 16)
@@ -3094,6 +3097,26 @@ reg_tests = [
     (m32, "00000000    EMMS",
      "0f77"),
 
+    (m64, "00000000    INCSSP     RAX",
+     "f3480faee8"),
+    (m64, "00000000    INCSSP     EAX",
+     "f30faee8"),
+    (m64, "00000000    RDSSP      EAX",
+     "f30f1ec8"),
+    (m64, "00000000    RDSSP      RAX",
+     "f3480f1ec8"),
+    (m64, "00000000    SAVEPREVSSP",
+     "f30f01ea"),
+    (m64, "00000000    RSTORSSP   XMMWORD PTR [RAX]",
+     "f30f0128"),
+    (m64, "00000000    WRSS       QWORD PTR [0x1234], RDX",
+     "480f38f6142534120000"),
+    (m64, "00000000    WRUSS      DWORD PTR [EAX], EAX",
+     "67660f38f500"),
+    (m64, "00000000    SETSSBSY",
+     "f30f01e8"),
+    (m64, "00000000    CLRSSBSY   XMMWORD PTR [RAX]",
+     "f30fae30"),
     (m64, "00000000    ENDBR64",
      "f30f1efa"),
     (m32, "00000000    ENDBR32",
@@ -3101,56 +3124,58 @@ reg_tests = [
 ]
 
 
-test_file = {16: open('regression_test16_ia32.bin', 'w'),
-             32: open('regression_test32_ia32.bin', 'w'),
-             64: open('regression_test64_ia32.bin', 'w')}
+test_file = {
+    16: open('regression_test16_ia32.bin', 'wb'),
+    32: open('regression_test32_ia32.bin', 'wb'),
+    64: open('regression_test64_ia32.bin', 'wb')
+}
 ts = time.time()
 for mode, s, l, in reg_tests:
-    print "-" * 80
+    print("-" * 80)
     s = s[12:]
-    b = l.decode('hex')
-    print mode, repr(b)
+    b = decode_hex(l)
+    print(mode, repr(b))
     mn = mn_x86.dis(b, mode)
-    print "dis args", [(str(x), x.size) for x in mn.args]
-    print s
-    print mn
+    print("dis args", [(str(x), x.size) for x in mn.args])
+    print(s)
+    print(mn)
     assert(str(mn).strip() == s)
-    print 'fromstring', repr(s)
+    print('fromstring', repr(s))
     l = mn_x86.fromstring(s, loc_db, mode)
-    print 'str args', [(str(x), x.size) for x in l.args]
+    print('str args', [(str(x), x.size) for x in l.args])
     assert(str(l).strip(' ') == s)
     a = mn_x86.asm(l)
-    print 'asm result', [x for x in a]
-    print repr(b)
+    print('asm result', [x for x in a])
+    print(repr(b))
 
     for x in a:
-        print "BYTES", repr(x)
+        print("BYTES", repr(x))
         test_file[mode].write(x)
-    test_file[mode].write("\x90" * 2)
+    test_file[mode].write(b"\x90" * 2)
 
-    print 'test re dis'
+    print('test re dis')
     for x in a:
-        print repr(x)
+        print(repr(x))
         rl = mn_x86.dis(x, mode)
         assert(str(rl).strip(' ') == s)
-    print repr(b), a
+    print(repr(b), a)
     assert(b in a)
-print 'TEST time', time.time() - ts
+print('TEST time', time.time() - ts)
 
 
 # speed test thumb
-o = ""
+o = b""
 mode_x = m32
 for mode, s, l, in reg_tests:
     if mode != mode_x:
         continue
     s = s[12:]
-    b = l.decode('hex')
+    b = decode_hex(l)
     o += b
 
 while len(o) < 1000:
     o += o
-open('x86_speed_reg_test.bin', 'w').write(o)
+open('x86_speed_reg_test.bin', 'wb').write(o)
 
 
 def profile_dis(o):
@@ -3163,12 +3188,12 @@ def profile_dis(o):
         # print instr_num, off, mn.l, str(mn)
         instr_num += 1
         off += mn.l
-    print 'instr per sec:', instr_num / (time.time() - ts)
+    print('instr per sec:', instr_num // (time.time() - ts))
 
 import cProfile
 cProfile.run('profile_dis(o)')
 
 # Test instruction representation with prefix
-instr_bytes = '\x65\xc7\x00\x09\x00\x00\x00'
+instr_bytes = b'\x65\xc7\x00\x09\x00\x00\x00'
 inst = mn_x86.dis(instr_bytes, 32, 0)
 assert(inst.b == instr_bytes)

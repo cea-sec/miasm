@@ -1,8 +1,9 @@
+from __future__ import print_function
 from pdb import pm
 from pprint import pprint
 
-from miasm2.arch.x86.arch import mn_x86
-from miasm2.core import parse_asm, asmblock
+from miasm.arch.x86.arch import mn_x86
+from miasm.core import parse_asm, asmblock
 
 
 # Assemble code
@@ -29,7 +30,7 @@ patches = asmblock.asm_resolve_final(mn_x86, asmcfg, loc_db)
 
 # Show resolved asmcfg
 for block in asmcfg.blocks:
-    print block
+    print(block)
 
 # Print offset -> bytes
 pprint(patches)

@@ -1,12 +1,13 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 
+from builtins import range
 import unittest
 import logging
-from miasm2.analysis.machine import Machine
-import miasm2.os_dep.common as commonapi
-from miasm2.core.utils import pck32
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.machine import Machine
+import miasm.os_dep.common as commonapi
+from miasm.core.utils import pck32
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
 machine = Machine("x86_32")
 
@@ -25,7 +26,7 @@ class TestCommonAPI(unittest.TestCase):
         heap.alloc(jit, 60)
         ptr = heap.alloc(jit, 10)
         heap.alloc(jit, 80)
-        for i in xrange(10):
+        for i in range(10):
             self.assertEqual(heap.get_size(jit.vm, ptr+i), 10)
 
 if __name__ == '__main__':

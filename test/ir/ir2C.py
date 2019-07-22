@@ -1,22 +1,23 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 
+from builtins import range
 import unittest
-from miasm2.expression.expression import TOK_EQUAL
+from miasm.expression.expression import TOK_EQUAL
 
 class TestIrIr2C(unittest.TestCase):
 
     def translationTest(self, expr, expected):
-        from miasm2.ir.translators import Translator
+        from miasm.ir.translators import Translator
 
         translator = Translator.to_language("C")
         self.assertEqual(translator.from_expr(expr), expected)
 
     def test_ExprOp_toC(self):
-        from miasm2.expression.expression import ExprInt, ExprOp
-        from miasm2.ir.translators.C import Translator
+        from miasm.expression.expression import ExprInt, ExprOp
+        from miasm.ir.translators.C import Translator
 
-        args = [ExprInt(i, 32) for i in xrange(9)]
+        args = [ExprInt(i, 32) for i in range(9)]
         translator = Translator.to_language("C")
 
         # Unary operators
@@ -48,7 +49,7 @@ class TestIrIr2C(unittest.TestCase):
         self.translationTest(
             ExprOp('segm',    *args[:2]), r'segm2addr(jitcpu, 0x0, 0x1)')
         self.translationTest(
-            ExprOp('imod',    *args[:2]), r'imod32((vm_cpu_t*)jitcpu->cpu, 0x0, 0x1)')
+            ExprOp('imod',    *args[:2]), r'imod32((struct vm_cpu*)jitcpu->cpu, 0x0, 0x1)')
         self.translationTest(
             ExprOp('bcdadd',  *args[:2]), r'bcdadd_32(0x0, 0x1)')
         self.assertRaises(NotImplementedError, translator.from_expr,

@@ -22,10 +22,10 @@ class Test_PSRL(Asm_Test_32):
     '''
 
     def check(self):
-        assert self.myjit.cpu.MM0 == 0x1122334455667788L
-        assert self.myjit.cpu.MM1 == 0x0112033405560778L
-        assert self.myjit.cpu.MM2 == 0x0112233405566778L
-        assert self.myjit.cpu.MM3 == 0x0112233445566778L
+        assert self.myjit.cpu.MM0 == 0x1122334455667788
+        assert self.myjit.cpu.MM1 == 0x0112033405560778
+        assert self.myjit.cpu.MM2 == 0x0112233405566778
+        assert self.myjit.cpu.MM3 == 0x0112233445566778
 
 class Test_PSLL(Asm_Test_32):
     TXT = '''
@@ -46,10 +46,10 @@ class Test_PSLL(Asm_Test_32):
     '''
 
     def check(self):
-        assert self.myjit.cpu.MM0 == 0x1122334455667788L
-        assert self.myjit.cpu.MM1 == 0x1220344056607880L
-        assert self.myjit.cpu.MM2 == 0x1223344056677880L
-        assert self.myjit.cpu.MM3 == 0x1223344556677880L
+        assert self.myjit.cpu.MM0 == 0x1122334455667788
+        assert self.myjit.cpu.MM1 == 0x1220344056607880
+        assert self.myjit.cpu.MM2 == 0x1223344056677880
+        assert self.myjit.cpu.MM3 == 0x1223344556677880
 
 
 if __name__ == "__main__":

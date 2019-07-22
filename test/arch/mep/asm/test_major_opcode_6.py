@@ -4,7 +4,7 @@
 from ut_helpers_asm import check_instruction
 
 
-class TestMajor6:
+class TestMajor6(object):
 
     def test_ADD(self):
         """Test the ADD instruction"""

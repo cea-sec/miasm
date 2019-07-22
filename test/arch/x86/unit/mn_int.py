@@ -1,7 +1,7 @@
 #! /usr/bin/env python2
 import sys
 
-from miasm2.jitter.csts import EXCEPT_INT_XX
+from miasm.jitter.csts import EXCEPT_INT_XX
 from asm_test import Asm_Test_32
 
 

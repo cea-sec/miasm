@@ -1,6 +1,7 @@
 import sys
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, EXCEPT_ACCESS_VIOL
-from miasm2.analysis.machine import Machine
+from miasm.core.utils import decode_hex
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE, EXCEPT_ACCESS_VIOL
+from miasm.analysis.machine import Machine
 
 def code_sentinelle(jitter):
     jitter.run = False
@@ -17,7 +18,7 @@ jitter.init_stack()
 # mov eax, 0x42
 # jmp 0x20
 
-data = "90b842000000eb20".decode('hex')
+data = decode_hex("90b842000000eb20")
 
 # Will raise memory error at 0x40000028
 

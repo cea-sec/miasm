@@ -3,11 +3,11 @@
 
 from ut_helpers_ir import exec_instruction
 
-from miasm2.expression.expression import ExprId, ExprInt, ExprCond, ExprOp
-from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO
+from miasm.expression.expression import ExprId, ExprInt, ExprCond, ExprOp
+from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO
 
 
-class TestDivide:
+class TestDivide(object):
 
     def test_div(self):
         """Test DIV execution"""

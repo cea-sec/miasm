@@ -1,24 +1,23 @@
+from __future__ import print_function
 import os
 import tempfile
+from builtins import int as int_types
+
+from future.utils import viewitems, viewvalues
 
 import idaapi
 import ida_kernwin
 import idc
 import ida_funcs
 import idautils
-from miasm2.core.asmblock import is_int
-from miasm2.core.bin_stream_ida import bin_stream_ida
-from miasm2.expression.simplifications import expr_simp
-from miasm2.ir.ir import IRBlock, AssignBlock
 
-from miasm2.analysis.ssa import SSADiGraph, UnSSADiGraph, DiGraphLivenessSSA
-
-from miasm2.analysis.data_flow import dead_simp,  \
-    merge_blocks, remove_empty_assignblks, \
-    PropagateExpr, load_from_int
-
-
+from miasm.core.asmblock import is_int
+from miasm.core.bin_stream_ida import bin_stream_ida
+from miasm.expression.simplifications import expr_simp
+from miasm.ir.ir import IRBlock, AssignBlock
+from miasm.analysis.data_flow import load_from_int
 from utils import guess_machine, expr2colorstr
+from miasm.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
 
 
 
@@ -95,9 +94,9 @@ def label_init(self, name="", offset=None):
 
 
 def label_str(self):
-    if isinstance(self.offset, (int, long)):
+    if isinstance(self.offset, int_types):
         return "%s:0x%x" % (self.name, self.offset)
-    return "%s:%s" % (self.name, str(self.offset))
+    return "%s:%s" % (self.name, self.offset)
 
 
 def color_irblock(irblock, ir_arch):
@@ -105,7 +104,7 @@ def color_irblock(irblock, ir_arch):
     lbl = idaapi.COLSTR("%s:" % ir_arch.loc_db.pretty_str(irblock.loc_key), idaapi.SCOLOR_INSN)
     out.append(lbl)
     for assignblk in irblock:
-        for dst, src in sorted(assignblk.iteritems()):
+        for dst, src in sorted(viewitems(assignblk)):
             dst_f = expr2colorstr(dst, loc_db=ir_arch.loc_db)
             src_f = expr2colorstr(src, loc_db=ir_arch.loc_db)
             line = idaapi.COLSTR("%s = %s" % (dst_f, src_f), idaapi.SCOLOR_INSN)
@@ -126,11 +125,11 @@ class GraphMiasmIR(idaapi.GraphViewer):
     def OnRefresh(self):
         self.Clear()
         addr_id = {}
-        for irblock in self.ircfg.blocks.values():
+        for irblock in viewvalues(self.ircfg.blocks):
             id_irblock = self.AddNode(color_irblock(irblock, self.ircfg))
             addr_id[irblock] = id_irblock
 
-        for irblock in self.ircfg.blocks.values():
+        for irblock in viewvalues(self.ircfg.blocks):
             if not irblock:
                 continue
             all_dst = self.ircfg.dst_trackback(irblock)
@@ -170,7 +169,7 @@ def is_addr_ro_variable(bs, addr, size):
 
     """
     try:
-        _ = bs.getbytes(addr, size/8)
+        _ = bs.getbytes(addr, size // 8)
     except IOError:
         return False
     return True
@@ -189,18 +188,18 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
             for assignblk in assignblks:
                 dct = dict(assignblk)
                 dct = {
-                    dst:src for (dst, src) in dct.iteritems() if dst != self.sp
+                    dst:src for (dst, src) in viewitems(dct) if dst != self.sp
                 }
                 out.append(AssignBlock(dct, assignblk.instr))
             return out, extra
 
 
     if verbose:
-        print "Arch", dis_engine
+        print("Arch", dis_engine)
 
     fname = idc.GetInputFile()
     if verbose:
-        print fname
+        print(fname)
 
     bs = bin_stream_ida()
     mdis = dis_engine(bs)
@@ -218,28 +217,28 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
         mdis.loc_db.add_location(name, addr)
 
     if verbose:
-        print "start disasm"
+        print("start disasm")
     if verbose:
-        print hex(start_addr)
+        print(hex(start_addr))
 
     asmcfg = mdis.dis_multiblock(start_addr)
     entry_points = set([mdis.loc_db.get_offset_location(start_addr)])
     if verbose:
-        print "generating graph"
+        print("generating graph")
         open('asm_flow.dot', 'w').write(asmcfg.dot())
-        print "generating IR... %x" % start_addr
+        print("generating IR... %x" % start_addr)
 
     ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
 
     if verbose:
-        print "IR ok... %x" % start_addr
+        print("IR ok... %x" % start_addr)
 
-    for irb in ircfg.blocks.itervalues():
+    for irb in list(viewvalues(ircfg.blocks)):
         irs = []
         for assignblk in irb:
             new_assignblk = {
                 expr_simp(dst): expr_simp(src)
-                for dst, src in assignblk.iteritems()
+                for dst, src in viewitems(assignblk)
             }
             irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
         ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_key, irs)
@@ -250,23 +249,17 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
     title = "Miasm IR graph"
 
 
+    head = list(entry_points)[0]
+
     if simplify:
-        dead_simp(ir_arch, ircfg)
-        ircfg.simplify(expr_simp)
-        modified = True
-        while modified:
-            modified = False
-            modified |= dead_simp(ir_arch, ircfg)
-            modified |= remove_empty_assignblks(ircfg)
-            modified |= merge_blocks(ircfg, entry_points)
+        ircfg_simplifier = IRCFGSimplifierCommon(ir_arch)
+        ircfg_simplifier.simplify(ircfg, head)
         title += " (simplified)"
 
     if type_graph == TYPE_GRAPH_IR:
         graph = GraphMiasmIR(ircfg, title, None)
         graph.Show()
         return
-
-    head = list(entry_points)[0]
 
 
     class IRAOutRegs(ira):
@@ -280,7 +273,7 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
                         continue
                     if reg in regs_todo:
                         out[reg] = dst
-            return set(out.values())
+            return set(viewvalues(out))
 
 
 
@@ -298,86 +291,38 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
         new_irblock = IRBlock(irblock.loc_key, assignblks)
         ircfg.blocks[loc] = new_irblock
 
-    ir_arch = IRAOutRegs(mdis.loc_db)
-    ir_arch.ssa_var = {}
-    modified = True
-    ssa_forbidden_regs = set([
-        ir_arch.pc,
-        ir_arch.IRDst,
-        ir_arch.arch.regs.exception_flags
-    ])
+
+    class CustomIRCFGSimplifierSSA(IRCFGSimplifierSSA):
+        def do_simplify(self, ssa, head):
+            modified = super(CustomIRCFGSimplifierSSA, self).do_simplify(ssa, head)
+            if loadint:
+                modified |= load_from_int(ssa.graph, bs, is_addr_ro_variable)
+            return modified
+
+        def simplify(self, ircfg, head):
+            ssa = self.ircfg_to_ssa(ircfg, head)
+            ssa = self.do_simplify_loop(ssa, head)
+
+            if type_graph == TYPE_GRAPH_IRSSA:
+                ret = ssa.graph
+            elif type_graph == TYPE_GRAPH_IRSSAUNSSA:
+                ircfg = self.ssa_to_unssa(ssa, head)
+                ircfg_simplifier = IRCFGSimplifierCommon(self.ir_arch)
+                ircfg_simplifier.simplify(ircfg, head)
+                ret = ircfg
+            else:
+                raise ValueError("Unknown option")
+            return ret
+
 
     head = list(entry_points)[0]
-    heads = set([head])
-    all_ssa_vars = {}
-
-    propagate_expr = PropagateExpr()
-
-    ssa = SSADiGraph(ircfg)
-    ssa.immutable_ids.update(ssa_forbidden_regs)
-    ssa.ssa_variable_to_expr.update(all_ssa_vars)
-    ssa.transform(head)
-    all_ssa_vars.update(ssa.ssa_variable_to_expr)
-
-    ir_arch.ssa_var.update(ssa.ssa_variable_to_expr)
-
-    if simplify:
-
-        while modified:
-            ssa = SSADiGraph(ircfg)
-            ssa.immutable_ids.update(ssa_forbidden_regs)
-            ssa.ssa_variable_to_expr.update(all_ssa_vars)
-            ssa.transform(head)
-            all_ssa_vars.update(ssa.ssa_variable_to_expr)
-
-            ir_arch.ssa_var.update(ssa.ssa_variable_to_expr)
-
-            while modified:
-                modified = False
-                modified |= propagate_expr.propagate(ssa, head)
-                modified |= ircfg.simplify(expr_simp)
-                simp_modified = True
-                while simp_modified:
-                    simp_modified = False
-                    simp_modified |= dead_simp(ir_arch, ircfg)
-                    simp_modified |= remove_empty_assignblks(ircfg)
-                    simp_modified |= load_from_int(ircfg, bs, is_addr_ro_variable)
-                    modified |= simp_modified
+    simplifier = CustomIRCFGSimplifierSSA(ir_arch)
+    ircfg = simplifier.simplify(ircfg, head)
+    open('final.dot', 'w').write(ircfg.dot())
 
 
-    ssa = SSADiGraph(ircfg)
-    ssa.immutable_ids.update(ssa_forbidden_regs)
-    ssa.ssa_variable_to_expr.update(all_ssa_vars)
-    ssa.transform(head)
-    all_ssa_vars.update(ssa.ssa_variable_to_expr)
-
-    if type_graph == TYPE_GRAPH_IRSSA:
-        graph = GraphMiasmIR(ssa.graph, title, None)
-        graph.Show()
-        return
-
-    if type_graph == TYPE_GRAPH_IRSSAUNSSA:
-
-        cfg_liveness = DiGraphLivenessSSA(ssa.graph)
-        cfg_liveness.init_var_info(ir_arch)
-        cfg_liveness.compute_liveness()
-
-        UnSSADiGraph(ssa, head, cfg_liveness)
-        if simplify:
-            modified = True
-            while modified:
-                modified = False
-                modified |= ssa.graph.simplify(expr_simp)
-                simp_modified = True
-                while simp_modified:
-                    simp_modified = False
-                    simp_modified |= dead_simp(ir_arch, ssa.graph)
-                    simp_modified |= remove_empty_assignblks(ssa.graph)
-                    simp_modified |= merge_blocks(ssa.graph, heads)
-                    modified |= simp_modified
-        graph = GraphMiasmIR(ssa.graph, title, None)
-        graph.Show()
-
+    graph = GraphMiasmIR(ircfg, title, None)
+    graph.Show()
 
 def function_graph_ir():
     # Get settings

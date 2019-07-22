@@ -1,5 +1,5 @@
 from pdb import pm
-from miasm2.analysis.sandbox import Sandbox_Win_x86_64
+from miasm.analysis.sandbox import Sandbox_Win_x86_64
 
 # Insert here user defined methods
 

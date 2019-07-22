@@ -1,9 +1,11 @@
+from __future__ import print_function
+from builtins import map
 import idaapi
 from idc import *
 
-from miasm2.analysis.machine import Machine
-from miasm2.ir.translators import Translator
-import miasm2.expression.expression as m2_expr
+from miasm.analysis.machine import Machine
+from miasm.ir.translators import Translator
+import miasm.expression.expression as m2_expr
 
 def guess_machine(addr=None):
     "Return an instance of Machine corresponding to the IDA guessed processor"
@@ -53,8 +55,8 @@ def guess_machine(addr=None):
             raise NotImplementedError('not fully functional')
         machine = Machine(info2machine[infos])
 
-        from miasm2.analysis.disasm_cb import guess_funcs, guess_multi_cb
-        from miasm2.analysis.disasm_cb import arm_guess_subcall, arm_guess_jump_table
+        from miasm.analysis.disasm_cb import guess_funcs, guess_multi_cb
+        from miasm.analysis.disasm_cb import arm_guess_subcall, arm_guess_jump_table
         guess_funcs.append(arm_guess_subcall)
         guess_funcs.append(arm_guess_jump_table)
 
@@ -67,7 +69,7 @@ def guess_machine(addr=None):
     elif processor_name == "PPC":
         machine = Machine("ppc32b")
     else:
-        print repr(processor_name)
+        print(repr(processor_name))
         raise NotImplementedError('not fully functional')
 
     return machine
@@ -204,7 +206,7 @@ Python Expression
             dest_lang = self.languages[self.GetControlValue(self.cbLanguage)]
             try:
                 text = Translator.to_language(dest_lang).from_expr(self.expr)
-            except Exception, error:
+            except Exception as error:
                 self.ShowField(self.result, False)
                 return -1
 

@@ -1,18 +1,22 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 
+from __future__ import print_function
+
+from future.utils import viewitems
+
 import unittest
 
 
 class TestSymbExec(unittest.TestCase):
 
     def test_ClassDef(self):
-        from miasm2.expression.expression import ExprInt, ExprId, ExprMem, \
+        from miasm.expression.expression import ExprInt, ExprId, ExprMem, \
             ExprCompose, ExprAssign
-        from miasm2.arch.x86.sem import ir_x86_32
-        from miasm2.core.locationdb import LocationDB
-        from miasm2.ir.symbexec import SymbolicExecutionEngine
-        from miasm2.ir.ir import AssignBlock
+        from miasm.arch.x86.sem import ir_x86_32
+        from miasm.core.locationdb import LocationDB
+        from miasm.ir.symbexec import SymbolicExecutionEngine
+        from miasm.ir.ir import AssignBlock
 
 
         loc_db = LocationDB()
@@ -184,18 +188,18 @@ class TestSymbExec(unittest.TestCase):
         del sb.symbols[id_a]
         sb.dump()
         del sb.symbols[ExprMem(id_a, 8)]
-        print "*"*40, 'Orig:'
+        print("*"*40, 'Orig:')
         sb.dump()
 
         sb_cp = sb.symbols.copy()
-        print "*"*40, 'Copy:'
+        print("*"*40, 'Copy:')
         sb_cp.dump()
 
         # Add symbol at address limit
         sb.apply_change(ExprMem(ExprInt(0xFFFFFFFE, 32), 32), id_c)
         sb.dump()
         found = False
-        for dst, src in sb.symbols.iteritems():
+        for dst, src in viewitems(sb.symbols):
             if dst == ExprMem(ExprInt(0xFFFFFFFE, 32), 32) and src == id_c:
                 found = True
         assert found
@@ -205,7 +209,7 @@ class TestSymbExec(unittest.TestCase):
         sb.apply_change(ExprMem(ExprInt(0x7FFFFFFE, 32), 32), id_c)
         sb.dump()
         found = False
-        for dst, src in sb.symbols.iteritems():
+        for dst, src in viewitems(sb.symbols):
             if dst == ExprMem(ExprInt(0x7FFFFFFE, 32), 32) and src == id_c:
                 found = True
         assert found
@@ -219,7 +223,7 @@ class TestSymbExec(unittest.TestCase):
         sb.apply_change(ExprMem(ExprInt(0x2, 32), 16), ExprMem(ExprInt(0x2, 32), 16))
         sb.dump()
         found = False
-        for dst, src in sb.symbols.iteritems():
+        for dst, src in viewitems(sb.symbols):
             if dst == ExprMem(ExprInt(0xFFFFFFFE, 32), 32) and src == id_e[16:48]:
                 found = True
         assert found
@@ -230,7 +234,7 @@ class TestSymbExec(unittest.TestCase):
 
 
         # Test memory full
-        print 'full'
+        print('full')
         arch_addr8 = ir_x86_32(loc_db)
         ircfg = arch_addr8.new_ircfg()
         # Hack to obtain tiny address space
@@ -240,18 +244,18 @@ class TestSymbExec(unittest.TestCase):
         # Fulfill memory
         sb_addr8.apply_change(ExprMem(ExprInt(0, 5), 256), ExprInt(0, 256))
         sb_addr8.dump()
-        variables = sb_addr8.symbols.items()
+        variables = list(viewitems(sb_addr8.symbols))
         assert variables == [(ExprMem(ExprInt(0, 5), 256), ExprInt(0, 256))]
 
-        print sb_addr8.symbols.symbols_mem
+        print(sb_addr8.symbols.symbols_mem)
 
         sb_addr8.apply_change(ExprMem(ExprInt(0x5, 5), 256), ExprInt(0x123, 256))
         sb_addr8.dump()
-        variables = sb_addr8.symbols.items()
+        variables = list(viewitems(sb_addr8.symbols))
         assert variables == [(ExprMem(ExprInt(0x5, 5), 256), ExprInt(0x123, 256))]
-        print sb_addr8.symbols.symbols_mem
+        print(sb_addr8.symbols.symbols_mem)
 
-        print 'dump'
+        print('dump')
         sb_addr8.symbols.symbols_mem.dump()
 
 
@@ -281,7 +285,7 @@ class TestSymbExec(unittest.TestCase):
         assert sb.symbols.symbols_mem.contains_partial(ExprMem(ExprInt(0xFFFFFFFE, 32), 32))
         assert not sb.symbols.symbols_mem.contains_partial(ExprMem(ExprInt(0xFFFFFFFF, 32), 8))
 
-        assert sb_addr8.symbols.keys() == [ExprMem(ExprInt(0x5, 5), 256)]
+        assert list(sb_addr8.symbols) == [ExprMem(ExprInt(0x5, 5), 256)]
 
 
 if __name__ == '__main__':

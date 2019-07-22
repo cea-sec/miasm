@@ -1,9 +1,10 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
+from __future__ import print_function
 from argparse import ArgumentParser
-from miasm2.analysis import debugging
-from miasm2.jitter.csts import *
-from miasm2.analysis.machine import Machine
+from miasm.analysis import debugging
+from miasm.jitter.csts import *
+from miasm.analysis.machine import Machine
 
 parser = ArgumentParser(
     description="""Sandbox raw binary with msp430 engine
@@ -30,7 +31,6 @@ machine = Machine("msp430")
 def jit_msp430_binary(args):
     filepath, entryp = args.binary, int(args.addr, 0)
     myjit = machine.jitter(jit_type = args.jitter)
-    myjit.init_stack()
 
     # Log level (if available with jitter engine)
     myjit.set_trace_log(
@@ -39,12 +39,16 @@ def jit_msp430_binary(args):
         trace_new_blocks=args.log_newbloc
     )
 
-    myjit.vm.add_memory_page(0, PAGE_READ | PAGE_WRITE, open(filepath, "rb").read())
+    myjit.vm.add_memory_page(
+        0,
+        PAGE_READ | PAGE_WRITE,
+        open(filepath, "rb").read()
+    )
     myjit.add_breakpoint(0x1337, lambda _: exit(0))
 
 
     # for stack
-    myjit.vm.add_memory_page(0xF000, PAGE_READ | PAGE_WRITE, "\x00"*0x1000)
+    myjit.vm.add_memory_page(0xF000, PAGE_READ | PAGE_WRITE, b"\x00"*0x1000)
 
     myjit.cpu.SP = 0xF800
 

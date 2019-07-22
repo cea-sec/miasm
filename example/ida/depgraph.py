@@ -1,18 +1,24 @@
+from __future__ import print_function
+from builtins import map
+from builtins import range
 import os
 import tempfile
+
+from future.utils import viewitems, viewvalues
 
 import idautils
 import idc
 import ida_funcs
 import ida_kernwin
 
-from miasm2.core.bin_stream_ida import bin_stream_ida
-from miasm2.core.asmblock import *
-from miasm2.expression import expression as m2_expr
 
-from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.depgraph import DependencyGraph
-from miasm2.ir.ir import AssignBlock, IRBlock
+from miasm.core.bin_stream_ida import bin_stream_ida
+from miasm.core.asmblock import *
+from miasm.expression import expression as m2_expr
+
+from miasm.expression.simplifications import expr_simp
+from miasm.analysis.depgraph import DependencyGraph
+from miasm.ir.ir import AssignBlock, IRBlock
 
 from utils import guess_machine
 
@@ -23,12 +29,13 @@ class depGraphSettingsForm(ida_kernwin.Form):
 
         self.ira = ira
         self.ircfg = ircfg
-        self.stk_args = {'ARG%d' % i:i for i in xrange(10)}
+        self.stk_args = {'ARG%d' % i:i for i in range(10)}
         self.stk_unalias_force = False
 
         self.address = idc.ScreenEA()
         cur_block = None
-        for block in ircfg.getby_offset(self.address):
+        for loc_key in ircfg.getby_offset(self.address):
+            block = ircfg.get_block(loc_key)
             offset = self.ircfg.loc_db.get_location_offset(block.loc_key)
             if offset is not None:
                 # Only one block non-generated
@@ -41,11 +48,11 @@ class depGraphSettingsForm(ida_kernwin.Form):
                 break
         assert line_nb is not None
         cur_loc_key = str(cur_block.loc_key)
-        loc_keys = sorted(map(str, ircfg.blocks.keys()))
-        regs = sorted(ira.arch.regs.all_regs_ids_byname.keys())
-        regs += self.stk_args.keys()
+        loc_keys = sorted(map(str, ircfg.blocks))
+        regs = sorted(ira.arch.regs.all_regs_ids_byname)
+        regs += list(self.stk_args)
         reg_default = regs[0]
-        for i in xrange(10):
+        for i in range(10):
             opnd = idc.GetOpnd(self.address, i).upper()
             if opnd in regs:
                 reg_default = opnd
@@ -121,7 +128,7 @@ Method to use:
             line = self.ircfg.blocks[self.loc_key][self.line_nb].instr
             arg_num = self.stk_args[value]
             stk_high = m2_expr.ExprInt(idc.GetSpd(line.offset), ir_arch.sp.size)
-            stk_off = m2_expr.ExprInt(self.ira.sp.size/8 * arg_num, ir_arch.sp.size)
+            stk_off = m2_expr.ExprInt(self.ira.sp.size // 8 * arg_num, ir_arch.sp.size)
             element =  m2_expr.ExprMem(mn.regs.regs_init[ir_arch.sp] + stk_high + stk_off, self.ira.sp.size)
             element = expr_simp(element)
             # Force stack unaliasing
@@ -162,33 +169,33 @@ def treat_element():
     global graphs, comments, sol_nb, settings, addr, ir_arch, ircfg
 
     try:
-        graph = graphs.next()
+        graph = next(graphs)
     except StopIteration:
         comments = {}
-        print "Done: %d solutions" % (sol_nb)
+        print("Done: %d solutions" % (sol_nb))
         return
 
     sol_nb += 1
-    print "Get graph number %02d" % sol_nb
+    print("Get graph number %02d" % sol_nb)
     filename = os.path.join(tempfile.gettempdir(), "solution_0x%08x_%02d.dot" % (addr, sol_nb))
-    print "Dump the graph to %s" % filename
+    print("Dump the graph to %s" % filename)
     open(filename, "w").write(graph.graph.dot())
 
     for node in graph.relevant_nodes:
         try:
             offset = ircfg.blocks[node.loc_key][node.line_nb].instr.offset
         except IndexError:
-            print "Unable to highlight %s" % node
+            print("Unable to highlight %s" % node)
             continue
         comments[offset] = comments.get(offset, []) + [node.element]
         idc.SetColor(offset, idc.CIC_ITEM, settings.color)
 
     if graph.has_loop:
-        print 'Graph has dependency loop: symbolic execution is inexact'
+        print('Graph has dependency loop: symbolic execution is inexact')
     else:
-        print "Possible value: %s" % graph.emul(ir_arch).values()[0]
+        print("Possible value: %s" % next(iter(viewvalues(graph.emul(ir_arch)))))
 
-    for offset, elements in comments.iteritems():
+    for offset, elements in viewitems(comments):
         idc.MakeComm(offset, ", ".join(map(str, elements)))
 
 def next_element():
@@ -228,7 +235,7 @@ def launch_depgraph():
 
     loc_key, elements, line_nb = settings.loc_key, settings.elements, settings.line_nb
     # Simplify assignments
-    for irb in ircfg.blocks.values():
+    for irb in list(viewvalues(ircfg.blocks)):
         irs = []
         offset = ir_arch.loc_db.get_location_offset(irb.loc_key)
         fix_stack = offset is not None and settings.unalias_stack
@@ -238,7 +245,7 @@ def launch_depgraph():
                 fix_dct = {ir_arch.sp: mn.regs.regs_init[ir_arch.sp] + stk_high}
 
             new_assignblk = {}
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 if fix_stack:
                     src = src.replace_expr(fix_dct)
                     if dst != ir_arch.sp:
