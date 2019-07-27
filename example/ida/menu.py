@@ -7,6 +7,8 @@
 - Miasm > Type propagation (icon 38, F11)
 """
 
+import idaapi as idaapi
+
 from symbol_exec import symbolic_exec
 from graph_ir import function_graph_ir
 try:
