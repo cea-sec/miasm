@@ -1045,7 +1045,8 @@ class ExprToAccessC(ExprReducer):
 
     def reduce_op(self, node, lvl=0, **kwargs):
         """Generate access for ExprOp"""
-        if not node.expr.is_op("+") or len(node.args) != 2:
+        if not (node.expr.is_op("+") or node.expr.is_op_segm()) \
+           or len(node.args) != 2:
             return None
         type_arg1 = self.get_solo_type(node.args[1])
         if type_arg1 != ObjCInt:
