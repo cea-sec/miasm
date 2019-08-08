@@ -88,11 +88,11 @@ def is_redirected_export(pe_obj, addr):
     addr_end = pe_obj.virt.find(b'\x00', addr)
     data = pe_obj.virt.get(addr, addr_end)
 
-    dllname, func_info = data.split('.', 1)
+    dllname, func_info = data.split(b'.', 1)
     dllname = dllname.lower()
 
     # Test if function is forwarded using ordinal
-    if func_info.startswith('#'):
+    if func_info.startswith(b'#'):
         func_info = int(func_info[1:])
     return dllname, func_info
 
@@ -401,7 +401,7 @@ class libimp_pe(libimp):
                 ret = is_redirected_export(e, ad)
                 if ret:
                     exp_dname, exp_fname = ret
-                    exp_dname = exp_dname + '.dll'
+                    exp_dname = exp_dname + b'.dll'
                     exp_dname = exp_dname.lower()
                     # if dll auto refes in redirection
                     if exp_dname == name:
