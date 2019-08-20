@@ -57,11 +57,29 @@ mdis = sb.machine.dis_engine(sb.jitter.bs)
 mdis.dont_dis_nulstart_bloc = True
 asmcfg = mdis.dis_multiblock(sb.entry_point)
 
-leaves = list(asmcfg.get_bad_blocks())
-assert(len(leaves) == 1)
-l = leaves.pop()
-logging.info(l)
-end_offset = mdis.loc_db.get_location_offset(l.loc_key)
+def find_popa_block(asmcfg):
+    for block in asmcfg.blocks:
+        for instruction in block.lines:
+            if instruction.name == 'POPA' or instruction.name == 'POPAD':
+                return block
+
+def find_next_jmp_block(asmcfg, start_block):
+    if start_block.lines[-1].name == 'JMP':
+        return start_block
+
+    for son in asmcfg.reachable_sons(start_block.loc_key):
+        son_block = asmcfg.loc_key_to_block(son)
+
+        if son_block.lines[-1].name == 'JMP':
+            return son_block
+
+popa_block = find_popa_block(asmcfg)
+jmp_block = find_next_jmp_block(asmcfg, popa_block)
+
+# Get JMP destination
+successors = asmcfg.successors(jmp_block.loc_key)
+assert(len(successors) == 1)
+end_offset = mdis.loc_db.get_location_offset(successors[0])
 
 logging.info('final offset')
 logging.info(hex(end_offset))
