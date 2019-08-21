@@ -2449,16 +2449,74 @@ class PropagateWithSymbolicExec(object):
                 continue
             if loc_key == head:
                 merged_state = self.states[loc_key]
+                new_state = self.emul_block(self.ircfg.blocks[loc_key],
+                                            dict(self.states[loc_key]))
             else:
-                pred_states = []
+                """
+                We are emulating the current block with each of the
+                predecessor states.
+                We then merge the states resulting from those emulations to
+                only keep information consistent accross all states.
+
+                We could have choosen to merge predecessor states and then
+                emulate the current block with those merged states.  But with
+                this algorithm, we could have changing values for a variable
+                (which could prevent reaching a fix point). For example:
+
+                              ----1-----            -----2----
+                             |          |          |          |
+                             | @[A] = 1 |          | @[A] = 2 |
+                             |          |          |          |
+                              ----------            ----------
+                                  |                      |
+                                  |________      ________|
+                                           |    |
+                                           v    v
+                                         ----3-----
+                                        |          |
+                                        | X = @[A] |
+                                        |          |
+                                         ----------
+                                             |
+
+                1. Emulating with merged predecessor states
+
+                   - We start by emulating block 1 which gives us the state {
+                     @[A] = 1 }.
+                   - We emulate block 3 using block 1 state which gives us the
+                     state { X = 1 }.
+                   - Then we emulate block 2 which gives us the state { @[A] =
+                     2 }.
+                   - We emulate again block 3 but now using state {} (merge
+                     between { @[A] = 1 } and { @[A] = 2 }) which gives us the
+                     state { X = @[A] }.
+
+                   To sum up, for block 3 we first had the state { X = 1 } then
+                   { X = @[A] }.
+
+                2. Merging states resulting from emulation with each
+                predecessor states
+
+                   - We start by emulating block 1 which gives us the state {
+                     @[A] = 1 }.
+                   - We emulate block 3 using block 1 state (block 2 state is
+                     not yet computed) which gives us the state { X = 1 }.
+                   - Then we emulate block 2 which gives us the state { @[A] =
+                     2 }.
+                   - We emulate again block 3 using state { @[A] = 1 } and then
+                     state { @[A] = 2 }. Resulting states ({ X = 1 } and { X =
+                     2}) are merged which gives us the state {}.
+
+                   To sum up, for block 3 we first had state { X = 1 } then {}.
+                """
+                new_states = []
                 for pred in self.ircfg.predecessors(loc_key):
                     pred_state = self.states.get(pred, None)
                     if pred_state is None:
                         continue
-                    pred_states.append(pred_state)
-                merged_state = self.merge_states(pred_states)
-
-            new_state = self.emul_block(self.ircfg.blocks[loc_key], dict(merged_state))
+                    new_states.append(self.emul_block(self.ircfg.blocks[loc_key],
+                                                      dict(pred_state)))
+                new_state = self.merge_states(new_states)
 
             if self.states.get(loc_key, None) == new_state:
                 # Fix point
