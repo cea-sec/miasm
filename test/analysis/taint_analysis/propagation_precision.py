@@ -9,11 +9,11 @@ def test_propagation_precision():
         [@EBX TO @EBX+4].
     """
 
-    print "[+] Test taint propagation precision"
+    print("[+] Test taint propagation precision")
 
     def test_dst_mem_slice(jitter):
 
-        print "\t[+] Test MOV WORD PTR [EBX], AX"
+        print("\t[+] Test MOV WORD PTR [EBX], AX")
 
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
@@ -28,7 +28,7 @@ def test_propagation_precision():
 
     def test_dst_reg_slice(jitter):
 
-        print "\t[+] Test MOV BX, AX"
+        print("\t[+] Test MOV BX, AX")
 
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 2
@@ -43,7 +43,7 @@ def test_propagation_precision():
 
     def test_src_slice(jitter):
 
-        print "\t[+] Test MOV DWORD PTR [EBX], EAX"
+        print("\t[+] Test MOV DWORD PTR [EBX], EAX")
 
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
@@ -58,7 +58,7 @@ def test_propagation_precision():
 
     def test_untaint_src_slice(jitter):
 
-        print "\t[+] Test MOV DWORD PTR [EBX], CX"
+        print("\t[+] Test MOV DWORD PTR [EBX], CX")
 
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not regs
@@ -71,7 +71,7 @@ def test_propagation_precision():
 
     def test_ah(jitter):
 
-        print "\t[+] Test MOV DWORD PTR [EBX], AL"
+        print("\t[+] Test MOV DWORD PTR [EBX], AL")
 
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
@@ -92,11 +92,11 @@ def test_propagation_precision():
     def test_multislice(jitter):
 
         # NOTE not managed for now
-        print "\t[+] Test MOV ECX, DWORD PTR [EBX]"
+        print("\t[+] Test MOV ECX, DWORD PTR [EBX]")
 
         regs, mems = jitter.cpu.get_all_taint(red)
-        print mems # debug
-        print regs # debug
+        print(mems) # debug
+        print(regs) # debug
         assert len(regs) == 1
         check_reg(regs[0], jitter, "RAX", 0, 3)
         assert len(mems) == 2

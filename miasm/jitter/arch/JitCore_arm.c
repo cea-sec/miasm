@@ -374,7 +374,7 @@ static PyGetSetDef JitCpu_getseters[] = {
 
 static PyTypeObject JitCpuType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "JitCore_arm.JitCpu",      /*tp_name*/
+    PYTHON_CLASS_NAME".JitCpu",      /*tp_name*/
     sizeof(JitCpu),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)JitCpu_dealloc,/*tp_dealloc*/
@@ -434,7 +434,7 @@ MOD_INIT(JitCore_arm)
 {
 	PyObject *module = NULL;
 
-	MOD_DEF(module, "JitCore_arm", "JitCore_arm module", JitCore_arm_Methods);
+	MOD_DEF(module, PYTHON_CLASS_NAME, PYTHON_CLASS_NAME" module", JitCore_arm_Methods);
 
 	if (module == NULL)
 		RET_MODULE;

@@ -1,10 +1,10 @@
-from elfesteem.strpatchwork import StrPatchwork
-from miasm2.arch.x86.arch import mn_x86
-from miasm2.core import parse_asm
-from miasm2.core.asmblock import asm_resolve_final
-from miasm2.analysis.machine import Machine
-import miasm2.jitter.csts as csts
-import miasm2.analysis.taint_analysis as taint
+from miasm.loader.strpatchwork import StrPatchwork
+from miasm.arch.x86.arch import mn_x86
+from miasm.core import parse_asm
+from miasm.core.asmblock import asm_resolve_final
+from miasm.analysis.machine import Machine
+import miasm.jitter.csts as csts
+import miasm.analysis.taint_analysis as taint
 
 ## CSTS
 # Color csts

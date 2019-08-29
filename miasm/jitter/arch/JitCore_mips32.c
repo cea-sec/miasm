@@ -463,7 +463,7 @@ MOD_INIT(JitCore_mips32)
 {
 	PyObject *module = NULL;
 
-	MOD_DEF(module, "JitCore_mips32", "JitCore_mips32 module", JitCore_mips32_Methods);
+	MOD_DEF(module, PYTHON_CLASS_NAME, PYTHON_CLASS_NAME" module", JitCore_mips32_Methods);
 
 	if (module == NULL)
 		RET_MODULE;

@@ -892,7 +892,7 @@ MOD_INIT(JitCore_x86)
 {
 	PyObject *module = NULL;
 
-	MOD_DEF(module, "JitCore_x86", "JitCore_x86 module", JitCore_x86_Methods);
+	MOD_DEF(module, PYTHON_CLASS_NAME, PYTHON_CLASS_NAME" module", JitCore_x86_Methods);
 
 	if (module == NULL)
 		RET_MODULE;

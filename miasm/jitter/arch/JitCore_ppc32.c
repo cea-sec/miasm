@@ -290,7 +290,7 @@ MOD_INIT(JitCore_ppc32)
 {
 	PyObject *module = NULL;
 
-	MOD_DEF(module, "JitCore_ppc32", "JitCore_ppc32 module", JitCore_ppc32_Methods);
+	MOD_DEF(module, PYTHON_CLASS_NAME, PYTHON_CLASS_NAME" module", JitCore_ppc32_Methods);
 
 	if (module == NULL)
 		RET_MODULE;

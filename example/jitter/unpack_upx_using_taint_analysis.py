@@ -5,10 +5,10 @@ import os
 import logging
 from pdb import pm
 from elfesteem import pe
-from miasm2.analysis.sandbox import Sandbox_Win_x86_32
+from miasm.analysis.sandbox import Sandbox_Win_x86_32
 
 # Used in custom version of lib_get_add_func()
-from miasm2.jitter.loader.utils import canon_libname_libfunc
+from miasm.jitter.loader.utils import canon_libname_libfunc
 
 # User defined methods
 
@@ -43,7 +43,7 @@ def kernel32_GetProcAddress(jitter):
 
 
 def lib_get_add_func_custom(mylibimp, libad, imp_ord_or_name):
-    """Custom version of lib_get_add_func() from class libimp in miasm2.jitter.loader.utils
+    """Custom version of lib_get_add_func() from class libimp in miasm.jitter.loader.utils
 
     In our case we do not want to add the destination address of the address of the function
     we are looking for. We only want to get the address of the function. The destination address
@@ -175,12 +175,12 @@ def update_binary(jitter):
 sb.jitter.add_breakpoint(end_offset, update_binary)
 
 #####################TAINT##########################
-import miasm2.analysis.taint_analysis as taint
+import miasm.analysis.taint_analysis as taint
 
 taint.enable_taint_analysis(sb.jitter)
 color_index = 0
 
-import miasm2.jitter.csts as csts
+import miasm.jitter.csts as csts
 sb.jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_MEM, on_memory_taint)
 sb.jitter.cpu.enable_taint_mem_cb(color_index)
 ####################################################
@@ -189,7 +189,7 @@ sb.jitter.cpu.enable_taint_mem_cb(color_index)
 sb.run()
 
 # Rebuild PE
-# Alternative solution: miasm2.jitter.loader.pe.vm2pe(sb.jitter, out_fname,
+# Alternative solution: miasm.jitter.loader.pe.vm2pe(sb.jitter, out_fname,
 # libs=sb.libs, e_orig=sb.pe)
 new_dll = []
 

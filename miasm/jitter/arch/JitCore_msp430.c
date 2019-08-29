@@ -408,7 +408,7 @@ MOD_INIT(JitCore_msp430)
 {
 	PyObject *module = NULL;
 
-	MOD_DEF(module, "JitCore_msp430", "JitCore_msp430 module", JitCore_msp430_Methods);
+	MOD_DEF(module, PYTHON_CLASS_NAME, PYTHON_CLASS_NAME" module", JitCore_msp430_Methods);
 
 	if (module == NULL)
 		RET_MODULE;

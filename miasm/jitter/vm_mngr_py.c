@@ -29,6 +29,12 @@
 #define MIN(a,b)  (((a)<(b))?(a):(b))
 #define MAX(a,b)  (((a)>(b))?(a):(b))
 
+#ifdef TAINT
+#define PYTHON_CLASS_NAME "VmMngr_taint"
+#else
+#define PYTHON_CLASS_NAME "VmMngr"
+#endif
+
 extern struct memory_page_list_head memory_page_pool;
 extern struct code_bloc_list_head code_bloc_pool;
 
@@ -964,11 +970,7 @@ static PyGetSetDef VmMngr_getseters[] = {
 
 static PyTypeObject VmMngrType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-#ifdef TAINT
-    "VmMngr_taint",            /*tp_name*/
-#else
-    "VmMngr",                  /*tp_name*/
-#endif
+    PYTHON_CLASS_NAME,         /*tp_name*/
     sizeof(VmMngr),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)VmMngr_dealloc,/*tp_dealloc*/
@@ -1013,10 +1015,9 @@ static PyMethodDef VmMngr_Methods[] = {
 };
 
 char vm_mngr_mod_docs[] = "vm_mngr module.";
-char vm_mngr_mod_name[] = "VmMngr";
+char vm_mngr_mod_name[] = PYTHON_CLASS_NAME;
 
 
-MOD_INIT(VmMngr)
 #ifdef TAINT
 MOD_INIT(VmMngr_taint)
 #else
@@ -1025,11 +1026,7 @@ MOD_INIT(VmMngr)
 {
 	PyObject *module = NULL;
 
-#ifdef TAINT
-	MOD_DEF(module, "VmMngr_taint", "vm_mngr module", VmMngr_Methods);
-#else
-	MOD_DEF(module, "VmMngr", "vm_mngr module", VmMngr_Methods);
-#endif
+	MOD_DEF(module, PYTHON_CLASS_NAME, "vm_mngr module", VmMngr_Methods);
 
 	if (module == NULL)
 		RET_MODULE;

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "../jitter/compat_py23.h"
 #include "../jitter/bn.h"
 #include "../jitter/queue.h"
 #include "../jitter/vm_mngr.h"
@@ -272,7 +273,7 @@ taint_memory_generic_access(vm_mngr_t* vm_mngr,
 	// NOTE: can this be optimized ?
 	else
 	{
-		// ref : miasm2/jitter/vm_mngr.c ligne 248
+		// ref : miasm/jitter/vm_mngr.c ligne 248
 		uint64_t i;
 		for (i = 0 ; i < size ; i++)
 		{
@@ -359,7 +360,7 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 	// NOTE: can this be optimized ?
 	else
 	{
-		// ref : miasm2/jitter/vm_mngr.c ligne 248
+		// ref : miasm/jitter/vm_mngr.c ligne 248
 		uint64_t i;
 		for (i = 0 ; i < size ; i++)
 		{
@@ -726,10 +727,10 @@ cpu_access_register(JitCpu* cpu, PyObject* args, uint32_t access_type)
 			      &end_py))
 		return NULL;
 
-	PyGetInt(color_index_py, color_index);
-	PyGetInt(register_index_py, register_index);
-	PyGetInt(start_py, start);
-	PyGetInt(end_py, end);
+	PyGetInt_uint64_t(color_index_py, color_index);
+	PyGetInt_uint64_t(register_index_py, register_index);
+	PyGetInt_uint64_t(start_py, start);
+	PyGetInt_uint64_t(end_py, end);
 
 	struct taint_interval_t* interval;
 	interval = malloc(sizeof(*interval));
@@ -782,7 +783,7 @@ cpu_color_untaint_all_registers(JitCpu* self, PyObject* args)
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
 
-	PyGetInt(color_index_py, color_index);
+	PyGetInt_uint64_t(color_index_py, color_index);
 
 	taint_check_color(color_index, self->taint_analysis->nb_colors);
 	taint_color_remove_all_registers(self->taint_analysis, color_index);
@@ -804,9 +805,9 @@ cpu_access_memory(JitCpu* cpu, PyObject* args, uint32_t access_type)
 	if (!PyArg_ParseTuple(args, "OOO", &addr_py, &size_py, &color_index_py))
 		return NULL;
 
-	PyGetInt(addr_py, addr);
-	PyGetInt(size_py, size);
-	PyGetInt(color_index_py, color_index);
+	PyGetInt_uint64_t(addr_py, addr);
+	PyGetInt_uint64_t(size_py, size);
+	PyGetInt_uint64_t(color_index_py, color_index);
 
 	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
 	taint_memory_generic_access(&cpu->pyvm->vm_mngr, addr, size, access_type, color_index);
@@ -845,7 +846,7 @@ cpu_color_untaint_all_memory(JitCpu* self, PyObject* args)
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
 
-	PyGetInt(color_index_py, color_index);
+	PyGetInt_uint64_t(color_index_py, color_index);
 
 	taint_check_color(color_index, self->taint_analysis->nb_colors);
 	taint_color_remove_all_memory(&self->pyvm->vm_mngr, color_index);
@@ -873,7 +874,7 @@ cpu_color_untaint_all(JitCpu* self, PyObject* args)
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
 
-	PyGetInt(color_index_py, color_index);
+	PyGetInt_uint64_t(color_index_py, color_index);
 
 	taint_check_color(color_index, self->taint_analysis->nb_colors);
 	taint_color_remove_all_registers(self->taint_analysis, color_index);
@@ -909,9 +910,9 @@ cpu_init_taint(JitCpu* self, PyObject* args)
 			      &max_register_size_py))
 		return NULL;
 
-	PyGetInt(nb_regs_py, nb_regs);
-	PyGetInt(nb_colors_py, nb_colors);
-	PyGetInt(max_register_size_py, max_register_size);
+	PyGetInt_uint64_t(nb_regs_py, nb_regs);
+	PyGetInt_uint64_t(nb_colors_py, nb_colors);
+	PyGetInt_uint64_t(max_register_size_py, max_register_size);
 
 	self->taint_analysis = taint_init_colors(nb_colors,
 						 nb_regs,
@@ -976,7 +977,7 @@ cpu_get_last_register(JitCpu* cpu, PyObject* args, uint32_t event_type)
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
 
-	PyGetInt(color_index_py, color_index);
+	PyGetInt_uint64_t(color_index_py, color_index);
 
 	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
 
@@ -1074,7 +1075,7 @@ cpu_get_last_memory(JitCpu* cpu, PyObject* args, uint32_t event_type)
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
 
-	PyGetInt(color_index_py, color_index);
+	PyGetInt_uint64_t(color_index_py, color_index);
 
 	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
 
@@ -1129,7 +1130,7 @@ cpu_get_all_taint(JitCpu* self, PyObject* args)
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
 
-	PyGetInt(color_index_py, color_index);
+	PyGetInt_uint64_t(color_index_py, color_index);
 
 	taint_check_color(color_index, self->taint_analysis->nb_colors);
 
@@ -1161,7 +1162,7 @@ cpu_enable_cb(JitCpu* cpu, PyObject* args, uint32_t cb)
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
 
-	PyGetInt(color_index_py, color_index);
+	PyGetInt_uint64_t(color_index_py, color_index);
 
 	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
 
@@ -1205,7 +1206,7 @@ cpu_disable_cb(JitCpu* cpu, PyObject* args, uint32_t cb)
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
 
-	PyGetInt(color_index_py, color_index);
+	PyGetInt_uint64_t(color_index_py, color_index);
 
 	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
 

@@ -27,7 +27,7 @@ except ImportError:
     log.error('cannot import VmMngr')
 
 try:
-    from miasm2.jitter import VmMngr_taint
+    from miasm.jitter import VmMngr_taint
 except ImportError:
    log.error('cannot import VmMngr_taint')
 

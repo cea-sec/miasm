@@ -15,3 +15,5 @@ typedef struct {
 
 bn_t PyLong_to_bn(PyObject* py_long);
 PyObject* bn_to_PyLong(bn_t bn);
+PyObject* vm_set_mem(VmMngr* self, PyObject* args);
+PyObject* vm_get_mem(VmMngr* self, PyObject* args);

@@ -5,14 +5,14 @@ def test_api():
     Test all functions made available by the taint analysis engine
     """
 
-    print "[+] Test API"
+    print("[+] Test API")
 
     jitter = create_jitter()
 
     def test_api_taint_register(jitter):
         """ Test jitter.cpu.taint_register """
 
-        print "\t[+] Test jitter.cpu.taint_register"
+        print("\t[+] Test jitter.cpu.taint_register")
 
         taint_register(jitter, blue, "RAX")
         taint_register(jitter, blue, "RBX")
@@ -28,7 +28,7 @@ def test_api():
     def test_api_untaint_register(jitter):
         """ Test jitter.cpu.untaint_register """
 
-        print "\t[+] Test jitter.cpu.untaint_register"
+        print("\t[+] Test jitter.cpu.untaint_register")
 
         jitter.cpu.untaint_register(blue, jitter.jit.codegen.regs_index["RCX"])
         regs, mems = jitter.cpu.get_all_taint(blue)
@@ -51,7 +51,7 @@ def test_api():
     def test_api_untaint_all_registers_of_color(jitter):
         """ Test jitter.cpu.untaint_all_registers_of_color """
 
-        print "\t[+] Test jitter.cpu.untaint_all_registers_of_color"
+        print("\t[+] Test jitter.cpu.untaint_all_registers_of_color")
 
         jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RAX"])
         jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RBX"])
@@ -70,7 +70,7 @@ def test_api():
     def test_api_untaint_all_registers(jitter):
         """ Test jitter.cpu.untaint_all_registers """
 
-        print "\t[+] Test jitter.cpu.untaint_all_registers"
+        print("\t[+] Test jitter.cpu.untaint_all_registers")
 
         jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RAX"])
         jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RBX"])
@@ -81,7 +81,7 @@ def test_api():
     def test_api_taint_memory(jitter):
         """ Test jitter.cpu.taint_memory """
 
-        print "\t[+] Test jitter.cpu.taint_memory"
+        print("\t[+] Test jitter.cpu.taint_memory")
 
         jitter.cpu.taint_memory(data_addr,4,red)
         jitter.cpu.taint_memory(data_addr+0x6,7,red)
@@ -99,7 +99,7 @@ def test_api():
     def test_api_untaint_memory(jitter):
         """ Test jitter.cpu.untaint_memory """
 
-        print "\t[+] Test jitter.cpu.untaint_memory"
+        print("\t[+] Test jitter.cpu.untaint_memory")
 
         jitter.cpu.untaint_memory(data_addr+0x7,3,red)
         regs, mems = jitter.cpu.get_all_taint(blue)
@@ -116,7 +116,7 @@ def test_api():
     def test_api_untaint_all_memory_of_color(jitter):
         """ Test jitter.cpu.untaint_all_memory_of_color """
 
-        print "\t[+] Test jitter.cpu.untaint_all_memory_of_color"
+        print("\t[+] Test jitter.cpu.untaint_all_memory_of_color")
 
         jitter.cpu.untaint_all_memory_of_color(red)
         regs, mems = jitter.cpu.get_all_taint(red)
@@ -132,7 +132,7 @@ def test_api():
     def test_api_untaint_all_memory(jitter):
         """ Test jitter.cpu.untaint_all_memory """
 
-        print "\t[+] Test jitter.cpu.untaint_all_memory"
+        print("\t[+] Test jitter.cpu.untaint_all_memory")
 
         jitter.cpu.taint_memory(data_addr,4,red)
         jitter.cpu.taint_memory(data_addr+0x6,7,red)
@@ -143,7 +143,7 @@ def test_api():
     def test_api_untaint_all_of_color(jitter):
         """ Test jitter.cpu.untaint_all_of_color """
 
-        print "\t[+] Test jitter.cpu.untaint_all_of_color"
+        print("\t[+] Test jitter.cpu.untaint_all_of_color")
 
         jitter.cpu.taint_memory(data_addr,4,red)
         jitter.cpu.taint_memory(data_addr+0x6,7,blue)
@@ -164,7 +164,7 @@ def test_api():
     def test_api_untaint_all(jitter):
         """ Test jitter.cpu.untaint_all """
 
-        print "\t[+] Test jitter.cpu.untaint_all"
+        print("\t[+] Test jitter.cpu.untaint_all")
 
         jitter.cpu.taint_memory(data_addr,4,red)
         jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RAX"])

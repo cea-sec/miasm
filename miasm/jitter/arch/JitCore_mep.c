@@ -554,7 +554,6 @@ static PyMethodDef JitCore_mep_Methods[] = {
 };
 
 
-
 #ifdef TAINT
 MOD_INIT(JitCore_mep_taint)
 #else
@@ -563,7 +562,7 @@ MOD_INIT(JitCore_mep)
 {
 	PyObject *module = NULL;
 
-	MOD_DEF(module, "JitCore_mep", "JitCore_mep module", JitCore_mep_Methods);
+	MOD_DEF(module, PYTHON_CLASS_NAME, PYTHON_CLASS_NAME" module", JitCore_mep_Methods);
 
 	if (module == NULL)
 		RET_MODULE;

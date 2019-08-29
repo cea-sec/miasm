@@ -6,7 +6,7 @@ def test_taint_propagation():
     tricky ones) and test them.
     """
 
-    print "[+] Test taint propagation"
+    print("[+] Test taint propagation")
 
     def test_reg_taint_reg(jitter):
         """Test if tainted reg can taint reg
@@ -14,7 +14,7 @@ def test_taint_propagation():
         - MOV EBX, EAX
         - EBX should be tainted
         """
-        print "\t[+] Test reg -> reg"
+        print("\t[+] Test reg -> reg")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not mems
         assert len(regs) == 2
@@ -29,7 +29,7 @@ def test_taint_propagation():
         - MOV DWORD PTR [EBX], EAX
         - [EBX] should be tainted
         """
-        print "\t[+] Test reg -> mem"
+        print("\t[+] Test reg -> mem")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
         check_reg(regs[0], jitter, "RAX", 0, 3)
@@ -44,7 +44,7 @@ def test_taint_propagation():
         - MOV EBX, DWORD PTR [EAX]
         - EBX should be tainted
         """
-        print "\t[+] Test mem -> reg"
+        print("\t[+] Test mem -> reg")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
         check_reg(regs[0], jitter, "RBX", 0, 3)
@@ -59,7 +59,7 @@ def test_taint_propagation():
         - PUSH   DWORD PTR [EAX]
         - [RSP] should be tainted
         """
-        print "\t[+] Test mem -> mem"
+        print("\t[+] Test mem -> mem")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not regs
         assert len(mems) == 2
@@ -74,7 +74,7 @@ def test_taint_propagation():
         - MOV EBX, DWORD PTR [EAX]
         - EBX should be tainted
         """
-        print "\t[+] Test addr -> reg"
+        print("\t[+] Test addr -> reg")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 2
         check_reg(regs[0], jitter, "RAX", 0, 3)
@@ -89,7 +89,7 @@ def test_taint_propagation():
         - MOV DWORD PTR [EAX], 0x1
         - [EAX] should be tainted
         """
-        print "\t[+] Test addr -> mem"
+        print("\t[+] Test addr -> mem")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
         check_reg(regs[0], jitter, "RAX", 0, 3)
@@ -106,7 +106,7 @@ def test_taint_propagation():
         - PUSHAD
         - 2x4 bytes should be tainted
         """
-        print "\t[+] Test multiple propagations (PUSHAD)"
+        print("\t[+] Test multiple propagations (PUSHAD)")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 2
         check_reg(regs[0], jitter, "RAX", 0, 3)
@@ -122,7 +122,7 @@ def test_taint_propagation():
         - Blue:  RDX, RCX
         - PUSHAD
         """
-        print "\t[+] Test color conflicts (PUSHAD)"
+        print("\t[+] Test color conflicts (PUSHAD)")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 3
         check_reg(regs[0], jitter, "RAX", 0, 3)

@@ -1,5 +1,5 @@
-import miasm2.jitter.csts as csts
-import miasm2.expression.expression as m2_expr
+import miasm.jitter.csts as csts
+import miasm.expression.expression as m2_expr
 
 def makeTaintGen(C_Gen, ir_arch):
   class TaintGen(C_Gen):
@@ -123,7 +123,7 @@ def makeTaintGen(C_Gen, ir_arch):
       """
 
       def get_read_elements_with_real_size(self, dst, src):
-          """We could have used the get_r function of miasm2.expression.
+          """We could have used the get_r function of miasm.expression.
           Never the less, this function could loose some information.
           For example, in this case:
               'MOV BX, AX'
