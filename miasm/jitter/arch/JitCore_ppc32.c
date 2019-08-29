@@ -176,6 +176,8 @@ static PyMemberDef JitCpu_members[] = {
 
 static PyMethodDef JitCpu_methods[] = {
     DEFAULT_METHODS
+    {"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS,
+     "X"},
     {"get_spr_access", (PyCFunction)cpu_get_spr_access, METH_VARARGS, "X"},
 #ifdef TAINT
     TAINT_METHODS

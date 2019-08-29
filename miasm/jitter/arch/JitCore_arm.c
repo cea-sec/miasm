@@ -238,6 +238,12 @@ static PyMemberDef JitCpu_members[] = {
 
 static PyMethodDef JitCpu_methods[] = {
 	DEFAULT_METHODS
+	{"get_interrupt_num", (PyCFunction)cpu_get_interrupt_num, METH_VARARGS,
+	 "X"},
+	{"set_interrupt_num", (PyCFunction)cpu_set_interrupt_num, METH_VARARGS,
+	 "X"},
+	{"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS,
+	 "X"},
 #ifdef TAINT
 	TAINT_METHODS
 #endif

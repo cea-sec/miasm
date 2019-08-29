@@ -185,10 +185,6 @@
 	 "X"}, \
 	{"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS, \
 	 "X"}, \
-	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS, \
-	 "X"}, \
-	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS, \
-	 "X"}, \
 
 
 

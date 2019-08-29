@@ -475,6 +475,8 @@ static PyMemberDef JitCpu_members[] = {
 
 static PyMethodDef JitCpu_methods[] = {
 	DEFAULT_METHODS
+    {"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS,
+     "X"},
 	{"get_segm_base", (PyCFunction)cpu_get_segm_base, METH_VARARGS,
 	 "X"},
 	{"set_segm_base", (PyCFunction)cpu_set_segm_base, METH_VARARGS,
