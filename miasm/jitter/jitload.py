@@ -230,7 +230,7 @@ class Jitter(object):
                 elif arch_name == "ppc32":
                     from miasm.jitter.arch import JitCore_ppc32 as jcore
                 elif arch_name == "mep":
-                    from miasm.jitter.arch import jitcore_mep as jcore
+                    from miasm.jitter.arch import JitCore_mep as jcore
                 else:
                     raise ValueError("unknown jit arch: %s" % arch_name)
 
