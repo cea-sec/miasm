@@ -5,7 +5,7 @@ python:
   - 3.6
 addons:
   apt:
-    sources: ['llvm-toolchain-trusty-6.0', 'ubuntu-toolchain-r-test']
+    sources: ['llvm-toolchain-xenial-6.0', 'ubuntu-toolchain-r-test']
     packages:
       - llvm-6.0
       - llvm-6.0-dev
