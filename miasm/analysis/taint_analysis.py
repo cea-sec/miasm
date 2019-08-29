@@ -466,10 +466,10 @@ def on_taint_register(jitter):
     for color in range(jitter.nb_colors):
         last_regs = jitter.cpu.last_tainted_registers(color)
         if last_regs:
-            print "[Color:%s] Taint registers" % (color)
+            print("[Color:%s] Taint registers" % (color))
 
             for reg_id, start, end in last_regs:
-                print "\t+ %s[%d,%d]" % (jitter.jit.codegen.regs_name[reg_id], start, end)
+                print("\t+ %s[%d,%d]" % (jitter.jit.codegen.regs_name[reg_id], start, end))
             jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_REG))
     return True
 
@@ -477,10 +477,10 @@ def on_untaint_register(jitter):
     for color in range(jitter.nb_colors):
         last_regs = jitter.cpu.last_untainted_registers(color)
         if last_regs:
-            print "[Color:%s] Untaint registers" % (color)
+            print("[Color:%s] Untaint registers" % (color))
 
             for reg_id, start, end in last_regs:
-                print "\t- %s[%d,%d]" % (jitter.jit.codegen.regs_name[reg_id], start, end)
+                print("\t- %s[%d,%d]" % (jitter.jit.codegen.regs_name[reg_id], start, end))
             jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_REG))
     is_taint_vanished(jitter)
     return True
@@ -489,9 +489,9 @@ def on_taint_memory(jitter):
     for color in range(jitter.nb_colors):
         last_mem = jitter.cpu.last_tainted_memory(color)
         if last_mem:
-            print "[Color:%s] Taint memory" % (color)
+            print("[Color:%s] Taint memory" % (color))
             for addr, size in last_mem:
-                print "\t+ addr:0x%x size:%s bytes" % (addr, size)
+                print("\t+ addr:0x%x size:%s bytes" % (addr, size))
             jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_MEM))
     return True
 
@@ -499,9 +499,9 @@ def on_untaint_memory(jitter):
     for color in range(jitter.nb_colors):
         last_mem = jitter.cpu.last_untainted_memory(color)
         if last_mem:
-            print "[Color%s] Untaint memory" % (color)
+            print("[Color%s] Untaint memory" % (color))
             for addr, size in last_mem:
-                print "\t- addr:0x%x size:%s bytes" % (addr, size)
+                print("\t- addr:0x%x size:%s bytes" % (addr, size))
             jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_MEM))
     is_taint_vanished(jitter)
     return True
@@ -509,22 +509,22 @@ def on_untaint_memory(jitter):
 def display_all_taint(jitter):
     for color in range(jitter.nb_colors):
         regs, mems = jitter.cpu.get_all_taint(color)
-        print "\n","_"*20
-        print "Color: %s" % (color)
-        print "_"*20
-        print "Registers:"
+        print("\n","_"*20)
+        print("Color: %s" % (color))
+        print("_"*20)
+        print("Registers:")
         for reg_id, start, end in regs:
-            print "\t* %s[%d,%d]" % (jitter.jit.codegen.regs_name[reg_id], start, end)
-        print "-"*20
-        print "Memory:"
+            print("\t* %s[%d,%d]" % (jitter.jit.codegen.regs_name[reg_id], start, end))
+        print("-"*20)
+        print("Memory:")
         for addr, size in mems:
-            print "\t* addr:0x%x size:%d bytes" % (addr, size)
-        print "_"*20,"\n"
+            print("\t* addr:0x%x size:%d bytes" % (addr, size))
+        print("_"*20,"\n")
 
 def is_taint_vanished(jitter):
     for color in range(jitter.nb_colors):
         regs, mems = jitter.cpu.get_all_taint(color)
         if regs or mems:
             return; # There is still some taint
-    print "\n\n/!\\ All taint is gone ! /!\\\n\n"
+    print("\n\n/!\\ All taint is gone ! /!\\\n\n")
 
