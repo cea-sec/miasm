@@ -1285,6 +1285,160 @@ def uadd8(ir, instr, a, b, c):
     return e, []
 
 
+def uadd16(ir, instr, a, b, c):
+    e = []
+    sums = []
+    ges = []
+    for i in range(0, 32, 16):
+        sums.append(b[i:i+16] + c[i:i+16])
+        ges.append((b[i:i+16].zeroExtend(17) + c[i:i+16].zeroExtend(17))[16:17])
+
+    e.append(ExprAssign(a, ExprCompose(*sums)))
+
+    for i, value in enumerate(ges):
+        e.append(ExprAssign(ge_regs[2 * i], value))
+        e.append(ExprAssign(ge_regs[2 * i + 1], value))
+    return e, []
+
+
+def uaddsubx(ir, instr, a, b, c):
+    e = []
+    sums = []
+    ges = []
+
+
+    part1, part2 = b[16:32], c[0:16]
+    sums.append(part1 + part2)
+    ges.append((part1.zeroExtend(17) + part2.zeroExtend(17))[16:17])
+
+    part1, part2 = b[0:16], c[16:32]
+    sums.append(part1 - part2)
+    ges.append(ExprOp("FLAG_SIGN_SUB", part1, part2))
+
+    e.append(ExprAssign(a, ExprCompose(*sums[::-1])))
+
+    for i, value in enumerate(ges[::-1]):
+        e.append(ExprAssign(ge_regs[2 * i], value))
+        e.append(ExprAssign(ge_regs[2 * i + 1], value))
+    return e, []
+
+
+def sadd8(ir, instr, a, b, c):
+    e = []
+    sums = []
+    ges = []
+    for i in range(0, 32, 8):
+        sums.append(b[i:i+8] + c[i:i+8])
+        ges.append(ExprOp("FLAG_SIGN_SUB", ExprInt(0, 9), b[i:i+8].signExtend(9) + c[i:i+8].signExtend(9)))
+
+    e.append(ExprAssign(a, ExprCompose(*sums)))
+
+    for i, value in enumerate(ges):
+        e.append(ExprAssign(ge_regs[i], value))
+    return e, []
+
+
+def sadd16(ir, instr, a, b, c):
+    e = []
+    sums = []
+    ges = []
+    for i in range(0, 32, 16):
+        sums.append(b[i:i+16] + c[i:i+16])
+        ges.append(ExprOp("FLAG_SIGN_SUB", ExprInt(0, 17), b[i:i+16].signExtend(17) + c[i:i+16].signExtend(17)))
+
+    e.append(ExprAssign(a, ExprCompose(*sums)))
+
+    for i, value in enumerate(ges):
+        e.append(ExprAssign(ge_regs[2 * i], value))
+        e.append(ExprAssign(ge_regs[2 * i + 1], value))
+    return e, []
+
+
+def saddsubx(ir, instr, a, b, c):
+    e = []
+    sums = []
+    ges = []
+
+
+    part1, part2 = b[16:32], c[0:16]
+    sums.append(part1 + part2)
+    ges.append(ExprOp("FLAG_SIGN_SUB", ExprInt(0, 17), part1.signExtend(17) + part2.signExtend(17)))
+
+    part1, part2 = b[0:16], c[16:32]
+    sums.append(part1 - part2)
+    ges.append(~ExprOp("FLAG_SIGN_SUB", part1, part2))
+
+    e.append(ExprAssign(a, ExprCompose(*sums[::-1])))
+
+    for i, value in enumerate(ges[::-1]):
+        e.append(ExprAssign(ge_regs[2 * i], value))
+        e.append(ExprAssign(ge_regs[2 * i + 1], value))
+    return e, []
+
+
+
+def q_tpl(ir, instr, is_sub, dst_size, a, b, c):
+    e = []
+    sums = []
+
+    median = 1 << (dst_size - 1)
+
+    min_int = ExprInt(- median, dst_size)
+    max_int = ExprInt(median - 1, dst_size)
+
+    test_min_int = min_int.signExtend(dst_size + 1)
+    test_max_int = max_int.signExtend(dst_size + 1)
+
+    for i in range(0, a.size, dst_size):
+        src1 = b[i:i+dst_size].signExtend(dst_size + 1)
+        src2 = c[i:i+dst_size].signExtend(dst_size + 1)
+        if is_sub:
+            src2 = -src2
+        res =  src1 + src2
+        value = res[:dst_size]
+        res_sat = ExprCond(
+            ExprOp(
+                TOK_INF_EQUAL_SIGNED,
+                res,
+                test_min_int
+            ),
+            min_int,
+            ExprCond(
+                ExprOp(
+                    TOK_INF_SIGNED,
+                    res,
+                    test_max_int
+                ),
+                value,
+                max_int
+            )
+        )
+        sums.append(res_sat)
+
+    e.append(ExprAssign(a, ExprCompose(*sums)))
+    return e, []
+
+
+def qadd8(ir, instr, a, b, c):
+    e, blocks = q_tpl(ir, instr, False, 8, a, b, c)
+    return e, blocks
+
+
+def qadd16(ir, instr, a, b, c):
+    e, blocks = q_tpl(ir, instr, False, 16, a, b, c)
+    return e, blocks
+
+
+def qsub8(ir, instr, a, b, c):
+    e, blocks = q_tpl(ir, instr, True, 8, a, b, c)
+    return e, blocks
+
+
+def qsub16(ir, instr, a, b, c):
+    e, blocks = q_tpl(ir, instr, True, 16, a, b, c)
+    return e, blocks
+
+
 def sel(ir, instr, a, b, c):
     e = []
     cond = nf ^ of ^ ExprInt(1, 1)
@@ -1641,6 +1795,15 @@ mnemo_nocond = {'lsr': lsr,
                 'smlatb': smlatb,
                 'smlatt': smlatt,
                 'uadd8': uadd8,
+                'uadd16': uadd16,
+                'uaddsubx': uaddsubx,
+                'sadd8': sadd8,
+                'sadd16': sadd16,
+                'saddsubx': saddsubx,
+                'qadd8': qadd8,
+                'qadd16': qadd16,
+                'qsub8': qsub8,
+                'qsub16': qsub16,
                 'sel': sel,
                 }
 

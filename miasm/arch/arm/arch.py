@@ -1709,6 +1709,30 @@ armop("pld", [bs8(0xF5), bs_addi, bs_rw, bs('01'), mem_rn_imm, bs('1111'), imm12
 armop("isb", [bs8(0xF5), bs8(0x7F), bs8(0xF0), bs8(0x6F)])
 armop("nop", [bs8(0xE3), bs8(0x20), bs8(0xF0), bs8(0)])
 
+
+parallel_arith_name = {
+    'Q':  0b01100010,
+    'S':  0b01100001,
+    'SH': 0b01100011,
+    'U':  0b01100101,
+    'UH': 0b01100111,
+    'UQ': 0b01100110,
+}
+bs_parallel_arith = bs_name(l=8, name=parallel_arith_name)
+
+parallel_modarith_name = {
+    0b0001 : 'ADD16',
+    0b0011 : 'ADDSUBX',
+    0b0101 : 'SUBADDX',
+    0b0111 : 'SUB16',
+    0b1001 : 'ADD8',
+    0b1111 : 'SUB8',
+}
+bs_parallel_modarith = bs_mod_name(l=4, mn_mod=parallel_modarith_name)
+
+armop("arith",  [bs_parallel_arith, rn, rd, bs('1111'), bs_parallel_modarith, rm], [rd, rn, rm])
+
+
 class arm_widthm1(arm_imm, m_arg):
     def decode(self, v):
         self.expr = ExprInt(v+1, 32)

@@ -222,7 +222,8 @@ reg_tests_arm = [
 
     ('XXXXXXXX    UXTAB      R5, R2, R8 ROR 0x8',
      '7854e2e6'),
-
+    ('XXXXXXXX    UADD8      R1, R2, R3',
+     '931f52e6'),
 
     ('XXXXXXXX    PKHBT      R1, R2, R3 LSL 0x8',
      '131482e6'),
