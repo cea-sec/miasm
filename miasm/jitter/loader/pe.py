@@ -266,8 +266,12 @@ def vm_load_pe_libs(vm, libs_name, libs, lib_path_base, **kargs):
     Return a dictionary Filename -> PE instances
     Extra arguments are passed to vm_load_pe_lib
     """
-    return {fname: vm_load_pe_lib(vm, fname, libs, lib_path_base, **kargs)
-            for fname in libs_name}
+    out = {}
+    for fname in libs_name:
+        if not isinstance(fname, bytes):
+            fname = fname.encode('utf8')
+        out[fname] = vm_load_pe_lib(vm, fname, libs, lib_path_base, **kargs)
+    return out
 
 
 def vm_fix_imports_pe_libs(lib_imgs, libs, lib_path_base,

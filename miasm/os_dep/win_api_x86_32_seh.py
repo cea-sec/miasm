@@ -253,9 +253,9 @@ def create_modules_chain(jitter, name2module):
                         fname)
             continue
         addr = base_addr + i * 0x1000
-        bpath = fname.replace('/', '\\')
+        bpath = fname.replace(b'/', b'\\')
         bname_str = os.path.split(fname)[1].lower()
-        bname_unicode = bname_str.encode("utf-16le")
+        bname_unicode = bname_str.decode('utf8').encode("utf-16le")
         log.info("Add module %x %r", pe_obj.NThdr.ImageBase, bname_str)
 
         modules_info.add(bname_str, pe_obj, addr)
@@ -287,6 +287,8 @@ def create_modules_chain(jitter, name2module):
             "Module name %r" % bname_str
         )
 
+        if isinstance(bpath, bytes):
+            bpath = bpath.decode('utf8')
         bpath_unicode = bpath.encode('utf-16le')
         jitter.vm.add_memory_page(
             addr + offset_path,

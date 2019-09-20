@@ -51,6 +51,8 @@ class Sandbox(object):
         """
 
         # Initialize
+        if not isinstance(fname, bytes):
+            fname = fname.encode('utf8')
         self.fname = fname
         self.options = options
         if custom_methods is None:
@@ -185,7 +187,7 @@ class OS_Win(OS):
                    "ole32.dll", "urlmon.dll",
                    "ws2_32.dll", 'advapi32.dll', "psapi.dll",
                    ]
-    modules_path = "win_dll"
+    modules_path = b"win_dll"
 
     def __init__(self, custom_methods, *args, **kwargs):
         from miasm.jitter.loader.pe import vm_load_pe, vm_load_pe_libs,\
