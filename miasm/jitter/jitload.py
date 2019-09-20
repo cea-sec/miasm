@@ -372,7 +372,7 @@ class Jitter(object):
         # Exceptions should never be activated before run
         assert(self.get_exception() == 0)
 
-        # Run the bloc at PC
+        # Run the block at PC
         self.pc = self.run_at(self.pc)
 
         # Check exceptions (raised by the execution of the block)

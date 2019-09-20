@@ -693,7 +693,7 @@ G10_TEST1_0_DN1 = DependencyNode(
 G10_INPUT = (set([G10_TEST1_0_DN1]), set([G10_IRB1.loc_key]))
 
 
-# Test 11: no dual bloc emulation
+# Test 11: no dual block emulation
 
 G11_TEST1_DN1 = DependencyNode(
     G11_IRB2.loc_key, A, len(G11_IRB2))

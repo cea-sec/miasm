@@ -641,7 +641,7 @@ class IRCFG(DiGraph):
 
     def get_rw(self, regs_ids=None):
         """
-        Calls get_rw(irb) for each bloc
+        Calls get_rw(irb) for each block
         @regs_ids : ids of registers used in IR
         """
         if regs_ids is None:
@@ -703,7 +703,7 @@ class DiGraphIR(IRCFG):
 
     def __init__(self, *args, **kwargs):
         warnings.warn('DEPRECATION WARNING: use "IRCFG" instead of "DiGraphIR"')
-        raise NotImplementedError("Depreceated")
+        raise NotImplementedError("Deprecated")
 
 
 class IntermediateRepresentation(object):

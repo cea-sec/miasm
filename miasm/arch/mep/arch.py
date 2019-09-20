@@ -175,7 +175,7 @@ class instruction_mep(instruction):
         return o
 
     def breakflow(self):
-        """Instructions that stop a basic bloc."""
+        """Instructions that stop a basic block."""
 
         if self.name in ["BRA", "BEQZ", "BNEZ", "BEQI", "BNEI", "BLTI", "BGEI", "BEQ", "BNE", "BSR"]:
             return True
@@ -189,7 +189,7 @@ class instruction_mep(instruction):
         return False
 
     def splitflow(self):
-        """Instructions that splits a basic bloc, i.e. the CPU can go somewhere else."""
+        """Instructions that splits a basic block, i.e. the CPU can go somewhere else."""
 
         if self.name in ["BEQZ", "BNEZ", "BEQI", "BNEI", "BLTI", "BGEI", "BEQ", "BNE", "BSR"]:
             return True
