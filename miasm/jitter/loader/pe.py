@@ -299,7 +299,10 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
     all_mem = myjit.vm.get_all_memory()
     addrs = list(all_mem)
     addrs.sort()
-    mye.Opthdr.AddressOfEntryPoint = mye.virt2rva(myjit.pc)
+    entry_point = mye.virt2rva(myjit.pc)
+    if not 0 < entry_point < 0xFFFFFFFF:
+        raise ValueError("Cannot compute a valid entry point RVA")
+    mye.Opthdr.AddressOfEntryPoint = entry_point
     first = True
     for ad in addrs:
         if not min_addr <= ad < max_addr:
