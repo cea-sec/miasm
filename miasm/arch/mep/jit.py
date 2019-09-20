@@ -20,7 +20,7 @@ log.setLevel(logging.CRITICAL)
 
 class mep_CGen(CGen):
     """
-    Translate a bloc containing MeP instructions to C
+    Translate a block containing MeP instructions to C
 
     Note: it is used to emulate the *REPEAT instructions
     """
@@ -32,7 +32,7 @@ class mep_CGen(CGen):
         self.init_arch_C()
 
     def gen_pre_code(self, attrib):
-        """Generate C code inserted before the current bloc"""
+        """Generate C code inserted before the current block"""
 
         # Call the base class method
         out = super(mep_CGen, self).gen_pre_code(attrib)
@@ -44,7 +44,7 @@ class mep_CGen(CGen):
         return out
 
     def gen_post_code(self, attrib, pc_value):
-        """Generate C code inserted after the current bloc"""
+        """Generate C code inserted after the current block"""
 
         # Call the base class method
         out = super(mep_CGen, self).gen_post_code(attrib, pc_value)

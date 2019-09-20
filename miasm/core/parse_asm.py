@@ -237,7 +237,7 @@ def parse_txt(mnemo, attrib, txt, loc_db=None):
             else:
                 cur_block = asmblock.AsmBlock(line, alignment=mnemo.alignment)
                 i += 1
-            # Generate the current bloc
+            # Generate the current block
             asmcfg.add_block(cur_block)
             state = STATE_IN_BLOC
             if block_to_nlink:

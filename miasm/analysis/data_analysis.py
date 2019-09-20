@@ -70,9 +70,9 @@ def inter_block_flow_link(ir_arch, ircfg, flow_graph, irb_in_nodes, irb_out_node
     lbl, current_nodes, exec_nodes = todo
     current_nodes = dict(current_nodes)
 
-    # link current nodes to bloc in_nodes
+    # link current nodes to block in_nodes
     if not lbl in ircfg.blocks:
-        print("cannot find bloc!!", lbl)
+        print("cannot find block!!", lbl)
         return set()
     irb = ircfg.blocks[lbl]
     to_del = set()
@@ -92,7 +92,7 @@ def inter_block_flow_link(ir_arch, ircfg, flow_graph, irb_in_nodes, irb_out_node
                     continue
                 flow_graph.add_uniq_edge(current_nodes[n_x_r], node_n_r)
 
-    # update current nodes using bloc out_nodes
+    # update current nodes using block out_nodes
     for n_w, node_n_w in viewitems(irb_out_nodes[irb.loc_key]):
         current_nodes[n_w] = node_n_w
 
@@ -116,7 +116,7 @@ def create_implicit_flow(ir_arch, flow_graph, irb_in_nodes, irb_out_ndes):
         irb = ir_arch.blocks[lbl]
         for lbl_son in ir_arch.graph.successors(irb.loc_key):
             if not lbl_son in ir_arch.blocks:
-                print("cannot find bloc!!", lbl)
+                print("cannot find block!!", lbl)
                 continue
             irb_son = ir_arch.blocks[lbl_son]
             for n_r in irb_in_nodes[irb_son.loc_key]:
@@ -155,7 +155,7 @@ class symb_exec_func(object):
 
     """
     This algorithm will do symbolic execution on a function, trying to propagate
-    states between basic blocks in order to extract inter-blocs dataflow. The
+    states between basic blocks in order to extract inter-blocks dataflow. The
     algorithm tries to merge states from blocks with multiple parents.
 
     There is no real magic here, loops and complex merging will certainly fail.
@@ -173,10 +173,10 @@ class symb_exec_func(object):
     def add_state(self, parent, ad, state):
         variables = dict(state.symbols)
 
-        # get bloc dead, and remove from state
+        # get block dead, and remove from state
         b = self.ir_arch.get_block(ad)
         if b is None:
-            raise ValueError("unknown bloc! %s" % ad)
+            raise ValueError("unknown block! %s" % ad)
         s = parent, ad, tuple(sorted(viewitems(variables)))
         self.todo.add(s)
 

@@ -531,7 +531,7 @@ G15_EXP_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, a)]])
 for irb in [G15_EXP_IRB0, G15_EXP_IRB1]:
     G15_EXP_IRA.add_irblock(irb)
 
-# graph 16 : Graph where variable assigned multiple times in the same bloc
+# graph 16 : Graph where variable assigned multiple times in the same block
 
 G16_IRA = IRA.new_ircfg()
 

@@ -41,7 +41,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
         self.states[offset] = lib
 
     def add_block(self, block):
-        """Add a bloc to JiT and JiT it.
+        """Add a block to JiT and JiT it.
         @block: block to jit
         """
         block_hash = self.hash_block(block)

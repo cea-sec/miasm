@@ -1341,7 +1341,7 @@ class LLVMFunction(object):
         current_main_stream = self.main_stream
         self.main_stream = False
 
-        # Then Bloc
+        # Then Block
         builder.position_at_end(then_block)
         PC = self.llvm_context.PC
         if isinstance(offset, int_types):
@@ -1393,7 +1393,7 @@ class LLVMFunction(object):
         current_main_stream = self.main_stream
         self.main_stream = False
 
-        # Then Bloc
+        # Then Block
         builder.position_at_end(then_block)
         PC = self.llvm_context.PC
         if isinstance(offset, int_types):

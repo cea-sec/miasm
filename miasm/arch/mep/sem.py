@@ -1162,7 +1162,7 @@ class ir_mepb(IntermediateRepresentation):
     def get_next_break_loc_key(self, instr):
         """Returns a new label that identifies where the instruction is going.
 
-           Note: it eases linking IR blocs
+           Note: it eases linking IR blocks
         """
 
         l = self.loc_db.get_or_create_offset_location(instr.offset + instr.l)

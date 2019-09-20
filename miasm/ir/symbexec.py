@@ -239,7 +239,7 @@ class MemArray(MutableMapping):
             data = ExprMem(ptr, 8)
             parts.append((0, 1, data))
 
-        # Group similar datas
+        # Group similar data
         # XXX TODO: only little endian here
         index = 0
         while index + 1 < len(parts):
@@ -281,7 +281,7 @@ class MemArray(MutableMapping):
 
             index += 1
 
-        # Slice datas
+        # Slice data
         read_mem = []
         for off, bytesize, data in parts:
             if data.size // 8 != bytesize:
