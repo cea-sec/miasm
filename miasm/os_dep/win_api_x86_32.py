@@ -2070,7 +2070,7 @@ def msvcrt_sprintf(jitter):
     ret_ad, args, output = msvcrt_sprintf_str(jitter, jitter.get_str_ansi)
     ret = len(output)
     log.info("sprintf() = '%s'" % (output))
-    jitter.vm.set_mem(args.string, output + b'\x00')
+    jitter.vm.set_mem(args.string, (output + '\x00').encode('utf8'))
     return jitter.func_ret_cdecl(ret_ad, ret)
 
 def msvcrt_swprintf(jitter):

@@ -130,16 +130,10 @@ def unix_to_sbpath(path):
 def get_fmt_args(fmt, cur_arg, get_str, get_arg_n):
     idx = 0
     fmt = get_str(fmt)
-    if isinstance(fmt, bytes):
-        chars_format = b'%cdfsuxX'
-        char_percent = b'%'
-        char_string = b's'
-        output = b""
-    else:
-        chars_format = u'%cdfsuxX'
-        char_percent = u'%'
-        char_string = u's'
-        output = u""
+    chars_format = '%cdfsuxX'
+    char_percent = '%'
+    char_string = 's'
+    output = ""
 
     while True:
         if idx == len(fmt):

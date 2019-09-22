@@ -456,10 +456,10 @@ class Jitter(object):
         s = s.decode("utf-16le")
         return s
 
-    def set_str_ansi(self, addr, s):
+    def set_str_ansi(self, addr, string):
         """Set an ansi string in memory"""
-        s = s + b"\x00"
-        self.vm.set_mem(addr, s)
+        string = (string + "\x00").encode('utf8')
+        self.vm.set_mem(addr, string)
 
     def set_str_unic(self, addr, string):
         """Set an unicode string in memory"""

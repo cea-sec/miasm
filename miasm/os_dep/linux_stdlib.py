@@ -153,7 +153,7 @@ def xxx_snprintf(jitter):
     output = get_fmt_args(jitter, fmt, cur_arg)
     output = output[:size - 1]
     ret = len(output)
-    jitter.vm.set_mem(args.string, output + b'\x00')
+    jitter.vm.set_mem(args.string, (output + '\x00').encode('utf8'))
     return jitter.func_ret_systemv(ret_addr, ret)
 
 
@@ -162,7 +162,7 @@ def xxx_sprintf(jitter):
     cur_arg, fmt = 2, args.fmt
     output = get_fmt_args(jitter, fmt, cur_arg)
     ret = len(output)
-    jitter.vm.set_mem(args.string, output + b'\x00')
+    jitter.vm.set_mem(args.string, (output + '\x00').encode('utf8'))
     return jitter.func_ret_systemv(ret_addr, ret)
 
 
@@ -171,14 +171,14 @@ def xxx_printf(jitter):
     cur_arg, fmt = 1, args.fmt
     output = get_fmt_args(jitter, fmt, cur_arg)
     ret = len(output)
-    stdout.write(output)
+    stdout.write(output.encode('utf8'))
     return jitter.func_ret_systemv(ret_addr, ret)
 
 
 def xxx_strcpy(jitter):
     ret_ad, args = jitter.func_args_systemv(["dst", "src"])
-    str_src = jitter.get_str_ansi(args.src) + b'\x00'
-    jitter.vm.set_mem(args.dst, str_src)
+    str_src = jitter.get_str_ansi(args.src) + '\x00'
+    jitter.vm.set_mem(args.dst, str_src.encode('utf8'))
     jitter.func_ret_systemv(ret_ad, args.dst)
 
 
