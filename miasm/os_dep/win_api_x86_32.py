@@ -774,7 +774,7 @@ def kernel32_VirtualAlloc(jitter):
     if args.lpvoid == 0:
         alloc_addr = winobjs.heap.next_addr(args.dwsize)
         jitter.vm.add_memory_page(
-            alloc_addr, ACCESS_DICT[args.flprotect], "\x00" * args.dwsize,
+            alloc_addr, ACCESS_DICT[args.flprotect], b"\x00" * args.dwsize,
             "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
     else:
         all_mem = jitter.vm.get_all_memory()
@@ -785,7 +785,7 @@ def kernel32_VirtualAlloc(jitter):
             alloc_addr = winobjs.heap.next_addr(args.dwsize)
             # alloc_addr = args.lpvoid
             jitter.vm.add_memory_page(
-                alloc_addr, ACCESS_DICT[args.flprotect], "\x00" * args.dwsize,
+                alloc_addr, ACCESS_DICT[args.flprotect], b"\x00" * args.dwsize,
                 "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
 
     log.info('VirtualAlloc addr: 0x%x', alloc_addr)
@@ -2070,7 +2070,7 @@ def msvcrt_sprintf(jitter):
     ret_ad, args, output = msvcrt_sprintf_str(jitter, jitter.get_str_ansi)
     ret = len(output)
     log.info("sprintf() = '%s'" % (output))
-    jitter.vm.set_mem(args.string, output + b'\x00')
+    jitter.vm.set_mem(args.string, (output + '\x00').encode('utf8'))
     return jitter.func_ret_cdecl(ret_ad, ret)
 
 def msvcrt_swprintf(jitter):

@@ -439,7 +439,8 @@ class Jitter(object):
                self.vm.get_mem(tmp, 1) != b"\x00"):
             tmp += 1
             l += 1
-        return self.vm.get_mem(addr, l)
+        value = self.vm.get_mem(addr, l)
+        return value.decode('utf8')
 
     def get_str_unic(self, addr, max_char=None):
         """Get unicode str from vm.
@@ -455,14 +456,14 @@ class Jitter(object):
         s = s.decode("utf-16le")
         return s
 
-    def set_str_ansi(self, addr, s):
+    def set_str_ansi(self, addr, string):
         """Set an ansi string in memory"""
-        s = s + b"\x00"
-        self.vm.set_mem(addr, s)
+        string = (string + "\x00").encode('utf8')
+        self.vm.set_mem(addr, string)
 
-    def set_str_unic(self, addr, s):
+    def set_str_unic(self, addr, string):
         """Set an unicode string in memory"""
-        s = b"\x00".join(list(s)) + b'\x00' * 3
+        s = (string + "\x00").encode('utf-16le')
         self.vm.set_mem(addr, s)
 
     @staticmethod

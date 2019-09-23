@@ -280,7 +280,7 @@ while todo:
         sb.run()
     except FinishOn as finish_info:
         print(finish_info.string)
-        if finish_info.string == b"OK":
+        if finish_info.string == "OK":
             # Stop if the expected result is found
             found = True
             break

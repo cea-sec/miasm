@@ -528,7 +528,7 @@ def sys_x86_64_getdents(jitter, linux_env):
         d_reclen = 8 * 2 + 2 + 1 + len(name) + 1
         d_off = cur_len + d_reclen
         entry = struct.pack("QqH", d_ino, d_off, d_reclen) + \
-                name + b"\x00" + struct.pack("B", d_type)
+                name.encode("utf8") + b"\x00" + struct.pack("B", d_type)
         assert len(entry) == d_reclen
         return entry
 

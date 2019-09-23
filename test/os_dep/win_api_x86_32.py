@@ -43,7 +43,7 @@ class TestWinAPI(unittest.TestCase):
         jit.push_uint32_t(0) # ret_ad
         winapi.msvcrt_sprintf(jit)
         ret = jit.get_str_ansi(buf)
-        self.assertEqual(ret, b"'coucou' 1111")
+        self.assertEqual(ret, "'coucou' 1111")
 
 
     def test_msvcrt_swprintf(self):
