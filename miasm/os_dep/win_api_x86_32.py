@@ -612,7 +612,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                     winobjs.lastwin32error = 80
                 else:
                     # first create an empty file
-                    open(sb_fname, 'w').close()
+                    open(sb_fname, 'wb').close()
                     # then open
                     h = open(sb_fname, 'r+b')
                     ret = winobjs.handle_pool.add(sb_fname, h)
@@ -654,7 +654,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                     raise NotImplementedError("Untested case")  # to test
             else:
                 # raise NotImplementedError("Untested case") # to test
-                h = open(sb_fname, 'w')
+                h = open(sb_fname, 'wb')
                 ret = winobjs.handle_pool.add(sb_fname, h)
         else:
             raise NotImplementedError("Untested case")
