@@ -60,6 +60,7 @@ testset += RegressionTest(["aarch64/arch.py"], base_dir="arch")
 testset += RegressionTest(["sh4/arch.py"], base_dir="arch")
 testset += RegressionTest(["msp430/arch.py"], base_dir="arch")
 testset += RegressionTest(["mips32/arch.py"], base_dir="arch")
+testset += RegressionTest(["ppc32/arch.py"], base_dir="arch")
 
 
 
@@ -105,6 +106,7 @@ for script in ["x86/sem.py",
                "aarch64/unit/mn_ubfm.py",
                "msp430/sem.py",
                "mips32/unit/mn_bcc.py",
+               "ppc32/sem.py",
                ]:
     for jitter in ArchUnitTest.jitter_engines:
         if jitter in blacklist.get(script, []):
