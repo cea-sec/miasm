@@ -28,7 +28,7 @@ from miasm.arch.x86.arch import mn_x86, repeat_mn, replace_regs
 from miasm.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm.core.sembuilder import SemBuilder
 from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_ILLEGAL_INSN, \
-    EXCEPT_PRIV_INSN, EXCEPT_SOFT_BP, EXCEPT_INT_XX
+    EXCEPT_PRIV_INSN, EXCEPT_SOFT_BP, EXCEPT_INT_XX, EXCEPT_INT_1
 import math
 import struct
 
@@ -3386,7 +3386,9 @@ def icebp(_, instr):
 def l_int(_, instr, src):
     e = []
     # XXX
-    if src.arg in [1, 3]:
+    if src.arg == 1:
+        except_int = EXCEPT_INT_1
+    elif src.arg == 3:
         except_int = EXCEPT_SOFT_BP
     else:
         except_int = EXCEPT_INT_XX

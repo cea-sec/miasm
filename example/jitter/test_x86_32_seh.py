@@ -24,6 +24,9 @@ def deal_exception_illegal_instruction(jitter):
     jitter.pc = win_api_x86_32_seh.fake_seh_handler(jitter, win_api_x86_32_seh.EXCEPTION_ILLEGAL_INSTRUCTION)
     return True
 
+def deal_exception_single_step(jitter):
+    jitter.pc = win_api_x86_32_seh.fake_seh_handler(jitter, win_api_x86_32_seh.EXCEPTION_SINGLE_STEP)
+    return True
 
 def return_from_seh(jitter):
     win_api_x86_32_seh.return_from_seh(jitter)
@@ -47,6 +50,7 @@ sb.jitter.add_exception_handler(EXCEPT_SOFT_BP, deal_exception_breakpoint)
 sb.jitter.add_exception_handler(EXCEPT_DIV_BY_ZERO, deal_exception_div)
 sb.jitter.add_exception_handler(1<<17, deal_exception_privileged_instruction)
 sb.jitter.add_exception_handler(EXCEPT_UNK_MNEMO, deal_exception_illegal_instruction)
+sb.jitter.add_exception_handler(EXCEPT_INT_1, deal_exception_single_step)
 
 sb.jitter.add_breakpoint(win_api_x86_32_seh.return_from_exception, return_from_seh)
 
