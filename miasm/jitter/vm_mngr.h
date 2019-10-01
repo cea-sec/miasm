@@ -181,6 +181,7 @@ struct memory_breakpoint_info {
 #define EXCEPT_PRIV_INSN ((1<<17) | EXCEPT_DO_NOT_UPDATE_PC)
 #define EXCEPT_ILLEGAL_INSN ((1<<18) | EXCEPT_DO_NOT_UPDATE_PC)
 #define EXCEPT_UNK_MNEMO ((1<<19) | EXCEPT_DO_NOT_UPDATE_PC)
+#define EXCEPT_INT_1 ((1<<20) | EXCEPT_DO_NOT_UPDATE_PC)
 
 
 int is_mem_mapped(vm_mngr_t* vm_mngr, uint64_t ad);

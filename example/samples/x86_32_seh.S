@@ -41,6 +41,12 @@ lbl_err_end4:
 	ADD        ESP, 4
 	RET
 
+;; Single step
+lbl_err_5:
+	INT        0x1
+lbl_err_end5:
+	NOP
+
 error:
 	MOV        ECX, DWORD PTR [ESP+0xC]
 	MOV        EAX, DWORD PTR [ECX+0xB8]
@@ -66,6 +72,7 @@ labels_err:
 .dword lbl_err_2
 .dword lbl_err_3
 .dword lbl_err_4
+.dword lbl_err_5
 
 
 labels_err_end:
@@ -74,3 +81,4 @@ labels_err_end:
 .dword lbl_err_end2
 .dword lbl_err_end3
 .dword lbl_err_end4
+.dword lbl_err_end5
