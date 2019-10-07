@@ -5080,6 +5080,33 @@ def movmskpd(ir, instr, dst, src):
         out.append(src[(64 * i) + 63:(64 * i) + 64])
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out).zeroExtend(dst.size))], []
 
+def _roundscalar(ir, inst, dst, src, imm8, double):
+    res = None
+    ctl = int(imm8)
+    dst_expr = dst[:64] if double else dst[:32]
+    src_expr = src[:64] if double else src[:32]
+    if ctl & 0x4 != 0:
+        # Use MXCSR rounding config
+        # TODO: here we assume it's round to nearest, ties to even
+        res = m2_expr.ExprOp('fpround_towardsnearest', src_expr)
+    else:
+        # Use encoded rounding mechanism
+        rounding_mechanism = ctl & 0x3
+        ROUNDING_MODE = {
+            0x0: 'fpround_towardsnearest',
+            0x1: 'fpround_down',
+            0x2: 'fpround_up',
+            0x3: 'fpround_towardszero'
+        }
+        res = m2_expr.ExprOp(ROUNDING_MODE[rounding_mechanism], src_expr)
+    return [m2_expr.ExprAssign(dst_expr, res)], []
+
+def roundss(ir, inst, dst, src, imm8):
+    return _roundscalar(ir, inst, dst, src, imm8, False)
+
+def roundsd(ir, inst, dst, src, imm8):
+    return _roundscalar(ir, inst, dst, src, imm8, True)
+
 def fxsave(_ir, _instr, _src):
     # Implemented as a NOP for now
     return [], []
@@ -5522,6 +5549,10 @@ mnemo_func = {'mov': mov,
               "divsd": divsd,
               "divps": divps,
               "divpd": divpd,
+
+              # Rounding
+              "roundss": roundss,
+              "roundsd": roundsd,
 
               # Comparisons (floating-point)
               #
