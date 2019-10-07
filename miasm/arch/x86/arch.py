@@ -496,7 +496,7 @@ class instruction_x86(instruction):
             return True
         if self.name.startswith('SYS'):
             return True
-        return self.name in ['CALL', 'HLT', 'IRET', 'IRETD', 'IRETQ', 'ICEBP']
+        return self.name in ['CALL', 'HLT', 'IRET', 'IRETD', 'IRETQ', 'ICEBP', 'UD2']
 
     def splitflow(self):
         if self.name in conditional_branch:
