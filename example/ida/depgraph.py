@@ -25,10 +25,11 @@ from utils import guess_machine
 
 class depGraphSettingsForm(ida_kernwin.Form):
 
-    def __init__(self, ira, ircfg):
+    def __init__(self, ira, ircfg, mn):
 
         self.ira = ira
         self.ircfg = ircfg
+        self.mn = mn
         self.stk_args = {'ARG%d' % i:i for i in range(10)}
         self.stk_unalias_force = False
 
@@ -129,7 +130,7 @@ Method to use:
             arg_num = self.stk_args[value]
             stk_high = m2_expr.ExprInt(idc.GetSpd(line.offset), ir_arch.sp.size)
             stk_off = m2_expr.ExprInt(self.ira.sp.size // 8 * arg_num, ir_arch.sp.size)
-            element =  m2_expr.ExprMem(mn.regs.regs_init[ir_arch.sp] + stk_high + stk_off, self.ira.sp.size)
+            element =  m2_expr.ExprMem(self.mn.regs.regs_init[ir_arch.sp] + stk_high + stk_off, self.ira.sp.size)
             element = expr_simp(element)
             # Force stack unaliasing
             self.stk_unalias_force = True
@@ -230,7 +231,7 @@ def launch_depgraph():
     ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
 
     # Get settings
-    settings = depGraphSettingsForm(ir_arch, ircfg)
+    settings = depGraphSettingsForm(ir_arch, ircfg, mn)
     settings.Execute()
 
     loc_key, elements, line_nb = settings.loc_key, settings.elements, settings.line_nb
