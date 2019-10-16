@@ -226,7 +226,6 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 		}
 		switch(my_size){
 		case 8:
-			ret = ret;
 			break;
 		case 16:
 			ret = set_endian16(vm_mngr, (uint16_t)ret);
@@ -302,7 +301,6 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 		switch(my_size){
 
 		case 8:
-			src = src;
 			break;
 		case 16:
 			src = set_endian16(vm_mngr, (uint16_t)src);
