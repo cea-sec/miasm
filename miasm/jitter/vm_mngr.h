@@ -84,7 +84,6 @@ LIST_HEAD(memory_breakpoint_info_head, memory_breakpoint_info);
 
 #define MAX_MEMORY_PAGE_POOL_TAB 0x100000
 #define MEMORY_PAGE_POOL_MASK_BIT 12
-#define PAGE_SIZE (1<<MEMORY_PAGE_POOL_MASK_BIT)
 #define VM_BIG_ENDIAN 1
 #define VM_LITTLE_ENDIAN 2
 
