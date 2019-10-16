@@ -1400,7 +1400,7 @@ def call(ir, instr, dst):
             m2 = base.zeroExtend(meip.size)
         elif dst.op == "far":
             # Far call far [eax]
-            addr = dst.args[0].arg
+            addr = dst.args[0].ptr
             m1 = ir.ExprMem(addr, CS.size)
             m2 = ir.ExprMem(addr + m2_expr.ExprInt(2, addr.size), meip.size)
         else:
@@ -1528,7 +1528,7 @@ def jmp(ir, instr, dst):
             m2 = base.zeroExtend(meip.size)
         elif dst.op == "far":
             # Far jmp far [eax]
-            addr = dst.args[0].arg
+            addr = dst.args[0].ptr
             m1 = ir.ExprMem(addr, CS.size)
             m2 = ir.ExprMem(addr + m2_expr.ExprInt(2, addr.size), meip.size)
         else:
