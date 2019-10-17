@@ -2625,7 +2625,7 @@ def fnstenv(ir, instr, dst):
     e.append(m2_expr.ExprAssign(ad, float_control))
     ad = ir.ExprMem(
         dst.ptr + m2_expr.ExprInt(
-            size // (8 * 1),
+            (size // 8) * 1,
             dst.ptr.size
         ),
         size=16
@@ -2633,7 +2633,7 @@ def fnstenv(ir, instr, dst):
     e.append(m2_expr.ExprAssign(ad, status_word))
     ad = ir.ExprMem(
         dst.ptr + m2_expr.ExprInt(
-            size // (8 * 3),
+            (size // 8) * 3,
             dst.ptr.size
         ),
         size=size
@@ -2641,7 +2641,7 @@ def fnstenv(ir, instr, dst):
     e.append(m2_expr.ExprAssign(ad, float_eip[:size]))
     ad = ir.ExprMem(
         dst.ptr + m2_expr.ExprInt(
-            size // (8 * 4),
+            (size // 8) * 4,
             dst.ptr.size
         ),
         size=16
@@ -2649,7 +2649,7 @@ def fnstenv(ir, instr, dst):
     e.append(m2_expr.ExprAssign(ad, float_cs))
     ad = ir.ExprMem(
         dst.ptr + m2_expr.ExprInt(
-            size // (8 * 5),
+            (size // 8) * 5,
             dst.ptr.size
         ),
         size=size
@@ -2657,7 +2657,7 @@ def fnstenv(ir, instr, dst):
     e.append(m2_expr.ExprAssign(ad, float_address[:size]))
     ad = ir.ExprMem(
         dst.ptr + m2_expr.ExprInt(
-            size // (8 * 6),
+            (size // 8) * 6,
             dst.ptr.size
         ),
         size=16
