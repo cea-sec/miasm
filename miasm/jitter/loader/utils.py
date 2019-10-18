@@ -69,7 +69,8 @@ class libimp(object):
         #/!\ can have multiple dst ad
         if not imp_ord_or_name in self.lib_imp2dstad[libad]:
             self.lib_imp2dstad[libad][imp_ord_or_name] = set()
-        self.lib_imp2dstad[libad][imp_ord_or_name].add(dst_ad)
+        if dst_ad is not None:
+            self.lib_imp2dstad[libad][imp_ord_or_name].add(dst_ad)
 
         if imp_ord_or_name in self.lib_imp2ad[libad]:
             return self.lib_imp2ad[libad][imp_ord_or_name]
