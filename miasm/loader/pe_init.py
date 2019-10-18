@@ -161,7 +161,7 @@ def compute_crc(raw, olds):
     out = 0
     data = raw[:]
     if len(raw) % 2:
-        end = struct.unpack('B', data[-1])[0]
+        end = struct.unpack('B', data[-1:])[0]
         data = data[:-1]
     if (len(raw) & ~0x1) % 4:
         out += struct.unpack('H', data[:2])[0]
