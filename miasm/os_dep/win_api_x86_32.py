@@ -36,7 +36,7 @@ except ImportError:
     print("cannot find crypto, skipping")
 
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE, PAGE_EXEC
-from miasm.core.utils import pck16, pck32, hexdump, whoami
+from miasm.core.utils import pck16, pck32, hexdump, whoami, int_to_byte
 from miasm.os_dep.common import heap, windows_to_sbpath
 from miasm.os_dep.common import set_str_unic, set_str_ansi
 from miasm.os_dep.common import get_fmt_args as _get_fmt_args
