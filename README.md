@@ -7,9 +7,25 @@
 <img src="doc/logo_miasm.png">
 </p>
 
-Reverse engineering framework in Python
 
-**Table of Contents**
+What is Miasm?
+==============
+
+Miasm is a free and open source (GPLv2) reverse engineering framework.
+Miasm aims to analyze / modify / generate binary programs. Here is
+a non exhaustive list of features:
+
+* Opening / modifying / generating PE / ELF 32 / 64 LE / BE
+* Assembling / Disassembling X86 / ARM / MIPS / SH4 / MSP430
+* Representing assembly semantic using intermediate language
+* Emulating using JIT (dynamic code analysis, unpacking, ...)
+* Expression simplification for automatic de-obfuscation
+* ...
+
+See the official [blog](http://miasm.re) for more examples and demos.
+
+Table of Contents
+=================
 
 - [What is Miasm?](#user-content-what-is-miasm)
 - [Basic examples](#user-content-basic-examples)
@@ -27,22 +43,6 @@ Reverse engineering framework in Python
 - [They already use Miasm](#user-content-they-already-use-miasm)
 - [Misc](#user-content-misc)
 
-
-What is Miasm?
-==============
-
-Miasm is a free and open source (GPLv2) reverse engineering framework.
-Miasm aims to analyze / modify / generate binary programs. Here is
-a non exhaustive list of features:
-
-* Opening / modifying / generating PE / ELF 32 / 64 LE / BE
-* Assembling / Disassembling X86 / ARM / MIPS / SH4 / MSP430
-* Representing assembly semantic using intermediate language
-* Emulating using JIT (dynamic code analysis, unpacking, ...)
-* Expression simplification for automatic de-obfuscation
-* ...
-
-See the official [blog](http://miasm.re) for more examples and demos.
 
 Basic examples
 ==============
