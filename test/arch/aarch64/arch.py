@@ -1763,6 +1763,8 @@ reg_tests_aarch64 = [
      "8DFE5F88"),
     ("0046FA7C    LDAXR      X17, [X16]",
      "11FE5FC8"),
+    ("XXXXXXXX    LDARB      W0, [X20]",
+     "80FEDF08"),
     ("00464090    STLXR      W14, W2, [X20]",
      "82FE0E88"),
 

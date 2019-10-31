@@ -1341,6 +1341,8 @@ mnemo_func.update({
     'ldrsh': ldrsh,
     'ldrsw': ldrsw,
 
+    'ldarb': ldrb,
+
     'ldaxrb': ldaxrb,
     'stlxrb': stlxrb,
 
