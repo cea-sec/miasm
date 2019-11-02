@@ -20,6 +20,7 @@ from miasm.core.utils import int_to_byte
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm.analysis.sandbox import Sandbox_Linux_x86_64
 from miasm.expression.expression import *
+from miasm.os_dep.win_api_x86_32 import get_win_str_a
 
 is_win = platform.system() == "Windows"
 
@@ -37,7 +38,7 @@ def xxx_fopen(jitter):
     '''
     global my_FILE_ptr
     ret_addr, args = jitter.func_args_systemv(['path', 'mode'])
-    fname = jitter.get_str_ansi(args.path)
+    fname = get_win_str_a(jitter, args.path)
     FILE_to_info[my_FILE_ptr] = FInfo(fname, open(fname, "rb"))
     my_FILE_ptr += 1
     return jitter.func_ret_stdcall(ret_addr, my_FILE_ptr - 1)
@@ -139,7 +140,7 @@ def xxx_fopen_symb(dse):
     mode = dse.eval_expr(regs.RSI)
     assert fname_addr.is_int()
     assert mode.is_int()
-    fname = dse.jitter.get_str_ansi(int(fname_addr))
+    fname = get_win_str_a(dse.jitter, int(fname_addr))
     ret_addr = ExprInt(dse.jitter.get_stack_arg(0), regs.RIP.size)
 
     assert len(FILE_to_info_symb) == 0
@@ -223,7 +224,7 @@ class FinishOn(Exception):
         super(FinishOn, self).__init__()
 
 def xxx_puts_symb(dse):
-    string = dse.jitter.get_str_ansi(dse.jitter.cpu.RDI)
+    string = get_win_str_a(dse.jitter, dse.jitter.cpu.RDI)
     raise FinishOn(string)
 
 

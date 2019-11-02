@@ -48,7 +48,7 @@ def xxx___printf_chk(jitter):
     ret_ad, args = jitter.func_args_systemv(["out", "format"])
     if args.out != 1:
         raise RuntimeError("Not implemented")
-    fmt = jitter.get_str_ansi(args.format)
+    fmt = jitter.get_c_str(args.format)
     # Manage llx
     fmt = fmt.replace("llx", "lx")
     fmt = fmt.replace("%016lx", "%016z")
@@ -60,7 +60,7 @@ def xxx___printf_chk(jitter):
     for x in fmt_a:
         a = jitter.vm.get_u32(esp + 8 + 4*i)
         if x == "s":
-            a = jitter.get_str_ansi(a)
+            a = jitter.get_c_str(a)
         elif x in ("x", 'X', "d"):
             pass
         elif x.lower() in ("f", "l"):
@@ -102,7 +102,7 @@ def xxx_puts(jitter):
     writes the string s and a trailing newline to stdout.
     '''
     ret_addr, args = jitter.func_args_systemv(['target'])
-    output = jitter.get_str_ansi(args.target)
+    output = jitter.get_c_str(args.target)
     # Check with expected result
     line = next(expected)
     if output != line.rstrip():

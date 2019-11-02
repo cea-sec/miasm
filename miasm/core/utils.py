@@ -1,4 +1,5 @@
 from __future__ import print_function
+import sys
 from builtins import range
 import struct
 import inspect
@@ -84,6 +85,21 @@ def force_bytes(value):
         return value.encode()
     except AttributeError:
         return value
+
+
+def force_str(value):
+    if isinstance(value, str):
+        return value
+    elif isinstance(value, bytes):
+        out = ""
+        for i in range(len(value)):
+            # For Python2/Python3 compatibility
+            c = ord(value[i:i+1])
+            out += chr(c)
+        value = out
+    else:
+        raise ValueError("Unsupported type")
+    return value
 
 
 def iterbytes(string):

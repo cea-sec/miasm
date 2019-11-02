@@ -28,7 +28,7 @@ from io import StringIO
 import time
 import datetime
 
-from future.utils import PY3, viewitems
+from future.utils import PY3, viewitems, viewvalues
 
 try:
     from Crypto.Hash import MD5, SHA
@@ -38,8 +38,10 @@ except ImportError:
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE, PAGE_EXEC
 from miasm.core.utils import pck16, pck32, hexdump, whoami, int_to_byte
 from miasm.os_dep.common import heap, windows_to_sbpath
-from miasm.os_dep.common import set_str_unic, set_str_ansi
+from miasm.os_dep.common import set_win_str_w, set_win_str_a
 from miasm.os_dep.common import get_fmt_args as _get_fmt_args
+from miasm.os_dep.common import get_win_str_a, get_win_str_w
+from miasm.os_dep.common import encode_win_str_a, encode_win_str_w
 from miasm.os_dep.win_api_x86_32_seh import tib_address
 
 log = logging.getLogger("win_api_x86_32")
@@ -144,8 +146,8 @@ class c_winobjs(object):
         self.dw_pid_dummy2 = 0x333
         self.dw_pid_cur = 0x444
         self.module_fname_nux = None
-        self.module_name = b"test.exe"
-        self.module_path = b"c:\\mydir\\" + self.module_name
+        self.module_name = "test.exe"
+        self.module_path = "c:\\mydir\\" + self.module_name
         self.hcurmodule = None
         self.module_filesize = None
         self.getversion = 0x0A280105
@@ -169,7 +171,7 @@ class c_winobjs(object):
             0x80000001: b"hkey_current_user",
             0x80000002: b"hkey_local_machine"
         }
-        self.cur_dir = b"c:\\tmp"
+        self.cur_dir = "c:\\tmp"
 
         self.nt_mdl = {}
         self.nt_mdl_ad = None
@@ -203,7 +205,7 @@ process_list = [
         winobjs.dw_pid_explorer,  # DWORD     th32ParentProcessID;
         0xbeef,  # LONG      pcPriClassBase;
         0x0,  # DWORD     dwFlags;
-        b"dummy1.exe"  # TCHAR     szExeFile[MAX_PATH];
+        "dummy1.exe"  # TCHAR     szExeFile[MAX_PATH];
     ],
     [
         0x40,  # DWORD     dwSize;
@@ -215,7 +217,7 @@ process_list = [
         4,  # DWORD     th32ParentProcessID;
         0xbeef,  # LONG      pcPriClassBase;
         0x0,  # DWORD     dwFlags;
-        b"explorer.exe"  # TCHAR     szExeFile[MAX_PATH];
+        "explorer.exe"  # TCHAR     szExeFile[MAX_PATH];
     ],
 
     [
@@ -228,7 +230,7 @@ process_list = [
         winobjs.dw_pid_explorer,  # DWORD     th32ParentProcessID;
         0xbeef,  # LONG      pcPriClassBase;
         0x0,  # DWORD     dwFlags;
-        b"dummy2.exe"  # TCHAR     szExeFile[MAX_PATH];
+        "dummy2.exe"  # TCHAR     szExeFile[MAX_PATH];
     ],
 
     [
@@ -337,7 +339,7 @@ def kernel32_Process32First(jitter):
 
     pentry = struct.pack(
         'IIIIIIIII', *process_list[0][:-1]
-    ) + process_list[0][-1]
+    ) + (process_list[0][-1] + '\x00').encode('utf8')
     jitter.vm.set_mem(args.ad_pentry, pentry)
     winobjs.toolhelpsnapshot_info[args.s_handle] = 0
 
@@ -354,7 +356,7 @@ def kernel32_Process32Next(jitter):
         ret = 1
         n = winobjs.toolhelpsnapshot_info[args.s_handle]
         pentry = struct.pack(
-            'IIIIIIIII', *process_list[n][:-1]) + process_list[n][-1]
+            'IIIIIIIII', *process_list[n][:-1]) + (process_list[n][-1]+ '\x00').encode('utf8')
         jitter.vm.set_mem(args.ad_pentry, pentry)
     jitter.func_ret_stdcall(ret_ad, ret)
 
@@ -370,7 +372,7 @@ def kernel32_GetVersion(jitter):
     jitter.func_ret_stdcall(ret_ad, winobjs.getversion)
 
 
-def kernel32_GetVersionEx(jitter, str_size, set_str):
+def kernel32_GetVersionEx(jitter, str_size, encode_str):
     ret_ad, args = jitter.func_args_stdcall(["ptr_struct"])
 
     size = jitter.vm.get_u32(args.ptr_struct)
@@ -382,7 +384,7 @@ def kernel32_GetVersionEx(jitter, str_size, set_str):
             0x2,              # min vers
             0xa28,            # build nbr
             0x2,              # platform id
-            set_str("Service pack 4"),
+            encode_str("Service pack 4"),
             3,                # wServicePackMajor
             0,                # wServicePackMinor
             0x100,            # wSuiteMask
@@ -398,9 +400,9 @@ def kernel32_GetVersionEx(jitter, str_size, set_str):
 
 
 kernel32_GetVersionExA = lambda jitter: kernel32_GetVersionEx(jitter, 128,
-                                                              set_str_ansi)
+                                                              encode_win_str_a)
 kernel32_GetVersionExW = lambda jitter: kernel32_GetVersionEx(jitter, 256,
-                                                              set_str_unic)
+                                                              encode_win_str_w)
 
 
 def kernel32_GetPriorityClass(jitter):
@@ -426,10 +428,10 @@ def user32_GetForegroundWindow(jitter):
 def user32_FindWindowA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["pclassname", "pwindowname"])
     if args.pclassname:
-        classname = jitter.get_str_ansi(args.pclassname)
+        classname = get_win_str_a(jitter, args.pclassname)
         log.info("FindWindowA classname %s", classname)
     if args.pwindowname:
-        windowname = jitter.get_str_ansi(args.pwindowname)
+        windowname = get_win_str_a(jitter, args.pwindowname)
         log.info("FindWindowA windowname %s", windowname)
     jitter.func_ret_stdcall(ret_ad, 0)
 
@@ -455,11 +457,11 @@ def advapi32_CryptAcquireContext(jitter, funcname, get_str):
 
 
 def advapi32_CryptAcquireContextA(jitter):
-    advapi32_CryptAcquireContext(jitter, whoami(), jitter.get_str_ansi)
+    advapi32_CryptAcquireContext(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def advapi32_CryptAcquireContextW(jitter):
-    advapi32_CryptAcquireContext(jitter, whoami(), jitter.get_str_unic)
+    advapi32_CryptAcquireContext(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def advapi32_CryptCreateHash(jitter):
@@ -666,11 +668,11 @@ def kernel32_CreateFile(jitter, funcname, get_str):
 
 
 def kernel32_CreateFileA(jitter):
-    kernel32_CreateFile(jitter, whoami(), jitter.get_str_ansi)
+    kernel32_CreateFile(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def kernel32_CreateFileW(jitter):
-    kernel32_CreateFile(jitter, whoami(), jitter.get_str_unic)
+    kernel32_CreateFile(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def kernel32_ReadFile(jitter):
@@ -755,9 +757,13 @@ def kernel32_VirtualProtect(jitter):
         old = jitter.vm.get_mem_access(args.lpvoid)
         jitter.vm.set_u32(args.lpfloldprotect, ACCESS_DICT_INV[old])
 
-    for addr in jitter.vm.get_all_memory():
+    print("XXX VIRTUALP")
+    log.warn("set page %x %x", args.lpvoid, args.dwsize)
+    for addr, data in jitter.vm.get_all_memory().items():
+        size = data["size"]
         # Multi-page
-        if args.lpvoid <= addr < args.lpvoid + args.dwsize:
+        if addr <= args.lpvoid < addr + size:
+            log.warn("set page %x %x", addr, ACCESS_DICT[flnewprotect])
             jitter.vm.set_mem_access(addr, ACCESS_DICT[flnewprotect])
 
     jitter.func_ret_stdcall(ret_ad, 1)
@@ -841,11 +847,11 @@ def kernel32_GetModuleFileName(jitter, funcname, set_str):
 
 
 def kernel32_GetModuleFileNameA(jitter):
-    kernel32_GetModuleFileName(jitter, whoami(), jitter.set_str_ansi)
+    kernel32_GetModuleFileName(jitter, whoami(), lambda addr,value: set_win_str_a(jitter, addr, value))
 
 
 def kernel32_GetModuleFileNameW(jitter):
-    kernel32_GetModuleFileName(jitter, whoami(), jitter.set_str_unic)
+    kernel32_GetModuleFileName(jitter, whoami(), lambda addr,value: set_win_str_w(jitter, addr, value))
 
 
 def kernel32_CreateMutex(jitter, funcname, get_str):
@@ -875,11 +881,11 @@ def kernel32_CreateMutex(jitter, funcname, get_str):
 
 
 def kernel32_CreateMutexA(jitter):
-    kernel32_CreateMutex(jitter, whoami(), jitter.get_str_ansi)
+    kernel32_CreateMutex(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def kernel32_CreateMutexW(jitter):
-    kernel32_CreateMutex(jitter, whoami(), jitter.get_str_unic)
+    kernel32_CreateMutex(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def shell32_SHGetSpecialFolderLocation(jitter):
@@ -900,11 +906,11 @@ def kernel32_SHGetPathFromIDList(jitter, funcname, set_str):
 
 
 def shell32_SHGetPathFromIDListW(jitter):
-    kernel32_SHGetPathFromIDList(jitter, whoami(), jitter.set_str_unic)
+    kernel32_SHGetPathFromIDList(jitter, whoami(), lambda addr,value: set_win_str_w(jitter, addr, value))
 
 
 def shell32_SHGetPathFromIDListA(jitter):
-    kernel32_SHGetPathFromIDList(jitter, whoami(), jitter.set_str_ansi)
+    kernel32_SHGetPathFromIDList(jitter, whoami(), lambda addr,value: set_win_str_a(jitter, addr, value))
 
 
 def kernel32_GetLastError(jitter):
@@ -935,11 +941,11 @@ def kernel32_LoadLibrary(jitter, get_str):
 
 
 def kernel32_LoadLibraryA(jitter):
-    kernel32_LoadLibrary(jitter, jitter.get_str_ansi)
+    kernel32_LoadLibrary(jitter, lambda addr, max_char=None:get_win_str_a(jitter, addr, max_char))
 
 
 def kernel32_LoadLibraryW(jitter):
-    kernel32_LoadLibrary(jitter, jitter.get_str_unic)
+    kernel32_LoadLibrary(jitter, lambda addr, max_char=None:get_win_str_w(jitter, addr, max_char))
 
 
 def kernel32_LoadLibraryEx(jitter, get_str):
@@ -954,18 +960,18 @@ def kernel32_LoadLibraryEx(jitter, get_str):
 
 
 def kernel32_LoadLibraryExA(jitter):
-    kernel32_LoadLibraryEx(jitter, jitter.get_str_ansi)
+    kernel32_LoadLibraryEx(jitter, lambda addr, max_char=None:get_win_str_a(jitter, addr, max_char))
 
 
 def kernel32_LoadLibraryExW(jitter):
-    kernel32_LoadLibraryEx(jitter, jitter.get_str_unic)
+    kernel32_LoadLibraryEx(jitter, lambda addr, max_char=None:get_win_str_w(jitter, addr, max_char))
 
 
 def kernel32_GetProcAddress(jitter):
     ret_ad, args = jitter.func_args_stdcall(["libbase", "fname"])
     fname = args.fname
     if fname >= 0x10000:
-        fname = jitter.get_str_ansi(fname, 0x100)
+        fname = jitter.get_c_str(fname, 0x100)
         if not fname:
             fname = None
     if fname is not None:
@@ -995,11 +1001,11 @@ def kernel32_GetModuleHandle(jitter, funcname, get_str):
 
 
 def kernel32_GetModuleHandleA(jitter):
-    kernel32_GetModuleHandle(jitter, whoami(), jitter.get_str_ansi)
+    kernel32_GetModuleHandle(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def kernel32_GetModuleHandleW(jitter):
-    kernel32_GetModuleHandle(jitter, whoami(), jitter.get_str_unic)
+    kernel32_GetModuleHandle(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def kernel32_VirtualLock(jitter):
@@ -1049,29 +1055,28 @@ def kernel32_IsWow64Process(jitter):
 def kernel32_GetCommandLine(jitter, set_str):
     ret_ad, _ = jitter.func_args_stdcall(0)
     alloc_addr = winobjs.heap.alloc(jitter, 0x1000)
-    s = set_str('"%s"' % winobjs.module_path)
-    jitter.vm.set_mem(alloc_addr, s)
+    set_str(alloc_addr, '"%s"' % winobjs.module_path)
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
 def kernel32_GetCommandLineA(jitter):
-    kernel32_GetCommandLine(jitter, set_str_ansi)
+    kernel32_GetCommandLine(jitter, lambda addr, value: set_win_str_a(jitter, addr, value))
 
 
 def kernel32_GetCommandLineW(jitter):
-    kernel32_GetCommandLine(jitter, set_str_unic)
+    kernel32_GetCommandLine(jitter, lambda addr, value: set_win_str_w(jitter, addr, value))
 
 
 def shell32_CommandLineToArgvW(jitter):
     ret_ad, args = jitter.func_args_stdcall(["pcmd", "pnumargs"])
-    cmd = jitter.get_str_unic(args.pcmd)
+    cmd = get_win_str_w(jitter, args.pcmd)
     log.info("CommandLineToArgv %r", cmd)
     tks = cmd.split(' ')
     addr = winobjs.heap.alloc(jitter, len(cmd) * 2 + 4 * len(tks))
     addr_ret = winobjs.heap.alloc(jitter, 4 * (len(tks) + 1))
     o = 0
     for i, t in enumerate(tks):
-        jitter.set_str_unic(addr + o, t)
+        jitter.set_win_str_w(addr + o, t)
         jitter.vm.set_u32(addr_ret + 4 * i, addr + o)
         o += len(t)*2 + 2
 
@@ -1118,7 +1123,7 @@ def cryptdll_MD5Final(jitter):
 def ntdll_RtlInitAnsiString(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ad_ctx", "ad_str"])
 
-    s = jitter.get_str_ansi(args.ad_str)
+    s = get_win_str_a(jitter, args.ad_str)
     l = len(s)
     jitter.vm.set_mem(args.ad_ctx,
                       pck16(l) + pck16(l + 1) + pck32(args.ad_str))
@@ -1286,7 +1291,7 @@ def ntoskrnl_RtlGetVersion(jitter):
                     0x2,  # min vers
                     0x666,  # build nbr
                     0x2,   # platform id
-                    ) + jitter.set_str_unic("Service pack 4")
+                    ) + jitter.set_win_str_w("Service pack 4")
 
     jitter.vm.set_mem(args.ptr_version, s)
     jitter.func_ret_stdcall(ret_ad, 0)
@@ -1378,7 +1383,7 @@ def ntoskrnl_RtlQueryRegistryValues(jitter):
                                              "querytable",
                                              "context",
                                              "environ"])
-    # path = get_str_unic(jitter, args.path)
+    # path = get_win_str_w(jitter, args.path)
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
@@ -1403,51 +1408,51 @@ def my_lstrcmp(jitter, funcname, get_str):
 
 def msvcrt_wcscmp(jitter):
     ret_ad, args = jitter.func_args_cdecl(["ptr_str1", "ptr_str2"])
-    s1 = jitter.get_str_unic(args.ptr_str1)
-    s2 = jitter.get_str_unic(args.ptr_str2)
+    s1 = get_win_str_w(jitter, args.ptr_str1)
+    s2 = get_win_str_w(jitter, args.ptr_str2)
     log.debug("%s('%s','%s')" % (whoami(), s1, s2))
     jitter.func_ret_cdecl(ret_ad, cmp(s1, s2))
 
 def msvcrt__wcsicmp(jitter):
     ret_ad, args = jitter.func_args_cdecl(["ptr_str1", "ptr_str2"])
-    s1 = jitter.get_str_unic(args.ptr_str1)
-    s2 = jitter.get_str_unic(args.ptr_str2)
+    s1 = get_win_str_w(jitter, args.ptr_str1)
+    s2 = get_win_str_w(jitter, args.ptr_str2)
     log.debug("%s('%s','%s')" % (whoami(), s1, s2))
     jitter.func_ret_cdecl(ret_ad, cmp(s1.lower(), s2.lower()))
 
 def msvcrt__wcsnicmp(jitter):
     ret_ad, args = jitter.func_args_cdecl(["ptr_str1", "ptr_str2", "count"])
-    s1 = jitter.get_str_unic(args.ptr_str1)
-    s2 = jitter.get_str_unic(args.ptr_str2)
+    s1 = get_win_str_w(jitter, args.ptr_str1)
+    s2 = get_win_str_w(jitter, args.ptr_str2)
     log.debug("%s('%s','%s',%d)" % (whoami(), s1, s2, args.count))
     jitter.func_ret_cdecl(ret_ad, cmp(s1.lower()[:args.count], s2.lower()[:args.count]))
 
 def msvcrt_wcsncpy(jitter):
     ret_ad, args = jitter.func_args_cdecl(["dst", "src", "n"])
-    src = jitter.get_str_unic(args.src)
+    src = get_win_str_w(jitter, args.src)
     dst = src[:args.n]
     dst += "\x00\x00" * (args.n-len(dst)+1)
     jitter.vm.set_mem(args.dst, dst)
     jitter.func_ret_cdecl(ret_ad, args.dst)
 
 def kernel32_lstrcmpA(jitter):
-    my_lstrcmp(jitter, whoami(), jitter.get_str_ansi)
+    my_lstrcmp(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def kernel32_lstrcmpiA(jitter):
-    my_lstrcmp(jitter, whoami(), lambda x: jitter.get_str_ansi(x).lower())
+    my_lstrcmp(jitter, whoami(), lambda x: get_win_str_a(jitter, x).lower())
 
 
 def kernel32_lstrcmpW(jitter):
-    my_lstrcmp(jitter, whoami(), jitter.get_str_unic)
+    my_lstrcmp(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def kernel32_lstrcmpiW(jitter):
-    my_lstrcmp(jitter, whoami(), lambda x: jitter.get_str_unic(x).lower())
+    my_lstrcmp(jitter, whoami(), lambda x: get_win_str_w(jitter, x).lower())
 
 
 def kernel32_lstrcmpi(jitter):
-    my_lstrcmp(jitter, whoami(), lambda x: jitter.get_str_ansi(x).lower())
+    my_lstrcmp(jitter, whoami(), lambda x: get_win_str_a(jitter, x).lower())
 
 
 def my_strcpy(jitter, funcname, get_str, set_str):
@@ -1459,20 +1464,20 @@ def my_strcpy(jitter, funcname, get_str, set_str):
 
 
 def kernel32_lstrcpyW(jitter):
-    my_strcpy(jitter, whoami(), jitter.get_str_unic, jitter.set_str_unic)
+    my_strcpy(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr), lambda addr,value: set_win_str_w(jitter, addr, value))
 
 
 def kernel32_lstrcpyA(jitter):
-    my_strcpy(jitter, whoami(), jitter.get_str_ansi, jitter.set_str_ansi)
+    my_strcpy(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr), lambda addr,value: set_win_str_a(jitter, addr, value))
 
 
 def kernel32_lstrcpy(jitter):
-    my_strcpy(jitter, whoami(), jitter.get_str_ansi, jitter.set_str_ansi)
+    my_strcpy(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr), lambda addr,value: set_win_str_a(jitter, addr, value))
 
 def msvcrt__mbscpy(jitter):
     ret_ad, args = jitter.func_args_cdecl(["ptr_str1", "ptr_str2"])
-    s2 = jitter.get_str_unic(args.ptr_str2)
-    jitter.set_str_unic(args.ptr_str1, s2)
+    s2 = get_win_str_w(jitter, args.ptr_str2)
+    jitter.set_win_str_w(args.ptr_str1, s2)
     jitter.func_ret_cdecl(ret_ad, args.ptr_str1)
 
 def msvcrt_wcscpy(jitter):
@@ -1482,11 +1487,11 @@ def msvcrt_wcscpy(jitter):
 def kernel32_lstrcpyn(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ptr_str1", "ptr_str2",
                                              "mlen"])
-    s2 = jitter.get_str_ansi(args.ptr_str2)
+    s2 = get_win_str_a(jitter, args.ptr_str2)
     if len(s2) >= args.mlen:
         s2 = s2[:args.mlen - 1]
     log.info("Copy '%r'", s2)
-    jitter.set_str_ansi(args.ptr_str1, s2)
+    jitter.set_win_str_a(args.ptr_str1, s2)
     jitter.func_ret_stdcall(ret_ad, args.ptr_str1)
 
 
@@ -1499,15 +1504,15 @@ def my_strlen(jitter, funcname, get_str, mylen):
 
 
 def kernel32_lstrlenA(jitter):
-    my_strlen(jitter, whoami(), jitter.get_str_ansi, len)
+    my_strlen(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr), len)
 
 
 def kernel32_lstrlenW(jitter):
-    my_strlen(jitter, whoami(), jitter.get_str_unic, len)
+    my_strlen(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr), len)
 
 
 def kernel32_lstrlen(jitter):
-    my_strlen(jitter, whoami(), jitter.get_str_ansi, len)
+    my_strlen(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr), len)
 
 
 def my_lstrcat(jitter, funcname, get_str, set_str):
@@ -1519,11 +1524,11 @@ def my_lstrcat(jitter, funcname, get_str, set_str):
 
 
 def kernel32_lstrcatA(jitter):
-    my_lstrcat(jitter, whoami(), jitter.get_str_ansi, jitter.set_str_ansi)
+    my_lstrcat(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr), lambda addr,value: set_win_str_a(jitter, addr, value))
 
 
 def kernel32_lstrcatW(jitter):
-    my_lstrcat(jitter, whoami(), jitter.get_str_unic, jitter.set_str_unic)
+    my_lstrcat(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr), lambda addr,value: set_win_str_w(jitter, addr, value))
 
 
 def kernel32_GetUserGeoID(jitter):
@@ -1573,11 +1578,11 @@ def my_GetVolumeInformation(jitter, funcname, get_str, set_str):
 
 def kernel32_GetVolumeInformationA(jitter):
     my_GetVolumeInformation(
-        jitter, whoami(), jitter.get_str_ansi, jitter.set_str_ansi)
+        jitter, whoami(), lambda addr:get_win_str_a(jitter, addr), lambda addr,value: set_win_str_a(jitter, addr, value))
 
 
 def kernel32_GetVolumeInformationW(jitter):
-    my_GetVolumeInformation(jitter, whoami(), jitter.get_str_unic, jitter.set_str_unic)
+    my_GetVolumeInformation(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr), lambda addr,value: set_win_str_w(jitter, addr, value))
 
 
 def kernel32_MultiByteToWideChar(jitter):
@@ -1586,7 +1591,7 @@ def kernel32_MultiByteToWideChar(jitter):
                                              "cbmultibyte",
                                              "lpwidecharstr",
                                              "cchwidechar"])
-    src = jitter.get_str_ansi(args.lpmultibytestr) + '\x00'
+    src = get_win_str_a(jitter, args.lpmultibytestr) + '\x00'
     l = len(src)
 
     src = "\x00".join(list(src))
@@ -1611,15 +1616,15 @@ def my_GetEnvironmentVariable(jitter, funcname, get_str, set_str, mylen):
 
 def kernel32_GetEnvironmentVariableA(jitter):
     my_GetEnvironmentVariable(jitter, whoami(),
-                              jitter.get_str_ansi,
-                              jitter.set_str_ansi,
+                              lambda addr:get_win_str_a(jitter, addr),
+                              lambda addr,value: set_win_str_a(jitter, addr, value),
                               len)
 
 
 def kernel32_GetEnvironmentVariableW(jitter):
     my_GetEnvironmentVariable(jitter, whoami(),
-                              jitter.get_str_unic,
-                              jitter.set_str_ansi,
+                              lambda addr:get_win_str_w(jitter, addr),
+                              lambda addr,value: set_win_str_w(jitter, addr, value),
                               len)
 
 
@@ -1633,11 +1638,11 @@ def my_GetSystemDirectory(jitter, funcname, set_str):
 
 
 def kernel32_GetSystemDirectoryA(jitter):
-    my_GetSystemDirectory(jitter, whoami(), jitter.set_str_ansi)
+    my_GetSystemDirectory(jitter, whoami(), lambda addr,value: set_win_str_a(jitter, addr, value))
 
 
 def kernel32_GetSystemDirectoryW(jitter):
-    my_GetSystemDirectory(jitter, whoami(), jitter.set_str_unic)
+    my_GetSystemDirectory(jitter, whoami(), lambda addr,value: set_win_str_w(jitter, addr, value))
 
 
 def my_CreateDirectory(jitter, funcname, get_str):
@@ -1647,11 +1652,11 @@ def my_CreateDirectory(jitter, funcname, get_str):
 
 
 def kernel32_CreateDirectoryW(jitter):
-    my_CreateDirectory(jitter, whoami(), jitter.get_str_unic)
+    my_CreateDirectory(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def kernel32_CreateDirectoryA(jitter):
-    my_CreateDirectory(jitter, whoami(), jitter.get_str_ansi)
+    my_CreateDirectory(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 
@@ -1669,11 +1674,11 @@ def my_CreateEvent(jitter, funcname, get_str):
 
 
 def kernel32_CreateEventA(jitter):
-    my_CreateEvent(jitter, whoami(), jitter.get_str_ansi)
+    my_CreateEvent(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def kernel32_CreateEventW(jitter):
-    my_CreateEvent(jitter, whoami(), jitter.get_str_unic)
+    my_CreateEvent(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def kernel32_WaitForSingleObject(jitter):
@@ -1704,7 +1709,7 @@ def kernel32_SetFileAttributesA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["lpfilename",
                                              "dwfileattributes"])
     if args.lpfilename:
-        # fname = get_str_ansi(jitter, args.lpfilename)
+        # fname = get_win_str_a(jitter, args.lpfilename)
         ret = 1
     else:
         ret = 0
@@ -1789,7 +1794,7 @@ def ntdll_ZwFreeVirtualMemory(jitter):
 
 def ntdll_RtlInitString(jitter):
     ret_ad, args = jitter.func_args_stdcall(["pstring", "source"])
-    s = jitter.get_str_ansi(args.source)
+    s = get_win_str_a(jitter, args.source)
     l = len(s) + 1
     o = struct.pack('HHI', l, l, args.source)
     jitter.vm.set_mem(args.pstring, o)
@@ -1800,7 +1805,7 @@ def ntdll_RtlAnsiStringToUnicodeString(jitter):
     ret_ad, args = jitter.func_args_stdcall(["dst", "src", "alloc_str"])
 
     l1, l2, p_src = struct.unpack('HHI', jitter.vm.get_mem(args.src, 0x8))
-    s = jitter.get_str_ansi(p_src)
+    s = get_win_str_a(jitter, p_src)
     s = ("\x00".join(s + "\x00"))
     l = len(s) + 1
     if args.alloc_str:
@@ -1822,7 +1827,7 @@ def ntdll_LdrLoadDll(jitter):
 
     l1, l2, p_src = struct.unpack('HHI',
                                   jitter.vm.get_mem(args.modname, 0x8))
-    s = jitter.get_str_unic(p_src)
+    s = get_win_str_w(jitter, p_src)
     libname = s.lower()
 
     ad = winobjs.runtime_dll.lib_get_add_base(libname)
@@ -1834,7 +1839,7 @@ def ntdll_LdrLoadDll(jitter):
 def ntdll_RtlFreeUnicodeString(jitter):
     ret_ad, args = jitter.func_args_stdcall(['src'])
     # l1, l2, p_src = struct.unpack('HHI', jitter.vm.get_mem(args.src, 0x8))
-    # s = get_str_unic(jitter, p_src)
+    # s = get_win_str_w(jitter, p_src)
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
@@ -1843,7 +1848,7 @@ def ntdll_LdrGetProcedureAddress(jitter):
                                              "opt", "p_ad"])
 
     l1, l2, p_src = struct.unpack('HHI', jitter.vm.get_mem(args.pfname, 0x8))
-    fname = jitter.get_str_ansi(p_src)
+    fname = get_win_str_a(jitter, p_src)
 
     ad = winobjs.runtime_dll.lib_get_add_func(args.libbase, fname)
     jitter.add_breakpoint(ad, jitter.handle_lib)
@@ -1866,7 +1871,7 @@ def msvcrt_memset(jitter):
 
 def msvcrt_strrchr(jitter):
     ret_ad, args = jitter.func_args_cdecl(['pstr','c'])
-    s = jitter.get_str_ansi(args.pstr)
+    s = get_win_str_a(jitter, args.pstr)
     c = int_to_byte(args.c)
     ret = args.pstr + s.rfind(c)
     log.info("strrchr(%x '%s','%s') = %x" % (args.pstr,s,c,ret))
@@ -1874,7 +1879,7 @@ def msvcrt_strrchr(jitter):
 
 def msvcrt_wcsrchr(jitter):
     ret_ad, args = jitter.func_args_cdecl(['pstr','c'])
-    s = jitter.get_str_unic(args.pstr)
+    s = get_win_str_w(jitter, args.pstr)
     c = int_to_byte(args.c)
     ret = args.pstr + (s.rfind(c)*2)
     log.info("wcsrchr(%x '%s',%s) = %x" % (args.pstr,s,c,ret))
@@ -1907,7 +1912,7 @@ def msvcrt_memcmp(jitter):
 
 def shlwapi_PathFindExtensionA(jitter):
     ret_ad, args = jitter.func_args_stdcall(['path_ad'])
-    path = jitter.get_str_ansi(args.path_ad)
+    path = get_win_str_a(jitter, args.path_ad)
     i = path.rfind('.')
     if i == -1:
         i = args.path_ad + len(path)
@@ -1918,19 +1923,19 @@ def shlwapi_PathFindExtensionA(jitter):
 
 def shlwapi_PathRemoveFileSpecW(jitter):
     ret_ad, args = jitter.func_args_stdcall(['path_ad'])
-    path = jitter.get_str_unic(args.path_ad)
+    path = get_win_str_w(jitter, args.path_ad)
     i = path.rfind('\\')
     if i == -1:
         i = 0
     jitter.vm.set_mem(args.path_ad + i * 2, "\x00\x00")
-    path = jitter.get_str_unic(args.path_ad)
+    path = get_win_str_w(jitter, args.path_ad)
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
 def shlwapi_PathIsPrefixW(jitter):
     ret_ad, args = jitter.func_args_stdcall(['ptr_prefix', 'ptr_path'])
-    prefix = jitter.get_str_unic(args.ptr_prefix)
-    path = jitter.get_str_unic(args.ptr_path)
+    prefix = get_win_str_w(jitter, args.ptr_prefix)
+    path = get_win_str_w(jitter, args.ptr_path)
 
     if path.startswith(prefix):
         ret = 1
@@ -1941,7 +1946,7 @@ def shlwapi_PathIsPrefixW(jitter):
 
 def shlwapi_PathIsDirectoryW(jitter):
     ret_ad, args = jitter.func_args_stdcall(['ptr_path'])
-    fname = jitter.get_str_unic(args.ptr_path)
+    fname = get_win_str_w(jitter, args.ptr_path)
 
     sb_fname = windows_to_sbpath(fname)
 
@@ -1977,24 +1982,24 @@ def shlwapi_PathGetDriveNumber(jitter, funcname, get_str):
 
 
 def shlwapi_PathGetDriveNumberA(jitter):
-    shlwapi_PathGetDriveNumber(jitter, whoami(), jitter.get_str_ansi)
+    shlwapi_PathGetDriveNumber(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def shlwapi_PathGetDriveNumberW(jitter):
-    shlwapi_PathGetDriveNumber(jitter, whoami(), jitter.get_str_unic)
+    shlwapi_PathGetDriveNumber(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def shlwapi_PathIsFileSpecA(jitter):
-    shlwapi_PathIsFileSpec(jitter, whoami(), jitter.get_str_ansi)
+    shlwapi_PathIsFileSpec(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def shlwapi_PathIsFileSpecW(jitter):
-    shlwapi_PathIsFileSpec(jitter, whoami(), jitter.get_str_unic)
+    shlwapi_PathIsFileSpec(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def shlwapi_StrToIntA(jitter):
     ret_ad, args = jitter.func_args_stdcall(['i_str_ad'])
-    i_str = jitter.get_str_ansi(args.i_str_ad)
+    i_str = get_win_str_a(jitter, args.i_str_ad)
     try:
         i = int(i_str)
     except:
@@ -2020,11 +2025,11 @@ def shlwapi_StrToInt64Ex(jitter, funcname, get_str):
 
 
 def shlwapi_StrToInt64ExA(jitter):
-    shlwapi_StrToInt64Ex(jitter, whoami(), jitter.get_str_ansi)
+    shlwapi_StrToInt64Ex(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def shlwapi_StrToInt64ExW(jitter):
-    shlwapi_StrToInt64Ex(jitter, whoami(), jitter.get_str_unic)
+    shlwapi_StrToInt64Ex(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def user32_IsCharAlpha(jitter, funcname, get_str):
@@ -2042,11 +2047,11 @@ def user32_IsCharAlpha(jitter, funcname, get_str):
 
 
 def user32_IsCharAlphaA(jitter):
-    user32_IsCharAlpha(jitter, whoami(), jitter.get_str_ansi)
+    user32_IsCharAlpha(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def user32_IsCharAlphaW(jitter):
-    user32_IsCharAlpha(jitter, whoami(), jitter.get_str_unic)
+    user32_IsCharAlpha(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def user32_IsCharAlphaNumericA(jitter):
@@ -2067,7 +2072,7 @@ def msvcrt_sprintf_str(jitter, get_str):
     return ret_ad, args, get_fmt_args(jitter, fmt, cur_arg, get_str)
 
 def msvcrt_sprintf(jitter):
-    ret_ad, args, output = msvcrt_sprintf_str(jitter, jitter.get_str_ansi)
+    ret_ad, args, output = msvcrt_sprintf_str(jitter, lambda addr:get_win_str_a(jitter, addr))
     ret = len(output)
     log.info("sprintf() = '%s'" % (output))
     jitter.vm.set_mem(args.string, (output + '\x00').encode('utf8'))
@@ -2076,18 +2081,18 @@ def msvcrt_sprintf(jitter):
 def msvcrt_swprintf(jitter):
     ret_ad, args = jitter.func_args_cdecl(['string', 'fmt'])
     cur_arg, fmt = 2, args.fmt
-    output = get_fmt_args(jitter, fmt, cur_arg, jitter.get_str_unic)
+    output = get_fmt_args(jitter, fmt, cur_arg, lambda addr:get_win_str_w(jitter, addr))
     ret = len(output)
-    log.info("swprintf('%s') = '%s'" % (jitter.get_str_unic(args.fmt), output))
+    log.info("swprintf('%s') = '%s'" % (get_win_str_w(jitter, args.fmt), output))
     jitter.vm.set_mem(args.string, output.encode("utf-16le") + b'\x00\x00')
     return jitter.func_ret_cdecl(ret_ad, ret)
 
 def msvcrt_fprintf(jitter):
     ret_addr, args = jitter.func_args_cdecl(['file', 'fmt'])
     cur_arg, fmt = 2, args.fmt
-    output = get_fmt_args(jitter, fmt, cur_arg, jitter.get_str_ansi)
+    output = get_fmt_args(jitter, fmt, cur_arg, lambda addr:get_win_str_a(jitter, addr))
     ret = len(output)
-    log.info("fprintf(%x, '%s') = '%s'" % (args.file, jitter.get_str_ansi(args.fmt), output))
+    log.info("fprintf(%x, '%s') = '%s'" % (args.file, lambda addr:get_win_str_a(jitter, addr)(args.fmt), output))
 
     fd = jitter.vm.get_u32(args.file + 0x10)
     if not fd in winobjs.handle_pool:
@@ -2099,8 +2104,8 @@ def msvcrt_fprintf(jitter):
 def shlwapi_StrCmpNIA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ptr_str1", "ptr_str2",
                                              "nchar"])
-    s1 = jitter.get_str_ansi(args.ptr_str1).lower()
-    s2 = jitter.get_str_ansi(args.ptr_str2).lower()
+    s1 = get_win_str_a(jitter, args.ptr_str1).lower()
+    s2 = get_win_str_a(jitter, args.ptr_str2).lower()
     s1 = s1[:args.nchar]
     s2 = s2[:args.nchar]
     jitter.func_ret_stdcall(ret_ad, cmp(s1, s2))
@@ -2109,7 +2114,7 @@ def shlwapi_StrCmpNIA(jitter):
 def advapi32_RegCreateKeyW(jitter):
     ret_ad, args = jitter.func_args_stdcall(["hkey", "subkey",
                                              "phandle"])
-    s_subkey = jitter.get_str_unic(args.subkey).lower() if args.subkey else ""
+    s_subkey = get_win_str_w(jitter, args.subkey).lower() if args.subkey else ""
 
     ret_hkey = 0
     ret = 2
@@ -2130,7 +2135,7 @@ def kernel32_GetCurrentDirectoryA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["size","buf"])
     dir_ = winobjs.cur_dir
     log.debug("GetCurrentDirectory() = '%s'" % dir_)
-    jitter.vm.set_mem(args.buf, dir_[:args.size-1] + b"\x00")
+    set_win_str_a(jitter, args.buf, dir_[:args.size-1])
     ret = len(dir_)
     if args.size <= len(dir_):
         ret += 1
@@ -2159,11 +2164,11 @@ def advapi32_RegOpenKeyEx(jitter, funcname, get_str):
 
 
 def advapi32_RegOpenKeyExA(jitter):
-    advapi32_RegOpenKeyEx(jitter, whoami(), jitter.get_str_ansi)
+    advapi32_RegOpenKeyEx(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def advapi32_RegOpenKeyExW(jitter):
-    advapi32_RegOpenKeyEx(jitter, whoami(), jitter.get_str_unic)
+    advapi32_RegOpenKeyEx(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def advapi32_RegSetValue(jitter, funcname, get_str):
@@ -2193,19 +2198,19 @@ def advapi32_RegCloseKey(jitter):
     jitter.func_ret_stdcall(ret_ad, 0)
 
 def advapi32_RegSetValueExA(jitter):
-    advapi32_RegSetValueEx(jitter, whoami(), jitter.get_str_ansi)
+    advapi32_RegSetValueEx(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def advapi32_RegSetValueExW(jitter):
-    advapi32_RegOpenKeyEx(jitter, whoami(), jitter.get_str_unic)
+    advapi32_RegOpenKeyEx(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def advapi32_RegSetValueA(jitter):
-    advapi32_RegSetValue(jitter, whoami(), jitter.get_str_ansi)
+    advapi32_RegSetValue(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def advapi32_RegSetValueW(jitter):
-    advapi32_RegSetValue(jitter, whoami(), jitter.get_str_unic)
+    advapi32_RegSetValue(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def kernel32_GetThreadLocale(jitter):
@@ -2220,15 +2225,15 @@ def kernel32_SetCurrentDirectory(jitter, get_str):
     jitter.func_ret_stdcall(ret_ad, 1)
 
 def kernel32_SetCurrentDirectoryW(jitter):
-    return kernel32_SetCurrentDirectory(jitter, jitter.get_str_unic)
+    return kernel32_SetCurrentDirectory(jitter, lambda addr:get_win_str_w(jitter, addr))
 
 def kernel32_SetCurrentDirectoryA(jitter):
-    return kernel32_SetCurrentDirectory(jitter, jitter.get_str_ansi)
+    return kernel32_SetCurrentDirectory(jitter, lambda addr:get_win_str_a(jitter, addr))
 
 def msvcrt_wcscat(jitter):
     ret_ad, args = jitter.func_args_cdecl(['ptr_str1', 'ptr_str2'])
-    s1 = jitter.get_str_unic(args.ptr_str1)
-    s2 = jitter.get_str_unic(args.ptr_str2)
+    s1 = get_win_str_w(jitter, args.ptr_str1)
+    s2 = get_win_str_w(jitter, args.ptr_str2)
     log.info("strcat('%s','%s')" % (s1,s2))
     jitter.vm.set_mem(args.ptr_str1, (s1 + s2).encode("utf-16le") + "\x00\x00")
     jitter.func_ret_cdecl(ret_ad, args.ptr_str1)
@@ -2253,11 +2258,11 @@ def kernel32_GetLocaleInfo(jitter, funcname, set_str):
 
 
 def kernel32_GetLocaleInfoA(jitter):
-    kernel32_GetLocaleInfo(jitter, whoami(), jitter.set_str_ansi)
+    kernel32_GetLocaleInfo(jitter, whoami(), lambda addr,value: set_win_str_a(jitter, addr, value))
 
 
 def kernel32_GetLocaleInfoW(jitter):
-    kernel32_GetLocaleInfo(jitter, whoami(), jitter.set_str_unic)
+    kernel32_GetLocaleInfo(jitter, whoami(), lambda addr,value: set_win_str_w(jitter, addr, value))
 
 
 def kernel32_TlsAlloc(jitter):
@@ -2306,11 +2311,11 @@ def kernel32_GetStartupInfo(jitter, funcname, set_str):
 
 
 def kernel32_GetStartupInfoA(jitter):
-    kernel32_GetStartupInfo(jitter, whoami(), jitter.set_str_ansi)
+    kernel32_GetStartupInfo(jitter, whoami(), lambda addr,value: set_win_str_a(jitter, addr, value))
 
 
 def kernel32_GetStartupInfoW(jitter):
-    kernel32_GetStartupInfo(jitter, whoami(), jitter.set_str_unic)
+    kernel32_GetStartupInfo(jitter, whoami(), lambda addr,value: set_win_str_w(jitter, addr, value))
 
 
 def kernel32_GetCurrentThreadId(jitter):
@@ -2336,7 +2341,7 @@ def user32_GetSystemMetrics(jitter):
 
 def wsock32_WSAStartup(jitter):
     ret_ad, args = jitter.func_args_stdcall(["version", "pwsadata"])
-    jitter.vm.set_mem(args.pwsadata, "\x01\x01\x02\x02WinSock 2.0\x00")
+    jitter.vm.set_mem(args.pwsadata, b"\x01\x01\x02\x02WinSock 2.0\x00")
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
@@ -2430,11 +2435,11 @@ def kernel32_CreateFileMapping(jitter, funcname, get_str):
 
 
 def kernel32_CreateFileMappingA(jitter):
-    kernel32_CreateFileMapping(jitter, whoami(), jitter.get_str_ansi)
+    kernel32_CreateFileMapping(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def kernel32_CreateFileMappingW(jitter):
-    kernel32_CreateFileMapping(jitter, whoami(), jitter.get_str_unic)
+    kernel32_CreateFileMapping(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def kernel32_MapViewOfFile(jitter):
@@ -2501,11 +2506,11 @@ def kernel32_GetDriveType(jitter, funcname, get_str):
 
 
 def kernel32_GetDriveTypeA(jitter):
-    kernel32_GetDriveType(jitter, whoami(), jitter.get_str_ansi)
+    kernel32_GetDriveType(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def kernel32_GetDriveTypeW(jitter):
-    kernel32_GetDriveType(jitter, whoami(), jitter.get_str_unic)
+    kernel32_GetDriveType(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def kernel32_GetDiskFreeSpace(jitter, funcname, get_str):
@@ -2522,11 +2527,11 @@ def kernel32_GetDiskFreeSpace(jitter, funcname, get_str):
 
 
 def kernel32_GetDiskFreeSpaceA(jitter):
-    kernel32_GetDiskFreeSpace(jitter, whoami(), jitter.get_str_ansi)
+    kernel32_GetDiskFreeSpace(jitter, whoami(), lambda addr:get_win_str_a(jitter, addr))
 
 
 def kernel32_GetDiskFreeSpaceW(jitter):
-    kernel32_GetDiskFreeSpace(jitter, whoami(), jitter.get_str_unic)
+    kernel32_GetDiskFreeSpace(jitter, whoami(), lambda addr:get_win_str_w(jitter, addr))
 
 
 def kernel32_VirtualQuery(jitter):
@@ -2574,7 +2579,7 @@ def msvcrt_srand(jitter):
 
 def msvcrt_wcslen(jitter):
     ret_ad, args = jitter.func_args_cdecl(["pwstr"])
-    s = jitter.get_str_unic(args.pwstr)
+    s = get_win_str_w(jitter, args.pwstr)
     jitter.func_ret_cdecl(ret_ad, len(s))
 
 def kernel32_SetFilePointer(jitter):
@@ -2777,8 +2782,8 @@ def user32_MessageBoxA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["hwnd", "lptext",
                                              "lpcaption", "utype"])
 
-    text = jitter.get_str_ansi(args.lptext)
-    caption = jitter.get_str_ansi(args.lpcaption)
+    text = get_win_str_a(jitter, args.lptext)
+    caption = get_win_str_a(jitter, args.lpcaption)
 
     log.info('Caption: %r Text: %r', caption, text)
 
@@ -2794,11 +2799,11 @@ def kernel32_myGetTempPath(jitter, set_str):
 
 
 def kernel32_GetTempPathA(jitter):
-    kernel32_myGetTempPath(jitter, jitter.set_str_ansi)
+    kernel32_myGetTempPath(jitter, lambda addr,value: set_win_str_a(jitter, addr, value))
 
 
 def kernel32_GetTempPathW(jitter):
-    kernel32_myGetTempPath(jitter, jitter.set_str_unic)
+    kernel32_myGetTempPath(jitter, lambda addr,value: set_win_str_w(jitter, addr, value))
 
 
 temp_num = 0
@@ -2809,8 +2814,8 @@ def kernel32_GetTempFileNameA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["path", "ext", "unique", "buf"])
 
     temp_num += 1
-    ext = jitter.get_str_ansi(args.ext) if args.ext else 'tmp'
-    path = jitter.get_str_ansi(args.path) if args.path else "xxx"
+    ext = get_win_str_a(jitter, args.ext) if args.ext else 'tmp'
+    path = get_win_str_a(jitter, args.path) if args.path else "xxx"
     fname = path + "\\" + "temp%.4d" % temp_num + "." + ext
     jitter.vm.set_mem(args.buf, fname)
 
@@ -2887,7 +2892,7 @@ class find_data_mngr(object):
 def kernel32_FindFirstFileA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["pfilepattern", "pfindfiledata"])
 
-    filepattern = jitter.get_str_ansi(args.pfilepattern)
+    filepattern = get_win_str_a(jitter, args.pfilepattern)
     h = winobjs.find_data.findfirst(filepattern)
 
     fname = winobjs.find_data.findnext(h)
@@ -2951,7 +2956,7 @@ def msvcrt__ultow(jitter):
     if not args.radix in [10, 16, 20]:
         raise ValueError("Not tested")
     s = int2base(value, args.radix)
-    jitter.vm.set_mem(args.p, jitter.set_str_unic(s + "\x00"))
+    jitter.vm.set_mem(args.p, lambda addr,value: set_win_str_w(jitter, addr, value)(s + "\x00"))
     jitter.func_ret_cdecl(ret_ad, args.p)
 
 
@@ -2978,15 +2983,15 @@ def msvcrt_myfopen(jitter, get_str):
 
 
 def msvcrt__wfopen(jitter):
-    msvcrt_myfopen(jitter, jitter.get_str_unic)
+    msvcrt_myfopen(jitter, lambda addr:get_win_str_w(jitter, addr))
 
 
 def msvcrt_fopen(jitter):
-    msvcrt_myfopen(jitter, jitter.get_str_ansi)
+    msvcrt_myfopen(jitter, lambda addr:get_win_str_a(jitter, addr))
 
 
 def msvcrt_strlen(jitter):
     ret_ad, args = jitter.func_args_cdecl(["src"])
 
-    s = jitter.get_str_ansi(args.src)
+    s = get_win_str_a(jitter, args.src)
     jitter.func_ret_cdecl(ret_ad, len(s))
