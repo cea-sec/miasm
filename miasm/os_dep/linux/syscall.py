@@ -154,7 +154,7 @@ def sys_arml_newuname(jitter, linux_env):
 def sys_generic_access(jitter, linux_env):
     # Parse arguments
     pathname, mode = jitter.syscall_args_systemv(2)
-    rpathname = jitter.get_str_ansi(pathname)
+    rpathname = jitter.get_c_str(pathname)
     rmode = mode
     if mode == 1:
         rmode = "F_OK"
@@ -173,7 +173,7 @@ def sys_generic_access(jitter, linux_env):
 def sys_x86_64_openat(jitter, linux_env):
     # Parse arguments
     dfd, filename, flags, mode = jitter.syscall_args_systemv(4)
-    rpathname = jitter.get_str_ansi(filename)
+    rpathname = jitter.get_c_str(filename)
     log.debug("sys_openat(%x, %r, %x, %x)", dfd, rpathname, flags, mode)
 
     # Stub
@@ -184,7 +184,7 @@ def sys_x86_64_openat(jitter, linux_env):
 def sys_x86_64_newstat(jitter, linux_env):
     # Parse arguments
     filename, statbuf = jitter.syscall_args_systemv(2)
-    rpathname = jitter.get_str_ansi(filename)
+    rpathname = jitter.get_c_str(filename)
     log.debug("sys_newstat(%r, %x)", rpathname, statbuf)
 
     # Stub
@@ -201,7 +201,7 @@ def sys_x86_64_newstat(jitter, linux_env):
 def sys_arml_stat64(jitter, linux_env):
     # Parse arguments
     filename, statbuf = jitter.syscall_args_systemv(2)
-    rpathname = jitter.get_str_ansi(filename)
+    rpathname = jitter.get_c_str(filename)
     log.debug("sys_newstat(%r, %x)", rpathname, statbuf)
 
     # Stub
@@ -229,7 +229,7 @@ def sys_x86_64_writev(jitter, linux_env):
         # };
         iovec = jitter.vm.get_mem(vec + iovec_num * 8 * 2, 8*2)
         iov_base, iov_len = struct.unpack("QQ", iovec)
-        fdesc.write(jitter.get_str_ansi(iov_base)[:iov_len])
+        fdesc.write(jitter.get_c_str(iov_base)[:iov_len])
 
     jitter.syscall_ret_systemv(vlen)
 
@@ -248,7 +248,7 @@ def sys_arml_writev(jitter, linux_env):
         # };
         iovec = jitter.vm.get_mem(vec + iovec_num * 4 * 2, 4*2)
         iov_base, iov_len = struct.unpack("II", iovec)
-        fdesc.write(jitter.get_str_ansi(iov_base)[:iov_len])
+        fdesc.write(jitter.get_c_str(iov_base)[:iov_len])
 
     jitter.syscall_ret_systemv(vlen)
 
@@ -433,7 +433,7 @@ def sys_x86_64_statfs(jitter, linux_env):
     # Parse arguments
     pathname = jitter.cpu.RDI
     buf = jitter.cpu.RSI
-    rpathname = jitter.get_str_ansi(pathname)
+    rpathname = jitter.get_c_str(pathname)
     log.debug("sys_statfs(%r, %x)", rpathname, buf)
 
     # Stub
@@ -486,7 +486,7 @@ def sys_arml_ioctl(jitter, linux_env):
 def sys_generic_open(jitter, linux_env):
     # Parse arguments
     filename, flags, mode = jitter.syscall_args_systemv(3)
-    rpathname = jitter.get_str_ansi(filename)
+    rpathname = jitter.get_c_str(filename)
     log.debug("sys_open(%r, %x, %x)", rpathname, flags, mode)
     # Stub
     # 'mode' is ignored
@@ -569,7 +569,7 @@ def sys_x86_64_newlstat(jitter, linux_env):
     # Parse arguments
     filename = jitter.cpu.RDI
     statbuf = jitter.cpu.RSI
-    rpathname = jitter.get_str_ansi(filename)
+    rpathname = jitter.get_c_str(filename)
     log.debug("sys_newlstat(%s, %x)", rpathname, statbuf)
 
     # Stub
@@ -587,7 +587,7 @@ def sys_arml_lstat64(jitter, linux_env):
     # Parse arguments
     filename = jitter.cpu.R0
     statbuf = jitter.cpu.R1
-    rpathname = jitter.get_str_ansi(filename)
+    rpathname = jitter.get_c_str(filename)
     log.debug("sys_newlstat(%s, %x)", rpathname, statbuf)
 
     # Stub
@@ -607,8 +607,8 @@ def sys_x86_64_lgetxattr(jitter, linux_env):
     name = jitter.cpu.RSI
     value = jitter.cpu.RDX
     size = jitter.cpu.R10
-    rpathname = jitter.get_str_ansi(pathname)
-    rname = jitter.get_str_ansi(name)
+    rpathname = jitter.get_c_str(pathname)
+    rname = jitter.get_c_str(name)
     log.debug("sys_lgetxattr(%r, %r, %x, %x)", rpathname, rname, value, size)
 
     # Stub
@@ -622,8 +622,8 @@ def sys_x86_64_getxattr(jitter, linux_env):
     name = jitter.cpu.RSI
     value = jitter.cpu.RDX
     size = jitter.cpu.R10
-    rpathname = jitter.get_str_ansi(pathname)
-    rname = jitter.get_str_ansi(name)
+    rpathname = jitter.get_c_str(pathname)
+    rname = jitter.get_c_str(name)
     log.debug("sys_getxattr(%r, %r, %x, %x)", rpathname, rname, value, size)
 
     # Stub
@@ -646,7 +646,7 @@ def sys_x86_64_connect(jitter, linux_env):
     fd = jitter.cpu.RDI
     uservaddr = jitter.cpu.RSI
     addrlen = jitter.cpu.RDX
-    raddr = jitter.get_str_ansi(uservaddr + 2)
+    raddr = jitter.get_c_str(uservaddr + 2)
     log.debug("sys_connect(%x, %r, %x)", fd, raddr, addrlen)
 
     # Stub
@@ -698,7 +698,7 @@ def sys_x86_64_readlink(jitter, linux_env):
     path = jitter.cpu.RDI
     buf = jitter.cpu.RSI
     bufsize = jitter.cpu.RDX
-    rpath = jitter.get_str_ansi(path)
+    rpath = jitter.get_c_str(path)
     log.debug("sys_readlink(%r, %x, %x)", rpath, buf, bufsize)
 
     # Stub

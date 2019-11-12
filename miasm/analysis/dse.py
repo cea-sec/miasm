@@ -52,7 +52,7 @@ from collections import namedtuple
 
 try:
     import z3
-except ImportError:
+except:
     z3 = None
 
 from future.utils import viewitems

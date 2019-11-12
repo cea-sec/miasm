@@ -5,6 +5,8 @@ from pdb import pm
 from miasm.loader import pe
 from miasm.analysis.sandbox import Sandbox_Win_x86_32
 
+from miasm.os_dep.common import get_win_str_a
+
 # User defined methods
 
 def kernel32_GetProcAddress(jitter):
@@ -17,7 +19,7 @@ def kernel32_GetProcAddress(jitter):
 
     # Handle ordinal imports
     fname = (args.fname if args.fname < 0x10000
-             else jitter.get_str_ansi(args.fname))
+             else get_win_str_a(jitter, args.fname))
     logging.error(fname)
 
     # Get the generated address of the library, and store it in memory to

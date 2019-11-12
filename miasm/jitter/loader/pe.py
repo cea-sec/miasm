@@ -12,6 +12,7 @@ from miasm.loader import *
 
 from miasm.jitter.csts import *
 from miasm.jitter.loader.utils import canon_libname_libfunc, libimp
+from miasm.core.utils import force_str
 
 log = logging.getLogger('loader_pe')
 hnd = logging.StreamHandler()
@@ -29,7 +30,27 @@ def get_pe_dependencies(pe_obj):
     out = set()
     for dependency in pe_obj.DirImport.impdesc:
         libname = dependency.dlldescname.name.lower()
+        # transform bytes to chr
+        if isinstance(libname, bytes):
+            libname_str = ''
+            for c in libname:
+                libname_str += chr(c)
+            libname = libname_str
         out.add(libname)
+
+    # If binary has redirected export, add dependencies
+    if pe_obj.DirExport.expdesc != None:
+        addrs = get_export_name_addr_list(pe_obj)
+        for imp_ord_or_name, ad in addrs:
+            # if export is a redirection, search redirected dll
+            # and get function real addr
+            ret = is_redirected_export(pe_obj, ad)
+            if ret is False:
+                continue
+            dllname, func_info = ret
+            dllname = dllname + '.dll'
+            out.add(dllname)
+
     return out
 
 
@@ -40,10 +61,11 @@ def get_import_address_pe(e):
     for s in e.DirImport.impdesc:
         # fthunk = e.rva2virt(s.firstthunk)
         # l = "%2d %-25s %s" % (i, repr(s.dlldescname), repr(s))
-        libname = s.dlldescname.name.lower()
+        libname = force_str(s.dlldescname.name.lower())
+
         for ii, imp in enumerate(s.impbynames):
             if isinstance(imp, pe.ImportByName):
-                funcname = imp.name
+                funcname = force_str(imp.name)
             else:
                 funcname = imp
             # l = "    %2d %-16s" % (ii, repr(funcname))
@@ -59,6 +81,7 @@ def preload_pe(vm, e, runtime_lib, patch_vm_imp=True):
     # log.debug('imported funcs: %s' % fa)
     for (libname, libfunc), ads in viewitems(fa):
         for ad in ads:
+            libname = force_str(libname)
             ad_base_lib = runtime_lib.lib_get_add_base(libname)
             ad_libfunc = runtime_lib.lib_get_add_func(ad_base_lib, libfunc, ad)
 
@@ -88,11 +111,12 @@ def is_redirected_export(pe_obj, addr):
     addr_end = pe_obj.virt.find(b'\x00', addr)
     data = pe_obj.virt.get(addr, addr_end)
 
-    dllname, func_info = data.split(b'.', 1)
+    data = force_str(data)
+    dllname, func_info = data.split('.', 1)
     dllname = dllname.lower()
 
     # Test if function is forwarded using ordinal
-    if func_info.startswith(b'#'):
+    if func_info.startswith('#'):
         func_info = int(func_info[1:])
     return dllname, func_info
 
@@ -102,7 +126,7 @@ def get_export_name_addr_list(e):
     # add func name
     for i, n in enumerate(e.DirExport.f_names):
         addr = e.DirExport.f_address[e.DirExport.f_nameordinals[i].ordinal]
-        f_name = n.name.name
+        f_name = force_str(n.name.name)
         # log.debug('%s %s' % (f_name, hex(e.rva2virt(addr.rva))))
         out.append((f_name, e.rva2virt(addr.rva)))
 
@@ -268,8 +292,7 @@ def vm_load_pe_libs(vm, libs_name, libs, lib_path_base, **kargs):
     """
     out = {}
     for fname in libs_name:
-        if not isinstance(fname, bytes):
-            fname = fname.encode('utf8')
+        assert isinstance(fname, str)
         out[fname] = vm_load_pe_lib(vm, fname, libs, lib_path_base, **kargs)
     return out
 
@@ -371,6 +394,27 @@ class libimp_pe(libimp):
         # dependency -> redirector
         self.created_redirected_imports = {}
 
+
+    def add_function(self, dllname, imp_ord_or_name, addr):
+        assert isinstance(dllname, str)
+        assert isinstance(imp_ord_or_name, (int, str))
+        libad = self.name2off[dllname]
+        c_name = canon_libname_libfunc(
+            dllname, imp_ord_or_name
+        )
+        update_entry = True
+        if addr in self.fad2info:
+            known_libad, known_imp_ord_or_name = self.fad2info[addr]
+            if isinstance(imp_ord_or_name, int):
+                update_entry = False
+        self.cname2addr[c_name] = addr
+        log.debug("Add func %s %s", hex(addr), c_name)
+        if update_entry:
+            log.debug("Real Add func %s %s", hex(addr), c_name)
+            self.fad2cname[addr] = c_name
+            self.fad2info[addr] = libad, imp_ord_or_name
+
+
     def add_export_lib(self, e, name):
         if name in self.created_redirected_imports:
             log.error("%r has previously been created due to redirect\
@@ -397,7 +441,7 @@ class libimp_pe(libimp):
             self.libbase_ad += 0x1000
 
             ads = get_export_name_addr_list(e)
-            todo = ads
+            todo = list(ads)
             # done = []
             while todo:
                 # for imp_ord_or_name, ad in ads:
@@ -408,15 +452,19 @@ class libimp_pe(libimp):
                 ret = is_redirected_export(e, ad)
                 if ret:
                     exp_dname, exp_fname = ret
-                    exp_dname = exp_dname + b'.dll'
+                    exp_dname = exp_dname + '.dll'
                     exp_dname = exp_dname.lower()
                     # if dll auto refes in redirection
                     if exp_dname == name:
                         libad_tmp = self.name2off[exp_dname]
-                        if not exp_fname in self.lib_imp2ad[libad_tmp]:
-                            # schedule func
-                            todo = [(imp_ord_or_name, ad)] + todo
-                            continue
+                        if isinstance(exp_fname, str):
+                            exp_fname = bytes(ord(c) for c in exp_fname)
+                        found = None
+                        for tmp_func, tmp_addr in ads:
+                            if tmp_func == exp_fname:
+                                found = tmp_addr
+                        assert found is not None
+                        ad = found
                     else:
                         # import redirected lib from non loaded dll
                         if not exp_dname in self.name2off:
@@ -428,8 +476,8 @@ class libimp_pe(libimp):
                         # Ensure function entry is created
                         _ = self.lib_get_add_func(new_lib_base, exp_fname)
 
-                    libad_tmp = self.name2off[exp_dname]
-                    ad = self.lib_imp2ad[libad_tmp][exp_fname]
+                        libad_tmp = self.name2off[exp_dname]
+                        ad = self.lib_imp2ad[libad_tmp][exp_fname]
 
                 self.lib_imp2ad[libad][imp_ord_or_name] = ad
                 name_inv = dict(
@@ -543,17 +591,59 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
         todo += [(name, os.path.join(lib_path_base, name), weight - 1)
                  for name in new_dependencies]
 
-    ordered_modules = sorted(viewitems(weight2name))
-    for _, modules in ordered_modules:
-        for name in modules:
-            pe_obj = name2module[name]
-            if pe_obj is None:
-                continue
-            # Fix imports
-            if pe_obj.DirExport:
-                runtime_lib.add_export_lib(pe_obj, name)
+    known_export_addresses = {}
+    to_resolve = {}
+    for name, pe_obj in name2module.items():
+        print(name)
+        if pe_obj is None:
+            continue
+        if pe_obj.DirExport.expdesc == None:
+            continue
+        addrs = get_export_name_addr_list(pe_obj)
+        for imp_ord_or_name, ad in addrs:
+            # if export is a redirection, search redirected dll
+            # and get function real addr
+            ret = is_redirected_export(pe_obj, ad)
+            if ret is False:
+                known_export_addresses[(name, imp_ord_or_name)] = ad
+            else:
+                dllname, func_info = ret
+                dllname = dllname + '.dll'
+                to_resolve[(name, imp_ord_or_name)] = (dllname, func_info)
 
-    for pe_obj in viewvalues(name2module):
+    modified = True
+    while modified:
+        modified = False
+        out = {}
+        for target, dependency in to_resolve.items():
+            dllname, funcname = dependency
+            if dependency in known_export_addresses:
+                known_export_addresses[target] = known_export_addresses[dependency]
+                modified = True
+            else:
+                log.error("Cannot resolve redirection %r %r", dllname, dependency)
+                raise RuntimeError('Cannot resolve redirection')
+        to_resolve = out
+
+    for dllname, pe_obj in name2module.items():
+        if pe_obj is None:
+            continue
+        ad = pe_obj.NThdr.ImageBase
+        libad = ad
+        runtime_lib.name2off[dllname] = ad
+        runtime_lib.libbase2lastad[ad] = ad + 0x1
+        runtime_lib.lib_imp2ad[ad] = {}
+        runtime_lib.lib_imp2dstad[ad] = {}
+        runtime_lib.libbase_ad += 0x1000
+
+    for (dllname, imp_ord_or_name), addr in known_export_addresses.items():
+        runtime_lib.add_function(dllname, imp_ord_or_name, addr)
+        libad = runtime_lib.name2off[dllname]
+        runtime_lib.lib_imp2ad[libad][imp_ord_or_name] = addr
+
+    assert not to_resolve
+
+    for dllname, pe_obj in name2module.items():
         if pe_obj is None:
             continue
         preload_pe(vm, pe_obj, runtime_lib, patch_vm_imp=True)
@@ -561,9 +651,10 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
     return name2module
 
 # machine -> arch
-PE_machine = {0x14c: "x86_32",
-              0x8664: "x86_64",
-              }
+PE_machine = {
+    0x14c: "x86_32",
+    0x8664: "x86_64",
+}
 
 
 def guess_arch(pe):

@@ -143,7 +143,7 @@ def xxx_puts(jitter):
 
 
 def get_fmt_args(jitter, fmt, cur_arg):
-    return _get_fmt_args(fmt, cur_arg, jitter.get_str_ansi, jitter.get_arg_n_systemv)
+    return _get_fmt_args(fmt, cur_arg, jitter.get_c_str, jitter.get_arg_n_systemv)
 
 
 def xxx_snprintf(jitter):
@@ -153,7 +153,7 @@ def xxx_snprintf(jitter):
     output = get_fmt_args(jitter, fmt, cur_arg)
     output = output[:size - 1]
     ret = len(output)
-    jitter.vm.set_mem(args.string, (output + '\x00').encode('utf8'))
+    jitter.set_c_str(args.string, output)
     return jitter.func_ret_systemv(ret_addr, ret)
 
 
@@ -162,7 +162,7 @@ def xxx_sprintf(jitter):
     cur_arg, fmt = 2, args.fmt
     output = get_fmt_args(jitter, fmt, cur_arg)
     ret = len(output)
-    jitter.vm.set_mem(args.string, (output + '\x00').encode('utf8'))
+    jitter.set_c_str(args.string, output)
     return jitter.func_ret_systemv(ret_addr, ret)
 
 
@@ -177,14 +177,14 @@ def xxx_printf(jitter):
 
 def xxx_strcpy(jitter):
     ret_ad, args = jitter.func_args_systemv(["dst", "src"])
-    str_src = jitter.get_str_ansi(args.src) + '\x00'
-    jitter.vm.set_mem(args.dst, str_src.encode('utf8'))
+    str_src = jitter.get_c_str(args.src)
+    jitter.set_c_str(args.dst, str_src)
     jitter.func_ret_systemv(ret_ad, args.dst)
 
 
 def xxx_strlen(jitter):
     ret_ad, args = jitter.func_args_systemv(["src"])
-    str_src = jitter.get_str_ansi(args.src)
+    str_src = jitter.get_c_str(args.src)
     jitter.func_ret_systemv(ret_ad, len(str_src))
 
 
@@ -201,13 +201,13 @@ def xxx_free(jitter):
 
 def xxx_strcmp(jitter):
     ret_ad, args = jitter.func_args_systemv(["ptr_str1", "ptr_str2"])
-    s1 = jitter.get_str_ansi(args.ptr_str1)
-    s2 = jitter.get_str_ansi(args.ptr_str2)
+    s1 = jitter.get_c_str(args.ptr_str1)
+    s2 = jitter.get_c_str(args.ptr_str2)
     jitter.func_ret_systemv(ret_ad, cmp_elts(s1, s2))
 
 
 def xxx_strncmp(jitter):
     ret_ad, args = jitter.func_args_systemv(["ptr_str1", "ptr_str2", "size"])
-    s1 = jitter.get_str_ansi(args.ptr_str1, args.size)
-    s2 = jitter.get_str_ansi(args.ptr_str2, args.size)
+    s1 = jitter.get_c_str(args.ptr_str1, args.size)
+    s2 = jitter.get_c_str(args.ptr_str2, args.size)
     jitter.func_ret_systemv(ret_ad, cmp_elts(s1, s2))

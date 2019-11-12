@@ -33,7 +33,7 @@ class TestLinuxStdlib(unittest.TestCase):
         jit.push_uint32_t(buf)
         jit.push_uint32_t(0) # ret_ad
         stdlib.xxx_sprintf(jit)
-        ret = jit.get_str_ansi(buf)
+        ret = jit.get_c_str(buf)
         self.assertEqual(ret, "'coucou' 1111")
 
 

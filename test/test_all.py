@@ -923,7 +923,7 @@ By default, all tag are considered." % ", ".join(list(TAGS)), default="")
     # Handle Z3 dependency
     try:
         import z3
-    except ImportError:
+    except:
         print("%(red)s[Z3]%(end)s " % cosmetics.colors + \
             "Z3 and its python binding are necessary for TranslatorZ3.")
         if TAGS["z3"] not in exclude_tags:

@@ -6,13 +6,13 @@ import logging
 from argparse import ArgumentParser
 
 from future.utils import viewitems, viewvalues
+from past.builtins import basestring
 
-from miasm.core.utils import force_bytes
 from miasm.analysis.machine import Machine
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm.analysis import debugging
 from miasm.jitter.jitload import log_func
-
+from miasm.core.utils import force_bytes
 
 
 class Sandbox(object):
@@ -51,8 +51,7 @@ class Sandbox(object):
         """
 
         # Initialize
-        if not isinstance(fname, bytes):
-            fname = fname.encode('utf8')
+        assert isinstance(fname, basestring)
         self.fname = fname
         self.options = options
         if custom_methods is None:
@@ -183,17 +182,18 @@ class Arch(object):
 
 class OS_Win(OS):
     # DLL to import
-    ALL_IMP_DLL = ["ntdll.dll", "kernel32.dll", "user32.dll",
-                   "ole32.dll", "urlmon.dll",
-                   "ws2_32.dll", 'advapi32.dll', "psapi.dll",
-                   ]
-    modules_path = b"win_dll"
+    ALL_IMP_DLL = [
+        "ntdll.dll", "kernel32.dll", "user32.dll",
+        "ole32.dll", "urlmon.dll",
+        "ws2_32.dll", 'advapi32.dll', "psapi.dll",
+    ]
+    modules_path = "win_dll"
 
     def __init__(self, custom_methods, *args, **kwargs):
         from miasm.jitter.loader.pe import vm_load_pe, vm_load_pe_libs,\
             preload_pe, libimp_pe, vm_load_pe_and_dependencies
         from miasm.os_dep import win_api_x86_32, win_api_x86_32_seh
-        methods = dict((name.encode(),func) for name, func in viewitems(win_api_x86_32.__dict__))
+        methods = dict((name, func) for name, func in viewitems(win_api_x86_32.__dict__))
         methods.update(custom_methods)
 
         super(OS_Win, self).__init__(methods, *args, **kwargs)

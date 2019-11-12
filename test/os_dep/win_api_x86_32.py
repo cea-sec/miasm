@@ -6,6 +6,7 @@ import unittest
 import logging
 from miasm.analysis.machine import Machine
 import miasm.os_dep.win_api_x86_32 as winapi
+from miasm.os_dep.win_api_x86_32 import get_win_str_a, get_win_str_w
 from miasm.core.utils import pck32
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
@@ -42,7 +43,7 @@ class TestWinAPI(unittest.TestCase):
         jit.push_uint32_t(buf)
         jit.push_uint32_t(0) # ret_ad
         winapi.msvcrt_sprintf(jit)
-        ret = jit.get_str_ansi(buf)
+        ret = get_win_str_a(jit, buf)
         self.assertEqual(ret, "'coucou' 1111")
 
 
@@ -63,7 +64,7 @@ class TestWinAPI(unittest.TestCase):
         jit.push_uint32_t(buf)
         jit.push_uint32_t(0) # ret_ad
         winapi.msvcrt_swprintf(jit)
-        ret = jit.get_str_unic(buf)
+        ret = get_win_str_w(jit, buf)
         self.assertEqual(ret, u"'coucou' 1111")
 
 
@@ -94,7 +95,7 @@ class TestWinAPI(unittest.TestCase):
         jit.push_uint32_t(size)   # size
         jit.push_uint32_t(0)      # @return
         winapi.kernel32_GetCurrentDirectoryA(jit)
-        dir_ = jit.get_str_ansi(addr)
+        dir_ = get_win_str_a(jit, addr)
         size_ret = jit.cpu.EAX
         self.assertEqual(len(dir_), size_ret)
 
@@ -106,7 +107,7 @@ class TestWinAPI(unittest.TestCase):
         winapi.kernel32_GetCurrentDirectoryA(jit)
         size_ret = jit.cpu.EAX
         self.assertEqual(len(dir_)+1, size_ret)
-        dir_short = jit.get_str_ansi(addr)
+        dir_short = get_win_str_a(jit, addr)
         self.assertEqual(dir_short, dir_[:4])
 
     def test_MemoryManagementFunctions(self):

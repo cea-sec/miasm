@@ -429,8 +429,8 @@ class Jitter(object):
         return self.cpu.get_exception() | self.vm.get_exception()
 
     # commun functions
-    def get_str_ansi(self, addr, max_char=None):
-        """Get ansi str from vm.
+    def get_c_str(self, addr, max_char=None):
+        """Get C str from vm.
         @addr: address in memory
         @max_char: maximum len"""
         l = 0
@@ -440,31 +440,21 @@ class Jitter(object):
             tmp += 1
             l += 1
         value = self.vm.get_mem(addr, l)
-        return value.decode('utf8')
+        value = force_str(value)
+        return value
+
+    def set_c_str(self, addr, value):
+        """Set C str str from vm.
+        @addr: address in memory
+        @value: str"""
+        value = force_bytes(value)
+        self.vm.set_mem(addr, value + b'\x00')
+
+    def get_str_ansi(self, addr, max_char=None):
+        raise NotImplementedError("Deprecated: use os_dep.win_api_x86_32.get_win_str_a")
 
     def get_str_unic(self, addr, max_char=None):
-        """Get unicode str from vm.
-        @addr: address in memory
-        @max_char: maximum len"""
-        l = 0
-        tmp = addr
-        while ((max_char is None or l < max_char) and
-               self.vm.get_mem(tmp, 2) != b"\x00\x00"):
-            tmp += 2
-            l += 2
-        s = self.vm.get_mem(addr, l)
-        s = s.decode("utf-16le")
-        return s
-
-    def set_str_ansi(self, addr, string):
-        """Set an ansi string in memory"""
-        string = (string + "\x00").encode('utf8')
-        self.vm.set_mem(addr, string)
-
-    def set_str_unic(self, addr, string):
-        """Set an unicode string in memory"""
-        s = (string + "\x00").encode('utf-16le')
-        self.vm.set_mem(addr, s)
+        raise NotImplementedError("Deprecated: use os_dep.win_api_x86_32.get_win_str_a")
 
     @staticmethod
     def handle_lib(jitter):
@@ -501,7 +491,6 @@ class Jitter(object):
         self.libs = libs
         out = {}
         for name, func in viewitems(user_globals):
-            name = force_bytes(name)
             out[name] = func
         self.user_globals = out
 
