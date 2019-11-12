@@ -15,7 +15,7 @@ from miasm.expression.expression_helper import possible_values
 
 try:
     import z3
-except ImportError:
+except:
     pass
 
 @total_ordering
