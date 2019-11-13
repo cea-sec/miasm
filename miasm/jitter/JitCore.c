@@ -41,6 +41,25 @@ PyObject * JitCpu_set_vmmngr(JitCpu *self, PyObject *value, void *closure)
 	return 0;
 }
 
+
+
+PyObject * JitCpu_get_vmcpu(JitCpu *self, void *closure)
+{
+	PyObject * ret;
+	uint64_t addr;
+	addr = (uint64_t) self->cpu;
+	ret = PyLong_FromUnsignedLongLong(addr);
+	return ret;
+}
+
+PyObject * JitCpu_set_vmcpu(JitCpu *self, PyObject *value, void *closure)
+{
+	fprintf(stderr, "Set vmcpu not supported yet\n");
+	exit(-1);
+}
+
+
+
 PyObject * JitCpu_get_jitter(JitCpu *self, void *closure)
 {
 	if (self->jitter) {

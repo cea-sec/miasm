@@ -203,6 +203,8 @@ void JitCpu_dealloc(JitCpu* self);
 PyObject * JitCpu_new(PyTypeObject *type, PyObject *args, PyObject *kwds);
 PyObject * JitCpu_get_vmmngr(JitCpu *self, void *closure);
 PyObject * JitCpu_set_vmmngr(JitCpu *self, PyObject *value, void *closure);
+PyObject * JitCpu_get_vmcpu(JitCpu *self, void *closure);
+PyObject * JitCpu_set_vmcpu(JitCpu *self, PyObject *value, void *closure);
 PyObject * JitCpu_get_jitter(JitCpu *self, void *closure);
 PyObject * JitCpu_set_jitter(JitCpu *self, PyObject *value, void *closure);
 void Resolve_dst(block_id* BlockDst, uint64_t addr, uint64_t is_local);
