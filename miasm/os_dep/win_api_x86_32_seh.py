@@ -553,7 +553,7 @@ def fake_seh_handler(jitter, except_code, previous_seh=None):
     @previous_seh: (optional) last SEH address when multiple SEH are used
     """
     global seh_count
-    log.warning('Exception at %x %r', jitter.cpu.EIP, seh_count)
+    log.info('Exception at %x %r', jitter.cpu.EIP, seh_count)
     seh_count += 1
 
     # Get space on stack for exception handling
@@ -576,7 +576,7 @@ def fake_seh_handler(jitter, except_code, previous_seh=None):
             seh = seh.Next.deref
         seh = seh.Next.deref
 
-    log.info(
+    log.debug(
         'seh_ptr %x { old_seh %r eh %r} ctx_addr %x',
         seh.get_addr(),
         seh.Next,
@@ -597,7 +597,7 @@ def fake_seh_handler(jitter, except_code, previous_seh=None):
     jitter.push_uint32_t(return_from_exception)         # Ret address
 
     # Set fake new current seh for exception
-    log.info("Fake seh ad %x", fake_seh_address)
+    log.debug("Fake seh ad %x", fake_seh_address)
     fake_seh = EXCEPTION_REGISTRATION_RECORD(jitter.vm, fake_seh_address)
     fake_seh.Next.val = tib.ExceptionList.val
     fake_seh.Handler = 0xaaaaaaaa
@@ -611,7 +611,7 @@ def fake_seh_handler(jitter, except_code, previous_seh=None):
     # XXX set ebx to nul?
     jitter.cpu.EBX = 0
 
-    log.info('Jumping at %r', seh.Handler)
+    log.debug('Jumping at %r', seh.Handler)
     return seh.Handler.val
 
 
@@ -620,16 +620,16 @@ def dump_seh(jitter):
     Walk and dump the SEH entries
     @jitter: jitter instance
     """
-    log.info('Dump_seh. Tib_address: %x', tib_address)
+    log.debug('Dump_seh. Tib_address: %x', tib_address)
     cur_seh_ptr = NT_TIB(jitter.vm, tib_address).ExceptionList
     loop = 0
     while cur_seh_ptr and jitter.vm.is_mapped(cur_seh_ptr.val,
                                               len(cur_seh_ptr)):
         if loop > MAX_SEH:
-            log.warn("Too many seh, quit")
+            log.debug("Too many seh, quit")
             return
         err = cur_seh_ptr.deref
-        log.info('\t' * (loop + 1) + 'seh_ptr: %x { prev_seh: %r eh %r }',
+        log.debug('\t' * (loop + 1) + 'seh_ptr: %x { prev_seh: %r eh %r }',
                  err.get_addr(), err.Next, err.Handler)
         cur_seh_ptr = err.Next
         loop += 1
@@ -656,27 +656,27 @@ def return_from_seh(jitter):
     context_address = jitter.vm.get_u32(jitter.cpu.ESP + 0x8)
 
     # Get registers changes
-    log.info('Context address: %x', context_address)
+    log.debug('Context address: %x', context_address)
     status = jitter.cpu.EAX
     ctxt2regs(jitter, context_address)
 
     # Rebuild SEH (remove fake SEH)
     tib = NT_TIB(jitter.vm, tib_address)
     seh = tib.ExceptionList.deref
-    log.info('Old seh: %x New seh: %x', seh.get_addr(), seh.Next.val)
+    log.debug('Old seh: %x New seh: %x', seh.get_addr(), seh.Next.val)
     tib.ExceptionList.val = seh.Next.val
     dump_seh(jitter)
 
     # Handle returned values
     if status == 0x0:
         # ExceptionContinueExecution
-        log.info('SEH continue')
+        log.debug('SEH continue')
         jitter.pc = jitter.cpu.EIP
-        log.info('Context::Eip: %x', jitter.pc)
+        log.debug('Context::Eip: %x', jitter.pc)
 
     elif status == 1:
         # ExceptionContinueSearch
-        log.info("Delegate to the next SEH handler")
+        log.debug("Delegate to the next SEH handler")
         # exception_base_address: context_address - 0xfc
         # -> exception_record_address: exception_base_address + 0xe8
         exception_record = EXCEPTION_RECORD(jitter.vm,
