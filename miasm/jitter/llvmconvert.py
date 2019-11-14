@@ -1210,7 +1210,9 @@ class LLVMFunction(object):
         if isinstance(expr, ExprMem):
 
             addr = self.add_ir(expr.ptr)
-            return self.llvm_context.memory_lookup(self, addr, expr.size)
+            ret = self.llvm_context.memory_lookup(self, addr, expr.size)
+            self.update_cache(expr, ret)
+            return ret
 
         if isinstance(expr, ExprCond):
             # Compute cond
