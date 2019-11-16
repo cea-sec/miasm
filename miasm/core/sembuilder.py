@@ -336,10 +336,11 @@ class SemBuilder(object):
                                                               ctx=ast.Load())],
                                                ctx=ast.Load())))
 
-        ret = ast.Module([ast.FunctionDef(name=fc_ast.name,
-                                          args=fc_ast.args,
-                                          body=body,
-                                          decorator_list=[])])
+        ret = ast.parse('')
+        ret.body = [ast.FunctionDef(name=fc_ast.name,
+                                    args=fc_ast.args,
+                                    body=body,
+                                    decorator_list=[])]
 
         # To display the generated function, use codegen.to_source
         # codegen: https://github.com/andreif/codegen
