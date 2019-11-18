@@ -279,7 +279,7 @@ if args.gen_ir:
             raise RuntimeError("Your graph should have only one head")
         ssa = SSADiGraph(ircfg_a)
         ssa.transform(head)
-        open("ssa.dot", "wb").write(ircfg_a.dot())
+        open("ssa.dot", "w").write(ircfg_a.dot())
 
 
 if args.propagexpr:
