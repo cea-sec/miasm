@@ -5786,7 +5786,7 @@ class ir_x86_16(IntermediateRepresentation):
             instr.name.lower()](self, instr, *args)
         self.mod_pc(instr, instr_ir, extra_ir)
         instr.additional_info.except_on_instr = False
-        if instr.additional_info.g1.value & 6 == 0 or \
+        if instr.additional_info.g1.value & 14 == 0 or \
                 not instr.name in repeat_mn:
             return instr_ir, extra_ir
         if instr.name == "MOVSD" and len(instr.args) == 2:
