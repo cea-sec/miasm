@@ -654,7 +654,10 @@ class ExprLoc(Expr):
         return str(self._loc_key)
 
     def get_r(self, mem_read=False, cst_read=False):
-        return set()
+        if cst_read:
+            return set([self])
+        else:
+            return set()
 
     def get_w(self):
         return set()
