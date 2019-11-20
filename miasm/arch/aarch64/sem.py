@@ -1502,3 +1502,4 @@ class ir_aarch64b(ir_aarch64l):
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 64)
+        self.addrsize = 64

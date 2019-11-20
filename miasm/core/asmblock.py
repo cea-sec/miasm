@@ -1570,7 +1570,7 @@ class disasmEngine(object):
         warnings.warn('DEPRECATION WARNING: use "dis_block" instead of "dis_bloc"')
         return self.dis_block(offset)
 
-    def dis_multiblock(self, offset, blocks=None):
+    def dis_multiblock(self, offset, blocks=None, job_done=None):
         """Disassemble every block reachable from @offset regarding
         specific disasmEngine conditions
         Return an AsmCFG instance containing disassembled blocks
@@ -1579,7 +1579,8 @@ class disasmEngine(object):
                 merge with
         """
         log_asmblock.info("dis block all")
-        job_done = set()
+        if job_done is None:
+            job_done = set()
         if blocks is None:
             blocks = AsmCFG(self.loc_db)
         todo = [offset]
