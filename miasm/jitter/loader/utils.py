@@ -13,7 +13,7 @@ log.setLevel(logging.DEBUG)
 
 def canon_libname_libfunc(libname, libfunc):
     assert isinstance(libname, basestring)
-    assert isinstance(libfunc, basestring) or isinstance(libfunc, int)
+    assert isinstance(libfunc, basestring) or isinstance(libfunc, int_types)
     dn = libname.split('.')[0]
     if isinstance(libfunc, int_types):
         return str(dn), libfunc
