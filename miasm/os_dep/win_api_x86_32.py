@@ -868,14 +868,14 @@ def kernel32_CreateMutex(jitter, funcname, get_str):
             raise NotImplementedError("Untested case")
             # ret = 0
         else:
-            winobjs.mutex[name] = id(name)
+            winobjs.mutex[name] = id(name) & 0xFFFFFFFF
             ret = winobjs.mutex[name]
     else:
         if name in winobjs.mutex:
             raise NotImplementedError("Untested case")
             # ret = 0
         else:
-            winobjs.mutex[name] = id(name)
+            winobjs.mutex[name] = id(name) & 0xFFFFFFFF
             ret = winobjs.mutex[name]
     jitter.func_ret_stdcall(ret_ad, ret)
 
@@ -1670,7 +1670,7 @@ def my_CreateEvent(jitter, funcname, get_str):
         winobjs.events_pool[s] = (args.bmanualreset, args.binitialstate)
     else:
         log.warning('WARNING: known event')
-    jitter.func_ret_stdcall(ret_ad, id(s))
+    jitter.func_ret_stdcall(ret_ad, id(s) & 0xFFFFFFFF)
 
 
 def kernel32_CreateEventA(jitter):
