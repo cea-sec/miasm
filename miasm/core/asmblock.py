@@ -1227,8 +1227,23 @@ def assemble_block(mnemo, block, loc_db, conservative=False):
             instr.fixDstOffset()
 
         old_l = instr.l
-        cached_candidate, _ = conservative_asm(mnemo, instr, loc_db,
-                                               conservative)
+        cached_candidate, _ = conservative_asm(
+            mnemo, instr, loc_db,
+            conservative
+        )
+        if len(cached_candidate) != instr.l:
+            # The output instruction length is different from the one we guessed
+            # Retry assembly with updated length
+            instr.l = len(cached_candidate)
+            instr.args = saved_args
+            instr.args = instr.resolve_args_with_symbols(loc_db)
+            if instr.dstflow():
+                instr.fixDstOffset()
+            cached_candidate, _ = conservative_asm(
+                mnemo, instr, loc_db,
+                conservative
+            )
+            assert len(cached_candidate) == instr.l
 
         # Restore original arguments
         instr.args = saved_args
