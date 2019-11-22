@@ -3795,6 +3795,8 @@ addop("movmskps", [bs8(0x0f), bs8(0x50), no_xmm_pref] +
 addop("movmskpd", [bs8(0x0f), bs8(0x50), pref_66] +
       rmmod(reg_modrm, rm_arg_xmm_reg))
 
+addop("movnti", [bs8(0x0f), bs8(0xc3)] + rmmod(rmreg), [rm_arg, rmreg])
+
 addop("addss", [bs8(0x0f), bs8(0x58), pref_f3] + rmmod(xmm_reg, rm_arg_xmm_m32))
 addop("addsd", [bs8(0x0f), bs8(0x58), pref_f2] + rmmod(xmm_reg, rm_arg_xmm_m64))
 

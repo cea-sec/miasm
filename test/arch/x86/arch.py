@@ -1538,6 +1538,10 @@ reg_tests = [
     (m64, "00000000    MOVSXD     R8, EAX",
      "4c63c0"),
 
+    (m32, "XXXXXXXX    MOVNTI     DWORD PTR [ECX + 0xFFFFFFFC], EDX",
+    "0fc351fc"),
+    (m64, "XXXXXXXX    MOVNTI     QWORD PTR [RCX + 0xFFFFFFFFFFFFFFFC], R10",
+    "4C0FC351FC"),
 
     (m32, "00000000    MUL        BYTE PTR [EAX]",
      "f620"),
