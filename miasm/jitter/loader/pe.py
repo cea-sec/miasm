@@ -30,12 +30,8 @@ def get_pe_dependencies(pe_obj):
     out = set()
     for dependency in pe_obj.DirImport.impdesc:
         libname = dependency.dlldescname.name.lower()
-        # transform bytes to chr
-        if isinstance(libname, bytes):
-            libname_str = ''
-            for c in libname:
-                libname_str += chr(c)
-            libname = libname_str
+        # transform bytes to str
+        libname = force_str(libname)
         out.add(libname)
 
     # If binary has redirected export, add dependencies
