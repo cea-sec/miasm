@@ -413,6 +413,16 @@ class Jitter(object):
 
         return None
 
+
+    def run(self, addr):
+        """
+        Launch emulation
+        @addr: (int) start address
+        """
+        self.init_run(addr)
+        return self.continue_run()
+
+
     def init_stack(self):
         self.vm.add_memory_page(
             self.stack_base,
