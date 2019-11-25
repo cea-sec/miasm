@@ -476,18 +476,30 @@ class PE(object):
             return
         return off - section.offset + section.addr
 
-    def virt2rva(self, virt):
-        if virt is None:
-            return
-        return virt - self.NThdr.ImageBase
+    def virt2rva(self, addr):
+        """
+        Return rva of virtual address @addr; None if addr is below ImageBase
+        """
+        if addr is None:
+            return None
+        rva = addr - self.NThdr.ImageBase
+        if rva < 0:
+            return None
+        return rva
 
     def rva2virt(self, rva):
         if rva is None:
             return
         return rva + self.NThdr.ImageBase
 
-    def virt2off(self, virt):
-        return self.rva2off(self.virt2rva(virt))
+    def virt2off(self, addr):
+        """
+        Return offset of virtual address @addr
+        """
+        rva = self.virt2rva(addr)
+        if rva is None:
+            return None
+        return self.rva2off(rva)
 
     def off2virt(self, off):
         return self.rva2virt(self.off2rva(off))

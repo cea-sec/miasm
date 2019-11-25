@@ -323,8 +323,12 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
     addrs = list(all_mem)
     addrs.sort()
     entry_point = mye.virt2rva(myjit.pc)
-    if not 0 < entry_point < 0xFFFFFFFF:
-        raise ValueError("Cannot compute a valid entry point RVA")
+    if entry_point is None or not 0 < entry_point < 0xFFFFFFFF:
+        raise ValueError(
+            "Current pc (0x%x) used as entry point seems to be out of the binary" %
+            myjit.pc
+        )
+
     mye.Opthdr.AddressOfEntryPoint = entry_point
     first = True
     for ad in addrs:
