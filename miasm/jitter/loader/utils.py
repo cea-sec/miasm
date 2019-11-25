@@ -8,7 +8,7 @@ log = logging.getLogger('loader_common')
 hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 def canon_libname_libfunc(libname, libfunc):
@@ -39,9 +39,9 @@ class libimp(object):
         assert isinstance(name, basestring)
         name = name.lower().strip(' ')
         if not "." in name:
-            log.debug('warning adding .dll to modulename')
+            log.warning('warning adding .dll to modulename')
             name += '.dll'
-            log.debug(name)
+            log.warning(name)
 
         if name in self.name2off:
             ad = self.name2off[name]
