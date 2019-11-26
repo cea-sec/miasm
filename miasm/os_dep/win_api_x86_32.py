@@ -757,7 +757,6 @@ def kernel32_VirtualProtect(jitter):
         old = jitter.vm.get_mem_access(args.lpvoid)
         jitter.vm.set_u32(args.lpfloldprotect, ACCESS_DICT_INV[old])
 
-    print("XXX VIRTUALP")
     log.warn("set page %x %x", args.lpvoid, args.dwsize)
     for addr, data in jitter.vm.get_all_memory().items():
         size = data["size"]

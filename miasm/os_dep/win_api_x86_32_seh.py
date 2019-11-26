@@ -130,16 +130,16 @@ def build_peb(jitter, peb_address):
     """
 
     if main_pe:
-        offset, length = peb_address + 8, 4
+        offset, length = 8, 4
     else:
-        offset, length = peb_address + 0xC, 0
+        offset, length = 0xC, 0
     length += 4
 
     jitter.vm.add_memory_page(
-        offset,
+        peb_address + offset,
         PAGE_READ | PAGE_WRITE,
         b"\x00" * length,
-        "PEB"
+        "PEB + 0x%x" % offset
     )
 
     Peb = PEB(jitter.vm, peb_address)

@@ -125,16 +125,26 @@ class interval(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def __add__(self, i):
-        if isinstance(i, interval):
-            i = i.intervals
-        i = interval(self.intervals + i)
-        return i
+    def union(self, other):
+        """
+        Return the union of intervals
+        @other: interval instance
+        """
 
-    def __sub__(self, v):
+        if isinstance(other, interval):
+            other = other.intervals
+        other = interval(self.intervals + other)
+        return other
+
+    def difference(self, other):
+        """
+        Return the difference of intervals
+        @other: interval instance
+        """
+
         to_test = self.intervals[:]
         i = -1
-        to_del = v.intervals[:]
+        to_del = other.intervals[:]
         while i < len(to_test) - 1:
             i += 1
             x = to_test[i]
@@ -181,12 +191,17 @@ class interval(object):
                     raise ValueError('unknown state', rez)
         return interval(to_test)
 
-    def __and__(self, v):
+    def intersection(self, other):
+        """
+        Return the intersection of intervals
+        @other: interval instance
+        """
+
         out = []
         for x in self.intervals:
             if x[0] > x[1]:
                 continue
-            for y in v.intervals:
+            for y in other.intervals:
                 rez = cmp_interval(x, y)
 
                 if rez == INT_DISJOIN:
@@ -213,6 +228,16 @@ class interval(object):
                 else:
                     raise ValueError('unknown state', rez)
         return interval(out)
+
+
+    def __add__(self, other):
+        return self.union(other)
+
+    def __and__(self, other):
+        return self.intersection(other)
+
+    def __sub__(self, other):
+        return self.difference(other)
 
     def hull(self):
         "Return the first and the last bounds of intervals"
