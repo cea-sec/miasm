@@ -40,7 +40,7 @@ taint_init_colors(uint64_t nb_colors, uint64_t nb_registers, uint32_t max_regist
 	taint_colors->nb_registers = nb_registers;
 	taint_colors->max_register_size = max_register_size;
 
-	int i;
+	uint64_t i;
 	for (i = 0 ; i < nb_colors ; i++)
 	{
 		taint_colors->colors[i] = taint_init_color(nb_registers, max_register_size);
@@ -108,7 +108,7 @@ taint_check_register(uint64_t register_index,
 		fprintf(stderr,
 			"TAINT: register %"PRIu64" does not have more than "
 			"%"PRIu32" bytes.\n You tried to start reading at "
-			"byte %"PRIu32"(+1).\n",
+			"byte %"PRIu64"(+1).\n",
 			register_index,
 			max_register_size,
 			interval->start);
@@ -119,7 +119,7 @@ taint_check_register(uint64_t register_index,
 		fprintf(stderr,
 			"TAINT: register %"PRIu64" does not have more than "
 			"%"PRIu32" bytes.\n You tried to reading until byte "
-			"%"PRIu32" (+1).\n",
+			"%"PRIu64" (+1).\n",
 			register_index,
 			max_register_size,
 			interval->end);
@@ -128,8 +128,8 @@ taint_check_register(uint64_t register_index,
 	if (interval->end < interval->start)
 	{
 		fprintf(stderr,
-			"TAINT: register %"PRIu64" -> You tried to reading "
-			"from byte %"PRIu32" to byte %"PRIu32"\n",
+			"TAINT: register %"PRIu64" -> You tried to read "
+			"from byte %"PRIu64" to byte %"PRIu64"\n",
 			register_index,
 			interval->start,
 			interval->end);
@@ -189,7 +189,7 @@ taint_get_register(uint32_t* registers,
 	{
 		if (bitfield_test_bit(registers, register_index*max_register_size+index))
 		{
-			if (tainted_interval->start == -1)
+			if (tainted_interval->start == (uint64_t)-1)
 			{
 				tainted_interval->start = index;
 				tainted_interval->end = index;
@@ -208,7 +208,7 @@ taint_get_register(uint32_t* registers,
 		}
 	}
 
-	if (tainted_interval->start == -1)
+	if (tainted_interval->start == (uint64_t)-1)
 	{
 		// No taint
 		free(tainted_interval);
@@ -231,7 +231,7 @@ taint_color_remove_all_registers(struct taint_colors_t *colors, uint64_t color_i
 void
 taint_remove_all_registers(struct taint_colors_t *colors)
 {
-	int color_index;
+	uint64_t color_index;
 	for (color_index = 0 ; color_index < colors->nb_colors ; color_index++)
 	{
 		taint_color_remove_all_registers(colors, color_index);
@@ -336,7 +336,7 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 					      (addr + i) - mpn->ad))
 			{
 
-				if (tainted_interval->start == -1)
+				if (tainted_interval->start == (uint64_t)-1)
 				{
 					tainted_interval->start = i;
 					tainted_interval->end = i;
@@ -379,7 +379,8 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 			}
 			if (bitfield_test_bit(mpn->taint[color_index],
 					      (addr + i) - mpn->ad))
-				if (tainted_interval->start == -1)
+            {
+				if (tainted_interval->start == (uint64_t)-1)
 				{
 					tainted_interval->start = i;
 					tainted_interval->end = i;
@@ -396,10 +397,11 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 					}
 					tainted_interval->end = i;
 				}
+            }
 
 		}
 	}
-	if (tainted_interval->start == -1)
+	if (tainted_interval->start == (uint64_t)-1)
 	{
 		// No taint
 		free(tainted_interval);
@@ -412,8 +414,8 @@ void
 taint_remove_all_memory(vm_mngr_t* vm_mngr)
 {
 	int i;
-	int j;
-	int k;
+	size_t j;
+	uint64_t k;
 	for (i = 0; i < vm_mngr->memory_pages_number ; i++)
 	{
 		for ( k = 0; k < vm_mngr->nb_colors ; k++)
@@ -432,7 +434,7 @@ void
 taint_color_remove_all_memory(vm_mngr_t* vm_mngr, uint64_t color_index)
 {
 	int page_number;
-	int index;
+	size_t index;
 	for (page_number = 0; page_number < vm_mngr->memory_pages_number ; page_number++)
 	{
 		for(index = 0;
@@ -567,7 +569,7 @@ taint_init_callback_info(uint64_t nb_registers, uint32_t max_register_size)
 void
 taint_clean_all_callback_info(struct taint_colors_t *colors)
 {
-	int color_index;
+	uint64_t color_index;
 
 	for(color_index = 0; color_index < colors->nb_colors ; color_index++)
 	{
@@ -580,7 +582,7 @@ taint_clean_callback_info(struct taint_colors_t *colors,
 			  uint64_t color_index
 			  )
 {
-	int i;
+	uint64_t i;
 
 	for(i = 0;
 	    i < BIT_FIELD_SIZE(colors->nb_registers*colors->max_register_size)
@@ -711,9 +713,9 @@ cpu_access_register(JitCpu* cpu, PyObject* args, uint32_t access_type)
 	PyObject *color_index_py;
 	PyObject *register_index_py;
 	PyObject *start_py;
-	start_py = PyInt_FromLong(DEFAULT_REG_START);
+	start_py = PyLong_FromLong(DEFAULT_REG_START);
 	PyObject *end_py;
-	end_py = PyInt_FromLong(cpu->taint_analysis->max_register_size-1);
+	end_py = PyLong_FromLong(cpu->taint_analysis->max_register_size-1);
 	uint64_t color_index;
 	uint64_t register_index;
 	uint64_t start;
@@ -897,7 +899,7 @@ cpu_init_taint(JitCpu* self, PyObject* args)
 	 * variables.'
 	 * -> That why we initialize it to the default value.
 	 */
-	max_register_size_py = PyInt_FromLong(DEFAULT_MAX_REG_SIZE);
+	max_register_size_py = PyLong_FromLong(DEFAULT_MAX_REG_SIZE);
 
 	uint64_t nb_regs;
 	uint64_t nb_colors;
@@ -938,7 +940,7 @@ cpu_get_registers(uint32_t* registers,
 	interval_arg->start = DEFAULT_REG_START;
 	interval_arg->end = DEFAULT_MAX_REG_SIZE-1;
 
-	int register_index;
+	uint64_t register_index;
 	for( register_index = 0; register_index < nb_registers; register_index++)
 	{
 		interval = taint_get_register(registers,
@@ -951,9 +953,9 @@ cpu_get_registers(uint32_t* registers,
 			PyObject *start;
 			PyObject *end;
 
-			register_index_py = PyInt_FromLong(register_index);
-			start = PyInt_FromLong(interval->start);
-			end = PyInt_FromLong(interval->end);
+			register_index_py = PyLong_FromLong(register_index);
+			start = PyLong_FromLong(interval->start);
+			end = PyLong_FromLong(interval->end);
 
 			PyObject *tuple = PyTuple_New(3);
 
@@ -1015,7 +1017,7 @@ cpu_get_memory(vm_mngr_t* vm_mngr, uint64_t color_index)
 	uint64_t addr;
 	uint64_t size = 0;
 	int page_number;
-	int i;
+	size_t i;
 	for( page_number = 0;
 	     page_number < vm_mngr->memory_pages_number;
 	     page_number++)
@@ -1089,7 +1091,7 @@ cpu_get_last_memory(JitCpu* cpu, PyObject* args, uint32_t event_type)
 
 	PyObject *modified_memory = PyList_New(0);
 
-	int i;
+	uint64_t i;
 
 	for( i = 0; i < last_modify.nb_mem; i++)
 	{
