@@ -4,7 +4,7 @@
 
 
 <p align="center">
-<img src="doc/logo_miasm.png">
+<img src="https://raw.githubusercontent.com/cea-sec/miasm/master/doc/logo_miasm.png">
 </p>
 
 
