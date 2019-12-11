@@ -109,7 +109,7 @@ class ESETrackModif(EmulatedSymbExec):
 
     def mem_read(self, expr_mem):
         if not expr_mem.ptr.is_int():
-            return expr_mem
+            return super(ESETrackModif, self).mem_read(expr_mem)
         dst_addr = int(expr_mem.ptr)
 
         # Split access in atomic accesses
