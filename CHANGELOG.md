@@ -2,6 +2,55 @@
 
 ## [Unreleased]
 
+## 0.1.2 - 2019-12-11
+### Added
+- `find_path_from_src` added by @nofiv to DiGraph
+- Some simplifications (cst == X+ cst; X ^cst = cst)
+- Add a cache for C types
+- IR Simplifier
+- Add "remove_breakpoints_by_address" capability to jitter
+- compose_and_mask simplification by @icecr4ck
+- X86: high level op saturation semantic
+- Add extended tests for travis
+- memory breakpoint example by @idl3r
+- Miasm Logo
+
+### Fixed
+- Support Python2/Python3 done with @p-l-
+- Aarch64/PPC/x86 instructions/semantic
+- rev16/nop/ldrsb added by @hax0kartik
+- x86 rep instruction fixed by @nofiv
+- x86 ENDBR32/ENDBR64/CET fixed by @WilliamBruneau
+- SSA unused var
+- .shift to .base_address by @su-vikas
+- Propagate Phi with same sources
+- Clean unssa code
+- simplification fixed by @jie-lin
+- simplification fixed by @icecr4ck
+- Update/clean jitter code
+ - PyGetInt/Python3/Bignum fix by @WilliamBruneau
+- macOS code fix by @trufae
+- macOS fix/updt by @icecr4ck
+- tipo by @Spl3en
+- Rename/Include `elfesteem` as `loader` in Miasm
+- Fix str/bytes by @carolineLe
+- Fix loader vm2pe by @WilliamBruneau
+- Codespell by @WilliamBruneau
+- internal representation for path as str
+- int1 handling by @losynix
+- x86 fix (ud2, roundsd, ir) by @htfy96
+- IDA graph example by @WilliamBruneau
+- Compilation on android by @WilliamBruneau
+- fix imports by @themaks
+- fix readme by @monperrus
+- get_win_str_[aw]/set_win_str_[aw] API out of jitter
+- get_c_str/set_c_str API in jitter
+- sembuilder fix by @htfy96
+- x86/rep by @a-vincent
+- Add simplifications regression tests
+- add sc2pe/get_export by @WilliamBruneau
+
+
 ## 0.1.1 - 2019-01-16
 ### Added
 - Graph: add postdominators computation from [@GAJaloyan](https://github.com/GAJaloyan)
