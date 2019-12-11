@@ -4,6 +4,9 @@ from __future__ import print_function
 from distutils.core import setup, Extension
 from distutils.util import get_platform
 from distutils.sysconfig import get_python_lib, get_config_vars
+from distutils.dist import DistributionMetadata
+from distutils.command.install_data import install_data
+from tempfile import TemporaryFile
 import io
 import os
 import platform
@@ -18,6 +21,20 @@ def set_extension_compile_args(extension):
     abs_lib_path = os.path.join(get_python_lib(), rel_lib_path)
     lib_name = abs_lib_path + '.so'
     extension.extra_link_args = [ '-Wl,-install_name,' + lib_name]
+
+
+class smart_install_data(install_data):
+    """Replacement for distutils.command.install_data to handle
+    configuration files location.
+    """
+    def run(self):
+        # install files to /etc when target was /usr(/local)/etc
+        self.data_files = [
+            (path, files) for path, files in self.data_files
+            if path  # skip README.md or any file with an empty path
+        ]
+        return install_data.run(self)
+
 
 def buil_all():
     packages=[
@@ -163,6 +180,7 @@ def buil_all():
                 name = "miasm",
                 version = __import__("miasm").VERSION,
                 packages = packages,
+                data_files=[('', ["README.md"])],
                 package_data = {
                     "miasm": [
                         "jitter/*.h",
@@ -170,13 +188,15 @@ def buil_all():
                         "VERSION"
                     ]
                 },
+                cmdclass={"install_data": smart_install_data},
                 ext_modules = ext_modules,
                 # Metadata
                 author = "Fabrice Desclaux",
                 author_email = "serpilliere@droid-corp.org",
                 description = "Machine code manipulation library",
                 license = "GPLv2",
-                long_description=io.open('README.md', encoding='utf-8').read(),
+                long_description=long_description,
+                long_description_content_type=long_description_content_type,
                 keywords = [
                     "reverse engineering",
                     "disassembler",
@@ -184,6 +204,12 @@ def buil_all():
                     "symbolic execution",
                     "intermediate representation",
                     "assembler",
+                ],
+                classifiers=[
+                    "Programming Language :: Python :: 2",
+                    "Programming Language :: Python :: 3",
+                    "Programming Language :: Python :: 2.7",
+                    "Programming Language :: Python :: 3.6",
                 ],
                 url = "http://miasm.re",
             )
@@ -228,6 +254,36 @@ def buil_all():
             if not os.path.isfile(dst):
                 print("Copying", lib, "to", dst)
                 copy2(lib, dst)
+
+
+with io.open(os.path.join(os.path.abspath(os.path.dirname('__file__')),
+                       'README.md'), encoding='utf-8') as fdesc:
+    long_description = fdesc.read()
+long_description_content_type = 'text/markdown'
+
+
+# Monkey patching (distutils does not handle Description-Content-Type
+# from long_description_content_type parameter in setup()).
+_write_pkg_file_orig = DistributionMetadata.write_pkg_file
+
+
+def _write_pkg_file(self, file):
+    with TemporaryFile(mode="w+") as tmpfd:
+        _write_pkg_file_orig(self, tmpfd)
+        tmpfd.seek(0)
+        for line in tmpfd:
+            if line.startswith('Metadata-Version: '):
+                file.write('Metadata-Version: 2.1\n')
+            elif line.startswith('Description: '):
+                file.write('Description-Content-Type: %s; charset=UTF-8\n' %
+                           long_description_content_type)
+                file.write(line)
+            else:
+                file.write(line)
+
+
+DistributionMetadata.write_pkg_file = _write_pkg_file
+
 
 buil_all()
 
