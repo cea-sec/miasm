@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## 0.1.3 - 2019-12-12
+### Added
+- Miasm can be installed with PIP (https://pypi.org/project/miasm/)
+
+### Fixed
+- Fixed DSE mem_read
+
+
 ## 0.1.2 - 2019-12-11
 ### Added
 - `find_path_from_src` added by @nofiv to DiGraph
