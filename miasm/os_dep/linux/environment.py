@@ -292,7 +292,6 @@ class FileSystem(object):
             path = path.lstrip(path_sep)
             out_path = os.path.join(base_path, path)
 
-        assert out_path.startswith(base_path + path_sep)
 
         if os.path.islink(out_path):
             link_target = os.readlink(out_path)
@@ -302,6 +301,8 @@ class FileSystem(object):
                 out_path = self.resolve_path(link)
             else:
                 out_path = link
+
+        assert out_path.startswith(base_path + path_sep)
 
         log.debug("-> {!r}".format(out_path))
 
