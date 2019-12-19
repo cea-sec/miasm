@@ -44,7 +44,7 @@ EXCEPTION_ILLEGAL_INSTRUCTION = 0xc000001d
 
 log = logging.getLogger("seh_helper")
 console_handler = logging.StreamHandler()
-console_handler.setFormatter(logging.Formatter("[%(levelname)-7s]: %(message)s"))
+console_handler.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.INFO)
 
