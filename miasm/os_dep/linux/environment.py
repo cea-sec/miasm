@@ -293,19 +293,13 @@ class FileSystem(object):
             out_path = os.path.join(base_path, path)
 
 
-        if os.path.islink(out_path):
-            link_target = os.readlink(out_path)
-            # Link can be absolute or relative -> absolute
-            link = os.path.normpath(os.path.join(os.path.dirname(path), link_target))
-            if follow_link:
-                out_path = self.resolve_path(link)
-            else:
-                out_path = link
+        if os.path.islink(out_path) and follow_link:
+            target = self.readlink(out_path)
+            out_path = self.resolve_path(target)
 
         assert out_path.startswith(base_path + path_sep)
 
         log.debug("-> {!r}".format(out_path))
-
         return out_path
 
     def get_path_inode(self, real_path):
@@ -317,10 +311,27 @@ class FileSystem(object):
         return os.path.exists(sb_path)
 
     def readlink(self, path):
-        sb_path = self.resolve_path(path, follow_link=False)
-        if not os.path.islink(sb_path):
+        log.debug("readlink({!r})".format(path))
+
+        # check if path is a link
+        if not os.path.islink(path):
+            log.debug("-> {!r} is not a link".format(path))
             return None
-        return os.readlink(sb_path)
+
+        # resolve path (link name)
+        sb_link_name = self.resolve_path(path, follow_link=False)
+
+        # get target
+        target = os.readlink(sb_link_name)
+
+        # Link can be absolute or relative -> absolute
+        target = os.path.normpath(os.path.join(os.path.dirname(sb_link_name), target))
+
+        # resolve target
+        sb_target = self.resolve_path(target, follow_link=False)
+
+        log.debug("-> {!r}".format(sb_target))
+        return sb_target
 
     def statfs(self):
         return StatFSInfo(
