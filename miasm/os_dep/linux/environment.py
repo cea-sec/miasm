@@ -216,6 +216,13 @@ class FileSystem(object):
     def resolve_path(self, path, follow_link=True):
         """Resolve @path to the corresponding sandboxed path"""
 
+        log.debug(
+            "resolve_path(path={!r}, follow_link={!r})".format(
+                path,
+                follow_link
+            )
+        )
+
         # path_bytes is used for Python 2 / Python 3 compatibility
         path_bytes = not isinstance(path, str)
         path_sep = os.path.sep.encode() if path_bytes else os.path.sep
@@ -276,12 +283,17 @@ class FileSystem(object):
             elif _convert(passthrough) == path:
                 return path
 
-        # Remove leading '/' if any
-        path = path.lstrip(path_sep)
-
         base_path = os.path.abspath(_convert(self.base_path))
-        out_path = os.path.join(base_path, path)
+
+        if path.startswith(base_path):
+            out_path = path
+        else:
+            # Remove leading '/' if any
+            path = path.lstrip(path_sep)
+            out_path = os.path.join(base_path, path)
+
         assert out_path.startswith(base_path + path_sep)
+
         if os.path.islink(out_path):
             link_target = os.readlink(out_path)
             # Link can be absolute or relative -> absolute
@@ -290,6 +302,9 @@ class FileSystem(object):
                 out_path = self.resolve_path(link)
             else:
                 out_path = link
+
+        log.debug("-> {!r}".format(out_path))
+
         return out_path
 
     def get_path_inode(self, real_path):
