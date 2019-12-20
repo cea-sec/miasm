@@ -9,7 +9,7 @@ from miasm.ir.translators.C import TranslatorC
 
 log = logging.getLogger('jit_x86')
 hnd = logging.StreamHandler()
-hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
+hnd.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 

@@ -8,7 +8,7 @@ import logging
 
 log = logging.getLogger('jit_ppc')
 hnd = logging.StreamHandler()
-hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
+hnd.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 

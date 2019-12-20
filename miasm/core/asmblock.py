@@ -21,7 +21,7 @@ from miasm.core.locationdb import LocationDB
 
 log_asmblock = logging.getLogger("asmblock")
 console_handler = logging.StreamHandler()
-console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+console_handler.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log_asmblock.addHandler(console_handler)
 log_asmblock.setLevel(logging.WARNING)
 

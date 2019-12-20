@@ -7,7 +7,7 @@ from miasm.expression.smt2_helper import *
 
 log = logging.getLogger("translator_smt2")
 console_handler = logging.StreamHandler()
-console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+console_handler.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.WARNING)
 

@@ -10,7 +10,7 @@ from miasm.analysis.data_flow import dead_simp as new_dead_simp_imp
 
 log = logging.getLogger("analysis")
 console_handler = logging.StreamHandler()
-console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+console_handler.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.WARNING)
 

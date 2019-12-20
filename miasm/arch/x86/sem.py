@@ -35,7 +35,7 @@ import struct
 
 LOG_X86_SEM = logging.getLogger("x86_sem")
 CONSOLE_HANDLER = logging.StreamHandler()
-CONSOLE_HANDLER.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+CONSOLE_HANDLER.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 LOG_X86_SEM.addHandler(CONSOLE_HANDLER)
 LOG_X86_SEM.setLevel(logging.WARNING)
 

@@ -9,7 +9,7 @@ from miasm.expression.expression import ExprInt, ExprId, ExprLoc, ExprOp, \
 
 log_reduce = logging.getLogger("expr_reduce")
 console_handler = logging.StreamHandler()
-console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+console_handler.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log_reduce.addHandler(console_handler)
 log_reduce.setLevel(logging.WARNING)
 

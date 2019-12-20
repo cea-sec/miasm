@@ -13,7 +13,7 @@ from miasm.jitter.codegen import CGen
 from miasm.jitter.jitcore_cc_base import JitCore_Cc_Base
 
 hnd = logging.StreamHandler()
-hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
+hnd.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log = logging.getLogger('jitload.py')
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)

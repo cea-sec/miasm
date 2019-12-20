@@ -16,7 +16,7 @@ from miasm.core.utils import force_str
 
 log = logging.getLogger('loader_pe')
 hnd = logging.StreamHandler()
-hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
+hnd.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.INFO)
 

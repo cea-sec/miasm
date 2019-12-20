@@ -27,7 +27,7 @@ StatFSInfo = namedtuple("StatFSInfo", [
 
 log = logging.getLogger("environment")
 console_handler = logging.StreamHandler()
-console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+console_handler.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.WARNING)
 

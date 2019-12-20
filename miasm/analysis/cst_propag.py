@@ -10,7 +10,7 @@ from miasm.ir.ir import IRBlock, AssignBlock
 
 LOG_CST_PROPAG = logging.getLogger("cst_propag")
 CONSOLE_HANDLER = logging.StreamHandler()
-CONSOLE_HANDLER.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+CONSOLE_HANDLER.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 LOG_CST_PROPAG.addHandler(CONSOLE_HANDLER)
 LOG_CST_PROPAG.setLevel(logging.WARNING)
 

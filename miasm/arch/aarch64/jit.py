@@ -8,7 +8,7 @@ from miasm.arch.aarch64.sem import ir_aarch64b, ir_aarch64l
 
 log = logging.getLogger('jit_aarch64')
 hnd = logging.StreamHandler()
-hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
+hnd.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 

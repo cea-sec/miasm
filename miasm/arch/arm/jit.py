@@ -13,7 +13,7 @@ from miasm.expression.simplifications import expr_simp_high_to_explicit
 
 log = logging.getLogger('jit_arm')
 hnd = logging.StreamHandler()
-hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
+hnd.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 
