@@ -623,9 +623,10 @@ class LinuxEnvironment(object):
                 "mmap allocated"
             )
 
-
         if fd == 0xffffffff:
-            if off != 0:
+            MAP_ANONYMOUS = 0x20    # mman.h
+            # fd and offset are ignored if MAP_ANONYMOUS flag is present
+            if not(flags & MAP_ANONYMOUS) and off != 0:
                 raise RuntimeError("Not implemented")
             data = b"\x00" * len_
         else:
