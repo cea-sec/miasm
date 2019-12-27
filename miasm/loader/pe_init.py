@@ -220,6 +220,7 @@ class PE(object):
             self.DirDelay = pe.DirDelay(self)
             self.DirReloc = pe.DirReloc(self)
             self.DirRes = pe.DirRes(self)
+            self.DirTls = pe.DirTls(self)
 
             self.Doshdr.magic = 0x5a4d
             self.Doshdr.lfanew = 0xe0
@@ -414,6 +415,17 @@ class PE(object):
                 except pe.InvalidOffset:
                     log.warning('cannot parse DirRes, skipping')
 
+        if len(self.NThdr.optentries) > pe.DIRECTORY_ENTRY_TLS:
+            self.DirTls = pe.DirTls(self)
+            try:
+                self.DirTls = pe.DirTls.unpack(
+                    self.img_rva,
+                    self.NThdr.optentries[pe.DIRECTORY_ENTRY_TLS].rva,
+                    self
+                )
+            except pe.InvalidOffset:
+                log.warning('cannot parse DirTls, skipping')
+
     def resize(self, old, new):
         pass
 
@@ -567,6 +579,7 @@ class PE(object):
         self.DirDelay.build_content(content)
         self.DirReloc.build_content(content)
         self.DirRes.build_content(content)
+        self.DirTls.build_content(content)
 
         if (self.Doshdr.lfanew + len(self.NTsig) + len(self.Coffhdr)) % 4:
             log.warn("non aligned coffhdr, bad crc calculation")
