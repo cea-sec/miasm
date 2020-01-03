@@ -1392,7 +1392,7 @@ def ntoskrnl_ExAllocatePoolWithTagPriority(jitter):
                                              "tag", "priority"])
     alloc_addr = winobjs.heap.next_addr(args.nbr_of_bytes)
     jitter.vm.add_memory_page(
-        alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * args.nbr_of_bytes,
+        alloc_addr, PAGE_READ | PAGE_WRITE, b"\x00" * args.nbr_of_bytes,
         "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
 
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
@@ -1430,8 +1430,8 @@ def msvcrt_wcsncpy(jitter):
     ret_ad, args = jitter.func_args_cdecl(["dst", "src", "n"])
     src = get_win_str_w(jitter, args.src)
     dst = src[:args.n]
-    dst += "\x00\x00" * (args.n-len(dst)+1)
-    jitter.vm.set_mem(args.dst, dst)
+    jitter.vm.set_mem(args.dst, b"\x00\x00" * args.n)
+    jitter.vm.set_mem(args.dst, dst.encode("utf-16le"))
     jitter.func_ret_cdecl(ret_ad, args.dst)
 
 def kernel32_lstrcmpA(jitter):
@@ -1590,11 +1590,9 @@ def kernel32_MultiByteToWideChar(jitter):
                                              "cbmultibyte",
                                              "lpwidecharstr",
                                              "cchwidechar"])
-    src = get_win_str_a(jitter, args.lpmultibytestr) + '\x00'
-    l = len(src)
-
-    src = "\x00".join(list(src))
-    jitter.vm.set_mem(args.lpwidecharstr, src)
+    src = get_win_str_a(jitter, args.lpmultibytestr)
+    l = len(src) + 1
+    set_win_str_w(jitter, args.lpwidecharstr, src)
     jitter.func_ret_stdcall(ret_ad, l)
 
 
@@ -1732,7 +1730,7 @@ def ntdll_ZwQuerySystemInformation(jitter):
     if args.systeminformationclass == 2:
         # SYSTEM_PERFORMANCE_INFORMATION
         o = struct.pack('II', 0x22222222, 0x33333333)
-        o += "\x00" * args.systeminformationl
+        o += b"\x00" * args.systeminformationl
         o = o[:args.systeminformationl]
         jitter.vm.set_mem(args.systeminformation, o)
     else:
@@ -1776,7 +1774,7 @@ def ntdll_ZwAllocateVirtualMemory(jitter):
 
     alloc_addr = winobjs.heap.next_addr(dwsize)
     jitter.vm.add_memory_page(
-        alloc_addr, ACCESS_DICT[args.flprotect], "\x00" * dwsize,
+        alloc_addr, ACCESS_DICT[args.flprotect], b"\x00" * dwsize,
         "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
     jitter.vm.set_u32(args.lppvoid, alloc_addr)
 
@@ -1805,16 +1803,15 @@ def ntdll_RtlAnsiStringToUnicodeString(jitter):
 
     l1, l2, p_src = struct.unpack('HHI', jitter.vm.get_mem(args.src, 0x8))
     s = get_win_str_a(jitter, p_src)
-    s = ("\x00".join(s + "\x00"))
-    l = len(s) + 1
+    l = (len(s) + 1) * 2
     if args.alloc_str:
         alloc_addr = winobjs.heap.next_addr(l)
         jitter.vm.add_memory_page(
-            alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * l,
+            alloc_addr, PAGE_READ | PAGE_WRITE, b"\x00" * l,
             "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
     else:
         alloc_addr = p_src
-    jitter.vm.set_mem(alloc_addr, s)
+    set_win_str_w(jitter, alloc_addr, s)
     o = struct.pack('HHI', l, l, alloc_addr)
     jitter.vm.set_mem(args.dst, o)
     jitter.func_ret_stdcall(ret_ad, 0)
@@ -1926,7 +1923,7 @@ def shlwapi_PathRemoveFileSpecW(jitter):
     i = path.rfind('\\')
     if i == -1:
         i = 0
-    jitter.vm.set_mem(args.path_ad + i * 2, "\x00\x00")
+    jitter.vm.set_mem(args.path_ad + i * 2, b"\x00\x00")
     path = get_win_str_w(jitter, args.path_ad)
     jitter.func_ret_stdcall(ret_ad, 1)
 
@@ -2234,7 +2231,7 @@ def msvcrt_wcscat(jitter):
     s1 = get_win_str_w(jitter, args.ptr_str1)
     s2 = get_win_str_w(jitter, args.ptr_str2)
     log.info("strcat('%s','%s')" % (s1,s2))
-    jitter.vm.set_mem(args.ptr_str1, (s1 + s2).encode("utf-16le") + "\x00\x00")
+    set_win_str_w(jitter, args.ptr_str1, s1 + s2)
     jitter.func_ret_cdecl(ret_ad, args.ptr_str1)
 
 
@@ -2303,7 +2300,7 @@ def user32_GetKeyboardType(jitter):
 def kernel32_GetStartupInfo(jitter, funcname, set_str):
     ret_ad, args = jitter.func_args_stdcall(["ptr"])
 
-    s = "\x00" * 0x2c + "\x81\x00\x00\x00" + "\x0a"
+    s = b"\x00" * 0x2c + b"\x81\x00\x00\x00" + b"\x0a"
 
     jitter.vm.set_mem(args.ptr, s)
     jitter.func_ret_stdcall(ret_ad, args.ptr)
@@ -2816,7 +2813,7 @@ def kernel32_GetTempFileNameA(jitter):
     ext = get_win_str_a(jitter, args.ext) if args.ext else 'tmp'
     path = get_win_str_a(jitter, args.path) if args.path else "xxx"
     fname = path + "\\" + "temp%.4d" % temp_num + "." + ext
-    jitter.vm.set_mem(args.buf, fname)
+    jitter.vm.set_mem(args.buf, fname.encode('utf-8'))
 
     jitter.func_ret_stdcall(ret_ad, 0)
 
@@ -2847,10 +2844,10 @@ class win32_find_data(object):
                         self.filesizelow,
                         self.dwreserved0,
                         self.dwreserved1)
-        fname = self.cfilename + '\x00' * MAX_PATH
+        fname = self.cfilename.encode('utf-8') + b'\x00' * MAX_PATH
         fname = fname[:MAX_PATH]
         s += fname
-        fname = self.alternamefilename + '\x00' * 14
+        fname = self.alternamefilename.encode('utf-8') + b'\x00' * 14
         fname = fname[:14]
         s += fname
         return s
@@ -2955,7 +2952,7 @@ def msvcrt__ultow(jitter):
     if not args.radix in [10, 16, 20]:
         raise ValueError("Not tested")
     s = int2base(value, args.radix)
-    jitter.vm.set_mem(args.p, lambda addr,value: set_win_str_w(jitter, addr, value)(s + "\x00"))
+    set_win_str_w(jitter, args.p, s)
     jitter.func_ret_cdecl(ret_ad, args.p)
 
 
