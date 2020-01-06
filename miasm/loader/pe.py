@@ -887,7 +887,7 @@ class DirDelay(CStruct):
                                                          addr,
                                                          Rva)
             else:
-                entry.originalfirstthunks
+                entry.originalfirstthunks = None
 
             if entry.firstthunk:
                 entry.firstthunks = struct_array(self, raw,
