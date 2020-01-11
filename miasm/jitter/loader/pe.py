@@ -22,8 +22,17 @@ log.setLevel(logging.INFO)
 
 
 def get_pe_dependencies(pe_obj):
-    """Return dependency set
-    @pe_obj: pe object"""
+    """Collect the shared libraries upon which this PE depends.
+    
+    @pe_obj: pe object
+    Returns a set of strings of DLL names.
+    
+    Example:
+    
+        pe = miasm.analysis.binary.Container.from_string(buf)
+        deps = miasm.jitter.loader.pe.get_pe_dependencies(pe.executable)
+        assert sorted(deps)[0] == 'api-ms-win-core-appcompat-l1-1-0.dll'
+    """
 
     if pe_obj.DirImport.impdesc is None:
         return set()
@@ -51,6 +60,16 @@ def get_pe_dependencies(pe_obj):
 
 
 def get_import_address_pe(e):
+    """Compute the addresses of imported symbols.
+    @e: pe object
+    Returns a dict mapping from tuple (dll name string, symbol name string) to set of virtual addresses.
+    
+    Example:
+    
+        pe = miasm.analysis.binary.Container.from_string(buf)
+        imports = miasm.jitter.loader.pe.get_import_address_pe(pe.executable)
+        assert imports[('api-ms-win-core-rtlsupport-l1-1-0.dll', 'RtlCaptureStackBackTrace')] == {0x6b88a6d0}    
+    """
     import2addr = defaultdict(set)
     if e.DirImport.impdesc is None:
         return import2addr
@@ -118,6 +137,16 @@ def is_redirected_export(pe_obj, addr):
 
 
 def get_export_name_addr_list(e):
+    """Collect names and addresses of symbols exported by the given PE.
+    @e: PE instance
+    Returns a list of tuples (symbol name string, virtual address).
+    
+    Example:
+
+        pe = miasm.analysis.binary.Container.from_string(buf)
+        exports = miasm.jitter.loader.pe.get_export_name_addr_list(pe.executable)
+        assert exports[0] == ('AcquireSRWLockExclusive', 0x6b89b22a)
+    """
     out = []
     # add func name
     for i, n in enumerate(e.DirExport.f_names):
