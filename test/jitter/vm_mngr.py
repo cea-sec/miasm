@@ -25,3 +25,11 @@ for i, access_right in enumerate(shuffled_rights):
 # Check for modification
 for i, access_right in enumerate(shuffled_rights):
     assert myjit.vm.get_mem_access(base_addr + i * page_size) == access_right
+
+# Remove pages
+for i in range(len(rights)):
+    myjit.vm.remove_memory_page(base_addr + i * page_size)
+
+# Add pages again
+for i, access_right in enumerate(rights):
+    myjit.vm.add_memory_page(base_addr + i * page_size, access_right, data)

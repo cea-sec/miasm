@@ -757,14 +757,31 @@ def kernel32_VirtualProtect(jitter):
         old = jitter.vm.get_mem_access(args.lpvoid)
         jitter.vm.set_u32(args.lpfloldprotect, ACCESS_DICT_INV[old])
 
-    log.warn("set page %x %x", args.lpvoid, args.dwsize)
+    protect_addr = args.lpvoid - (args.lpvoid % winobjs.alloc_align)
     for addr, data in jitter.vm.get_all_memory().items():
         size = data["size"]
-        # Multi-page
-        if addr <= args.lpvoid < addr + size:
+        # Exact match
+        if addr == protect_addr and args.dwsize == size:
             log.warn("set page %x %x", addr, ACCESS_DICT[flnewprotect])
             jitter.vm.set_mem_access(addr, ACCESS_DICT[flnewprotect])
-
+            continue
+        # Split memory area
+        if addr <= protect_addr < protect_addr + args.dwsize <= addr + size:
+            part1 = jitter.vm.get_mem(addr, protect_addr + args.dwsize - addr)
+            part2 = jitter.vm.get_mem(protect_addr + args.dwsize,  addr + size - protect_addr - args.dwsize)
+            old_access = jitter.vm.get_mem_access(addr)
+            jitter.vm.remove_memory_page(addr)
+            log.warn("create page %x %x", addr, old_access)
+            log.warn("create page %x %x", protect_addr + args.dwsize, ACCESS_DICT[flnewprotect])
+            jitter.vm.add_memory_page(addr, old_access, part1, "VirtualProtect split")
+            jitter.vm.add_memory_page(protect_addr + args.dwsize, ACCESS_DICT[flnewprotect], part2, "VirtualProtect split")
+            continue
+        # Multi page
+        if (addr <= protect_addr < addr + size or
+            addr < protect_addr + args.dwsize <= addr + size):
+            log.warn("set page %x %x", addr, ACCESS_DICT[flnewprotect])
+            jitter.vm.set_mem_access(addr, ACCESS_DICT[flnewprotect])
+            continue
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
