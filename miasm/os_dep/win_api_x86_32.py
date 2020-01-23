@@ -1047,7 +1047,7 @@ def kernel32_GetSystemInfo(jitter):
 
 def kernel32_IsWow64Process(jitter):
     ret_ad, args = jitter.func_args_stdcall(["process", "bool_ptr"])
-    jitter.vm.set_u32(args.bool_ptr, 0)
+    jitter.vm.set_u32(args.bool_ptr, 1)
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
