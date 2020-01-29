@@ -226,9 +226,54 @@ class TestWinAPI(unittest.TestCase):
             if  i: self.assertTrue(vBool)
             else:  self.assertFalse(vBool)
 
+    def test_VirtualXXFunctions(self):
+        def call_vprotect(jitter, addr, size, protect):
+            jitter.push_uint32_t(0x0)
+            jitter.push_uint32_t(protect)
+            jitter.push_uint32_t(size)
+            jitter.push_uint32_t(addr)
+            jitter.push_uint32_t(0)
+            winapi.kernel32_VirtualProtect(jitter)
+
+        jit.push_uint32_t(0x2)
+        jit.push_uint32_t(0x2)
+        jit.push_uint32_t(0x4000)
+        jit.push_uint32_t(0x1000)
+        jit.push_uint32_t(0)
+        winapi.kernel32_VirtualAlloc(jit)
+        alloc_addr = jit.cpu.EAX
+
+        self.assertEqual(jit.vm.get_all_memory()[alloc_addr]["size"], 0x4000)
+        self.assertEqual(jit.vm.get_all_memory()[alloc_addr]["access"],
+                         winapi.ACCESS_DICT[0x2])
+
+        # Full area
+        call_vprotect(jit, alloc_addr, 0x4000, 0x1)
+        self.assertEqual(jit.vm.get_all_memory()[alloc_addr]["access"],
+                         winapi.ACCESS_DICT[0x1])
+        # Splits area [0--1000] [1000 -- 3000] [3000 -- 4000]
+        call_vprotect(jit, alloc_addr+0x1000, 0x2000, 0x40)
+        print(jit.vm)
+        for (addr, size, access) in [
+                (alloc_addr, 0x1000, 0x1),
+                (alloc_addr + 0x1000, 0x2000, 0x40),
+                (alloc_addr + 0x3000, 0x1000, 0x1)
+        ]:
+            self.assertEqual(jit.vm.get_all_memory()[addr]["size"], size)
+            self.assertEqual(jit.vm.get_all_memory()[addr]["access"],
+                             winapi.ACCESS_DICT[access])
+        # Protect over split areas
+        call_vprotect(jit, alloc_addr, 0x4000, 0x4)
+        for (addr, size) in [
+                (alloc_addr, 0x1000),
+                (alloc_addr + 0x1000, 0x2000),
+                (alloc_addr + 0x3000, 0x1000)
+        ]:
+            self.assertEqual(jit.vm.get_all_memory()[addr]["size"], size)
+            self.assertEqual(jit.vm.get_all_memory()[addr]["access"],
+                             winapi.ACCESS_DICT[0x4])
 
 if __name__ == '__main__':
     testsuite = unittest.TestLoader().loadTestsFromTestCase(TestWinAPI)
     report = unittest.TextTestRunner(verbosity=2).run(testsuite)
     exit(len(report.errors + report.failures))
-

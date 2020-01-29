@@ -129,6 +129,23 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 }
 
 
+PyObject* vm_remove_memory_page(VmMngr* self, PyObject* args)
+{
+  PyObject *addr;
+  uint64_t page_addr;
+
+  if (!PyArg_ParseTuple(args, "O", &addr))
+    RAISE(PyExc_TypeError,"Cannot parse arguments");
+
+  PyGetInt_uint64_t(addr, page_addr);
+
+  remove_memory_page(&self->vm_mngr, page_addr);
+
+  Py_INCREF(Py_None);
+  return Py_None;
+
+
+}
 
 PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 {
@@ -877,6 +894,8 @@ static PyMethodDef VmMngr_methods[] = {
 	{"add_memory_page",(PyCFunction)vm_add_memory_page, METH_VARARGS,
 	 "add_memory_page(address, access, content [, cmt]) -> Maps a memory page at @address of len(@content) bytes containing @content with protection @access\n"
 	"@cmt is a comment linked to the memory page"},
+	{"remove_memory_page",(PyCFunction)vm_remove_memory_page, METH_VARARGS,
+	 "remove_memory_page(address) -> removes a previously allocated memory page at @address"},
 	{"add_memory_breakpoint",(PyCFunction)vm_add_memory_breakpoint, METH_VARARGS,
 	 "add_memory_breakpoint(address, size, access) -> Add a memory breakpoint at @address of @size bytes with @access type"},
 	{"remove_memory_breakpoint",(PyCFunction)vm_remove_memory_breakpoint, METH_VARARGS,
