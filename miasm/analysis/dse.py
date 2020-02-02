@@ -50,6 +50,9 @@ Here are a few remainings TODO:
 from builtins import range
 from collections import namedtuple
 
+from miasm.arch.arm.sem import *
+from miasm.core.asmblock import AsmBlockBad
+
 try:
     import z3
 except:
@@ -67,6 +70,7 @@ from miasm.ir.translators import Translator
 from miasm.analysis.expression_range import expr_range
 from miasm.analysis.modularintervals import ModularIntervals
 from miasm.core.locationdb import LocationDB
+from miasm.core.asmblock import AsmBlock
 
 DriftInfo = namedtuple("DriftInfo", ["symbol", "computed", "expected"])
 
@@ -176,6 +180,9 @@ class DSEEngine(object):
         self.symb = None # SymbolicExecutionEngine
         self.symb_concrete = None # Concrete SymbExec for path desambiguisation
         self.mdis = None # DisasmEngine
+
+        self.then_offsets = []
+        self.else_offsets = []
 
     def prepare(self):
         """Prepare the environment for attachment with a jitter"""
@@ -311,6 +318,20 @@ class DSEEngine(object):
         if errors:
             raise DriftException(errors)
 
+    def parse_itt(self, instr):
+        name = instr.name
+        assert name.startswith('IT')
+        name = name[1:]
+        out = []
+        for hint in name:
+            if hint == 'T':
+                out.append(0)
+            elif hint == "E":
+                out.append(1)
+            else:
+                raise ValueError("IT name invalid %s" % instr)
+        return out, instr.args[0]
+
     def callback(self, _):
         """Called before each instruction"""
         # Assert synchronization with concrete execution
@@ -336,6 +357,12 @@ class DSEEngine(object):
         if len(self.symb.expr_simp.simplified_exprs) > 100000:
             self.symb.expr_simp.simplified_exprs.clear()
 
+        # for IT instruction check
+        asm_block = self.mdis.dis_block(cur_addr)
+        instr = None
+        if not isinstance(asm_block, AsmBlockBad):
+            instr = asm_block.lines[0]
+
         # Get IR blocks
         if cur_addr in self.addr_to_cacheblocks:
             self.ircfg.blocks.clear()
@@ -345,10 +372,138 @@ class DSEEngine(object):
             ## Reset cache structures
             self.ircfg.blocks.clear()# = {}
 
-            ## Update current state
-            asm_block = self.mdis.dis_block(cur_addr)
+            # check if IT instrs
+            if instr and instr.name.startswith("IT"):
+
+                assert len(self.then_offsets) == 0
+                assert len(self.else_offsets) == 0
+
+                self.then_offsets.clear()
+                self.else_offsets.clear()
+
+                it_hints, it_cond = self.parse_itt(instr)
+
+                self.update_state({
+                    self.ir_arch.pc: ExprInt(self.jitter.pc + instr.l, 32),
+                })
+
+                off = cur_addr
+
+                for hint in it_hints:
+
+                    # get next inst offset
+                    off = off + self.mdis.dis_block(off).lines[0].l
+
+                    if hint == 0:
+                        # then insts
+
+                        if "EQ" in str(instr.args):
+                            if self.jitter.cpu.zf == 1:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        elif "NE" in str(instr.args):
+                            if self.jitter.cpu.zf == 0:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        elif "LT" in str(instr.args):
+                            if self.jitter.cpu.of != self.jitter.cpu.nf:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        elif "CC" in str(instr.args):
+                            if self.jitter.cpu.cf == 0:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        elif "LS" in str(instr.args):
+                            if self.jitter.cpu.cf == 1 or self.jitter.cpu.zf == 0:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        elif "CS" in str(instr.args):
+                            if self.jitter.cpu.cf == 1:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        else:
+                            raise NotImplementedError("IT cond missing")
+
+                    else:
+                        # else insts
+
+                        if "EQ" in str(instr.args):
+                            if self.jitter.cpu.zf == 0:
+                                self.else_offsets.append([off, 1])
+                            else:
+                                self.else_offsets.append([off, 0])
+
+                        elif "NE" in str(instr.args):
+                            if self.jitter.cpu.zf == 1:
+                                self.else_offsets.append([off, 1])
+                            else:
+                                self.else_offsets.append([off, 0])
+
+                        elif "LT" in str(instr.args):
+                            if self.jitter.cpu.of != self.jitter.cpu.nf:
+                                self.else_offsets.append([off, 0])
+                            else:
+                                self.else_offsets.append([off, 1])
+
+                        elif "CC" in str(instr.args):
+                            if self.jitter.cpu.cf == 0:
+                                self.else_offsets.append([off, 0])
+                            else:
+                                self.else_offsets.append([off, 1])
+
+                        elif "LS" in str(instr.args):
+                            if self.jitter.cpu.cf == 1 or self.jitter.cpu.zf == 0:
+                                self.else_offsets.append([off, 0])
+                            else:
+                                self.else_offsets.append([off, 1])
+
+                        elif "CS" in str(instr.args):
+                            if self.jitter.cpu.cf == 1:
+                                self.else_offsets.append([off, 0])
+                            else:
+                                self.else_offsets.append([off, 1])
+
+                        else:
+                            raise NotImplementedError("IT cond missing")
+
+                return True
+
             self.ir_arch.add_asmblock_to_ircfg(asm_block, self.ircfg)
             self.addr_to_cacheblocks[cur_addr] = dict(self.ircfg.blocks)
+
+        # offset behind IT instruction
+        if len(self.then_offsets):
+            off, ex = self.then_offsets.pop(0)
+            assert off == cur_addr
+
+            # cond unstatify, ignore
+            if ex == 0:
+                self.update_state({
+                    self.ir_arch.pc: ExprInt(self.jitter.pc + instr.l, 32),
+                })
+                return True
+
+        if len(self.else_offsets):
+            off, ex = self.else_offsets.pop(0)
+            assert off == cur_addr
+
+            if ex == 0:
+                self.update_state({
+                    self.ir_arch.pc: ExprInt(self.jitter.pc + instr.l, 32),
+                })
+                return True
 
         # Emulate the current instruction
         self.symb.reset_modified()

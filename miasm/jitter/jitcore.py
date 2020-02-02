@@ -26,6 +26,7 @@ from miasm.core.interval import interval
 from miasm.core.utils import BoundedDict
 from miasm.expression.expression import LocKey
 from miasm.jitter.csts import *
+from miasm.arch.arm.sem import *
 
 class JitCore(object):
 
@@ -71,6 +72,9 @@ class JitCore(object):
             dontdis_retcall=False,
             split_dis=self.split_dis,
         )
+
+        self.then_offsets = []
+        self.else_offsets = []
 
 
     def set_options(self, **kwargs):
@@ -159,6 +163,20 @@ class JitCore(object):
         self.add_block_to_mem_interval(vm, cur_block)
         return cur_block
 
+    def parse_itt(self, instr):
+        name = instr.name
+        assert name.startswith('IT')
+        name = name[1:]
+        out = []
+        for hint in name:
+            if hint == 'T':
+                out.append(0)
+            elif hint == "E":
+                out.append(1)
+            else:
+                raise ValueError("IT name invalid %s" % instr)
+        return out, instr.args[0]
+
     def run_at(self, cpu, offset, stop_offsets):
         """Run from the starting address @offset.
         Execution will stop if:
@@ -176,6 +194,140 @@ class JitCore(object):
 
         if offset not in self.offset_to_jitted_func:
             # Need to JiT the block
+
+            cur_block = self.mdis.dis_block(offset)
+            if isinstance(cur_block, AsmBlockBad):
+                errno = cur_block.errno
+                if errno == AsmBlockBad.ERROR_IO:
+                    cpu.vmmngr.set_exception(EXCEPT_ACCESS_VIOL)
+                elif errno == AsmBlockBad.ERROR_CANNOT_DISASM:
+                    cpu.set_exception(EXCEPT_UNK_MNEMO)
+                else:
+                    raise RuntimeError("Unhandled disasm result %r" % errno)
+                return offset
+
+            instr = cur_block.lines[0]
+            if instr.name.startswith("IT"):
+
+                assert len(self.then_offsets) == 0
+                assert len(self.else_offsets) == 0
+
+                self.then_offsets.clear()
+                self.else_offsets.clear()
+
+                newpc = offset + instr.l
+
+                it_hints, it_cond = self.parse_itt(instr)
+
+                off = offset
+
+                for hint in it_hints:
+
+                    # get next inst offset
+                    off = off + self.mdis.dis_block(off).lines[0].l
+
+                    if hint == 0:
+                        # then instructions
+
+                        if "EQ" in str(instr):
+                            if cpu.zf == 1:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        elif "NE" in str(instr):
+                            if cpu.zf == 0:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        elif "LT" in str(instr):
+                            if cpu.of != cpu.nf:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        elif "CC" in str(instr):
+                            if cpu.cf == 0:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        elif "LS" in str(instr):
+                            if cpu.cf == 1 or cpu.zf == 0:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        elif "CS" in str(instr):
+                            if cpu.cf == 1:
+                                self.then_offsets.append([off, 1])
+                            else:
+                                self.then_offsets.append([off, 0])
+
+                        else:
+                            raise NotImplementedError("IT cond missing")
+
+                    else:
+                        # else instructions
+
+                        if "EQ" in str(instr):
+                            if cpu.zf == 0:
+                                self.else_offsets.append([off, 1])
+                            else:
+                                self.else_offsets.append([off, 0])
+
+                        elif "NE" in str(instr):
+                            if cpu.zf == 1:
+                                self.else_offsets.append([off, 1])
+                            else:
+                                self.else_offsets.append([off, 0])
+
+                        elif "LT" in str(instr):
+                            if cpu.of != cpu.nf:
+                                self.else_offsets.append([off, 0])
+                            else:
+                                self.else_offsets.append([off, 1])
+
+                        elif "CC" in str(instr):
+                            if cpu.cf == 0:
+                                self.else_offsets.append([off, 0])
+                            else:
+                                self.else_offsets.append([off, 1])
+
+                        elif "LS" in str(instr):
+                            if cpu.cf == 1 or cpu.zf == 0:
+                                self.else_offsets.append([off, 0])
+                            else:
+                                self.else_offsets.append([off, 1])
+
+                        elif "CS" in str(instr):
+                            if cpu.cf == 1:
+                                self.else_offsets.append([off, 0])
+                            else:
+                                self.else_offsets.append([off, 1])
+
+                        else:
+                            raise NotImplementedError("IT cond missing")
+
+                return newpc
+
+            # offset behind IT instruction
+            if len(self.then_offsets):
+                off, ex = self.then_offsets.pop(0)
+                assert off == offset
+
+                # cond unstatify, ignore
+                if ex == 0:
+                    return offset + instr.l
+
+            if len(self.else_offsets):
+                off, ex = self.else_offsets.pop(0)
+                assert off == offset
+
+                if ex == 0:
+                    return offset + instr.l
+
             cur_block = self.disasm_and_jit_block(offset, cpu.vmmngr)
             if isinstance(cur_block, AsmBlockBad):
                 errno = cur_block.errno
