@@ -237,6 +237,7 @@ void reset_memory_page_pool(vm_mngr_t* vm_mngr);
 void reset_code_bloc_pool(vm_mngr_t* vm_mngr);
 void dump_code_bloc_pool(vm_mngr_t* vm_mngr);
 void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a);
+void remove_memory_page(vm_mngr_t* vm_mngr, uint64_t ad);
 
 
 void init_memory_breakpoint(vm_mngr_t* vm_mngr);

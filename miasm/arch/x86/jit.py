@@ -229,7 +229,10 @@ class jitter_x86_64(Jitter):
         for i in range(min(n_args, 4)):
             args.append(self.cpu.get_gpreg()[args_regs[i]])
         for i in range(max(0, n_args - 4)):
-            args.append(self.get_stack_arg(i))
+            # Take into account the shadow registers on the stack 
+            # (Microsoft 64bit stdcall ABI)
+            # => Skip the first 4 stack parameters
+            args.append(self.get_stack_arg(4 + i))
         return ret_ad, args
 
     def func_prepare_stdcall(self, ret_addr, *args):

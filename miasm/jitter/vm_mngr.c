@@ -820,7 +820,32 @@ void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 
 	vm_mngr->memory_pages_array[i] = *mpn_a;
 	vm_mngr->memory_pages_number ++;
+}
 
+void remove_memory_page(vm_mngr_t* vm_mngr, uint64_t ad)
+{
+  struct memory_page_node * mpn;
+  int i;
+
+  i = find_page_node(vm_mngr->memory_pages_array,
+		     ad,
+		     0,
+		     vm_mngr->memory_pages_number - 1);
+  if (i < 0) {
+    return;
+  }
+
+  mpn = &vm_mngr->memory_pages_array[i];
+  free(mpn->name);
+  free(mpn->ad_hp);
+  memmove(&vm_mngr->memory_pages_array[i],
+  	      &vm_mngr->memory_pages_array[i+1],
+  	      sizeof(struct memory_page_node) * (vm_mngr->memory_pages_number - i - 1)
+  	      );
+  vm_mngr->memory_pages_number --;
+  vm_mngr->memory_pages_array = realloc(vm_mngr->memory_pages_array,
+					sizeof(struct memory_page_node) *
+					(vm_mngr->memory_pages_number));
 }
 
 /* Return a char* representing the repr of vm_mngr_t object */
@@ -961,5 +986,3 @@ _MIASM_EXPORT uint64_t get_exception_flag(vm_mngr_t* vm_mngr)
 {
 	return vm_mngr->exception_flags;
 }
-
-

@@ -185,6 +185,7 @@ class c_winobjs(object):
         self.events_pool = {}
         self.find_data = None
 
+        self.allocated_pages = {}
         self.current_datetime = datetime.datetime(
             year=2017, month=8, day=21,
             hour=13, minute=37,
@@ -757,14 +758,54 @@ def kernel32_VirtualProtect(jitter):
         old = jitter.vm.get_mem_access(args.lpvoid)
         jitter.vm.set_u32(args.lpfloldprotect, ACCESS_DICT_INV[old])
 
-    log.warn("set page %x %x", args.lpvoid, args.dwsize)
-    for addr, data in jitter.vm.get_all_memory().items():
-        size = data["size"]
-        # Multi-page
-        if addr <= args.lpvoid < addr + size:
+    paddr = args.lpvoid - (args.lpvoid % winobjs.alloc_align)
+    psize = args.dwsize
+    for addr, items in list(winobjs.allocated_pages.items()):
+        alloc_addr, alloc_size = items
+        if not (alloc_addr <= paddr and
+                paddr + psize <= alloc_addr + alloc_size):
+            continue
+        size = jitter.vm.get_all_memory()[addr]["size"]
+        # Page is included in Protect area
+        if (paddr <= addr < addr + size <= paddr + psize):
             log.warn("set page %x %x", addr, ACCESS_DICT[flnewprotect])
             jitter.vm.set_mem_access(addr, ACCESS_DICT[flnewprotect])
+            continue
 
+        # Page is partly in Protect area: splitting is needed
+        if (addr <= paddr < addr + size or
+            addr <= paddr + psize < addr + size):
+
+            old_access = jitter.vm.get_mem_access(addr)
+
+            # splits = [
+            #     addr -> max(paddr, addr)
+            #     max(paddr, addr) -> min(addr + size, paddr + psize)
+            #     min(addr + size, paddr + psize) -> addr + size
+            # ]
+            splits = [
+                (addr, old_access,
+                 jitter.vm.get_mem(addr, max(paddr, addr) - addr)),
+                (max(paddr, addr), ACCESS_DICT[flnewprotect],
+                 jitter.vm.get_mem(
+                     max(paddr, addr),
+                     min(addr + size, paddr + psize) - max(paddr, addr))),
+                (min(addr + size, paddr + psize), old_access,
+                 jitter.vm.get_mem(
+                     min(addr + size, paddr + psize),
+                     addr + size - min(addr + size, paddr + psize)))
+            ]
+
+            jitter.vm.remove_memory_page(addr)
+            for split_addr, split_access, split_data in splits:
+                if not split_data:
+                    continue
+                log.warn("create page %x %x", split_addr,
+                         ACCESS_DICT[flnewprotect])
+                jitter.vm.add_memory_page(
+                    split_addr, split_access, split_data,
+                    "VirtualProtect split ret 0x%X" % ret_ad)
+                winobjs.allocated_pages[split_addr] = (alloc_addr, alloc_size)
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
@@ -778,6 +819,7 @@ def kernel32_VirtualAlloc(jitter):
 
     if args.lpvoid == 0:
         alloc_addr = winobjs.heap.next_addr(args.dwsize)
+        winobjs.allocated_pages[alloc_addr] = (alloc_addr, args.dwsize)
         jitter.vm.add_memory_page(
             alloc_addr, ACCESS_DICT[args.flprotect], b"\x00" * args.dwsize,
             "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
@@ -788,6 +830,7 @@ def kernel32_VirtualAlloc(jitter):
             jitter.vm.set_mem_access(args.lpvoid, ACCESS_DICT[args.flprotect])
         else:
             alloc_addr = winobjs.heap.next_addr(args.dwsize)
+            winobjs.allocated_pages[alloc_addr] = (alloc_addr, args.dwsize)
             # alloc_addr = args.lpvoid
             jitter.vm.add_memory_page(
                 alloc_addr, ACCESS_DICT[args.flprotect], b"\x00" * args.dwsize,
