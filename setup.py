@@ -220,6 +220,8 @@ def buil_all():
                 "miasm/jitter/vm_mngr.c",
                 "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
+                "miasm/jitter/interval_tree/rbtree.c",
+                "miasm/jitter/interval_tree/interval_tree.c",
                 "miasm/analysis/taint_analysis.c",
                 "miasm/jitter/bn.c",
                 "miasm/jitter/arch/JitCore_x86.c"

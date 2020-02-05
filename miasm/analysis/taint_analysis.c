@@ -12,6 +12,7 @@
 #include "../jitter/vm_mngr.h"
 #include "../jitter/vm_mngr_py.h"
 #include "../jitter/JitCore.h"
+#include "../jitter/interval_tree/interval_tree.h"
 
 #include "taint_analysis.h"
 
@@ -1128,6 +1129,16 @@ cpu_get_all_taint(JitCpu* self, PyObject* args)
 {
 	PyObject *color_index_py;
 	uint64_t color_index;
+
+    struct rb_root *root = calloc(1, sizeof(*root));
+
+    interval_tree_insert_new_node(2, 6, root);
+    interval_tree_insert_new_node(20, 30, root);
+    interval_tree_insert_new_node(40, 50, root);
+    interval_tree_insert_new_node(63, 70, root);
+
+    free(root);
+
 
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
