@@ -1,4 +1,5 @@
 from commons import *
+from miasm.core.interval import interval
 
 def test_callbacks():
     """Test callback management
@@ -15,7 +16,7 @@ def test_callbacks():
 
         last_regs = jitter.cpu.last_tainted_registers(red)
         assert len(last_regs) == 1
-        check_reg(last_regs[0], jitter, "RBX", 0, 3)
+        check_reg(last_regs[0], jitter, "RBX", interval([(0, 3)]))
         last_regs = jitter.cpu.last_untainted_registers(red)
         assert not last_regs
         no_mem_tainted(jitter, red)
@@ -35,13 +36,13 @@ def test_callbacks():
 
         last_regs = jitter.cpu.last_tainted_registers(red)
         assert len(last_regs) == 3
-        check_reg(last_regs[0], jitter, "zf", 0, 3)
-        check_reg(last_regs[2], jitter, "pf", 0, 3)
-        check_reg(last_regs[1], jitter, "nf", 0, 3)
+        check_reg(last_regs[0], jitter, "zf", interval([(0, 3)]))
+        check_reg(last_regs[2], jitter, "pf", interval([(0, 3)]))
+        check_reg(last_regs[1], jitter, "nf", interval([(0, 3)]))
         last_regs = jitter.cpu.last_untainted_registers(red)
         assert len(last_regs) == 2
-        check_reg(last_regs[0], jitter, "of", 0, 3)
-        check_reg(last_regs[1], jitter, "cf", 0, 3)
+        check_reg(last_regs[0], jitter, "of", interval([(0, 3)]))
+        check_reg(last_regs[1], jitter, "cf", interval([(0, 3)]))
         no_mem_tainted(jitter, red)
         nothing_tainted(jitter, blue)
 
@@ -61,7 +62,7 @@ def test_callbacks():
         assert not last_regs
         last_regs = jitter.cpu.last_untainted_registers(red)
         assert len(last_regs) == 1
-        check_reg(last_regs[0], jitter, "RBX", 0, 3)
+        check_reg(last_regs[0], jitter, "RBX", interval([(0, 3)]))
         no_mem_tainted(jitter, red)
         nothing_tainted(jitter, blue)
 
@@ -79,13 +80,13 @@ def test_callbacks():
 
         last_regs = jitter.cpu.last_tainted_registers(red)
         assert len(last_regs) == 3
-        check_reg(last_regs[0], jitter, "zf", 0, 3)
-        check_reg(last_regs[2], jitter, "pf", 0, 3)
-        check_reg(last_regs[1], jitter, "nf", 0, 3)
+        check_reg(last_regs[0], jitter, "zf", interval([(0, 3)]))
+        check_reg(last_regs[2], jitter, "pf", interval([(0, 3)]))
+        check_reg(last_regs[1], jitter, "nf", interval([(0, 3)]))
         last_regs = jitter.cpu.last_untainted_registers(red)
         assert len(last_regs) == 2
-        check_reg(last_regs[0], jitter, "of", 0, 3)
-        check_reg(last_regs[1], jitter, "cf", 0, 3)
+        check_reg(last_regs[0], jitter, "of", interval([(0, 3)]))
+        check_reg(last_regs[1], jitter, "cf", interval([(0, 3)]))
         no_mem_tainted(jitter, red)
         nothing_tainted(jitter, blue)
 
@@ -104,8 +105,7 @@ def test_callbacks():
 
         no_reg_tainted(jitter, red)
         last_mem = jitter.cpu.last_tainted_memory(red)
-        assert len(last_mem) == 1
-        check_mem(last_mem[0], data_addr, 4)
+        check_mem(interval(last_mem), interval([(data_addr, data_addr+3)]))
         last_mem = jitter.cpu.last_untainted_memory(red)
         assert not last_mem
         nothing_tainted(jitter, blue)
@@ -124,11 +124,9 @@ def test_callbacks():
 
         no_reg_tainted(jitter, red)
         last_mem = jitter.cpu.last_tainted_memory(red)
-        assert len(last_mem) == 1
-        check_mem(last_mem[0], 0x123FFF8, 4)
+        check_mem(interval(last_mem), interval([(0x123FFF8, 0x123FFF8+3)]))
         last_mem = jitter.cpu.last_untainted_memory(red)
-        assert len(last_mem) == 1
-        check_mem(last_mem[0], 0x123FFEC, 4)
+        check_mem(interval(last_mem), interval([(0x123FFEC, 0x123FFEC+3)]))
         nothing_tainted(jitter, blue)
 
         jitter.cpu.disable_taint_mem_cb(red)
@@ -145,14 +143,12 @@ def test_callbacks():
 
         no_reg_tainted(jitter, red)
         last_mem = jitter.cpu.last_tainted_memory(red)
-        assert len(last_mem) == 1
-        check_mem(last_mem[0], 0x123FFD8, 4)
+        check_mem(interval(last_mem), interval([(0x123FFD8, 0x123FFD8+3)]))
         last_mem = jitter.cpu.last_untainted_memory(red)
         assert not last_mem
         no_reg_tainted(jitter, blue)
         last_mem = jitter.cpu.last_tainted_memory(blue)
-        assert len(last_mem) == 1
-        check_mem(last_mem[0], 0x123FFCC, 4)
+        check_mem(interval(last_mem), interval([(0x123FFCC, 0x123FFCC+3)]))
         last_mem = jitter.cpu.last_untainted_memory(blue)
         assert not last_mem
 
@@ -172,8 +168,7 @@ def test_callbacks():
         last_mem = jitter.cpu.last_tainted_memory(red)
         assert not last_mem
         last_mem = jitter.cpu.last_untainted_memory(red)
-        assert len(last_mem) == 1
-        check_mem(last_mem[0], data_addr, 4)
+        check_mem(interval(last_mem), interval([(data_addr, data_addr+3)]))
         nothing_tainted(jitter, blue)
 
         jitter.cpu.disable_untaint_mem_cb(red)
@@ -190,11 +185,9 @@ def test_callbacks():
 
         no_reg_tainted(jitter, red)
         last_mem = jitter.cpu.last_tainted_memory(red)
-        assert len(last_mem) == 1
-        check_mem(last_mem[0], 0x123FFF8, 4)
+        check_mem(interval(last_mem), interval([(0x123FFF8, 0x123FFF8+3)]))
         last_mem = jitter.cpu.last_untainted_memory(red)
-        assert len(last_mem) == 1
-        check_mem(last_mem[0], 0x123FFEC, 4)
+        check_mem(interval(last_mem), interval([(0x123FFEC, 0x123FFEC+3)]))
         nothing_tainted(jitter, blue)
 
         jitter.cpu.disable_untaint_mem_cb(red)
@@ -248,7 +241,7 @@ def test_callbacks():
         assert  jitter.cpu.EIP == 0x40000024
         last_regs = jitter.cpu.last_tainted_registers(blue)
         assert len(last_regs) == 1
-        check_reg(last_regs[0], jitter, "RAX", 0, 0)
+        check_reg(last_regs[0], jitter, "RAX", interval([(0, 0)]))
 
         jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_REG))
         return True

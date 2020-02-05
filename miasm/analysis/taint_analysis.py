@@ -1,20 +1,23 @@
 import miasm.jitter.csts as csts
 import miasm.expression.expression as m2_expr
+from miasm.core.interval import interval
+
 
 def makeTaintGen(C_Gen, ir_arch):
   class TaintGen(C_Gen):
 
       CODE_INIT_TAINT = r"""
       struct taint_colors_t* taint_analysis = jitcpu->taint_analysis;
-      vm_mngr_t* vm_mngr = &jitcpu->pyvm->vm_mngr;
       uint64_t current_color;
       uint64_t taint_addr;
       uint64_t taint_size;
-      struct taint_interval_t* taint_interval;
-      struct taint_interval_t* taint_interval_ret;
+      struct rb_root* taint_interval_tree_tmp, * taint_interval_tree;
+	  struct interval_tree_node *node;
+	  struct rb_node *rb_node;
       struct taint_interval_t* taint_interval_arg;
-      taint_interval = malloc(sizeof(*taint_interval));
+      struct taint_interval_t* taint_interval;
       taint_interval_arg = malloc(sizeof(*taint_interval_arg));
+      taint_interval = malloc(sizeof(*taint_interval));
       int do_not_clean_taint_cb_info = 1;
       int is_tainted;
       """
@@ -23,16 +26,24 @@ def makeTaintGen(C_Gen, ir_arch):
 
       CODE_PREPARE_ANALYSE_REG = r"""
           is_tainted = 0;
-          taint_interval->start = -1;
-          taint_interval->end = 0;
+          taint_interval_tree = calloc(1, sizeof(*taint_interval_tree));
       """
 
       CODE_REG_ACCESS = r"""
-          taint_register_generic_access(taint_analysis,
+        rb_node = rb_first(taint_interval_tree);
+
+        while(rb_node != NULL)
+        {
+            node = rb_entry(rb_node, struct interval_tree_node, rb);
+            taint_interval->start = node->start;
+            taint_interval->end = node->last;
+            taint_register_generic_access(taint_analysis,
                                     current_color,
                                     %s,
                                     taint_interval,
                                     %s);
+            rb_node = rb_next(rb_node);
+        }
       """
 
       CODE_GET_REG_TAINT_1 = r"""
@@ -47,59 +58,86 @@ def makeTaintGen(C_Gen, ir_arch):
 
       CODE_PREPARE_ANALYSE_MEM = r"""
       taint_addr = %s;
-      taint_size = %s;
+      taint_interval_arg->start = %s;
+      taint_interval_arg->end = %s + (%d - 1);
+      taint_interval_tree = calloc(1, sizeof(*taint_interval_tree));
       is_tainted = 0;
-      taint_interval->start = -1;
-      taint_interval->end = 0;
       """
 
       CODE_TAINT_MEM = r"""
-          taint_addr = taint_addr + taint_interval->start;
-          taint_size = taint_interval->end-taint_interval->start+1;
-          taint_memory_generic_access(vm_mngr, taint_addr, taint_size, ADD, current_color);
-          if ( taint_analysis->colors[current_color].callback_info->exception_flag
-               & DO_TAINT_MEM_CB )
-          {
-              vm_mngr->exception_flags |= EXCEPT_TAINT_ADD_MEM;
-              taint_update_memory_callback_info(taint_analysis,
-                                                current_color,
-                                                taint_addr,
-                                                taint_size,
-                                                TAINT_EVENT);
-          }
+        rb_node = rb_first(taint_interval_tree);
+
+        while(rb_node != NULL)
+        {
+            is_tainted = 1;
+            node = rb_entry(rb_node, struct interval_tree_node, rb);
+            taint_interval_arg->start = taint_addr + node->start;
+            taint_interval_arg->end = taint_addr + node->last;
+            taint_memory_generic_access(taint_analysis,current_color, taint_interval_arg, ADD);
+            if ( taint_analysis->colors[current_color].callback_info->exception_flag
+                 & DO_TAINT_MEM_CB )
+            {
+                jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_ADD_MEM;
+                taint_update_memory_callback_info(taint_analysis,
+                                                  current_color,
+                                                  taint_interval_arg,
+                                                  TAINT_EVENT);
+            }
+            rb_node = rb_next(rb_node);
+        }
       """
 
       CODE_UNTAINT_MEM = r"""
-          taint_addr = taint_addr - taint_interval_ret->start;
-          taint_size = taint_interval_ret->end-taint_interval_ret->start+1;
-          taint_memory_generic_access(vm_mngr, taint_addr, taint_size, REMOVE, current_color);
+        rb_node = rb_first(taint_interval_tree);
 
-          if ( taint_analysis->colors[current_color].callback_info->exception_flag
-               & DO_UNTAINT_MEM_CB )
-          {
-              vm_mngr->exception_flags |= EXCEPT_TAINT_REMOVE_MEM;
-              taint_update_memory_callback_info(taint_analysis, current_color,
-                                                taint_addr,
-                                                taint_size,
-                                                UNTAINT_EVENT);
-          }
+        while(rb_node != NULL)
+        {
+            is_tainted = 1;
+            node = rb_entry(rb_node, struct interval_tree_node, rb);
+            taint_interval_arg->start = node->start;
+            taint_interval_arg->end = node->last;
+            taint_memory_generic_access(taint_analysis, current_color, taint_interval_arg, REMOVE);
+
+            if ( taint_analysis->colors[current_color].callback_info->exception_flag
+                 & DO_UNTAINT_MEM_CB )
+            {
+                jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REMOVE_MEM;
+                taint_update_memory_callback_info(taint_analysis, current_color,
+                                                  taint_interval_arg,
+                                                  UNTAINT_EVENT);
+            }
+            rb_node = rb_next(rb_node);
+        }
+
       """
 
       CODE_UPDATE_INTERVALLE = r"""
-      if (taint_interval_ret != NULL)
+      if (rb_first(taint_interval_tree_tmp) != NULL)
       {
-          taint_interval->end = MAX(taint_interval_ret->end,
-                                      taint_interval->end);
-          taint_interval->start = MIN(taint_interval_ret->start,
-                                        taint_interval->start);
+        rb_node = rb_first(taint_interval_tree_tmp);
+
+        while(rb_node != NULL)
+        {
+            is_tainted = 1;
+            node = rb_entry(rb_node, struct interval_tree_node, rb);
+            interval_tree_add(node->start, node->last, taint_interval_tree);
+            rb_node = rb_next(rb_node);
+        }
       }
       """
 
-      CODE_CHECK_IF_FOUND_TAINT = r"""
-      if (taint_interval->start != -1)
+      CODE_UPDATE_INTERVALLE_MEM = r"""
+      if (rb_first(taint_interval_tree_tmp) != NULL)
       {
-          // Some taint was found
-          is_tainted = 1;
+        rb_node = rb_first(taint_interval_tree_tmp);
+
+        while(rb_node != NULL)
+        {
+            is_tainted = 1;
+            node = rb_entry(rb_node, struct interval_tree_node, rb);
+            interval_tree_add(node->start-taint_interval_arg->start, node->last-taint_interval_arg->start, taint_interval_tree);
+            rb_node = rb_next(rb_node);
+        }
       }
       """
 
@@ -164,7 +202,7 @@ def makeTaintGen(C_Gen, ir_arch):
               c_code += (self.CODE_GET_REG_TAINT_2 % ((start/8), (end/8-1))).split('\n')
               # NOTE: end/8-1 -> from size in bits to end in bytes
           c_code.append("""
-          taint_interval_ret = taint_get_register_color(taint_analysis,
+          taint_interval_tree_tmp = taint_get_register_color(taint_analysis,
                                                           current_color,
                                                           %s,
                                                           taint_interval_arg
@@ -192,15 +230,22 @@ def makeTaintGen(C_Gen, ir_arch):
               raise NotImplementedError("Taint analysis: gen_remove_register with\
                       3 args is not implemented yet.")
 
-      def gen_get_memory_taint(self, start_addr=None, size=None):
+      def gen_get_memory_taint(self, start_addr, size):
           c_code = ""
-          c_code += "taint_interval_ret = taint_get_memory("
-          c_code += "vm_mngr, "
-          if start_addr is not None and size is not None:
-              c_code += "%s, %s, " % (start_addr, size)
-          else:
-              c_code += "taint_addr, taint_size, "
-          c_code += "current_color);"
+          c_code += "taint_interval_arg->start=%s; taint_interval_arg->end=%s + (%d - 1);" % (start_addr, start_addr, size)
+          c_code += "taint_interval_tree_tmp = taint_get_memory("
+          c_code += "taint_analysis, "
+          c_code += "current_color, "
+          c_code += "taint_interval_arg);"
+          return c_code
+
+      def gen_get_memory_taint_2(self, start_addr, size):
+          c_code = ""
+          c_code += "taint_interval_arg->start=%s; taint_interval_arg->end=%s + (%d - 1);" % (start_addr, start_addr, size)
+          c_code += "taint_interval_tree = taint_get_memory("
+          c_code += "taint_analysis, "
+          c_code += "current_color, "
+          c_code += "taint_interval_arg);"
           return c_code
 
       def gen_taint_calculation(self, src, prefetchers, dst=None):
@@ -223,7 +268,7 @@ def makeTaintGen(C_Gen, ir_arch):
                   start = self.gen_segm2addr(read, prefetchers)
                   size = read.size/8 # We use bytes for size
                   c_code.append(self.gen_get_memory_taint(start, size))
-                  c_code += (self.CODE_UPDATE_INTERVALLE).split('\n')
+                  c_code += (self.CODE_UPDATE_INTERVALLE_MEM).split('\n')
               elif isinstance(read, m2_expr.ExprId):
                   c_code += self.gen_get_register_taint(str(read))
                   c_code += (self.CODE_UPDATE_INTERVALLE).split('\n')
@@ -231,7 +276,6 @@ def makeTaintGen(C_Gen, ir_arch):
                   raise NotImplementedError("Taint analysis: do not know how to \
                           handle expression type %s",
                                             type(read))
-          c_code += (self.CODE_CHECK_IF_FOUND_TAINT).split('\n')
           return c_code
 
       def gen_analyse_mem(self, dst, src, prefetchers):
@@ -239,7 +283,7 @@ def makeTaintGen(C_Gen, ir_arch):
 
           start = self.gen_segm2addr(dst, prefetchers)
           size = dst.size/8 # We use a size in byte not bit
-          c_code += (self.CODE_PREPARE_ANALYSE_MEM % (start, size)).split('\n')
+          c_code += (self.CODE_PREPARE_ANALYSE_MEM % (start, start, start, size)).split('\n')
 
           c_code += self.gen_taint_calculation(src, prefetchers, dst)
           c_code.append("if (is_tainted)")
@@ -248,8 +292,8 @@ def makeTaintGen(C_Gen, ir_arch):
           c_code.append("}")
           c_code.append("else")
           c_code.append("{")
-          c_code.append(self.gen_get_memory_taint())
-          c_code.append("\tif (taint_interval_ret != NULL)")
+          c_code.append(self.gen_get_memory_taint_2(start, size))
+          c_code.append("\tif (rb_first(taint_interval_tree) != NULL)")
           c_code.append("\t{")
           c_code += ['\t\t' + line for line in (self.CODE_UNTAINT_MEM).split('\n')]
           c_code.append("\t}")
@@ -272,7 +316,7 @@ def makeTaintGen(C_Gen, ir_arch):
           # NOTE: If destination is an ExprSlice, we may untaint a part of the
           # ExprId that was no affected at all by the current instruction
           c_code += self.gen_get_register_taint(str(dst))
-          c_code.append("\tif (taint_interval_ret != NULL)")
+          c_code.append("\tif (rb_first(taint_interval_tree_tmp) != NULL)")
           c_code.append("\t{")
           c_code += ['\t\t' + line for line in self.gen_untaint_register(dst)]
           c_code.append("\t}")
@@ -286,7 +330,7 @@ def makeTaintGen(C_Gen, ir_arch):
           c_code += self.gen_add_register(str(dst))
           c_code.append("if ( taint_analysis->colors[current_color].callback_info->exception_flag & DO_TAINT_REG_CB )")
           c_code.append("{")
-          c_code.append("vm_mngr->exception_flags |= EXCEPT_TAINT_ADD_REG;")
+          c_code.append("jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_ADD_REG;")
           c_code.append(self.gen_callback_info_reg(str(dst), "TAINT_EVENT"))
           c_code.append("}")
 
@@ -295,12 +339,11 @@ def makeTaintGen(C_Gen, ir_arch):
       def gen_untaint_register(self, dst):
           c_code = []
 
-          c_code.append("\ttaint_interval->start = taint_interval_ret->start;")
-          c_code.append("\ttaint_interval->end = taint_interval_ret->end;")
+          c_code.append("\ttaint_interval_tree = taint_interval_tree_tmp;")
           c_code += self.gen_remove_register(str(dst))
           c_code.append("if ( taint_analysis->colors[current_color].callback_info->exception_flag & DO_UNTAINT_REG_CB )")
           c_code.append("{")
-          c_code.append("vm_mngr->exception_flags |= EXCEPT_TAINT_REMOVE_REG;")
+          c_code.append("jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REMOVE_REG;")
           c_code.append(self.gen_callback_info_reg(str(dst), "UNTAINT_EVENT"))
           c_code.append("}")
 
@@ -308,12 +351,21 @@ def makeTaintGen(C_Gen, ir_arch):
 
       def gen_callback_info_reg(self, reg_name, event_type):
           c_code = """
+        rb_node = rb_first(taint_interval_tree);
+
+        while(rb_node != NULL)
+        {
+            node = rb_entry(rb_node, struct interval_tree_node, rb);
+            taint_interval->start = node->start;
+            taint_interval->end = node->last;
           taint_update_register_callback_info(taint_analysis,
                                               current_color,
                                               %s,
                                               taint_interval,
                                               %s
                                               );
+            rb_node = rb_next(rb_node);
+        }
           """ % (self.regs_index[reg_name], event_type)
 
           return c_code
@@ -468,8 +520,8 @@ def on_taint_register(jitter):
         if last_regs:
             print("[Color:%s] Taint registers" % (color))
 
-            for reg_id, start, end in last_regs:
-                print("\t+ %s[%d,%d]" % (jitter.jit.codegen.regs_name[reg_id], start, end))
+            for reg_id, intervals in last_regs:
+                print("\t+ %s %s" % (jitter.jit.codegen.regs_name[reg_id], interval(intervals)))
             jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_REG))
     return True
 
@@ -479,8 +531,8 @@ def on_untaint_register(jitter):
         if last_regs:
             print("[Color:%s] Untaint registers" % (color))
 
-            for reg_id, start, end in last_regs:
-                print("\t- %s[%d,%d]" % (jitter.jit.codegen.regs_name[reg_id], start, end))
+            for reg_id, intervals in last_regs:
+                print("\t- %s %s" % (jitter.jit.codegen.regs_name[reg_id], interval(intervals)))
             jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_REG))
     is_taint_vanished(jitter)
     return True
@@ -513,12 +565,11 @@ def display_all_taint(jitter):
         print("Color: %s" % (color))
         print("_"*20)
         print("Registers:")
-        for reg_id, start, end in regs:
-            print("\t* %s[%d,%d]" % (jitter.jit.codegen.regs_name[reg_id], start, end))
+        for reg_id, intervals in regs:
+            print("\t* %s %s" % (jitter.jit.codegen.regs_name[reg_id], interval(intervals)))
         print("-"*20)
         print("Memory:")
-        for addr, size in mems:
-            print("\t* addr:0x%x size:%d bytes" % (addr, size))
+        print(interval(mems))
         print("_"*20,"\n")
 
 def is_taint_vanished(jitter):

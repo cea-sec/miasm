@@ -766,10 +766,6 @@ void reset_memory_page_pool(vm_mngr_t* vm_mngr)
 		mpn = &vm_mngr->memory_pages_array[i];
 		free(mpn->ad_hp);
 		free(mpn->name);
-#ifdef TAINT
-		if (vm_mngr->do_taint)
-			free(mpn->taint);
-#endif
 	}
 	free(vm_mngr->memory_pages_array);
 	vm_mngr->memory_pages_array = NULL;
@@ -862,30 +858,6 @@ void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 		sizeof(struct memory_page_node) * (vm_mngr->memory_pages_number - i)
 		);
 
-#ifdef TAINT
-	if (vm_mngr->do_taint)
-	{
-		mpn_a->taint = malloc(vm_mngr->nb_colors*sizeof(*mpn_a->taint));
-
-		if (mpn_a->taint == NULL)
-		{
-			fprintf(stderr, "cannot alloc mpn_a->taint\n");
-			exit(EXIT_FAILURE);
-		}
-
-		uint64_t color_index;
-		for (color_index = 0 ; color_index < vm_mngr->nb_colors ; color_index++)
-		{
-			mpn_a->taint[color_index] = calloc(mpn_a->size/32 + 1, sizeof(*mpn_a->taint[color_index]));
-
-			if (mpn_a->taint[color_index] == NULL)
-			{
-				fprintf(stderr, "cannot alloc mpn_a->taint[%"PRIu64"]\n", color_index);
-				exit(EXIT_FAILURE);
-			}
-		}
-	}
-#endif
 
 	vm_mngr->memory_pages_array[i] = *mpn_a;
 	vm_mngr->memory_pages_number ++;

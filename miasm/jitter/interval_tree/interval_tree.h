@@ -15,7 +15,7 @@ struct interval {
 Union of two intervals can be:
 - one interval if they overlap
 - or two intervals if they don't
-Substraction of two intervals (a-b) can be:
+Subtraction of two intervals (a-b) can be:
 - nothing if intervals are equals
 - nothing if intervals overlap and a is included in b
 - one interval if they overlap
@@ -44,11 +44,8 @@ interval_tree_iter_first(struct rb_root *root,
                          unsigned long start,
                          unsigned long last);
 
-struct interval_tree_node *
-interval_tree_iter_next(struct interval_tree_node *node,
-			            unsigned long start,
-                        unsigned long last);
-
+struct rb_root *
+interval_tree_new();
 
 struct interval_tree_node *
 interval_tree_alloc_new_node(unsigned long start, unsigned long last);

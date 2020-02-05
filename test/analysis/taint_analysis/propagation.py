@@ -1,4 +1,5 @@
 from commons import *
+from miasm.core.interval import interval
 
 def test_taint_propagation():
     """Test taint propagation
@@ -18,8 +19,8 @@ def test_taint_propagation():
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not mems
         assert len(regs) == 2
-        check_reg(regs[0], jitter, "RAX", 0, 3)
-        check_reg(regs[1], jitter, "RBX", 0, 3)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
+        check_reg(regs[1], jitter, "RBX", interval([(0, 3)]))
         jitter.cpu.untaint_all()
         return True
 
@@ -32,9 +33,9 @@ def test_taint_propagation():
         print("\t[+] Test reg -> mem")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RAX", 0, 3)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
         assert len(mems) == 1
-        check_mem(mems[0], data_addr, 4)
+        check_mem(interval(mems), interval([(data_addr, data_addr+3)]))
         jitter.cpu.untaint_all()
         return True
 
@@ -47,9 +48,8 @@ def test_taint_propagation():
         print("\t[+] Test mem -> reg")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RBX", 0, 3)
-        assert len(mems) == 1
-        check_mem(mems[0], data_addr, 4)
+        check_reg(regs[0], jitter, "RBX", interval([(0, 3)]))
+        check_mem(interval(mems), interval([(data_addr, data_addr+3)]))
         jitter.cpu.untaint_all()
         return True
 
@@ -63,8 +63,7 @@ def test_taint_propagation():
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not regs
         assert len(mems) == 2
-        check_mem(mems[0], 0x123FFF8, 4)
-        check_mem(mems[1], data_addr, 4)
+        check_mem(interval(mems), interval([(data_addr, data_addr+3), (0x123FFF8, 0x123FFF8+3)]))
         jitter.cpu.untaint_all()
         return True
 
@@ -77,8 +76,8 @@ def test_taint_propagation():
         print("\t[+] Test addr -> reg")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 2
-        check_reg(regs[0], jitter, "RAX", 0, 3)
-        check_reg(regs[1], jitter, "RBX", 0, 3)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
+        check_reg(regs[1], jitter, "RBX", interval([(0, 3)]))
         assert not mems
         jitter.cpu.untaint_all()
         return True
@@ -92,9 +91,8 @@ def test_taint_propagation():
         print("\t[+] Test addr -> mem")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RAX", 0, 3)
-        assert len(mems) == 1
-        check_mem(mems[0], data_addr, 4)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
+        check_mem(interval(mems), interval([(data_addr, data_addr+3)]))
         jitter.cpu.untaint_all()
         return True
 
@@ -109,10 +107,9 @@ def test_taint_propagation():
         print("\t[+] Test multiple propagations (PUSHAD)")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 2
-        check_reg(regs[0], jitter, "RAX", 0, 3)
-        check_reg(regs[1], jitter, "RCX", 0, 3)
-        assert len(mems) == 1
-        check_mem(mems[0], 0x123FFF0, 8)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
+        check_reg(regs[1], jitter, "RCX", interval([(0, 3)]))
+        check_mem(interval(mems), interval([(0x123FFF0, 0x123FFF0+7)]))
         jitter.cpu.untaint_all()
         return True
 
@@ -125,18 +122,15 @@ def test_taint_propagation():
         print("\t[+] Test color conflicts (PUSHAD)")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 3
-        check_reg(regs[0], jitter, "RAX", 0, 3)
-        check_reg(regs[1], jitter, "RBX", 0, 3)
-        check_reg(regs[2], jitter, "RCX", 0, 3)
-        assert len(mems) == 2
-        check_mem(mems[0], 0X123FFC8, 4)
-        check_mem(mems[1], 0X123FFD0, 8)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
+        check_reg(regs[1], jitter, "RBX", interval([(0, 3)]))
+        check_reg(regs[2], jitter, "RCX", interval([(0, 3)]))
+        check_mem(interval(mems), interval([(0X123FFC8, 0X123FFC8+3), (0X123FFD0, 0X123FFD0+7)]))
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert len(regs) == 2
-        check_reg(regs[1], jitter, "RDX", 0, 3)
-        check_reg(regs[0], jitter, "RCX", 0, 3)
-        assert len(mems) == 1
-        check_mem(mems[0], 0X123FFCC, 8)
+        check_reg(regs[1], jitter, "RDX", interval([(0, 3)]))
+        check_reg(regs[0], jitter, "RCX", interval([(0, 3)]))
+        check_mem(interval(mems), interval([(0X123FFCC, 0X123FFCC+7)]))
         jitter.cpu.untaint_all()
         return True
 

@@ -1,4 +1,5 @@
 from commons import *
+from miasm.core.interval import interval
 
 def test_propagation_precision():
     """Code aiming to test taint propagation precision
@@ -17,9 +18,8 @@ def test_propagation_precision():
 
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RAX", 0, 3)
-        assert len(mems) == 1
-        check_mem(mems[0], data_addr, 2)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
+        check_mem(interval(mems), interval([(data_addr, data_addr+1)]))
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert not regs
         assert not mems
@@ -32,8 +32,8 @@ def test_propagation_precision():
 
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 2
-        check_reg(regs[0], jitter, "RAX", 0, 3)
-        check_reg(regs[1], jitter, "RBX", 0, 1)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
+        check_reg(regs[1], jitter, "RBX", interval([(0, 1)]))
         assert not mems
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert not regs
@@ -47,9 +47,8 @@ def test_propagation_precision():
 
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RAX", 0, 1)
-        assert len(mems) == 1
-        check_mem(mems[0], data_addr, 2)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 1)]))
+        check_mem(interval(mems), interval([(data_addr, data_addr+1)]))
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert not regs
         assert not mems
@@ -62,8 +61,7 @@ def test_propagation_precision():
 
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not regs
-        assert len(mems) == 1
-        check_mem(mems[0], data_addr+2, 2)
+        check_mem(interval(mems), interval([(data_addr+2, data_addr+3)]))
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert not regs
         assert not mems
@@ -75,33 +73,22 @@ def test_propagation_precision():
 
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RAX", 0, 3)
-        assert len(mems) == 2
-        check_mem(mems[0], data_addr, 1)
-        check_mem(mems[1], data_addr+2, 2)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
+        check_mem(interval(mems), interval([(data_addr, data_addr), (data_addr+2, data_addr+3)]))
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert not regs
         assert not mems
         return True
 
-    def stop_jitter(jitter):
-        # NOTE We are stopping the jitter before reachin the multipleslice
-        # instruction that we do not handle yet.
-        return False
-
     def test_multislice(jitter):
 
-        # NOTE not managed for now
         print("\t[+] Test MOV ECX, DWORD PTR [EBX]")
 
         regs, mems = jitter.cpu.get_all_taint(red)
-        print(mems) # debug
-        print(regs) # debug
-        assert len(regs) == 1
-        check_reg(regs[0], jitter, "RAX", 0, 3)
-        assert len(mems) == 2
-        check_mem(mems[0], data_addr+2, 2)
-        check_mem(mems[1], data_addr+5, 1)
+        assert len(regs) == 2
+        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
+        check_reg(regs[1], jitter, "RCX", interval([(0, 0), (2, 3)]))
+        check_mem(interval(mems), interval([(data_addr, data_addr), (data_addr+2, data_addr+3)]))
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert not regs
         assert not mems
@@ -132,8 +119,7 @@ def test_propagation_precision():
     jitter.add_breakpoint(code_addr+0x10, test_untaint_src_slice)
     jitter.add_breakpoint(code_addr+0x10, taint_EAX)
     jitter.add_breakpoint(code_addr+0x12, test_ah)
-    jitter.add_breakpoint(code_addr+0x12, stop_jitter)
-    jitter.add_breakpoint(code_addr+0x15, test_multislice) # TODO not working for now
+    jitter.add_breakpoint(code_addr+0x14, test_multislice)
 
     jitter.init_run(code_addr)
     jitter.continue_run()

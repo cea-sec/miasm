@@ -29,11 +29,7 @@
 #define MIN(a,b)  (((a)<(b))?(a):(b))
 #define MAX(a,b)  (((a)>(b))?(a):(b))
 
-#ifdef TAINT
-#define PYTHON_CLASS_NAME "VmMngr_taint"
-#else
 #define PYTHON_CLASS_NAME "VmMngr"
-#endif
 
 extern struct memory_page_list_head memory_page_pool;
 extern struct code_bloc_list_head code_bloc_pool;
@@ -1018,11 +1014,7 @@ char vm_mngr_mod_docs[] = "vm_mngr module.";
 char vm_mngr_mod_name[] = PYTHON_CLASS_NAME;
 
 
-#ifdef TAINT
-MOD_INIT(VmMngr_taint)
-#else
 MOD_INIT(VmMngr)
-#endif
 {
 	PyObject *module = NULL;
 

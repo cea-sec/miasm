@@ -128,8 +128,8 @@ class JitCore_Gcc(JitCore_Cc_Base):
                 # [Error 183] Cannot create a file when that file already exists
                 if e.winerror != 183:
                     raise
-                os.remove(fname_tmp)
-            os.remove(fname_in)
+                #os.remove(fname_tmp)
+            #os.remove(fname_in)
 
         self.load_code(block.loc_key, fname_out)
 

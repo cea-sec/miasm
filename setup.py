@@ -205,15 +205,6 @@ def buil_all():
                 "miasm/jitter/bn.h",
             ]
         ),
-        Extension(
-            "miasm.jitter.VmMngr_taint",
-            [
-                "miasm/jitter/vm_mngr.c",
-                "miasm/jitter/vm_mngr_py.c",
-                "miasm/jitter/bn.c",
-            ],
-            define_macros = [('TAINT', None)]
-        ),
         Extension( "miasm.jitter.arch.JitCore_x86_taint",
             [
                 "miasm/jitter/JitCore.c",
@@ -354,7 +345,7 @@ def buil_all():
                         "jitter/*.h",
                         "jitter/arch/*.h",
                         "analysis/*.h",
-                        "core/interval_tree/*.h",
+                        "jitter/interval_tree/*.h",
                         "VERSION"
                     ]
                 },

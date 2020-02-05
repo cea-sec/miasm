@@ -51,6 +51,23 @@ interval_tree_free(struct rb_root *root)
     free(root);
 }
 
+
+struct rb_root *
+interval_tree_new()
+{
+    struct rb_root * interval_tree;
+
+    interval_tree = calloc(1, sizeof(*interval_tree));
+
+    if (interval_tree == NULL)
+    {
+        fprintf(stderr, "INTERVAL: cannot alloc interval tree\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return interval_tree;
+}
+
 struct interval_tree_node *
 interval_tree_alloc_new_node(unsigned long start, unsigned long last)
 {
@@ -325,7 +342,7 @@ interval_tree_sub(unsigned long start, unsigned long last, struct rb_root *root)
     first_node = interval_tree_iter_first(root, start, last);
 
     if (first_node == NULL)
-        // Substracted interval is not overlapping with any existing interval.
+        // Subtracted interval is not overlapping with any existing interval.
         return;
 
     first_interval.start = first_node->start;

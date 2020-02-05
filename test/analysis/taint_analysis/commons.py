@@ -5,6 +5,7 @@ from miasm.core.asmblock import asm_resolve_final
 from miasm.analysis.machine import Machine
 import miasm.jitter.csts as csts
 import miasm.analysis.taint_analysis as taint
+from miasm.core.interval import interval
 
 ## CSTS
 # Color csts
@@ -16,8 +17,7 @@ data_addr = 0x80000000
 code_addr = 0x40000000
 # Indexes
 reg_index = 0
-reg_start_byte = 1
-reg_end_byte = 2
+reg_interval = 1
 mem_addr = 0
 mem_size = 1
 
@@ -75,14 +75,12 @@ def no_more_taint(jitter):
         assert not mems
     return True
 
-def check_reg(reg, jitter, register, start, end):
+def check_reg(reg, jitter, register, taint_interval):
     assert reg[reg_index] == jitter.jit.codegen.regs_index[register]
-    assert reg[reg_start_byte] == start
-    assert reg[reg_end_byte] == end
+    assert interval(reg[reg_interval]) == taint_interval
 
-def check_mem(mem, addr, size):
-    assert mem[mem_addr] == addr
-    assert mem[mem_size] == size
+def check_mem(mem, taint_interval):
+    assert mem == taint_interval
 
 def taint_register(jitter, color, register, start=0, end=7):
     jitter.cpu.taint_register(color, jitter.jit.codegen.regs_index[register], start, end)

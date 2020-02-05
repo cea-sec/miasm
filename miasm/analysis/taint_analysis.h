@@ -87,19 +87,9 @@ struct taint_interval_t {
 	uint64_t end;
 };
 
-struct taint_memory_cb_t {
-	uint64_t addr;
-	uint64_t size;
-};
-
 struct taint_last_modify_t {
-	// Register info
-	uint32_t *registers;
-
-	// Memory info
-	uint64_t nb_mem;
-	uint64_t allocated;
-	struct taint_memory_cb_t *memory;
+	struct rb_root **registers;
+	struct rb_root *memory;
 };
 
 struct taint_callback_info_t {
@@ -113,7 +103,8 @@ struct taint_callback_info_t {
 };
 
 struct taint_color_t {
-	uint32_t *registers;
+	struct rb_root **registers;
+	struct rb_root *memory;
 	struct taint_callback_info_t *callback_info;
 };
 
@@ -144,36 +135,35 @@ _MIASM_EXPORT void taint_register_generic_access(struct taint_colors_t *colors,
 				   struct taint_interval_t* interval,
 				   uint32_t access_type
 				   );
-_MIASM_EXPORT struct taint_interval_t* taint_get_register_color(struct taint_colors_t *colors,
+_MIASM_EXPORT struct rb_root * taint_get_register_color(struct taint_colors_t *colors,
 						    uint64_t color_index,
 						    uint64_t register_index,
 						    struct taint_interval_t* interval
 						    );
-struct taint_interval_t* taint_get_register(uint32_t* registers,
+struct rb_root * taint_get_register(struct rb_root ** registers,
 					      uint64_t register_index,
 					      struct taint_interval_t* interval,
 					      uint32_t max_register_size
 					      );
+void taint_color_init_registers(struct taint_color_t *color, uint64_t nb_registers);
 void taint_remove_all_registers(struct taint_colors_t *colors);
 void taint_color_remove_all_registers(struct taint_colors_t *colors,
 				      uint64_t color_index
 				      );
 
 /* Memory */
-_MIASM_EXPORT void taint_memory_generic_access(vm_mngr_t* vm_mngr,
-				 uint64_t addr,
-				 uint64_t size,
-				 uint32_t access_type,
-				 uint64_t color_index
+_MIASM_EXPORT void taint_memory_generic_access(struct taint_colors_t *colors,
+                 uint64_t color_index,
+                 struct taint_interval_t* interval,
+				 uint32_t access_type
 				 );
-_MIASM_EXPORT struct taint_interval_t* taint_get_memory(vm_mngr_t* vm_mngr,
-					    uint64_t addr,
-					    uint64_t size,
-					    uint64_t color_index
-					    );
-void taint_remove_all_memory(vm_mngr_t* vm_mngr);
-void taint_color_remove_all_memory(vm_mngr_t* vm_mngr, uint64_t color_index);
-void taint_init_memory(vm_mngr_t* vm_mngr, uint64_t color_index);
+_MIASM_EXPORT struct rb_root * taint_get_memory(struct taint_colors_t *colors,
+					    uint64_t color_index,
+                        struct taint_interval_t* interval
+                        );
+void taint_remove_all_memory(struct taint_colors_t *colors);
+void taint_color_remove_all_memory(struct taint_colors_t *colors, uint64_t color_index);
+void taint_color_init_memory(struct taint_color_t *color);
 
 /* Callback information */
 struct taint_callback_info_t *taint_init_callback_info(uint64_t nb_registers,
@@ -191,8 +181,7 @@ _MIASM_EXPORT void taint_update_register_callback_info(struct taint_colors_t *co
 					 );
 _MIASM_EXPORT void taint_update_memory_callback_info(struct taint_colors_t *colors,
 				       uint64_t color_index,
-				       uint64_t addr,
-				       uint64_t size,
+					   struct taint_interval_t* interval,
 				       int event_type
 				       );
 
@@ -207,7 +196,7 @@ int bitfield_test_bit(uint32_t bfield[],  uint64_t index);
 
 /* Python API */
 PyObject* cpu_access_register(JitCpu* cpu, PyObject* args, uint32_t access_type);
-PyObject* cpu_get_registers(uint32_t* registers,
+PyObject* cpu_get_registers(struct rb_root ** registers,
 			     uint64_t nb_registers,
 			     uint32_t max_register_size
 			     );
@@ -226,7 +215,7 @@ PyObject* cpu_init_taint(JitCpu* self, PyObject* args); // args: nb_registers, n
 PyObject* cpu_get_last_register(JitCpu* cpu, PyObject* args, uint32_t event_type);
 PyObject* cpu_get_last_tainted_registers(JitCpu* self, PyObject* args); // args: color_index
 PyObject* cpu_get_last_untainted_registers(JitCpu* self, PyObject* args); // args: color_index
-PyObject* cpu_get_memory(vm_mngr_t* vm_mngr, uint64_t color_index);
+PyObject* cpu_get_memory(struct rb_root * memory);
 PyObject* cpu_get_last_memory(JitCpu* cpu, PyObject* args, uint32_t event_type);
 PyObject* cpu_get_last_tainted_memory(JitCpu* self, PyObject* args); // args: color_index
 PyObject* cpu_get_last_untainted_memory(JitCpu* self, PyObject* args); // args: color_index

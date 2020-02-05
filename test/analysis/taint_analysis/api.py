@@ -1,4 +1,5 @@
 from commons import *
+from miasm.core.interval import interval
 
 def test_api():
     """Test API
@@ -18,8 +19,8 @@ def test_api():
         taint_register(jitter, blue, "RBX")
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert len(regs) == 2
-        check_reg(regs[0], jitter, "RAX", 0, 7)
-        check_reg(regs[1], jitter, "RBX", 0, 7)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 7)]))
+        check_reg(regs[1], jitter, "RBX", interval([(0, 7)]))
         assert not mems
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not regs
@@ -33,8 +34,8 @@ def test_api():
         jitter.cpu.untaint_register(blue, jitter.jit.codegen.regs_index["RCX"])
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert len(regs) == 2
-        check_reg(regs[0], jitter, "RAX", 0, 7)
-        check_reg(regs[1], jitter, "RBX", 0, 7)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 7)]))
+        check_reg(regs[1], jitter, "RBX", interval([(0, 7)]))
         assert not mems
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not regs
@@ -42,7 +43,7 @@ def test_api():
         jitter.cpu.untaint_register(blue, jitter.jit.codegen.regs_index["RBX"])
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RAX", 0, 7)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 7)]))
         assert not mems
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not regs
@@ -62,7 +63,7 @@ def test_api():
         assert not mems
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RAX", 0, 7)
+        check_reg(regs[0], jitter, "RAX", interval([(0, 7)]))
         assert not mems
         jitter.cpu.untaint_all_registers_of_color(red)
         no_more_taint(jitter)
@@ -88,13 +89,11 @@ def test_api():
         jitter.cpu.taint_memory(data_addr+0x6,7,blue)
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert not regs
-        assert len(mems) == 1
-        check_mem(mems[0], data_addr+0x6, 7)
+        check_mem(interval(mems), interval([(data_addr+0x6, data_addr+0x6+6)]))
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not regs
         assert len(mems) == 2
-        check_mem(mems[0], data_addr, 4)
-        check_mem(mems[1], data_addr+0x6, 7)
+        check_mem(interval(mems), interval([(data_addr, data_addr+3), (data_addr+0x6, data_addr+0x6+6)]))
 
     def test_api_untaint_memory(jitter):
         """ Test jitter.cpu.untaint_memory """
@@ -104,14 +103,10 @@ def test_api():
         jitter.cpu.untaint_memory(data_addr+0x7,3,red)
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert not regs
-        assert len(mems) == 1
-        check_mem(mems[0], data_addr+0x6, 7)
+        check_mem(interval(mems), interval([(data_addr+0x6, data_addr+0x6+6)]))
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not regs
-        assert len(mems) == 3
-        check_mem(mems[0], data_addr, 4)
-        check_mem(mems[1], data_addr+0x6, 1)
-        check_mem(mems[2], data_addr+0xa, 3)
+        check_mem(interval(mems), interval([(data_addr, data_addr+3), (data_addr+0x6, data_addr+0x6), (data_addr+0xa, data_addr+0xa+2)]))
 
     def test_api_untaint_all_memory_of_color(jitter):
         """ Test jitter.cpu.untaint_all_memory_of_color """
@@ -124,8 +119,7 @@ def test_api():
         assert not mems
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert not regs
-        assert len(mems) == 1
-        check_mem(mems[0], data_addr+0x6, 7)
+        check_mem(interval(mems), interval([(data_addr+0x6, data_addr+0x6+6)]))
         jitter.cpu.untaint_all_memory_of_color(blue)
         no_more_taint(jitter)
 
@@ -155,9 +149,8 @@ def test_api():
         assert not mems
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RBX", 0, 7)
-        assert len(mems) == 1
-        check_mem(mems[0], data_addr+0x6, 7)
+        check_reg(regs[0], jitter, "RBX", interval([(0, 7)]))
+        check_mem(interval(mems), interval([(data_addr+0x6, data_addr+0x6+6)]))
         jitter.cpu.untaint_all_of_color(blue)
         no_more_taint(jitter)
 

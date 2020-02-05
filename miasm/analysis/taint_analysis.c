@@ -16,6 +16,7 @@
 
 #include "taint_analysis.h"
 
+
 /* Taint setters/getters */
 /* Colors */
 struct taint_colors_t*
@@ -55,23 +56,9 @@ taint_init_color(uint64_t nb_registers, uint32_t max_register_size)
 {
 	struct taint_color_t taint_analysis;
 
-	/* Init registers */
-	/* Registers taint information is stored in a bit field. This bit field
-	 * contains 8 bits per register (we have a max of 8 bytes per register
-	 * by default).
-	 */
-	taint_analysis.registers
-		= calloc(BIT_FIELD_SIZE(nb_registers*max_register_size),
-			 sizeof(*taint_analysis.registers)
-			 );
+    taint_color_init_registers(&taint_analysis, nb_registers);
+    taint_color_init_memory(&taint_analysis);
 
-	if (taint_analysis.registers == NULL)
-	{
-		fprintf(stderr, "TAINT: cannot alloc taint_analysis->registers\n");
-		exit(EXIT_FAILURE);
-	}
-
-	/* Init callback information */
 	taint_analysis.callback_info = taint_init_callback_info(nb_registers,
 								max_register_size);
 
@@ -147,14 +134,17 @@ taint_register_generic_access(struct taint_colors_t *colors,
 			      uint32_t access_type
 			      )
 {
-	uint64_t index;
-	for (index = interval->start; index <= interval->end ; index++)
-		bitfield_generic_access(colors->colors[color_index].registers,
-					register_index*colors->max_register_size+index,
-					access_type);
+	if (access_type == ADD)
+        interval_tree_add(interval->start,
+                          interval->end,
+                          colors->colors[color_index].registers[register_index]);
+	else if (access_type == REMOVE)
+        interval_tree_sub(interval->start,
+                          interval->end,
+                          colors->colors[color_index].registers[register_index]);
 }
 
-struct taint_interval_t*
+struct rb_root*
 taint_get_register_color(struct taint_colors_t *colors,
 			 uint64_t color_index,
 			 uint64_t register_index,
@@ -167,336 +157,132 @@ taint_get_register_color(struct taint_colors_t *colors,
 				  colors->max_register_size);
 }
 
-struct taint_interval_t*
-taint_get_register(uint32_t* registers,
+struct rb_root*
+taint_get_register(struct rb_root ** registers,
 		   uint64_t register_index,
 		   struct taint_interval_t* interval,
 		   uint32_t max_register_size
 		   )
 {
-	struct taint_interval_t* tainted_interval;
-	tainted_interval = malloc(sizeof(*tainted_interval));
-        if (tainted_interval == NULL)
+    struct rb_root *tainted_interval_tree;
+
+    tainted_interval_tree = interval_tree_intersection(interval->start,
+                                                       interval->end,
+                                                       registers[register_index]);
+
+	return tainted_interval_tree;
+}
+
+void
+taint_color_init_registers(struct taint_color_t *color, uint64_t nb_registers)
+{
+	color->registers
+		= calloc(nb_registers, sizeof(*color->registers));
+
+	if (color->registers == NULL)
 	{
-		fprintf(stderr,
-			"TAINT: cannot alloc tainted_interval in "
-			"taint_get_register()\n");
+		fprintf(stderr, "TAINT: cannot alloc color->registers\n");
 		exit(EXIT_FAILURE);
 	}
-	tainted_interval->start = -1;
 
-	uint64_t index;
-	for (index = interval->start; index <= interval->end ; index++)
-	{
-		if (bitfield_test_bit(registers, register_index*max_register_size+index))
-		{
-			if (tainted_interval->start == (uint64_t)-1)
-			{
-				tainted_interval->start = index;
-				tainted_interval->end = index;
-			}
-			else
-			{
-				if (tainted_interval->end+1 != index)
-				{
-					fprintf(stderr,
-						"TAINT:DEBUG espace dans "
-						"registre non contigue\n");
-					exit(EXIT_FAILURE);
-				}
-				tainted_interval->end = index;
-			}
-		}
-	}
 
-	if (tainted_interval->start == (uint64_t)-1)
+	uint64_t i;
+	for(i = 0; i < nb_registers; i++)
 	{
-		// No taint
-		free(tainted_interval);
-		return NULL;
+		color->registers[i] = calloc(1, sizeof(*color->registers[i]));
+        if (color->registers[i] == NULL)
+        {
+            fprintf(stderr, "TAINT: cannot alloc color->registers[i]\n");
+            exit(EXIT_FAILURE);
+        }
 	}
-	return tainted_interval;
 }
+
+void
+taint_color_init_memory(struct taint_color_t *color)
+{
+	color->memory = calloc(1, sizeof(*color->memory));
+
+	if (color->memory == NULL)
+	{
+		fprintf(stderr, "TAINT: cannot alloc color->memory\n");
+		exit(EXIT_FAILURE);
+	}
+}
+
 void
 taint_color_remove_all_registers(struct taint_colors_t *colors, uint64_t color_index)
 {
 	uint64_t i;
-	for(i = 0;
-	    i < BIT_FIELD_SIZE(colors->nb_registers*colors->max_register_size);
-	    i++)
-	{
-		colors->colors[color_index].registers[i] = 0;
-	}
+	for(i = 0; i < colors->nb_registers; i++)
+    {
+        interval_tree_free(colors->colors[color_index].registers[i]);
+        colors->colors[color_index].registers[i] = interval_tree_new();
+    }
 }
 
 void
 taint_remove_all_registers(struct taint_colors_t *colors)
 {
-	uint64_t color_index;
-	for (color_index = 0 ; color_index < colors->nb_colors ; color_index++)
-	{
-		taint_color_remove_all_registers(colors, color_index);
-	}
+       uint64_t color_index;
+       for (color_index = 0 ; color_index < colors->nb_colors ; color_index++)
+       {
+               taint_color_remove_all_registers(colors, color_index);
+       }
 }
-
-
 
 /* Memory */
 void
-taint_memory_generic_access(vm_mngr_t* vm_mngr,
-			    uint64_t addr,
-			    uint64_t size,
-			    uint32_t access_type,
-			    uint64_t color_index
-			    )
+taint_memory_generic_access(struct taint_colors_t *colors,
+                uint64_t color_index,
+                struct taint_interval_t* interval,
+                           uint32_t access_type
+                           )
 {
-	struct memory_page_node *mpn;
-	mpn = get_memory_page_from_address(vm_mngr, addr, DO_RAISE_EXCEPTION);
-
-	if(!mpn)
-	{
-		fprintf(stderr, "TAINT: address %"PRIu64" is not mapped\n", addr);
-		return;
-	}
-
-	/* Fits in one page */
-	if (addr - mpn->ad + size <= mpn->size)
-	{
-		uint64_t i;
-		for (i = 0 ; i < size ; i++)
-		{
-			bitfield_generic_access(mpn->taint[color_index],
-					       (addr + i) - mpn->ad,
-					       access_type);
-		}
-	}
-	/* Multiple pages wide */
-	// NOTE: can this be optimized ?
-	else
-	{
-		// ref : miasm/jitter/vm_mngr.c ligne 248
-		uint64_t i;
-		for (i = 0 ; i < size ; i++)
-		{
-			mpn = get_memory_page_from_address(vm_mngr,
-							   addr + i,
-							   DO_RAISE_EXCEPTION
-							   );
-			if (!mpn)
-			{
-				fprintf(stderr,
-					"TAINT: address %"PRIu64" is not "
-					"mapped\n",
-					addr + i);
-				return;
-			}
-			bitfield_generic_access(mpn->taint[color_index],
-					       (addr + i) - mpn->ad,
-					       access_type);
-		}
-	}
+       if (access_type == ADD)
+        interval_tree_add(interval->start,
+                          interval->end,
+                          colors->colors[color_index].memory);
+       else if (access_type == REMOVE)
+        interval_tree_sub(interval->start,
+                          interval->end,
+                          colors->colors[color_index].memory);
 }
 
-struct taint_interval_t*
-taint_get_memory(vm_mngr_t* vm_mngr,
-		 uint64_t addr,
-		 uint64_t size,
-		 uint64_t color_index
-		 )
+struct rb_root*
+taint_get_memory(struct taint_colors_t *colors,
+                 uint64_t color_index,
+                 struct taint_interval_t* interval)
 {
-	struct memory_page_node *mpn;
-	mpn = get_memory_page_from_address(vm_mngr, addr, DO_RAISE_EXCEPTION);
+    struct rb_root *tainted_interval_tree;
 
-	if(!mpn)
-	{
-		fprintf(stderr,
-			"TAINT: address %"PRIu64" is not mapped\n",
-			addr);
-		return NULL;
-	}
+    tainted_interval_tree = interval_tree_intersection(interval->start,
+                                                       interval->end,
+                                                       colors->colors[color_index].memory);
 
-	struct taint_interval_t* tainted_interval;
-	tainted_interval = malloc(sizeof(*tainted_interval));
-        if (tainted_interval == NULL)
-	{
-		fprintf(stderr,
-			"TAINT: cannot alloc tainted_interval in "
-			"taint_get_memory()\n");
-		exit(EXIT_FAILURE);
-	}
-
-	tainted_interval->start = -1;
-
-	/* Fits in one page */
-	if (addr - mpn->ad + size <= mpn->size)
-	{
-		uint64_t i;
-		for (i = 0 ; i < size ; i++)
-		{
-			if (bitfield_test_bit(mpn->taint[color_index],
-					      (addr + i) - mpn->ad))
-			{
-
-				if (tainted_interval->start == (uint64_t)-1)
-				{
-					tainted_interval->start = i;
-					tainted_interval->end = i;
-				}
-				else
-				{
-					if (tainted_interval->end+1 != i)
-					{
-						fprintf(stderr,
-							"TAINT:DEBUG espace "
-							"teinté dans mémoire "
-							"non contigue\n");
-						exit(EXIT_FAILURE);
-					}
-					tainted_interval->end = i;
-				}
-			}
-		}
-	}
-	/* Multiple pages wide */
-	// NOTE: can this be optimized ?
-	else
-	{
-		// ref : miasm/jitter/vm_mngr.c ligne 248
-		uint64_t i;
-		for (i = 0 ; i < size ; i++)
-		{
-			mpn = get_memory_page_from_address(vm_mngr,
-							   addr + i,
-							   DO_RAISE_EXCEPTION
-							   );
-			if (!mpn)
-			{
-				fprintf(stderr,
-					"TAINT: address %"PRIu64" is not"
-					"mapped\n",
-					addr + i);
-				free(tainted_interval);
-				return NULL;
-			}
-			if (bitfield_test_bit(mpn->taint[color_index],
-					      (addr + i) - mpn->ad))
-            {
-				if (tainted_interval->start == (uint64_t)-1)
-				{
-					tainted_interval->start = i;
-					tainted_interval->end = i;
-				}
-				else
-				{
-					if (tainted_interval->end+1 != i)
-					{
-						fprintf(stderr,
-							"TAINT:DEBUG espace "
-							"teinté dans mémoire "
-							"non contigue\n");
-						exit(EXIT_FAILURE);
-					}
-					tainted_interval->end = i;
-				}
-            }
-
-		}
-	}
-	if (tainted_interval->start == (uint64_t)-1)
-	{
-		// No taint
-		free(tainted_interval);
-		return NULL;
-	}
-	return tainted_interval;
+       return tainted_interval_tree;
 }
 
 void
-taint_remove_all_memory(vm_mngr_t* vm_mngr)
+taint_remove_all_memory(struct taint_colors_t *colors)
 {
-	int i;
-	size_t j;
-	uint64_t k;
-	for (i = 0; i < vm_mngr->memory_pages_number ; i++)
-	{
-		for ( k = 0; k < vm_mngr->nb_colors ; k++)
-		{
-			for(j = 0;
-			    j < BIT_FIELD_SIZE(vm_mngr->memory_pages_array[i].size);
-			    j++)
-			{
-				vm_mngr->memory_pages_array[i].taint[k][j] = 0;
-			}
-		}
-	}
+    for (uint64_t i = 0; i < colors->nb_colors ; i++)
+        taint_color_remove_all_memory(colors, i);
 }
 
 void
-taint_color_remove_all_memory(vm_mngr_t* vm_mngr, uint64_t color_index)
+taint_color_remove_all_memory(struct taint_colors_t *colors, uint64_t color_index)
 {
-	int page_number;
-	size_t index;
-	for (page_number = 0; page_number < vm_mngr->memory_pages_number ; page_number++)
-	{
-		for(index = 0;
-		    index < BIT_FIELD_SIZE(vm_mngr->memory_pages_array[page_number].size);
-		    index++)
-		{
-			vm_mngr->memory_pages_array[page_number].taint[color_index][index] = 0;
-		}
-	}
+    interval_tree_free(colors->colors[color_index].memory);
+    colors->colors[color_index].memory = interval_tree_new();
 }
 
-void
-taint_init_memory(vm_mngr_t* vm_mngr, uint64_t nb_colors)
-{
-	vm_mngr->do_taint = 1;
-	vm_mngr->nb_colors = nb_colors;
-
-	int i;
-	for (i = 0; i < vm_mngr->memory_pages_number; i++)
-	{
-		vm_mngr->memory_pages_array[i].taint =
-			malloc(nb_colors*sizeof(*vm_mngr->memory_pages_array[i].taint));
-
-		if (!vm_mngr->memory_pages_array[i].taint)
-		{
-			fprintf(stderr,
-				"TAINT: cannot alloc "
-				"vm_mngr->memory_pages_array[%d].taint\n",
-				i);
-			exit(EXIT_FAILURE);
-		}
-
-		uint64_t color_index;
-		for (color_index = 0 ;
-		     color_index < vm_mngr->nb_colors ;
-		     color_index++)
-		{
-			vm_mngr->memory_pages_array[i].taint[color_index] =
-				calloc(BIT_FIELD_SIZE(vm_mngr->memory_pages_array[i].size),
-				       sizeof(*vm_mngr->memory_pages_array[i].taint[color_index])
-				       );
-
-			if (!vm_mngr->memory_pages_array[i].taint[color_index])
-			{
-				fprintf(stderr,
-					"TAINT: cannot alloc "
-					"vm_mngr->memory_pages_array[%d].taint"
-					"[%"PRIu64"]\n",
-					i,
-					color_index
-					);
-				exit(EXIT_FAILURE);
-			}
-		}
-	}
-}
 
 /* Callback info */
 struct taint_callback_info_t *
 taint_init_callback_info(uint64_t nb_registers, uint32_t max_register_size)
 {
+    // TODO
 	struct taint_callback_info_t *callback_info;
 
 	callback_info = malloc(sizeof(*callback_info));
@@ -510,56 +296,42 @@ taint_init_callback_info(uint64_t nb_registers, uint32_t max_register_size)
 	/* last tainted */
 	/* Registers */
 	callback_info->last_tainted.registers
-		= calloc(BIT_FIELD_SIZE(nb_registers*max_register_size),
-			 sizeof(*callback_info->last_tainted.registers)
-			 );
-        if (callback_info->last_tainted.registers == NULL)
+		= calloc(nb_registers, sizeof(*callback_info->last_tainted.registers));
+
+    if (callback_info->last_tainted.registers == NULL)
 	{
 		fprintf(stderr, "TAINT: cannot alloc "
 				"callback_info->last_tainted.registers\n");
 		exit(EXIT_FAILURE);
 	}
 
-	/* Memory */
-	callback_info->last_tainted.memory
-		= malloc(sizeof(*callback_info->last_tainted.memory)*NB_MEM_ALLOC_CB);
-        if (callback_info->last_tainted.memory == NULL)
-	{
-		fprintf(stderr, "TAINT: cannot alloc "
-				"taint_analysis->callback_info->"
-				"last_tainted.memory\n");
-		exit(EXIT_FAILURE);
-	}
+    for( uint64_t index = 0; index < nb_registers; index ++)
+    {
+        callback_info->last_tainted.registers[index] = interval_tree_new();
+    }
 
-	callback_info->last_tainted.allocated = NB_MEM_ALLOC_CB;
-	callback_info->last_tainted.nb_mem = 0;
+	/* Memory */
+	callback_info->last_tainted.memory = interval_tree_new();
 
 	/* last untainted */
 	/* Registers */
 	callback_info->last_untainted.registers
-		= calloc(BIT_FIELD_SIZE(nb_registers*max_register_size),
-			 sizeof(*callback_info->last_untainted.registers)
-			 );
-        if (callback_info->last_untainted.registers == NULL)
+		= calloc(nb_registers, sizeof(*callback_info->last_untainted.registers));
+
+    if (callback_info->last_untainted.registers == NULL)
 	{
 		fprintf(stderr, "TAINT: cannot alloc "
 				"callback_info->last_untainted.registers\n");
 		exit(EXIT_FAILURE);
 	}
 
-	/* Memory */
-	callback_info->last_untainted.memory
-		= malloc(sizeof(*callback_info->last_untainted.memory)*NB_MEM_ALLOC_CB);
-        if (callback_info->last_untainted.memory == NULL)
-	{
-		fprintf(stderr, "TAINT: cannot alloc "
-				"taint_analysis->callback_info->"
-				"last_untainted.memory\n");
-		exit(EXIT_FAILURE);
-	}
+    for( uint64_t index = 0; index < nb_registers; index ++)
+    {
+        callback_info->last_untainted.registers[index] = interval_tree_new();
+    }
 
-	callback_info->last_untainted.allocated = NB_MEM_ALLOC_CB;
-	callback_info->last_untainted.nb_mem = 0;
+	/* Memory */
+	callback_info->last_untainted.memory = interval_tree_new();
 
 	/* Exceptions for calbacks */
 	callback_info->exception_flag = 0;
@@ -579,66 +351,43 @@ taint_clean_all_callback_info(struct taint_colors_t *colors)
 }
 
 void
-taint_clean_callback_info(struct taint_colors_t *colors,
-			  uint64_t color_index
-			  )
+taint_clean_callback_info(struct taint_colors_t *colors, uint64_t color_index)
 {
-	uint64_t i;
-
-	for(i = 0;
-	    i < BIT_FIELD_SIZE(colors->nb_registers*colors->max_register_size)
-	    ; i++)
+	for(uint64_t i = 0; i < colors->nb_registers ; i++)
 	{
-		colors->colors[color_index].callback_info->
-			last_tainted.registers[i] = 0;
-		colors->colors[color_index].callback_info->
-			last_untainted.registers[i] = 0;
+        interval_tree_free(colors->colors[color_index].callback_info->last_tainted.registers[i]);
+        colors->colors[color_index].callback_info->last_tainted.registers[i] = interval_tree_new();
+        interval_tree_free(colors->colors[color_index].callback_info->last_untainted.registers[i]);
+        colors->colors[color_index].callback_info->last_untainted.registers[i] = interval_tree_new();
 	}
-
-	colors->colors[color_index].callback_info->last_tainted.nb_mem = 0;
-	colors->colors[color_index].callback_info->last_untainted.nb_mem = 0;
+    interval_tree_free(colors->colors[color_index].callback_info->last_tainted.memory);
+    colors->colors[color_index].callback_info->last_tainted.memory = interval_tree_new();
+    interval_tree_free(colors->colors[color_index].callback_info->last_untainted.memory);
+    colors->colors[color_index].callback_info->last_untainted.memory = interval_tree_new();
 }
 
 void
 taint_update_memory_callback_info(struct taint_colors_t *colors,
 				  uint64_t color_index,
-				  uint64_t addr,
-				  uint64_t size,
+				  struct taint_interval_t* interval,
 				  int event_type
 				  )
 {
-	struct taint_last_modify_t* last_modify;
 	if (event_type == TAINT_EVENT)
-	{
-		last_modify = &(colors->colors[color_index].callback_info->
-				last_tainted);
-	}
+        interval_tree_add(interval->start,
+                          interval->end,
+		                  colors->colors[color_index].callback_info->last_tainted.memory);
 	else if (event_type == UNTAINT_EVENT)
-	{
-		last_modify = &(colors->colors[color_index].callback_info->
-				last_untainted);
-	}
+        interval_tree_add(interval->start,
+                          interval->end,
+		                  colors->colors[color_index].callback_info->last_untainted.memory);
 	else
 	{
 		fprintf(stderr,
 			"TAINT: unknown event type %d\n"
 			"\t-> Callback information are not updated !\n",
 			event_type);
-		return;
 	}
-
-	if ( last_modify->nb_mem >= last_modify->allocated )
-	{
-		last_modify->allocated *= 2;
-		last_modify->memory = realloc(last_modify->memory,
-						last_modify->allocated
-						* sizeof(*last_modify->memory)
-						);
-	}
-
-	last_modify->memory[last_modify->nb_mem].addr = addr;
-	last_modify->memory[last_modify->nb_mem].size = size;
-	last_modify->nb_mem += 1;
 }
 
 void
@@ -650,30 +399,13 @@ taint_update_register_callback_info(struct taint_colors_t *colors,
 				    )
 {
 	if (event_type == TAINT_EVENT)
-	{
-
-		uint64_t index;
-		for (index = interval->start;
-		     index <= interval->end;
-		     index++)
-			bitfield_set_bit(colors->colors[color_index].
-						callback_info->
-						last_tainted.registers,
-					 register_index*colors->
-						max_register_size+index);
-	}
+        interval_tree_add(interval->start,
+                          interval->end,
+                          colors->colors[color_index].callback_info->last_tainted.registers[register_index]);
 	else if (event_type == UNTAINT_EVENT)
-	{
-		uint64_t index;
-		for (index = interval->start;
-		     index <= interval->end;
-		     index++)
-			bitfield_set_bit(colors->colors[color_index].
-						callback_info->
-						last_untainted.registers,
-					 register_index*colors->
-						max_register_size+index);
-	}
+        interval_tree_add(interval->start,
+                          interval->end,
+                          colors->colors[color_index].callback_info->last_untainted.registers[register_index]);
 }
 
 /* Utils */
@@ -804,6 +536,7 @@ cpu_access_memory(JitCpu* cpu, PyObject* args, uint32_t access_type)
 	uint64_t addr;
 	uint64_t size;
 	uint64_t color_index;
+	struct taint_interval_t* interval_arg;
 
 	if (!PyArg_ParseTuple(args, "OOO", &addr_py, &size_py, &color_index_py))
 		return NULL;
@@ -812,8 +545,15 @@ cpu_access_memory(JitCpu* cpu, PyObject* args, uint32_t access_type)
 	PyGetInt_uint64_t(size_py, size);
 	PyGetInt_uint64_t(color_index_py, color_index);
 
-	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
-	taint_memory_generic_access(&cpu->pyvm->vm_mngr, addr, size, access_type, color_index);
+    if (size > 0)
+    {
+	    interval_arg = malloc(sizeof(*interval_arg));
+	    interval_arg->start = addr;
+	    interval_arg->end = addr + (size - 1);
+
+	    taint_check_color(color_index, cpu->taint_analysis->nb_colors);
+	    taint_memory_generic_access(cpu->taint_analysis, color_index, interval_arg, access_type);
+    }
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -834,7 +574,7 @@ cpu_untaint_memory(JitCpu* self, PyObject* args)
 PyObject *
 cpu_untaint_all_memory(JitCpu* self)
 {
-	taint_remove_all_memory(&self->pyvm->vm_mngr);
+	taint_remove_all_memory(self->taint_analysis);
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -852,7 +592,7 @@ cpu_color_untaint_all_memory(JitCpu* self, PyObject* args)
 	PyGetInt_uint64_t(color_index_py, color_index);
 
 	taint_check_color(color_index, self->taint_analysis->nb_colors);
-	taint_color_remove_all_memory(&self->pyvm->vm_mngr, color_index);
+	taint_color_remove_all_memory(self->taint_analysis, color_index);
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -862,7 +602,7 @@ PyObject *
 cpu_untaint_all(JitCpu* self)
 {
 	taint_remove_all_registers(self->taint_analysis);
-	taint_remove_all_memory(&self->pyvm->vm_mngr);
+	taint_remove_all_memory(self->taint_analysis);
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -881,7 +621,7 @@ cpu_color_untaint_all(JitCpu* self, PyObject* args)
 
 	taint_check_color(color_index, self->taint_analysis->nb_colors);
 	taint_color_remove_all_registers(self->taint_analysis, color_index);
-	taint_color_remove_all_memory(&self->pyvm->vm_mngr, color_index);
+	taint_color_remove_all_memory(self->taint_analysis, color_index);
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -921,50 +661,66 @@ cpu_init_taint(JitCpu* self, PyObject* args)
 						 nb_regs,
 						 max_register_size);
 
-	/* Init memory */
-	taint_init_memory(&self->pyvm->vm_mngr, nb_colors);
-
 	Py_INCREF(Py_None);
 	return Py_None;
 }
 
 PyObject*
-cpu_get_registers(uint32_t* registers,
+cpu_get_registers(struct rb_root ** registers,
 		  uint64_t nb_registers,
 		  uint32_t max_register_size
 		  )
 {
 	PyObject *tainted_registers = PyList_New(0);
-	struct taint_interval_t* interval;
+    PyObject *tainted_interval_list, *tuple, *register_index_py, *start, *end;
+	struct rb_root* tainted_interval_tree;
+    struct rb_node *rb_node;
 	struct taint_interval_t* interval_arg;
+    struct interval_tree_node *node;
+	uint64_t register_index;
+
 	interval_arg = malloc(sizeof(*interval_arg));
 	interval_arg->start = DEFAULT_REG_START;
 	interval_arg->end = DEFAULT_MAX_REG_SIZE-1;
 
-	uint64_t register_index;
-	for( register_index = 0; register_index < nb_registers; register_index++)
+	for(register_index = 0; register_index < nb_registers; register_index++)
 	{
-		interval = taint_get_register(registers,
+		tainted_interval_tree = taint_get_register(registers,
 						register_index,
 						interval_arg,
 						max_register_size);
-		if (interval != NULL)
+
+		if (tainted_interval_tree != NULL)
 		{
-			PyObject *register_index_py;
-			PyObject *start;
-			PyObject *end;
+            tainted_interval_list = PyList_New(0);
+            register_index_py = PyLong_FromLong(register_index);
 
-			register_index_py = PyLong_FromLong(register_index);
-			start = PyLong_FromLong(interval->start);
-			end = PyLong_FromLong(interval->end);
+            rb_node = rb_first(tainted_interval_tree);
 
-			PyObject *tuple = PyTuple_New(3);
+            if (rb_node == NULL)
+            {
+                continue;
+            }
 
-			PyTuple_SetItem(tuple, 0, register_index_py);
-			PyTuple_SetItem(tuple, 1, start);
-			PyTuple_SetItem(tuple, 2, end);
-			PyList_Append(tainted_registers, tuple);
+            while(rb_node != NULL)
+            {
+                node = rb_entry(rb_node, struct interval_tree_node, rb);
+                start = PyLong_FromLong(node->start);
+                end = PyLong_FromLong(node->last);
+
+                tuple = PyTuple_New(2);
+                PyTuple_SetItem(tuple, 0, start);
+                PyTuple_SetItem(tuple, 1, end);
+                PyList_Append(tainted_interval_list, tuple);
+
+                rb_node = rb_next(rb_node);
+            }
+            tuple = PyTuple_New(2);
+            PyTuple_SetItem(tuple, 0, register_index_py);
+            PyTuple_SetItem(tuple, 1, tainted_interval_list);
+            PyList_Append(tainted_registers, tuple);
 		}
+        free(tainted_interval_tree);
 	}
 
 	free(interval_arg);
@@ -984,7 +740,7 @@ cpu_get_last_register(JitCpu* cpu, PyObject* args, uint32_t event_type)
 
 	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
 
-	uint32_t* registers;
+	struct rb_root ** registers;
 	if (event_type == TAINT_EVENT)
 		registers = cpu->taint_analysis->colors[color_index]
 			.callback_info->last_tainted.registers;
@@ -1010,63 +766,31 @@ cpu_get_last_untainted_registers(JitCpu* self, PyObject* args)
 }
 
 PyObject*
-cpu_get_memory(vm_mngr_t* vm_mngr, uint64_t color_index)
+cpu_get_memory(struct rb_root * memory)
 {
 	PyObject *tainted_memory = PyList_New(0);
+    PyObject *tuple, *start, *end;
+    struct rb_node *rb_node;
+    struct interval_tree_node *node;
 
-	PyObject* addr_size;
-	uint64_t addr;
-	uint64_t size = 0;
-	int page_number;
-	size_t i;
-	for( page_number = 0;
-	     page_number < vm_mngr->memory_pages_number;
-	     page_number++)
-	{
-		for ( i = 0;
-		      i < vm_mngr->memory_pages_array[page_number].size;
-		      i++)
-		{
-			if (bitfield_test_bit(vm_mngr->
-						memory_pages_array[page_number].
-						taint[color_index],
-					      i))
-			{
-				if (!size)
-				{
-					addr = vm_mngr->
-						memory_pages_array[page_number].
-						ad+i;
-					size++;
-				}
-				else
-				{
-					size++;
-				}
-			}
-			else
-			{
-				if (size)
-				{
-					addr_size = PyTuple_New(2);
-					PyTuple_SetItem(addr_size,
-							0,
-							PyLong_FromUnsignedLongLong(addr)
-							);
-					PyTuple_SetItem(addr_size,
-							1,
-							PyLong_FromUnsignedLongLong(size)
-							);
-					PyList_Append(tainted_memory,
-						      addr_size
-						      );
-					size = 0;
-				}
-			}
-		}
-	}
 
-	return tainted_memory;
+    rb_node = rb_first(memory);
+
+    while(rb_node != NULL)
+    {
+        node = rb_entry(rb_node, struct interval_tree_node, rb);
+        start = PyLong_FromLong(node->start);
+        end = PyLong_FromLong(node->last);
+
+        tuple = PyTuple_New(2);
+        PyTuple_SetItem(tuple, 0, start);
+        PyTuple_SetItem(tuple, 1, end);
+        PyList_Append(tainted_memory, tuple);
+
+        rb_node = rb_next(rb_node);
+    }
+
+    return tainted_memory;
 }
 
 PyObject *
@@ -1082,34 +806,13 @@ cpu_get_last_memory(JitCpu* cpu, PyObject* args, uint32_t event_type)
 
 	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
 
-	struct taint_last_modify_t last_modify;
+	struct rb_root * memory;
 	if (event_type == TAINT_EVENT)
-		last_modify =
-			cpu->taint_analysis->colors[color_index].callback_info->last_tainted;
+		memory = cpu->taint_analysis->colors[color_index].callback_info->last_tainted.memory;
 	else
-		last_modify =
-			cpu->taint_analysis->colors[color_index].callback_info->last_untainted;
+		memory = cpu->taint_analysis->colors[color_index].callback_info->last_untainted.memory;
 
-	PyObject *modified_memory = PyList_New(0);
-
-	uint64_t i;
-
-	for( i = 0; i < last_modify.nb_mem; i++)
-	{
-		PyObject *addr;
-		PyObject *size;
-
-		addr = PyLong_FromUnsignedLongLong(last_modify.memory[i].addr);
-		size = PyLong_FromUnsignedLongLong(last_modify.memory[i].size);
-
-		PyObject *tuple = PyTuple_New(2);
-
-		PyTuple_SetItem(tuple, 0, addr);
-		PyTuple_SetItem(tuple, 1, size);
-		PyList_Append(modified_memory, tuple);
-	}
-
-	return modified_memory;
+	return cpu_get_memory(memory);
 }
 
 PyObject *
@@ -1130,16 +833,6 @@ cpu_get_all_taint(JitCpu* self, PyObject* args)
 	PyObject *color_index_py;
 	uint64_t color_index;
 
-    struct rb_root *root = calloc(1, sizeof(*root));
-
-    interval_tree_insert_new_node(2, 6, root);
-    interval_tree_insert_new_node(20, 30, root);
-    interval_tree_insert_new_node(40, 50, root);
-    interval_tree_insert_new_node(63, 70, root);
-
-    free(root);
-
-
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
 
@@ -1154,7 +847,7 @@ cpu_get_all_taint(JitCpu* self, PyObject* args)
 				    self->taint_analysis->max_register_size);
 
 	/* Memory */
-	PyObject *tainted_memory = cpu_get_memory(&self->pyvm->vm_mngr, color_index);
+	PyObject *tainted_memory = cpu_get_memory(self->taint_analysis->colors[color_index].memory);
 
 	/* Joining data */
 	PyObject *out_obj = PyTuple_New(2);
