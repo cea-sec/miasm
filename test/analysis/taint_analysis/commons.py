@@ -31,7 +31,7 @@ def code_sentinelle(jitter):
 def create_jitter():
     jitter = machine.jitter(jit_type='gcc', taint=True)
     jitter.init_stack()
-    jitter.vm.add_memory_page(data_addr, csts.PAGE_READ | csts.PAGE_WRITE, '0'*200)
+    jitter.vm.add_memory_page(data_addr, csts.PAGE_READ | csts.PAGE_WRITE, b'0'*200)
     jitter.add_breakpoint(0x1337beef, code_sentinelle)
     jitter.push_uint32_t(0x1337beef)
     taint.enable_taint_analysis(jitter, nb_colors)
@@ -50,7 +50,7 @@ def assemble_code(code_str):
     output = StrPatchwork()
     for offset, raw in patches.items():
         output[offset] = raw
-    return str(output)
+    return bytes(output)
 
 def nothing_tainted(jitter, color):
     no_reg_tainted(jitter, color)

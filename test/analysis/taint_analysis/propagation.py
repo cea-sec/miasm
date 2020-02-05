@@ -133,8 +133,8 @@ def test_taint_propagation():
         check_mem(mems[1], 0X123FFD0, 8)
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert len(regs) == 2
-        check_reg(regs[0], jitter, "RDX", 0, 3)
-        check_reg(regs[1], jitter, "RCX", 0, 3)
+        check_reg(regs[1], jitter, "RDX", 0, 3)
+        check_reg(regs[0], jitter, "RCX", 0, 3)
         assert len(mems) == 1
         check_mem(mems[0], 0X123FFCC, 8)
         jitter.cpu.untaint_all()

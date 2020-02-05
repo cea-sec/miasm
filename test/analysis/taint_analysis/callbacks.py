@@ -36,8 +36,8 @@ def test_callbacks():
         last_regs = jitter.cpu.last_tainted_registers(red)
         assert len(last_regs) == 3
         check_reg(last_regs[0], jitter, "zf", 0, 3)
-        check_reg(last_regs[1], jitter, "pf", 0, 3)
-        check_reg(last_regs[2], jitter, "nf", 0, 3)
+        check_reg(last_regs[2], jitter, "pf", 0, 3)
+        check_reg(last_regs[1], jitter, "nf", 0, 3)
         last_regs = jitter.cpu.last_untainted_registers(red)
         assert len(last_regs) == 2
         check_reg(last_regs[0], jitter, "of", 0, 3)
@@ -80,8 +80,8 @@ def test_callbacks():
         last_regs = jitter.cpu.last_tainted_registers(red)
         assert len(last_regs) == 3
         check_reg(last_regs[0], jitter, "zf", 0, 3)
-        check_reg(last_regs[1], jitter, "pf", 0, 3)
-        check_reg(last_regs[2], jitter, "nf", 0, 3)
+        check_reg(last_regs[2], jitter, "pf", 0, 3)
+        check_reg(last_regs[1], jitter, "nf", 0, 3)
         last_regs = jitter.cpu.last_untainted_registers(red)
         assert len(last_regs) == 2
         check_reg(last_regs[0], jitter, "of", 0, 3)
