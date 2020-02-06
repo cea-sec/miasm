@@ -87,15 +87,13 @@ class JitCore_Cc_Base(JitCore):
             if len(ext_files) == 1:
                 ext = os.path.basename(ext_files[0]).replace("VmMngr", "")
 
-        if taint:
-            ext = "_taint" + ext 
-
         libs = [
             os.path.join(lib_dir, "VmMngr" + ext),
             os.path.join(
                 lib_dir,
                 "arch",
-                "JitCore_%s%s" % (self.ir_arch.arch.name, ext)
+                "JitCore_%s%s" % (self.ir_arch.arch.name,
+                                  "_taint" + ext if taint else ext)
             )
         ]
 

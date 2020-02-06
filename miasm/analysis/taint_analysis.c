@@ -17,6 +17,34 @@
 #include "taint_analysis.h"
 
 
+struct rb_root*
+taint_get_tainted(struct taint_colors_t *colors,
+                  uint64_t color_index,
+                  struct taint_reg_list_t *registers,
+                  struct taint_reg_list_t *reg_addresses,
+                  struct taint_mem_list_t *mem_addresses,
+                  struct taint_custom_list_t *memories)
+{
+    // WIP
+    struct rb_root* tainted_interval_tree = interval_tree_new();
+
+
+    //struct taint_reg_list_t cur_register = *registers;
+
+    //while(cur_register)
+    //{
+    //    interval_tree_add(tainted_interval_tree,
+    //                      taint_get_register_color(colors,
+    //                                               color_index,
+    //                                               cur_register.id,
+    //                                               cur_register.interval)); 
+    //    cur_register = cur_register.next;
+    //}
+
+    return tainted_interval_tree;
+}
+
+
 /* Taint setters/getters */
 /* Colors */
 struct taint_colors_t*
@@ -407,36 +435,6 @@ taint_update_register_callback_info(struct taint_colors_t *colors,
                           interval->end,
                           colors->colors[color_index].callback_info->last_untainted.registers[register_index]);
 }
-
-/* Utils */
-/* Bit fields */
-void
-bitfield_set_bit(uint32_t bfield[],  uint64_t index)
-{
-	bfield[index/NB_BITS_IN_UINT32_T] |= 1 << (index%NB_BITS_IN_UINT32_T);
-}
-
-void
-bitfield_unset_bit(uint32_t bfield[],  uint64_t index)
-{
-	bfield[index/NB_BITS_IN_UINT32_T] &= ~(1 << (index%NB_BITS_IN_UINT32_T));
-}
-
-void
-bitfield_generic_access(uint32_t *bitfield, uint64_t index, uint32_t access_type)
-{
-	if (access_type == ADD)
-		bitfield_set_bit(bitfield, index);
-	else if (access_type == REMOVE)
-		bitfield_unset_bit(bitfield, index);
-}
-
-int
-bitfield_test_bit(uint32_t bfield[],  uint64_t index)
-{
-	return ( (bfield[index/NB_BITS_IN_UINT32_T] & (1 << (index%NB_BITS_IN_UINT32_T) )) != 0 );
-}
-
 
 
 /* Python API */

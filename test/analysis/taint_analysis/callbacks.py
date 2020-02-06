@@ -1,3 +1,4 @@
+# TODO: test taint et untaint sur un même registre 
 from commons import *
 from miasm.core.interval import interval
 
@@ -31,18 +32,17 @@ def test_callbacks():
     def on_taint_register_handler_2(jitter):
         global check_callback_occured
         check_callback_occured += 1
-        assert  jitter.cpu.EIP == 0x4000001C
+        assert  jitter.cpu.EIP == 0x4000001A
         print("\t[+] Test mix reg callback (taint/untaint)")
 
         last_regs = jitter.cpu.last_tainted_registers(red)
         assert len(last_regs) == 3
-        check_reg(last_regs[0], jitter, "zf", interval([(0, 3)]))
-        check_reg(last_regs[2], jitter, "pf", interval([(0, 3)]))
-        check_reg(last_regs[1], jitter, "nf", interval([(0, 3)]))
+        check_reg(last_regs[0], jitter, "zf", interval([(0, 0)]))
+        check_reg(last_regs[2], jitter, "pf", interval([(0, 0)]))
+        check_reg(last_regs[1], jitter, "nf", interval([(0, 0)]))
         last_regs = jitter.cpu.last_untainted_registers(red)
-        assert len(last_regs) == 2
-        check_reg(last_regs[0], jitter, "of", interval([(0, 3)]))
-        check_reg(last_regs[1], jitter, "cf", interval([(0, 3)]))
+        assert len(last_regs) == 1
+        check_reg(last_regs[0], jitter, "of", interval([(0, 0)]))
         no_mem_tainted(jitter, red)
         nothing_tainted(jitter, blue)
 
@@ -75,18 +75,17 @@ def test_callbacks():
     def on_untaint_register_handler_2(jitter):
         global check_callback_occured
         check_callback_occured += 1
-        assert  jitter.cpu.EIP == 0x4000001C
+        assert  jitter.cpu.EIP == 0x4000001A
         print("\t[+] Test mix reg callback (taint/untaint) - Part. 2")
 
         last_regs = jitter.cpu.last_tainted_registers(red)
         assert len(last_regs) == 3
-        check_reg(last_regs[0], jitter, "zf", interval([(0, 3)]))
-        check_reg(last_regs[2], jitter, "pf", interval([(0, 3)]))
-        check_reg(last_regs[1], jitter, "nf", interval([(0, 3)]))
+        check_reg(last_regs[0], jitter, "zf", interval([(0, 0)]))
+        check_reg(last_regs[2], jitter, "pf", interval([(0, 0)]))
+        check_reg(last_regs[1], jitter, "nf", interval([(0, 0)]))
         last_regs = jitter.cpu.last_untainted_registers(red)
-        assert len(last_regs) == 2
-        check_reg(last_regs[0], jitter, "of", interval([(0, 3)]))
-        check_reg(last_regs[1], jitter, "cf", interval([(0, 3)]))
+        assert len(last_regs) == 1
+        check_reg(last_regs[0], jitter, "of", interval([(0, 0)]))
         no_mem_tainted(jitter, red)
         nothing_tainted(jitter, blue)
 
@@ -95,7 +94,6 @@ def test_callbacks():
 
         jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_REG))
         return True
-
 
     def on_taint_memory_handler(jitter):
         global check_callback_occured
@@ -138,7 +136,7 @@ def test_callbacks():
     def on_taint_memory_handler_3(jitter):
         global check_callback_occured
         check_callback_occured += 1
-        assert  jitter.cpu.EIP == 0x4000001E
+        assert  jitter.cpu.EIP == 0x4000001C
         print("\t[+] Test mix colors callback")
 
         no_reg_tainted(jitter, red)
@@ -212,6 +210,8 @@ def test_callbacks():
         jitter.exceptions_handler.remove_callback(on_untaint_register_handler)
         jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_REG, on_taint_register_handler_2)
         jitter.add_exception_handler(csts.EXCEPT_TAINT_REMOVE_REG, on_untaint_register_handler_2)
+        jitter.cpu.taint_register(red, jitter.jit.codegen.regs_index["of"], 0, 0)
+
         jitter.cpu.enable_taint_reg_cb(red)
         jitter.cpu.enable_taint_reg_cb(blue)
         jitter.cpu.enable_untaint_reg_cb(red)
@@ -238,7 +238,7 @@ def test_callbacks():
     def on_taint_register_handler_3(jitter):
         global check_callback_occured
         check_callback_occured += 1
-        assert  jitter.cpu.EIP == 0x40000024
+        assert  jitter.cpu.EIP == 0x40000022
         last_regs = jitter.cpu.last_tainted_registers(blue)
         assert len(last_regs) == 1
         check_reg(last_regs[0], jitter, "RAX", interval([(0, 0)]))
@@ -253,12 +253,11 @@ def test_callbacks():
     main:
        MOV    EAX, 0x80000000
        MOV    EBX, EAX                              ; taint_reg_cb
-       MOV    EBX, 0x80000000                       ; untaint_reg_cb
+       MOV    EBX, 0x80000000                        ; untaint_reg_cb
        MOV    DWORD PTR [EBX], EAX                  ; taint_mem_cb
        MOV    DWORD PTR [EBX], 0x0                  ; untaint_mem_cb
        MOV    DWORD PTR [0x123FFEC], EAX            ; preparation: taint EBX PUSHAD spot
        PUSHAD                                       ; taint_mem_cb + untaint_mem_cb
-       ADD    EAX, EBX                              ; preparation
        TEST   EAX, EAX                              ; taint_reg_cb + untaint_reg_cb
        PUSHAD                                       ; multiple colors
        MOV    ESI, 0x80000000                       ; LODSD preparation
@@ -268,13 +267,14 @@ def test_callbacks():
     '''
 
     jitter = create_jitter()
+    
     jitter.vm.add_memory_page(code_addr, csts.PAGE_READ | csts.PAGE_WRITE, assemble_code(code_str))
 
     jitter.add_breakpoint(code_addr+0x5, taint_EAX) # Taint RAX
     jitter.add_breakpoint(code_addr+0x19, second_handlers)
-    jitter.add_breakpoint(code_addr+0x1C, third_handlers)
-    jitter.add_breakpoint(code_addr+0x1E, fourth_handlers)
-    jitter.add_breakpoint(code_addr+0x1F, LODSD_handlers)
+    jitter.add_breakpoint(code_addr+0x1A, third_handlers)
+    jitter.add_breakpoint(code_addr+0x1C, fourth_handlers)
+    jitter.add_breakpoint(code_addr+0x1D, LODSD_handlers)
 
     jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_REG, on_taint_register_handler)
     jitter.cpu.enable_taint_reg_cb(red)

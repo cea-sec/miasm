@@ -1,5 +1,5 @@
 import miasm.jitter.csts as csts
-import miasm.expression.expression as m2_expr
+from miasm.expression.expression import ExprMem, ExprId
 from miasm.core.interval import interval
 
 
@@ -9,106 +9,226 @@ def makeTaintGen(C_Gen, ir_arch):
       CODE_INIT_TAINT = r"""
       struct taint_colors_t* taint_analysis = jitcpu->taint_analysis;
       uint64_t current_color;
-      uint64_t taint_addr;
-      uint64_t taint_size;
-      struct rb_root* taint_interval_tree_tmp, * taint_interval_tree;
+      uint64_t current_mem_addr, current_mem_size, current_reg_size, current_reg_index;
+      struct rb_root* taint_interval_tree_tmp, * taint_interval_tree, * taint_interval_tree_before, * taint_interval_tree_untaint;
 	  struct interval_tree_node *node;
 	  struct rb_node *rb_node;
-      struct taint_interval_t* taint_interval_arg;
-      struct taint_interval_t* taint_interval;
-      taint_interval_arg = malloc(sizeof(*taint_interval_arg));
-      taint_interval = malloc(sizeof(*taint_interval));
+      struct taint_interval_t* taint_interval = malloc(sizeof(*taint_interval));
       int do_not_clean_taint_cb_info = 1;
-      int is_tainted;
+      int tainted_addr;
+      int current_compose_start;
+      int current_compose_last;
+      int fully_tainted;
       """
 
       CODE_INIT = CODE_INIT_TAINT + C_Gen.CODE_INIT
 
       CODE_PREPARE_ANALYSE_REG = r"""
-          is_tainted = 0;
           taint_interval_tree = calloc(1, sizeof(*taint_interval_tree));
+          current_reg_size = %d;
+          current_reg_index = %d;
+          taint_interval->start = 0;
+          taint_interval->end = current_reg_size;
+          taint_interval_tree_before = taint_get_register_color(taint_analysis, current_color, current_reg_index, taint_interval);
       """
 
-      CODE_REG_ACCESS = r"""
-        rb_node = rb_first(taint_interval_tree);
+      CODE_CHECK_FULLY_TAINTED = r"""
+          if (rb_first(taint_interval_tree_tmp) != NULL)
+          {
+              fully_tainted = 1;
+          }
+      """
 
-        while(rb_node != NULL)
+      CODE_TAINT_REG = r"""
+        if (fully_tainted)
         {
-            node = rb_entry(rb_node, struct interval_tree_node, rb);
-            taint_interval->start = node->start;
-            taint_interval->end = node->last;
+            taint_interval->start = 0;
+            taint_interval->end = current_reg_size;
             taint_register_generic_access(taint_analysis,
-                                    current_color,
-                                    %s,
-                                    taint_interval,
-                                    %s);
-            rb_node = rb_next(rb_node);
+                                        current_color,
+                                        current_reg_index,
+                                        taint_interval,
+                                        ADD);
+
+            if ( taint_analysis->colors[current_color].callback_info->exception_flag & DO_TAINT_REG_CB )
+            {
+              jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_ADD_REG;
+              taint_update_register_callback_info(taint_analysis,
+                                                  current_color,
+                                                  current_reg_index,
+                                                  taint_interval,
+                                                  TAINT_EVENT
+                                                  );
+            }
+        }
+        else
+        {
+            // Remove previous taint
+            rb_node = rb_first(taint_interval_tree_before);
+
+            while(rb_node != NULL)
+            {
+                node = rb_entry(rb_node, struct interval_tree_node, rb);
+                taint_interval->start = node->start;
+                taint_interval->end = node->last;
+                taint_register_generic_access(taint_analysis,current_color, current_reg_index, taint_interval, REMOVE);
+                rb_node = rb_next(rb_node);
+            }
+
+            // Add new taint
+            rb_node = rb_first(taint_interval_tree);
+
+            while(rb_node != NULL)
+            {
+                node = rb_entry(rb_node, struct interval_tree_node, rb);
+                taint_interval->start = node->start;
+                taint_interval->end = node->last;
+                taint_register_generic_access(taint_analysis, current_color, current_reg_index, taint_interval, ADD);
+                rb_node = rb_next(rb_node);
+                // Update TAINT callback information
+                if ( taint_analysis->colors[current_color].callback_info->exception_flag
+                     & DO_TAINT_REG_CB )
+                {
+                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_ADD_REG;
+                    taint_update_register_callback_info(taint_analysis,
+                                                      current_color,
+                                                      current_reg_index,
+                                                      taint_interval,
+                                                      TAINT_EVENT);
+                }
+            }
+
+            // Update untaint callback information
+            if ( taint_analysis->colors[current_color].callback_info->exception_flag
+                 & DO_UNTAINT_REG_CB )
+            {
+                rb_node = rb_first(taint_interval_tree);
+
+                while(rb_node != NULL)
+                {
+                    node = rb_entry(rb_node, struct interval_tree_node, rb);
+                    interval_tree_sub(node->start, node->last, taint_interval_tree_before);
+                    rb_node = rb_next(rb_node);
+                }
+
+
+                rb_node = rb_first(taint_interval_tree_before);
+
+                while(rb_node != NULL)
+                {
+                    node = rb_entry(rb_node, struct interval_tree_node, rb);
+                    taint_interval->start = node->start;
+                    taint_interval->end = node->last;
+                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REMOVE_REG;
+                    taint_update_register_callback_info(taint_analysis, current_color, current_reg_index,
+                                                      taint_interval,
+                                                      UNTAINT_EVENT);
+                    rb_node = rb_next(rb_node);
+                }
+            }
         }
       """
 
       CODE_GET_REG_TAINT_1 = r"""
-      taint_interval_arg->start = DEFAULT_REG_START;
-      taint_interval_arg->end = DEFAULT_MAX_REG_SIZE - 1;
+      taint_interval->start = DEFAULT_REG_START;
+      taint_interval->end = DEFAULT_MAX_REG_SIZE - 1;
       """
 
       CODE_GET_REG_TAINT_2 = r"""
-      taint_interval_arg->start = %d;
-      taint_interval_arg->end = %d;
+      taint_interval->start = %d;
+      taint_interval->end = %d;
       """
 
       CODE_PREPARE_ANALYSE_MEM = r"""
-      taint_addr = %s;
-      taint_interval_arg->start = %s;
-      taint_interval_arg->end = %s + (%d - 1);
+      current_mem_addr = %s;
+      current_mem_size = %d;
+      taint_interval->start = current_mem_addr;
+      taint_interval->end = current_mem_addr + (current_mem_size - 1);
       taint_interval_tree = calloc(1, sizeof(*taint_interval_tree));
-      is_tainted = 0;
+      taint_interval_tree_before = taint_get_memory(taint_analysis, current_color, taint_interval);
       """
 
       CODE_TAINT_MEM = r"""
-        rb_node = rb_first(taint_interval_tree);
-
-        while(rb_node != NULL)
+        if (fully_tainted)
         {
-            is_tainted = 1;
-            node = rb_entry(rb_node, struct interval_tree_node, rb);
-            taint_interval_arg->start = taint_addr + node->start;
-            taint_interval_arg->end = taint_addr + node->last;
-            taint_memory_generic_access(taint_analysis,current_color, taint_interval_arg, ADD);
+            taint_interval->start = current_mem_addr;
+            taint_interval->end = current_mem_addr + (current_mem_size - 1);
+            taint_memory_generic_access(taint_analysis,current_color, taint_interval, ADD);
             if ( taint_analysis->colors[current_color].callback_info->exception_flag
                  & DO_TAINT_MEM_CB )
             {
                 jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_ADD_MEM;
                 taint_update_memory_callback_info(taint_analysis,
                                                   current_color,
-                                                  taint_interval_arg,
+                                                  taint_interval,
                                                   TAINT_EVENT);
             }
-            rb_node = rb_next(rb_node);
         }
-      """
-
-      CODE_UNTAINT_MEM = r"""
-        rb_node = rb_first(taint_interval_tree);
-
-        while(rb_node != NULL)
+        else
         {
-            is_tainted = 1;
-            node = rb_entry(rb_node, struct interval_tree_node, rb);
-            taint_interval_arg->start = node->start;
-            taint_interval_arg->end = node->last;
-            taint_memory_generic_access(taint_analysis, current_color, taint_interval_arg, REMOVE);
+            // Remove previous taint
+            rb_node = rb_first(taint_interval_tree_before);
 
+            while(rb_node != NULL)
+            {
+                node = rb_entry(rb_node, struct interval_tree_node, rb);
+                taint_interval->start = node->start;
+                taint_interval->end = node->last;
+                taint_memory_generic_access(taint_analysis,current_color, taint_interval, REMOVE);
+                rb_node = rb_next(rb_node);
+            }
+
+            // Add new taint
+            rb_node = rb_first(taint_interval_tree);
+
+            while(rb_node != NULL)
+            {
+                node = rb_entry(rb_node, struct interval_tree_node, rb);
+                taint_interval->start = current_mem_addr + node->start;
+                taint_interval->end = current_mem_addr + node->last;
+                taint_memory_generic_access(taint_analysis,current_color, taint_interval, ADD);
+                rb_node = rb_next(rb_node);
+                // Update TAINT callback information
+                if ( taint_analysis->colors[current_color].callback_info->exception_flag
+                     & DO_TAINT_MEM_CB )
+                {
+                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_ADD_MEM;
+                    taint_update_memory_callback_info(taint_analysis,
+                                                      current_color,
+                                                      taint_interval,
+                                                      TAINT_EVENT);
+                }
+            }
+
+            // Update untaint callback information
             if ( taint_analysis->colors[current_color].callback_info->exception_flag
                  & DO_UNTAINT_MEM_CB )
             {
-                jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REMOVE_MEM;
-                taint_update_memory_callback_info(taint_analysis, current_color,
-                                                  taint_interval_arg,
-                                                  UNTAINT_EVENT);
-            }
-            rb_node = rb_next(rb_node);
-        }
+                rb_node = rb_first(taint_interval_tree);
 
+                while(rb_node != NULL)
+                {
+                    node = rb_entry(rb_node, struct interval_tree_node, rb);
+                    interval_tree_sub(node->start + current_mem_addr, node->last + current_mem_addr, taint_interval_tree_before);
+                    rb_node = rb_next(rb_node);
+                }
+
+
+                rb_node = rb_first(taint_interval_tree_before);
+
+                while(rb_node != NULL)
+                {
+                    node = rb_entry(rb_node, struct interval_tree_node, rb);
+                    taint_interval->start = node->start;
+                    taint_interval->end = node->last;
+                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REMOVE_MEM;
+                    taint_update_memory_callback_info(taint_analysis, current_color,
+                                                      taint_interval,
+                                                      UNTAINT_EVENT);
+                    rb_node = rb_next(rb_node);
+                }
+            }
+        }
       """
 
       CODE_UPDATE_INTERVALLE = r"""
@@ -118,9 +238,8 @@ def makeTaintGen(C_Gen, ir_arch):
 
         while(rb_node != NULL)
         {
-            is_tainted = 1;
             node = rb_entry(rb_node, struct interval_tree_node, rb);
-            interval_tree_add(node->start, node->last, taint_interval_tree);
+            interval_tree_add(node->start+current_compose_start-taint_interval->start, node->last+current_compose_start-taint_interval->start, taint_interval_tree);
             rb_node = rb_next(rb_node);
         }
       }
@@ -133,9 +252,8 @@ def makeTaintGen(C_Gen, ir_arch):
 
         while(rb_node != NULL)
         {
-            is_tainted = 1;
             node = rb_entry(rb_node, struct interval_tree_node, rb);
-            interval_tree_add(node->start-taint_interval_arg->start, node->last-taint_interval_arg->start, taint_interval_tree);
+            interval_tree_add(node->start-taint_interval->start+current_compose_start, node->last-taint_interval->start+current_compose_start, taint_interval_tree);
             rb_node = rb_next(rb_node);
         }
       }
@@ -160,34 +278,47 @@ def makeTaintGen(C_Gen, ir_arch):
       }
       """
 
-      def get_read_elements_with_real_size(self, dst, src):
-          """We could have used the get_r function of miasm.expression.
-          Never the less, this function could loose some information.
-          For example, in this case:
-              'MOV BX, AX'
-                  with AX tainted.
-              The get_r() function would have return: RAX.
-              We would have loose the information that only the 16 lower bits
-              of RAX are used.
-              In this case, get_read_elements_with_real_size() will return:
-              RAX[0,16].
+      def get_detailed_read_elements(self, dst, src):
+          """TODO
+            - retrieve:
+                - ExprMem and ExprId in src
+                - addr in src and dst
+            - handle
+                - ExprOp
+                    - elements goes in "full"
+                        -> could do something more clever
+                - ExprCond
+                    - elements of conds goes in "full"
+                    - elements of src1 and src2 could go in "composition" but not sure
+                - ExprCompose
+                    - each elements are analyse with as a new entry in "composition"
+                - ExprSlice
+                    - Keep ExprSlice(ExprId)
+
+                reads:
+                    "start":
+                    "last":
+                    "full": if an element is tainted, dst gets fully tainted
+                    "composition":
+                        [(start, last, composition, full)]
+                            interval tainted in elements taint interval [start, last] in dst
           """
-          read_elements = set()
-          src.visit(lambda x: visit_get_read_elements_with_real_size(x,
-                                                                     read_elements),
-                    lambda x: get_id_slice(x, read_elements))
-          if isinstance(dst, m2_expr.ExprMem):
-              # If dst is an ExprMem, Expr composing its address can spread taint
-              # to the ExprMem
-              dst.ptr.visit(lambda x: visit_get_read_elements_with_real_size(x,
-                                                                             read_elements),
-                            lambda x: get_id_slice(x, read_elements))
+          read_elements = dict()
+          read_elements["full"] = get_read_elements_in_addr_with_real_size(dst, src)
+          read_elements["elements"] = set()
+          read_elements["composition"] = list()
+          read_elements["start"] = 0
+          read_elements["last"] = src.size / 8 - 1
+
+          src.visit(lambda x: visit_get_read_elements(x, read_elements["elements"]),
+                    lambda x: test_cond_op_compose_slice_not_addr(x, read_elements))
+
           return read_elements
 
       def gen_segm2addr(self, expr, prefetchers):
           """ Properly convert ExprMem to C """
           ptr = expr.ptr.replace_expr(prefetchers)
-          new_expr = m2_expr.ExprMem(ptr, expr.size)
+          new_expr = ExprMem(ptr, expr.size)
           return self.id_to_c(new_expr.ptr)
 
       def gen_check_taint_exception(self, address):
@@ -205,77 +336,108 @@ def makeTaintGen(C_Gen, ir_arch):
           taint_interval_tree_tmp = taint_get_register_color(taint_analysis,
                                                           current_color,
                                                           %s,
-                                                          taint_interval_arg
+                                                          taint_interval
                                                           );
           """ % (self.regs_index[reg_name]))
           return c_code
 
-      def gen_add_register(self, reg_name, start=None, end=None):
-          c_code = []
-          if start is None:
-              c_code.append(self.CODE_REG_ACCESS % (self.regs_index[reg_name],
-                            "ADD"))
-              return c_code
-          else:
-              raise NotImplementedError("Taint analysis: gen_add_register with 3 \
-                      args is not implemented yet.")
-
-      def gen_remove_register(self, reg_name, start=None, end=None):
-          c_code = []
-          if start is None:
-              c_code.append(self.CODE_REG_ACCESS % (self.regs_index[reg_name],
-                            "REMOVE"))
-              return c_code
-          else:
-              raise NotImplementedError("Taint analysis: gen_remove_register with\
-                      3 args is not implemented yet.")
-
       def gen_get_memory_taint(self, start_addr, size):
           c_code = ""
-          c_code += "taint_interval_arg->start=%s; taint_interval_arg->end=%s + (%d - 1);" % (start_addr, start_addr, size)
+          c_code += "taint_interval->start=%s; taint_interval->end=%s + (%d - 1);" % (start_addr, start_addr, size)
           c_code += "taint_interval_tree_tmp = taint_get_memory("
           c_code += "taint_analysis, "
           c_code += "current_color, "
-          c_code += "taint_interval_arg);"
+          c_code += "taint_interval);"
           return c_code
 
       def gen_get_memory_taint_2(self, start_addr, size):
           c_code = ""
-          c_code += "taint_interval_arg->start=%s; taint_interval_arg->end=%s + (%d - 1);" % (start_addr, start_addr, size)
+          c_code += "taint_interval->start=%s; taint_interval->end=%s + (%d - 1);" % (start_addr, start_addr, size)
           c_code += "taint_interval_tree = taint_get_memory("
           c_code += "taint_analysis, "
           c_code += "current_color, "
-          c_code += "taint_interval_arg);"
+          c_code += "taint_interval);"
           return c_code
 
-      def gen_taint_calculation(self, src, prefetchers, dst=None):
+      def gen_taint_calculation_from_other_elements(self, elements, start, last, prefetchers):
           c_code = []
 
-          reads = self.get_read_elements_with_real_size(dst, src)
-          if not reads:
-              c_code.append("// No taint found (source is a constante)")
-              return c_code
-          for read in reads:
-              if ("IRDst" in str(read)) or ("loc_" in str(read)):
+          c_code.append("if (!fully_tainted) {")
+          c_code.append("current_compose_start = %d;" % start)
+          c_code.append("current_compose_last = %d;" % last)
+          for element in elements:
+              if ("IRDst" in str(element)) or ("loc_" in str(element)):
                   pass # NOTE: taint_get_register return 0 in this case but there
                        # is no need to generate this useless code
-              elif isinstance(read, m2_expr.ExprSlice):
-                  c_code += self.gen_get_register_taint(str(read.arg),
-                                                        read.start,
-                                                        read.stop)
+              elif element.is_slice():
+                  c_code += self.gen_get_register_taint(str(element.arg),
+                                                        element.start,
+                                                        element.stop)
                   c_code += (self.CODE_UPDATE_INTERVALLE).split('\n')
-              elif isinstance(read, m2_expr.ExprMem):
-                  start = self.gen_segm2addr(read, prefetchers)
-                  size = read.size/8 # We use bytes for size
+              elif element.is_mem():
+                  start = self.gen_segm2addr(element, prefetchers)
+                  size = element.size/8 # We use bytes for size
                   c_code.append(self.gen_get_memory_taint(start, size))
                   c_code += (self.CODE_UPDATE_INTERVALLE_MEM).split('\n')
-              elif isinstance(read, m2_expr.ExprId):
-                  c_code += self.gen_get_register_taint(str(read))
+              elif element.is_id():
+                  c_code += self.gen_get_register_taint(str(element))
                   c_code += (self.CODE_UPDATE_INTERVALLE).split('\n')
               else:
                   raise NotImplementedError("Taint analysis: do not know how to \
                           handle expression type %s",
-                                            type(read))
+                                            type(element))
+          c_code.append("}")
+
+          return c_code
+
+      def gen_taint_calculation_from_full_elements(self, full_elements, prefetchers):
+          c_code = []
+
+          for element in full_elements:
+              if ("IRDst" in str(element)) or ("loc_" in str(element)):
+                  pass # NOTE: taint_get_register return 0 in this case but there
+                       # is no need to generate this useless code
+              elif element.is_slice():
+                  c_code += self.gen_get_register_taint(str(element.arg),
+                                                        element.start,
+                                                        element.stop)
+                  c_code += (self.CODE_CHECK_FULLY_TAINTED).split('\n')
+              elif element.is_mem():
+                  start = self.gen_segm2addr(element, prefetchers)
+                  size = element.size/8 # We use bytes for size
+                  c_code.append(self.gen_get_memory_taint(start, size))
+                  c_code += (self.CODE_CHECK_FULLY_TAINTED).split('\n')
+              elif element.is_id():
+                  c_code += self.gen_get_register_taint(str(element))
+                  c_code += (self.CODE_CHECK_FULLY_TAINTED).split('\n')
+              else:
+                  raise NotImplementedError("Taint analysis: do not know how to \
+                          handle expression type %s",
+                                            type(element))
+          return c_code
+
+      def gen_taint_calculation_from_read_elements(self, read_elements, prefetchers):
+          c_code = [] 
+
+          for composant in read_elements:
+              c_code += self.gen_taint_calculation_from_full_elements(composant["full"], prefetchers)
+              c_code += self.gen_taint_calculation_from_other_elements(composant["elements"],
+                                                                       composant["start"],
+                                                                       composant["last"],
+                                                                       prefetchers)
+              if "composition" in composant:
+                  c_code += self.gen_taint_calculation_from_read_elements(composant["composition"], prefetchers)
+
+          return c_code
+
+      def gen_taint_calculation(self, src, prefetchers, dst=None):
+          c_code = []
+          c_code.append("fully_tainted = 0;")
+
+          read_elements = self.get_detailed_read_elements(dst, src)
+
+          c_code += self.gen_taint_calculation_from_read_elements([read_elements], prefetchers)
+
           return c_code
 
       def gen_analyse_mem(self, dst, src, prefetchers):
@@ -283,90 +445,21 @@ def makeTaintGen(C_Gen, ir_arch):
 
           start = self.gen_segm2addr(dst, prefetchers)
           size = dst.size/8 # We use a size in byte not bit
-          c_code += (self.CODE_PREPARE_ANALYSE_MEM % (start, start, start, size)).split('\n')
 
+          c_code.append("// Analyse mem")
+          c_code += (self.CODE_PREPARE_ANALYSE_MEM % (start, size)).split('\n')
           c_code += self.gen_taint_calculation(src, prefetchers, dst)
-          c_code.append("if (is_tainted)")
-          c_code.append("{")
-          c_code += ['\t' + line for line in (self.CODE_TAINT_MEM).split('\n')]
-          c_code.append("}")
-          c_code.append("else")
-          c_code.append("{")
-          c_code.append(self.gen_get_memory_taint_2(start, size))
-          c_code.append("\tif (rb_first(taint_interval_tree) != NULL)")
-          c_code.append("\t{")
-          c_code += ['\t\t' + line for line in (self.CODE_UNTAINT_MEM).split('\n')]
-          c_code.append("\t}")
-          c_code.append("}")
+          c_code += self.CODE_TAINT_MEM.split('\n')
 
           return c_code
 
       def gen_analyse_reg(self, dst, src, prefetchers):
           c_code = []
 
-          c_code += (self.CODE_PREPARE_ANALYSE_REG).split('\n')
-
+          c_code.append("// Analyse reg")
+          c_code += (self.CODE_PREPARE_ANALYSE_REG % ((dst.size/8 - 1), self.regs_index[str(dst)])).split('\n')
           c_code += self.gen_taint_calculation(src, prefetchers)
-          c_code.append("if (is_tainted)")
-          c_code.append("{")
-          c_code += ['\t' + line for line in self.gen_taint_register(dst)]
-          c_code.append("}")
-          c_code.append("else")
-          c_code.append("{")
-          # NOTE: If destination is an ExprSlice, we may untaint a part of the
-          # ExprId that was no affected at all by the current instruction
-          c_code += self.gen_get_register_taint(str(dst))
-          c_code.append("\tif (rb_first(taint_interval_tree_tmp) != NULL)")
-          c_code.append("\t{")
-          c_code += ['\t\t' + line for line in self.gen_untaint_register(dst)]
-          c_code.append("\t}")
-          c_code.append("}")
-
-          return c_code
-
-      def gen_taint_register(self, dst):
-          c_code = []
-
-          c_code += self.gen_add_register(str(dst))
-          c_code.append("if ( taint_analysis->colors[current_color].callback_info->exception_flag & DO_TAINT_REG_CB )")
-          c_code.append("{")
-          c_code.append("jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_ADD_REG;")
-          c_code.append(self.gen_callback_info_reg(str(dst), "TAINT_EVENT"))
-          c_code.append("}")
-
-          return c_code
-
-      def gen_untaint_register(self, dst):
-          c_code = []
-
-          c_code.append("\ttaint_interval_tree = taint_interval_tree_tmp;")
-          c_code += self.gen_remove_register(str(dst))
-          c_code.append("if ( taint_analysis->colors[current_color].callback_info->exception_flag & DO_UNTAINT_REG_CB )")
-          c_code.append("{")
-          c_code.append("jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REMOVE_REG;")
-          c_code.append(self.gen_callback_info_reg(str(dst), "UNTAINT_EVENT"))
-          c_code.append("}")
-
-          return c_code
-
-      def gen_callback_info_reg(self, reg_name, event_type):
-          c_code = """
-        rb_node = rb_first(taint_interval_tree);
-
-        while(rb_node != NULL)
-        {
-            node = rb_entry(rb_node, struct interval_tree_node, rb);
-            taint_interval->start = node->start;
-            taint_interval->end = node->last;
-          taint_update_register_callback_info(taint_analysis,
-                                              current_color,
-                                              %s,
-                                              taint_interval,
-                                              %s
-                                              );
-            rb_node = rb_next(rb_node);
-        }
-          """ % (self.regs_index[reg_name], event_type)
+          c_code += self.CODE_TAINT_REG.split('\n')
 
           return c_code
 
@@ -394,7 +487,7 @@ def makeTaintGen(C_Gen, ir_arch):
               c_taint.append("// Analysing %s = %s " % (dst, src))
               c_taint.append("for (current_color = 0 ; current_color < taint_analysis->nb_colors ; current_color++)")
               c_taint.append("{")
-              if isinstance(dst, m2_expr.ExprMem):
+              if dst.is_mem():
                   c_taint += self.gen_analyse_mem(dst, src, prefetchers)
               elif ("IRDst" not in str(dst)) and ("loc_" not in str(dst)):
                   c_taint += self.gen_analyse_reg(dst, src, prefetchers)
@@ -453,18 +546,89 @@ def makeTaintGen(C_Gen, ir_arch):
 
 ## Utils
 
-def visit_get_read_elements_with_real_size(expr, read):
-    if isinstance(expr, m2_expr.ExprId):
+def get_read_elements_in_addr_with_real_size(dst, src):
+  mem_elements = set()
+  addr_elements = set()
+  src.visit(lambda x: visit_get_mem_elements(x, mem_elements))
+  if dst and dst.is_mem():
+      # If dst is an ExprMem, Expr composing its address can spread taint
+      # to the ExprMem
+      mem_elements.add(dst.ptr)
+
+  for element in mem_elements:
+      element.visit(lambda x: visit_get_read_elements_with_real_size(x,
+                                                                     addr_elements),
+                    lambda x: test_id_slice(x, addr_elements))
+
+  return addr_elements
+
+def visit_get_mem_elements(expr, mem):
+    if expr.is_mem():
+        mem.add(expr.ptr)
+    return expr
+
+def visit_get_read_elements(expr, read):
+    if expr.is_id():
         read.add(expr)
-    elif isinstance(expr, m2_expr.ExprMem):
+    elif expr.is_mem():
         read.add(expr)
     return expr
 
-def get_id_slice(expr, read):
-    if isinstance(expr, m2_expr.ExprSlice):
-        if isinstance(expr.arg, m2_expr.ExprId):
+def visit_get_read_elements_with_real_size(expr, read):
+    if expr.is_id():
+        read.add(expr)
+    elif expr.is_mem():
+        read.add(expr)
+    return expr
+
+def test_id_slice(expr, read):
+    if expr.is_slice():
+        if expr.arg.is_id():
             read.add(expr)
             return False
+    return True
+
+def test_cond_op_compose_slice_not_addr(expr, read):
+    if expr.is_cond():
+        # TODO: expr.src1 -> ???
+        # TODO: expr.src2 -> ???
+        # expr.cond -> FULL
+        expr.cond.visit(lambda x: visit_get_read_elements_with_real_size(x, read["full"]),
+                        lambda x: test_id_slice(x, read["full"]))
+        return False
+    elif expr.is_op():
+        # expr.args -> FULL
+        # XXX: could test some known op ('+' for example)
+        for element in expr.args:
+            element.visit(lambda x: visit_get_read_elements_with_real_size(x, read["full"]),
+                          lambda x: test_id_slice(x, read["full"]))
+        return False
+    elif expr.is_compose():
+        # expr.args -> COMPOSITION
+        old_start = read["start"]
+        new_last = old_start
+        for element in expr.args:
+            new_start = new_last 
+            new_last = new_start + (element.size/8 - 1)
+            new_composition = dict()
+            new_composition["start"]  = new_start
+            new_composition["last"]  = new_last
+            new_composition["full"] = get_read_elements_in_addr_with_real_size(None, element)
+            new_composition["elements"] = set()
+            new_composition["composition"] = list()
+            read["composition"].append(new_composition)
+            element.visit(lambda x: visit_get_read_elements(x, new_composition["elements"]),
+                          lambda x: test_cond_op_compose_slice_not_addr(x, new_composition))
+            new_last += 1
+            
+        return False
+    elif expr.is_slice():
+        if expr.arg.is_id():
+            read["elements"].add(expr)
+            return False
+    elif expr.is_mem():
+        read["elements"].add(expr)
+        return False
     return True
 
 def empty_cache(jitter):
@@ -542,8 +706,7 @@ def on_taint_memory(jitter):
         last_mem = jitter.cpu.last_tainted_memory(color)
         if last_mem:
             print("[Color:%s] Taint memory" % (color))
-            for addr, size in last_mem:
-                print("\t+ addr:0x%x size:%s bytes" % (addr, size))
+            print(interval(last_mem))
             jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_MEM))
     return True
 
@@ -552,8 +715,7 @@ def on_untaint_memory(jitter):
         last_mem = jitter.cpu.last_untainted_memory(color)
         if last_mem:
             print("[Color%s] Untaint memory" % (color))
-            for addr, size in last_mem:
-                print("\t- addr:0x%x size:%s bytes" % (addr, size))
+            print(interval(last_mem))
             jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_MEM))
     is_taint_vanished(jitter)
     return True

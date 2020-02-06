@@ -858,7 +858,6 @@ void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 		sizeof(struct memory_page_node) * (vm_mngr->memory_pages_number - i)
 		);
 
-
 	vm_mngr->memory_pages_array[i] = *mpn_a;
 	vm_mngr->memory_pages_number ++;
 }

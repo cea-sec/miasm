@@ -25,13 +25,8 @@
 #define TAINT_EVENT 1
 #define UNTAINT_EVENT 2
 
-#define BIT_FIELD_SIZE(nb_elements) (nb_elements/NB_BITS_IN_UINT32_T + 1)
-
 # define DEFAULT_MAX_REG_SIZE 8
 # define DEFAULT_REG_START 0
-
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
 
 #define TAINT_METHODS {"taint_register", (PyCFunction)cpu_taint_register, METH_VARARGS, \
 	 "X"}, \
@@ -115,6 +110,29 @@ struct taint_colors_t {
 	uint32_t max_register_size;
 };
 
+// WIP
+struct taint_reg_list_t {
+	uint64_t id;
+    struct taint_interval_t *interval;
+    struct taint_custom_list_t *next;
+};
+
+// WIP
+struct taint_mem_list_t {
+	uint64_t addr;
+    struct taint_interval_t *interval;
+    struct taint_custom_list_t *next;
+};
+
+// WIP
+struct rb_root* taint_get_tainted(struct taint_colors_t *colors,
+				                  uint64_t color_index,
+                                  struct taint_reg_list_t *registers,
+                                  struct taint_reg_list_t *reg_addresses,
+                                  struct taint_mem_list_t *mem_addresses,
+                                  struct taint_custom_list_t *memories
+                                  );
+
 /* Colors */
 struct taint_colors_t* taint_init_colors(uint64_t nb_regs,
 					 uint64_t nb_registers,
@@ -184,15 +202,6 @@ _MIASM_EXPORT void taint_update_memory_callback_info(struct taint_colors_t *colo
 					   struct taint_interval_t* interval,
 				       int event_type
 				       );
-
-/* Utils */
-void bitfield_set_bit(uint32_t bfield[],  uint64_t index);
-void bitfield_unset_bit(uint32_t bfield[],  uint64_t index);
-void bitfield_generic_access(uint32_t bitfield[],
-			     uint64_t index,
-			     uint32_t access_type
-			     );
-int bitfield_test_bit(uint32_t bfield[],  uint64_t index);
 
 /* Python API */
 PyObject* cpu_access_register(JitCpu* cpu, PyObject* args, uint32_t access_type);

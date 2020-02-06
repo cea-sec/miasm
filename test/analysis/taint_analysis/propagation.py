@@ -69,29 +69,29 @@ def test_taint_propagation():
 
     def test_addr_taint_reg(jitter):
         """
-        - EAX is tainted
+        - AX is tainted
         - MOV EBX, DWORD PTR [EAX]
         - EBX should be tainted
         """
         print("\t[+] Test addr -> reg")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 2
-        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
-        check_reg(regs[1], jitter, "RBX", interval([(0, 3)]))
+        check_reg(regs[0], jitter, "RAX", interval([(0, 1)]))
+        check_reg(regs[1], jitter, "RBX", interval([(0, 7)]))
         assert not mems
         jitter.cpu.untaint_all()
         return True
 
     def test_addr_taint_mem(jitter):
         """
-        - EAX is tainted
+        - AX is tainted
         - MOV DWORD PTR [EAX], 0x1
         - [EAX] should be tainted
         """
         print("\t[+] Test addr -> mem")
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
+        check_reg(regs[0], jitter, "RAX", interval([(0, 1)]))
         check_mem(interval(mems), interval([(data_addr, data_addr+3)]))
         jitter.cpu.untaint_all()
         return True
@@ -166,11 +166,11 @@ def test_taint_propagation():
     jitter.add_breakpoint(code_addr+0xB, taint_mem_RAX) # Taint [RAX]
     jitter.add_breakpoint(code_addr+0xD, test_mem_taint_mem)# Check that [RSP] is tainted
     # ADDR -> REG
-    jitter.add_breakpoint(code_addr+0xD, taint_EAX) # Taint RAX
-    jitter.add_breakpoint(code_addr+0xF, test_addr_taint_reg)# Check that RBX is tainted
+    jitter.add_breakpoint(code_addr+0xD, taint_AX) # Taint AX
+    jitter.add_breakpoint(code_addr+0xF, test_addr_taint_reg)# Check that EBX is FULLY tainted
     # ADDR -> MEM
-    jitter.add_breakpoint(code_addr+0xF, taint_EAX) # Taint RAX
-    jitter.add_breakpoint(code_addr+0x15, test_addr_taint_mem)# Check that [RAX] is tainted
+    jitter.add_breakpoint(code_addr+0xF, taint_AX) # Taint AX
+    jitter.add_breakpoint(code_addr+0x15, test_addr_taint_mem)# Check that DWORD [EAX] is tainted
     # UNTAINT REG
     jitter.add_breakpoint(code_addr+0x15, taint_EAX) # Taint RAX
     jitter.add_breakpoint(code_addr+0x1A, no_more_taint)# Check that RAX is untainted

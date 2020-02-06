@@ -428,13 +428,7 @@ interval_tree_intersection(unsigned long start,
 {
 	struct interval_tree_node *cur_node, *first_node, *last_node;
     struct interval intersection_interval, first_interval, last_interval;
-    struct rb_root *intersection_tree = calloc(1, sizeof(*intersection_tree));
-
-    if (intersection_tree == NULL)
-    {
-        printf("INTERVAL: cannot alloc new interval tree\n");
-        exit(EXIT_FAILURE);
-    }
+    struct rb_root *intersection_tree = interval_tree_new();
 
     first_node = interval_tree_iter_first(root, start, last);
 

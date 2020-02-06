@@ -92,8 +92,8 @@ struct memory_page_node {
 	uint64_t ad;
 	size_t size;
 	uint64_t access;
-	void *ad_hp;
-	char *name;
+	void* ad_hp;
+	char* name;
 };
 
 struct memory_access {
@@ -128,7 +128,6 @@ typedef struct {
 
 
 	int write_num;
-
 
 }vm_mngr_t;
 
