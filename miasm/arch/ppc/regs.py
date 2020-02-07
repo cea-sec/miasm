@@ -46,10 +46,19 @@ superregs_str = (["SPRG%d" % i for i in range(4)] +
 superregs_expr, superregs_init, superregs = gen_regs(superregs_str,
                                                      globals(), 32)
 
+mmuregs_str = (["SR%d" % i for i in range(16)] +
+               ["IBAT%dU" % i for i in range(4)] +
+               ["IBAT%dL" % i for i in range(4)] +
+               ["DBAT%dU" % i for i in range(4)] +
+               ["DBAT%dL" % i for i in range(4)] +
+               ["SDR1"])
+mmuregs_expr, mmuregs_init, mmuregs = gen_regs(mmuregs_str,
+                                               globals(), 32)
+
 regs_flt_expr = []
 
 all_regs_ids = (gpregs_expr + crfbitregs_expr + xerbitregs_expr +
-                xerbcreg_expr + otherregs_expr + superregs_expr +
+                xerbcreg_expr + otherregs_expr + superregs_expr + mmuregs_expr +
                 [ exception_flags, spr_access, reserve, reserve_address ])
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
 all_regs_ids_init = [ExprId("%s_init" % x.name, x.size) for x in all_regs_ids]

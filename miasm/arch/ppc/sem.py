@@ -10,9 +10,19 @@ from miasm.jitter.csts import *
 
 spr_dict = {
     8: LR, 9: CTR, 18: DSISR, 19: DAR,
-    22: DEC, 26: SRR0, 27: SRR1,
+    22: DEC, 25: SDR1, 26: SRR0, 27: SRR1,
     272: SPRG0, 273: SPRG0, 274: SPRG1, 275: SPRG2, 276: SPRG3,
-    284: TBL, 285: TBU, 287: PVR, 1023: PIR
+    284: TBL, 285: TBU, 287: PVR,
+    528: IBAT0U, 529: IBAT0L, 530: IBAT1U, 531: IBAT1L, 532: IBAT2U, 533: IBAT2L, 534: IBAT3U, 535: IBAT3L,
+    536: DBAT0U, 537: DBAT0L, 538: DBAT1U, 539: DBAT1L, 540: DBAT2U, 541: DBAT2L, 542: DBAT3U, 543: DBAT3L,
+    1023: PIR
+}
+
+sr_dict = {
+    0: SR0, 1: SR1, 2: SR2, 3: SR3,
+    4: SR4, 5: SR5, 6: SR6, 7: SR7,
+    8: SR8, 9: SR9, 10: SR10, 11: SR11,
+    12: SR12, 13: SR13, 14: SR14, 15: SR15
 }
 
 crf_dict = dict((ExprId("CR%d" % i, 4),
@@ -23,6 +33,7 @@ crf_dict = dict((ExprId("CR%d" % i, 4),
 ctx = {
     'crf_dict': crf_dict,
     'spr_dict': spr_dict,
+    'sr_dict': sr_dict,
     'expr': expr,
 }
 
@@ -383,6 +394,22 @@ def mn_mtspr(ir, instr, arg1, arg2):
                                     (gprid << SPR_ACCESS_GPR_OFF) |
                                     SPR_ACCESS_IS_WRITE), 32)),
                  ExprAssign(exception_flags, ExprInt(EXCEPT_SPR_ACCESS, 32)) ], []
+
+def mn_mtsr(ir, instr, sr, rs):
+    srid = sr.arg.arg
+    return [ ExprAssign(sr_dict[srid], rs) ], []
+
+# TODO
+#def mn_mtsrin(ir, instr, rs, rb):
+#    return [ ExprAssign(sr_dict[rb[0:3]], rs) ], []
+
+def mn_mfsr(ir, instr, rd, sr):
+    srid = sr.arg.arg
+    return [ ExprAssign(rd, sr_dict[srid]) ], []
+
+# TODO
+#def mn_mfsrin(ir, instr, rd, rb):
+#    return [ ExprAssign(rd, sr_dict[rb[0:3]]) ], []
 
 def mn_do_mul(ir, instr, rd, ra, arg2):
     variant = instr.name[3:]
@@ -809,13 +836,13 @@ sem_dir = {
     'MFCR': mn_do_mfcr,
     'MFMSR': mn_mfmsr,
     'MFSPR': mn_mfspr,
-    'MFSR': mn_do_nop_warn,
+    'MFSR': mn_mfsr,
     'MFSRIN': mn_do_nop_warn,
     'MFTB': mn_mfmsr,
     'MTCRF': mn_mtcrf,
     'MTMSR': mn_mtmsr,
     'MTSPR': mn_mtspr,
-    'MTSR': mn_do_nop_warn,
+    'MTSR': mn_mtsr,
     'MTSRIN': mn_do_nop_warn,
     'NAND': mn_do_nand,
     'NAND.': mn_do_nand,
