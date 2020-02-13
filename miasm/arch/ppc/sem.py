@@ -25,6 +25,20 @@ sr_dict = {
     12: SR12, 13: SR13, 14: SR14, 15: SR15
 }
 
+float_dict = {
+    0: FPR0, 1: FPR1, 2: FPR2, 3: FPR3, 4: FPR4, 5: FPR5, 6: FPR6, 7: FPR7, 8: FPR8, 
+    9: FPR9, 10: FPR10, 11: FPR11, 12: FPR12, 13: FPR13, 14: FPR14, 15: FPR15, 16: FPR16, 
+    17: FPR17, 18: FPR18, 19: FPR19, 20: FPR20, 21: FPR21, 22: FPR22, 23: FPR23, 24: FPR24, 
+    25: FPR25, 26: FPR26, 27: FPR27, 28: FPR28, 29: FPR29, 30: FPR30, 31: FPR31
+}
+
+vex_dict = {
+    0: VR0, 1: VR1, 2: VR2, 3: VR3, 4: VR4, 5: VR5, 6: VR6, 7: VR7, 8: VR8, 
+    9: VR9, 10: VR10, 11: VR11, 12: VR12, 13: VR13, 14: VR14, 15: VR15, 16: VR16, 
+    17: VR17, 18: VR18, 19: VR19, 20: VR20, 21: VR21, 22: VR22, 23: VR23, 24: VR24, 
+    25: VR25, 26: VR26, 27: VR27, 28: VR28, 29: VR29, 30: VR30, 31: VR31,    
+}
+
 crf_dict = dict((ExprId("CR%d" % i, 4),
                  dict( (bit, ExprId("CR%d_%s" % (i, bit), 1))
                        for bit in ['LT', 'GT', 'EQ', 'SO' ] ))
@@ -34,6 +48,8 @@ ctx = {
     'crf_dict': crf_dict,
     'spr_dict': spr_dict,
     'sr_dict': sr_dict,
+    'float_dict': float_dict,
+    'vex_dict': vex_dict,
     'expr': expr,
 }
 
@@ -244,6 +260,12 @@ def mn_do_load(ir, instr, arg1, arg2, arg3=None):
         return mn_do_lmw(ir, instr, arg1, arg2)
     elif instr.name[1] == 'S':
         raise RuntimeError("LSWI, and LSWX need implementing")
+    elif instr.name[1] == 'F':
+        print("Warning, instruction %s implemented as NOP" % instr)
+        return  [], []
+    elif instr.name[1] == 'V':
+        print("Warning, instruction %s implemented as NOP" % instr)
+        return [], []    
 
     size = {'B': 8, 'H': 16, 'W': 32}[instr.name[1]]
 
@@ -599,6 +621,9 @@ def mn_do_store(ir, instr, arg1, arg2, arg3=None):
 
     if instr.name[2] == 'S':
         raise RuntimeError("STSWI, and STSWX need implementing")
+    elif instr.name[2] == 'F':
+        print("Warning, instruction %s implemented as NOP" % instr)
+        return  [], []
 
     size = {'B': 8, 'H': 16, 'W': 32}[instr.name[2]]
 
@@ -834,16 +859,21 @@ sem_dir = {
     'MCRF': mn_do_mcrf,
     'MCRXR': mn_do_mcrxr,
     'MFCR': mn_do_mfcr,
+    'MFFS': mn_do_nop_warn,
+    'MFFS.': mn_do_nop_warn,
     'MFMSR': mn_mfmsr,
     'MFSPR': mn_mfspr,
     'MFSR': mn_mfsr,
     'MFSRIN': mn_do_nop_warn,
-    'MFTB': mn_mfmsr,
+    'MTFSF': mn_do_nop_warn,
+    'MTFSF.': mn_do_nop_warn,
+    'MFTB': mn_do_nop_warn,
     'MTCRF': mn_mtcrf,
     'MTMSR': mn_mtmsr,
     'MTSPR': mn_mtspr,
     'MTSR': mn_mtsr,
     'MTSRIN': mn_do_nop_warn,
+    'MTVSCR': mn_do_nop_warn,
     'NAND': mn_do_nand,
     'NAND.': mn_do_nand,
     'NOR': mn_do_nor,
