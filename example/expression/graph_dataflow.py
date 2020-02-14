@@ -9,7 +9,7 @@ from miasm.expression.expression import get_expr_mem
 from miasm.analysis.data_analysis import intra_block_flow_raw, inter_block_flow
 from miasm.core.graph import DiGraph
 from miasm.ir.symbexec import SymbolicExecutionEngine
-from miasm.analysis.data_flow import dead_simp
+from miasm.analysis.data_flow import DeadRemoval
 
 
 parser = ArgumentParser("Simple expression use for generating dataflow graph")
@@ -88,7 +88,7 @@ def gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb):
     for irblock in viewvalues(ircfg.blocks):
         print(irblock)
 
-    dead_simp(ir_arch, ircfg)
+    deadrm(ircfg)
 
 
     irblock_0 = None
@@ -140,6 +140,8 @@ print('ok')
 print('generating dataflow graph for:')
 ir_arch_analysis = machine.ira(mdis.loc_db)
 ircfg = ir_arch_analysis.new_ircfg_from_asmcfg(asmcfg)
+deadrm = DeadRemoval(ir_arch_analysis)
+
 
 for irblock in viewvalues(ircfg.blocks):
     print(irblock)
