@@ -24,6 +24,8 @@
   performances and genericity...
 
   See Documentation/rbtree.txt for documentation and samples.
+
+  Source: https://github.com/torvalds/linux
 */
 
 #ifndef	_LINUX_RBTREE_H

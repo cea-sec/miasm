@@ -1,3 +1,6 @@
+/*
+    Source: https://github.com/torvalds/linux
+*/
 #ifndef	__INT_COMPILER_H__
 #define	__INT_COMPILER_H__
 

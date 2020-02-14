@@ -63,7 +63,7 @@ def test_api():
         assert not mems
         regs, mems = jitter.cpu.get_all_taint(red)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RAX", interval([(0, 7)]))
+        check_reg(regs[0], jitter, "RAX", interval([(0, 0xF)]))
         assert not mems
         jitter.cpu.untaint_all_registers_of_color(red)
         no_more_taint(jitter)
@@ -149,7 +149,7 @@ def test_api():
         assert not mems
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RBX", interval([(0, 7)]))
+        check_reg(regs[0], jitter, "RBX", interval([(0, 0xF)]))
         check_mem(interval(mems), interval([(data_addr+0x6, data_addr+0x6+6)]))
         jitter.cpu.untaint_all_of_color(blue)
         no_more_taint(jitter)

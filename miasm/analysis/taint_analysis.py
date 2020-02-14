@@ -10,30 +10,47 @@ def makeTaintGen(C_Gen, ir_arch):
       struct taint_colors_t* taint_analysis = jitcpu->taint_analysis;
       uint64_t current_color;
       uint64_t current_mem_addr, current_mem_size, current_reg_size, current_reg_index;
-      struct rb_root* taint_interval_tree_tmp, * taint_interval_tree, * taint_interval_tree_before, * taint_interval_tree_untaint;
+      struct rb_root taint_interval_tree_tmp, taint_interval_tree, taint_interval_tree_before;
 	  struct interval_tree_node *node;
 	  struct rb_node *rb_node;
-      struct taint_interval_t* taint_interval = malloc(sizeof(*taint_interval));
+      struct interval taint_interval, interval_tmp;
       int do_not_clean_taint_cb_info = 1;
-      int tainted_addr;
       int current_compose_start;
-      int current_compose_last;
       int fully_tainted;
       """
 
       CODE_INIT = CODE_INIT_TAINT + C_Gen.CODE_INIT
 
+      CODE_GET_REG_TAINT = r"""
+      taint_interval.start = %d;
+      taint_interval.last = %d;
+      taint_interval_tree_tmp = taint_get_register_color(taint_analysis,
+                                                         current_color,
+                                                         %s,
+                                                         taint_interval
+                                                         );
+      """
+
+      CODE_GET_MEM_TAINT = r"""
+      taint_interval.start = %s;
+      taint_interval.last = taint_interval.start + (%d - 1);
+      taint_interval_tree_tmp = taint_get_memory(taint_analysis,
+                                                 current_color,
+                                                 taint_interval);
+      """
+
+
       CODE_PREPARE_ANALYSE_REG = r"""
-          taint_interval_tree = calloc(1, sizeof(*taint_interval_tree));
+          taint_interval_tree = interval_tree_new();
           current_reg_size = %d;
           current_reg_index = %d;
-          taint_interval->start = 0;
-          taint_interval->end = current_reg_size;
+          taint_interval.start = 0;
+          taint_interval.last = current_reg_size;
           taint_interval_tree_before = taint_get_register_color(taint_analysis, current_color, current_reg_index, taint_interval);
       """
 
       CODE_CHECK_FULLY_TAINTED = r"""
-          if (rb_first(taint_interval_tree_tmp) != NULL)
+          if (rb_first(&taint_interval_tree_tmp) != NULL)
           {
               fully_tainted = 1;
           }
@@ -42,8 +59,8 @@ def makeTaintGen(C_Gen, ir_arch):
       CODE_TAINT_REG = r"""
         if (fully_tainted)
         {
-            taint_interval->start = 0;
-            taint_interval->end = current_reg_size;
+            taint_interval.start = 0;
+            taint_interval.last = current_reg_size;
             taint_register_generic_access(taint_analysis,
                                         current_color,
                                         current_reg_index,
@@ -64,25 +81,23 @@ def makeTaintGen(C_Gen, ir_arch):
         else
         {
             // Remove previous taint
-            rb_node = rb_first(taint_interval_tree_before);
+            rb_node = rb_first(&taint_interval_tree_before);
 
             while(rb_node != NULL)
             {
                 node = rb_entry(rb_node, struct interval_tree_node, rb);
-                taint_interval->start = node->start;
-                taint_interval->end = node->last;
+                taint_interval = node->interval;
                 taint_register_generic_access(taint_analysis,current_color, current_reg_index, taint_interval, REMOVE);
                 rb_node = rb_next(rb_node);
             }
 
             // Add new taint
-            rb_node = rb_first(taint_interval_tree);
+            rb_node = rb_first(&taint_interval_tree);
 
             while(rb_node != NULL)
             {
                 node = rb_entry(rb_node, struct interval_tree_node, rb);
-                taint_interval->start = node->start;
-                taint_interval->end = node->last;
+                taint_interval = node->interval;
                 taint_register_generic_access(taint_analysis, current_color, current_reg_index, taint_interval, ADD);
                 rb_node = rb_next(rb_node);
                 // Update TAINT callback information
@@ -102,23 +117,22 @@ def makeTaintGen(C_Gen, ir_arch):
             if ( taint_analysis->colors[current_color].callback_info->exception_flag
                  & DO_UNTAINT_REG_CB )
             {
-                rb_node = rb_first(taint_interval_tree);
+                rb_node = rb_first(&taint_interval_tree);
 
                 while(rb_node != NULL)
                 {
                     node = rb_entry(rb_node, struct interval_tree_node, rb);
-                    interval_tree_sub(node->start, node->last, taint_interval_tree_before);
+                    interval_tree_sub(&taint_interval_tree_before, node->interval);
                     rb_node = rb_next(rb_node);
                 }
 
 
-                rb_node = rb_first(taint_interval_tree_before);
+                rb_node = rb_first(&taint_interval_tree_before);
 
                 while(rb_node != NULL)
                 {
                     node = rb_entry(rb_node, struct interval_tree_node, rb);
-                    taint_interval->start = node->start;
-                    taint_interval->end = node->last;
+                    taint_interval = node->interval;
                     jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REMOVE_REG;
                     taint_update_register_callback_info(taint_analysis, current_color, current_reg_index,
                                                       taint_interval,
@@ -129,30 +143,20 @@ def makeTaintGen(C_Gen, ir_arch):
         }
       """
 
-      CODE_GET_REG_TAINT_1 = r"""
-      taint_interval->start = DEFAULT_REG_START;
-      taint_interval->end = DEFAULT_MAX_REG_SIZE - 1;
-      """
-
-      CODE_GET_REG_TAINT_2 = r"""
-      taint_interval->start = %d;
-      taint_interval->end = %d;
-      """
-
       CODE_PREPARE_ANALYSE_MEM = r"""
       current_mem_addr = %s;
       current_mem_size = %d;
-      taint_interval->start = current_mem_addr;
-      taint_interval->end = current_mem_addr + (current_mem_size - 1);
-      taint_interval_tree = calloc(1, sizeof(*taint_interval_tree));
+      taint_interval.start = current_mem_addr;
+      taint_interval.last = current_mem_addr + (current_mem_size - 1);
+      taint_interval_tree = interval_tree_new();
       taint_interval_tree_before = taint_get_memory(taint_analysis, current_color, taint_interval);
       """
 
       CODE_TAINT_MEM = r"""
         if (fully_tainted)
         {
-            taint_interval->start = current_mem_addr;
-            taint_interval->end = current_mem_addr + (current_mem_size - 1);
+            taint_interval.start = current_mem_addr;
+            taint_interval.last = current_mem_addr + (current_mem_size - 1);
             taint_memory_generic_access(taint_analysis,current_color, taint_interval, ADD);
             if ( taint_analysis->colors[current_color].callback_info->exception_flag
                  & DO_TAINT_MEM_CB )
@@ -167,25 +171,24 @@ def makeTaintGen(C_Gen, ir_arch):
         else
         {
             // Remove previous taint
-            rb_node = rb_first(taint_interval_tree_before);
+            rb_node = rb_first(&taint_interval_tree_before);
 
             while(rb_node != NULL)
             {
                 node = rb_entry(rb_node, struct interval_tree_node, rb);
-                taint_interval->start = node->start;
-                taint_interval->end = node->last;
+                taint_interval = node->interval;
                 taint_memory_generic_access(taint_analysis,current_color, taint_interval, REMOVE);
                 rb_node = rb_next(rb_node);
             }
 
             // Add new taint
-            rb_node = rb_first(taint_interval_tree);
+            rb_node = rb_first(&taint_interval_tree);
 
             while(rb_node != NULL)
             {
                 node = rb_entry(rb_node, struct interval_tree_node, rb);
-                taint_interval->start = current_mem_addr + node->start;
-                taint_interval->end = current_mem_addr + node->last;
+                taint_interval.start = current_mem_addr + node->interval.start;
+                taint_interval.last = current_mem_addr + node->interval.last;
                 taint_memory_generic_access(taint_analysis,current_color, taint_interval, ADD);
                 rb_node = rb_next(rb_node);
                 // Update TAINT callback information
@@ -204,23 +207,24 @@ def makeTaintGen(C_Gen, ir_arch):
             if ( taint_analysis->colors[current_color].callback_info->exception_flag
                  & DO_UNTAINT_MEM_CB )
             {
-                rb_node = rb_first(taint_interval_tree);
+                rb_node = rb_first(&taint_interval_tree);
 
                 while(rb_node != NULL)
                 {
                     node = rb_entry(rb_node, struct interval_tree_node, rb);
-                    interval_tree_sub(node->start + current_mem_addr, node->last + current_mem_addr, taint_interval_tree_before);
+                    interval_tmp.start = node->interval.start + current_mem_addr;
+                    interval_tmp.last = node->interval.last + current_mem_addr;
+                    interval_tree_sub(&taint_interval_tree_before, interval_tmp);
                     rb_node = rb_next(rb_node);
                 }
 
 
-                rb_node = rb_first(taint_interval_tree_before);
+                rb_node = rb_first(&taint_interval_tree_before);
 
                 while(rb_node != NULL)
                 {
                     node = rb_entry(rb_node, struct interval_tree_node, rb);
-                    taint_interval->start = node->start;
-                    taint_interval->end = node->last;
+                    taint_interval = node->interval;
                     jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REMOVE_MEM;
                     taint_update_memory_callback_info(taint_analysis, current_color,
                                                       taint_interval,
@@ -232,28 +236,32 @@ def makeTaintGen(C_Gen, ir_arch):
       """
 
       CODE_UPDATE_INTERVALLE = r"""
-      if (rb_first(taint_interval_tree_tmp) != NULL)
+      if (rb_first(&taint_interval_tree_tmp) != NULL)
       {
-        rb_node = rb_first(taint_interval_tree_tmp);
+        rb_node = rb_first(&taint_interval_tree_tmp);
 
         while(rb_node != NULL)
         {
             node = rb_entry(rb_node, struct interval_tree_node, rb);
-            interval_tree_add(node->start+current_compose_start-taint_interval->start, node->last+current_compose_start-taint_interval->start, taint_interval_tree);
+            interval_tmp.start = node->interval.start+current_compose_start-taint_interval.start;
+            interval_tmp.last = node->interval.last+current_compose_start-taint_interval.start;
+            interval_tree_add(&taint_interval_tree, interval_tmp);
             rb_node = rb_next(rb_node);
         }
       }
       """
 
       CODE_UPDATE_INTERVALLE_MEM = r"""
-      if (rb_first(taint_interval_tree_tmp) != NULL)
+      if (rb_first(&taint_interval_tree_tmp) != NULL)
       {
-        rb_node = rb_first(taint_interval_tree_tmp);
+        rb_node = rb_first(&taint_interval_tree_tmp);
 
         while(rb_node != NULL)
         {
             node = rb_entry(rb_node, struct interval_tree_node, rb);
-            interval_tree_add(node->start-taint_interval->start+current_compose_start, node->last-taint_interval->start+current_compose_start, taint_interval_tree);
+            interval_tmp.start = node->interval.start-taint_interval.start+current_compose_start;
+            interval_tmp.last = node->interval.last-taint_interval.start+current_compose_start;
+            interval_tree_add(&taint_interval_tree, interval_tmp);
             rb_node = rb_next(rb_node);
         }
       }
@@ -300,7 +308,7 @@ def makeTaintGen(C_Gen, ir_arch):
                     "last":
                     "full": if an element is tainted, dst gets fully tainted
                     "composition":
-                        [(start, last, composition, full)]
+                        [(start, composition, full)]
                             interval tainted in elements taint interval [start, last] in dst
           """
           read_elements = dict()
@@ -308,7 +316,6 @@ def makeTaintGen(C_Gen, ir_arch):
           read_elements["elements"] = set()
           read_elements["composition"] = list()
           read_elements["start"] = 0
-          read_elements["last"] = src.size / 8 - 1
 
           src.visit(lambda x: visit_get_read_elements(x, read_elements["elements"]),
                     lambda x: test_cond_op_compose_slice_not_addr(x, read_elements))
@@ -325,46 +332,21 @@ def makeTaintGen(C_Gen, ir_arch):
           dst = self.dst_to_c(address)
           return (self.CODE_EXCEPTION_TAINT % (self.C_PC, dst)).split('\n')
 
-      def gen_get_register_taint(self, reg_name, start=None, end=None):
-          c_code = []
-          if start is None:
-              c_code += (self.CODE_GET_REG_TAINT_1).split('\n')
-          else:
-              c_code += (self.CODE_GET_REG_TAINT_2 % ((start/8), (end/8-1))).split('\n')
-              # NOTE: end/8-1 -> from size in bits to end in bytes
-          c_code.append("""
-          taint_interval_tree_tmp = taint_get_register_color(taint_analysis,
-                                                          current_color,
-                                                          %s,
-                                                          taint_interval
-                                                          );
-          """ % (self.regs_index[reg_name]))
-          return c_code
+      def gen_get_register_taint(self, reg_name, start, end):
+          # NOTE: end/8-1 -> from size in bits to end in bytes
+          return (self.CODE_GET_REG_TAINT % (start / 8,
+                                             end / 8 - 1,
+                                             self.regs_index[reg_name])).split('\n')
 
       def gen_get_memory_taint(self, start_addr, size):
-          c_code = ""
-          c_code += "taint_interval->start=%s; taint_interval->end=%s + (%d - 1);" % (start_addr, start_addr, size)
-          c_code += "taint_interval_tree_tmp = taint_get_memory("
-          c_code += "taint_analysis, "
-          c_code += "current_color, "
-          c_code += "taint_interval);"
-          return c_code
+          return self.CODE_GET_MEM_TAINT % (start_addr,
+                                            size)
 
-      def gen_get_memory_taint_2(self, start_addr, size):
-          c_code = ""
-          c_code += "taint_interval->start=%s; taint_interval->end=%s + (%d - 1);" % (start_addr, start_addr, size)
-          c_code += "taint_interval_tree = taint_get_memory("
-          c_code += "taint_analysis, "
-          c_code += "current_color, "
-          c_code += "taint_interval);"
-          return c_code
-
-      def gen_taint_calculation_from_other_elements(self, elements, start, last, prefetchers):
+      def gen_taint_calculation_from_other_elements(self, elements, start, prefetchers):
           c_code = []
 
           c_code.append("if (!fully_tainted) {")
           c_code.append("current_compose_start = %d;" % start)
-          c_code.append("current_compose_last = %d;" % last)
           for element in elements:
               if ("IRDst" in str(element)) or ("loc_" in str(element)):
                   pass # NOTE: taint_get_register return 0 in this case but there
@@ -376,11 +358,13 @@ def makeTaintGen(C_Gen, ir_arch):
                   c_code += (self.CODE_UPDATE_INTERVALLE).split('\n')
               elif element.is_mem():
                   start = self.gen_segm2addr(element, prefetchers)
-                  size = element.size/8 # We use bytes for size
+                  size = element.size / 8 # We use bytes for size
                   c_code.append(self.gen_get_memory_taint(start, size))
                   c_code += (self.CODE_UPDATE_INTERVALLE_MEM).split('\n')
               elif element.is_id():
-                  c_code += self.gen_get_register_taint(str(element))
+                  c_code.append(self.gen_get_register_taint(str(element),
+                                                            0,
+                                                            element.size))
                   c_code += (self.CODE_UPDATE_INTERVALLE).split('\n')
               else:
                   raise NotImplementedError("Taint analysis: do not know how to \
@@ -408,7 +392,9 @@ def makeTaintGen(C_Gen, ir_arch):
                   c_code.append(self.gen_get_memory_taint(start, size))
                   c_code += (self.CODE_CHECK_FULLY_TAINTED).split('\n')
               elif element.is_id():
-                  c_code += self.gen_get_register_taint(str(element))
+                  c_code += self.gen_get_register_taint(str(element),
+                                                        0,
+                                                        element.size)
                   c_code += (self.CODE_CHECK_FULLY_TAINTED).split('\n')
               else:
                   raise NotImplementedError("Taint analysis: do not know how to \
@@ -423,7 +409,6 @@ def makeTaintGen(C_Gen, ir_arch):
               c_code += self.gen_taint_calculation_from_full_elements(composant["full"], prefetchers)
               c_code += self.gen_taint_calculation_from_other_elements(composant["elements"],
                                                                        composant["start"],
-                                                                       composant["last"],
                                                                        prefetchers)
               if "composition" in composant:
                   c_code += self.gen_taint_calculation_from_read_elements(composant["composition"], prefetchers)
@@ -447,7 +432,7 @@ def makeTaintGen(C_Gen, ir_arch):
           size = dst.size/8 # We use a size in byte not bit
 
           c_code.append("// Analyse mem")
-          c_code += (self.CODE_PREPARE_ANALYSE_MEM % (start, size)).split('\n')
+          c_code.append(self.CODE_PREPARE_ANALYSE_MEM % (start, size))
           c_code += self.gen_taint_calculation(src, prefetchers, dst)
           c_code += self.CODE_TAINT_MEM.split('\n')
 
@@ -612,7 +597,6 @@ def test_cond_op_compose_slice_not_addr(expr, read):
             new_last = new_start + (element.size/8 - 1)
             new_composition = dict()
             new_composition["start"]  = new_start
-            new_composition["last"]  = new_last
             new_composition["full"] = get_read_elements_in_addr_with_real_size(None, element)
             new_composition["elements"] = set()
             new_composition["composition"] = list()

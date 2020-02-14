@@ -17,6 +17,8 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
   include/linux/interval_tree_generic.h
+
+  Source: https://github.com/torvalds/linux
 */
 
 #include <stdbool.h>
@@ -67,7 +69,7 @@ RB_DECLARE_CALLBACKS(static, ITPREFIX ## _augment, ITSTRUCT, ITRB,	      \
 									      \
 /* Insert / remove interval nodes from the tree */			      \
 									      \
-ITSTATIC void ITPREFIX ## _insert(ITSTRUCT *node, struct rb_root *root)	      \
+ITSTATIC void ITPREFIX ## _insert(struct rb_root *root, ITSTRUCT *node)	      \
 {									      \
 	struct rb_node **link = &root->rb_node, *rb_parent = NULL;	      \
 	ITTYPE start = ITSTART(node), last = ITLAST(node);		      \
@@ -89,7 +91,7 @@ ITSTATIC void ITPREFIX ## _insert(ITSTRUCT *node, struct rb_root *root)	      \
 	rb_insert_augmented(&node->ITRB, root, &ITPREFIX ## _augment);	      \
 }									      \
 									      \
-ITSTATIC void ITPREFIX ## _remove(ITSTRUCT *node, struct rb_root *root)	      \
+ITSTATIC void ITPREFIX ## _remove(struct rb_root *root, ITSTRUCT *node)	      \
 {									      \
 	rb_erase_augmented(&node->ITRB, root, &ITPREFIX ## _augment);	      \
 }									      \
