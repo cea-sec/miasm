@@ -73,9 +73,6 @@ class SSA(object):
         # IRCFG instance
         self.ircfg = ircfg
 
-        # SSA blocks
-        self.blocks = {}
-
         # stack for RHS
         self._stack_rhs = {}
         # stack for LHS
@@ -120,7 +117,6 @@ class SSA(object):
 
     def reset(self):
         """Resets SSA transformation"""
-        self.blocks = {}
         self.expressions = {}
         self._stack_rhs = {}
         self._stack_lhs = {}
@@ -427,12 +423,13 @@ class SSADiGraph(SSA):
         a set of IRBlocks in which the variable gets assigned
         """
 
+        visited_loc = set()
         for loc_key in self.graph.walk_depth_first_forward(head):
             irblock = self.get_block(loc_key)
             if irblock is None:
                 # Incomplete graph
                 continue
-
+            visited_loc.add(loc_key)
             # search for block's IR definitions/destinations
             for assignblk in irblock.assignblks:
                 for dst in assignblk:
@@ -443,6 +440,8 @@ class SSADiGraph(SSA):
                             continue
                         # map variable definition to blocks
                         self.defs.setdefault(dst, set()).add(irblock.loc_key)
+        if visited_loc != set(self.graph.blocks):
+            raise RuntimeError("Cannot operate on a non connected graph")
 
     def _place_phi(self, head):
         """
@@ -608,9 +607,18 @@ class SSADiGraph(SSA):
             if irblock is None:
                 continue
             assignblk = AssignBlock(self._phinodes[loc_key])
-            # insert at the beginning
-            new_irs = IRBlock(loc_key, [assignblk] + list(irblock.assignblks))
-            self.ircfg.blocks[loc_key] = new_irs
+            if irblock_has_phi(irblock):
+                # If first block contains phi, we are updating an existing ssa form
+                # so update phi
+                assignblks = list(irblock.assignblks)
+                out = dict(assignblks[0])
+                out.update(dict(assignblk))
+                assignblks[0] = AssignBlock(out, assignblk.instr)
+                new_irblock = IRBlock(loc_key, assignblks)
+            else:
+                # insert at the beginning
+                new_irblock = IRBlock(loc_key, [assignblk] + list(irblock.assignblks))
+            self.ircfg.blocks[loc_key] = new_irblock
 
     def _fix_no_def_var(self, head):
         """
