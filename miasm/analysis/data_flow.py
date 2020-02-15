@@ -69,6 +69,8 @@ class ReachingDefinitions(dict):
         """
         predecessor_state = {}
         for pred_lbl in self.ircfg.predecessors(block.loc_key):
+            if pred_lbl not in self.ircfg.blocks:
+                continue
             pred = self.ircfg.blocks[pred_lbl]
             for lval, definitions in viewitems(self.get_definitions(pred_lbl, len(pred))):
                 predecessor_state.setdefault(lval, set()).update(definitions)
@@ -790,6 +792,8 @@ class PropagateThroughExprId(object):
         else:
             # Check everyone but node_a.label and node_b.label
             for loc in nodes_to_do - set([node_a.label, node_b.label]):
+                if loc not in ssa.graph.blocks:
+                    continue
                 block = ssa.graph.blocks[loc]
                 if self.has_propagation_barrier(block.assignblks):
                     return True
@@ -835,7 +839,10 @@ class PropagateThroughExprId(object):
         ircfg = ssa.graph
         def_dct = {}
         for node in ircfg.nodes():
-            for index, assignblk in enumerate(ircfg.blocks[node]):
+            block = ircfg.blocks.get(node, None)
+            if block is None:
+                continue
+            for index, assignblk in enumerate(block):
                 for dst, src in viewitems(assignblk):
                     if not dst.is_id():
                         continue
@@ -1001,7 +1008,9 @@ class PropagateThroughExprMem(object):
 
         while todo:
             loc_key, index, mem_dst, mem_src = todo.pop()
-            block = ircfg.blocks[loc_key]
+            block = ircfg.blocks.get(loc_key, None)
+            if block is None:
+                continue
             assignblks = list(block)
             block_modified = False
             for i in range(index, len(block)):
@@ -1364,7 +1373,9 @@ class DiGraphLiveness(DiGraph):
         self._blocks = {}
         # Add irblocks gen/kill
         for node in ircfg.nodes():
-            irblock = ircfg.blocks[node]
+            irblock = ircfg.blocks.get(node, None)
+            if irblock is None:
+                continue
             irblockinfos = IRBlockLivenessInfos(irblock)
             self.add_node(irblockinfos.loc_key)
             self.blocks[irblockinfos.loc_key] = irblockinfos
@@ -1467,7 +1478,9 @@ class DiGraphLiveness(DiGraph):
         todo = set(self.leaves())
         while todo:
             node = todo.pop()
-            cur_block = self.blocks[node]
+            cur_block = self.blocks.get(node, None)
+            if cur_block is None:
+                continue
             modified = self.back_propagate_compute(cur_block)
             if not modified:
                 continue
@@ -1486,7 +1499,9 @@ class DiGraphLivenessIRA(DiGraphLiveness):
         """Add ircfg out regs"""
 
         for node in self.leaves():
-            irblock = self.ircfg.blocks[node]
+            irblock = self.ircfg.blocks.get(node, None)
+            if irblock is None:
+                continue
             var_out = ir_arch_a.get_out_regs(irblock)
             irblock_liveness = self.blocks[node]
             irblock_liveness.infos[-1].var_out = var_out
@@ -1564,18 +1579,24 @@ def update_phi_with_deleted_edges(ircfg, edges_to_del):
     @edges_to_del: edges to delete
     """
 
+
+    phi_locs_to_srcs = {}
+    for loc_src, loc_dst in edges_to_del:
+        phi_locs_to_srcs.setdefault(loc_dst, set()).add(loc_src)
+
     modified = False
     blocks = dict(ircfg.blocks)
-    for loc_src, loc_dst in edges_to_del:
+    for loc_dst, loc_srcs in viewitems(phi_locs_to_srcs):
         block = ircfg.blocks[loc_dst]
-        assert block.assignblks
+        if not irblock_has_phi(block):
+            continue
         assignblks = list(block)
         assignblk = assignblks[0]
         out = {}
         for dst, phi_sources in viewitems(assignblk):
             if not phi_sources.is_op('Phi'):
-                out = assignblk
-                break
+                out[dst] = phi_sources
+                continue
             var_to_parents = get_phi_sources_parent_block(
                 ircfg,
                 loc_dst,
@@ -1584,7 +1605,8 @@ def update_phi_with_deleted_edges(ircfg, edges_to_del):
             to_keep = set(phi_sources.args)
             for src in phi_sources.args:
                 parents = var_to_parents[src]
-                if loc_src in parents:
+                remaining = parents.difference(loc_srcs)
+                if not remaining:
                     to_keep.discard(src)
                     modified = True
             assert to_keep
@@ -1614,7 +1636,9 @@ def del_unused_edges(ircfg, heads):
     edges_to_del_1 = set()
     for node in ircfg.nodes():
         successors = set(ircfg.successors(node))
-        block = ircfg.blocks[node]
+        block = ircfg.blocks.get(node, None)
+        if block is None:
+            continue
         dst = block.dst
         possible_dsts = set(solution.value for solution in possible_values(dst))
         if not all(dst.is_loc() for dst in possible_dsts):
@@ -1663,12 +1687,18 @@ class DiGraphLivenessSSA(DiGraphLivenessIRA):
                 continue
             out = {}
             for sources in viewvalues(irblock[0]):
+                if not sources.is_op('Phi'):
+                    # Some phi sources may have already been resolved to an
+                    # expression
+                    continue
                 var_to_parents = get_phi_sources_parent_block(self, irblock.loc_key, sources.args)
                 for var, var_parents in viewitems(var_to_parents):
                     out.setdefault(var, set()).update(var_parents)
             self.loc_key_to_phi_parents[irblock.loc_key] = out
 
     def back_propagate_to_parent(self, todo, node, parent):
+        if parent not in self.blocks:
+            return
         parent_block = self.blocks[parent]
         cur_block = self.blocks[node]
         irblock = self.ircfg.blocks[node]
