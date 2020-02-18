@@ -3034,3 +3034,244 @@ def msvcrt_strlen(jitter):
 
     s = get_win_str_a(jitter, args.src)
     jitter.func_ret_cdecl(ret_ad, len(s))
+
+
+def kernel32_QueryPerformanceCounter(jitter):
+    ret_ad, args = jitter.func_args_stdcall(["lpPerformanceCount"])
+    jitter.vm.set_mem(args.lpPerformanceCount, struct.pack('<Q', 0x1))
+    jitter.func_ret_stdcall(ret_ad, 1)
+
+
+def kernel32_InitializeCriticalSectionEx(jitter):
+    '''
+      LPCRITICAL_SECTION lpCriticalSection,
+      DWORD              dwSpinCount,
+      DWORD              Flags
+    '''
+    ret_ad, args = jitter.func_args_stdcall(["lpCriticalSection", "dwSpinCount", "Flags"])
+    jitter.func_ret_stdcall(ret_ad, 1)
+
+
+def kernel32_EnterCriticalSection(jitter):
+    '''
+    void EnterCriticalSection(
+      LPCRITICAL_SECTION lpCriticalSection
+    );
+    '''
+    ret_ad, args = jitter.func_args_stdcall(["lpCriticalSection"])
+    jitter.func_ret_stdcall(ret_ad, 0x0)
+
+
+def kernel32_LeaveCriticalSection(jitter):
+    '''
+    void LeaveCriticalSection(
+      LPCRITICAL_SECTION lpCriticalSection
+    );
+    '''
+    ret_ad, args = jitter.func_args_stdcall(["lpCriticalSection"])
+    jitter.func_ret_stdcall(ret_ad, 0x0)
+
+
+class FLS(object):
+    def __init__(self):
+        self.slots = []
+
+    def kernel32_FlsAlloc(self, jitter):
+        '''
+        DWORD FlsAlloc(
+          PFLS_CALLBACK_FUNCTION lpCallback
+        );    
+        '''
+        ret_ad, args = jitter.func_args_stdcall(["lpCallback"])
+        index = len(self.slots)
+        self.slots.append(0x0)
+        jitter.func_ret_stdcall(ret_ad, index)
+
+    def kernel32_FlsSetValue(self, jitter):
+        '''
+        BOOL FlsSetValue(
+          DWORD dwFlsIndex,
+          PVOID lpFlsData
+        );
+        '''
+        ret_ad, args = jitter.func_args_stdcall(["dwFlsIndex", "lpFlsData"])
+        self.slots[args.dwFlsIndex] = args.lpFlsData
+        jitter.func_ret_stdcall(ret_ad, 1)
+        
+    def kernel32_FlsGetValue(self, jitter):
+        '''
+        PVOID FlsGetValue(
+          DWORD dwFlsIndex
+        );
+        '''
+        ret_ad, args = jitter.func_args_stdcall(["dwFlsIndex"])
+        jitter.func_ret_stdcall(ret_ad, self.slots[args.dwFlsIndex])        
+        
+fls = FLS()
+
+
+def kernel32_GetProcessHeap(jitter):
+    '''
+    HANDLE GetProcessHeap();
+    '''
+    ret_ad, args = jitter.func_args_stdcall([])
+    hHeap = 0x67676767
+    jitter.func_ret_stdcall(ret_ad, hHeap)
+
+
+STD_INPUT_HANDLE = 0xfffffff6
+STD_OUTPUT_HANDLE = 0xfffffff5
+STD_ERROR_HANDLE = 0xfffffff4
+
+
+def kernel32_GetStdHandle(jitter):
+    '''
+    HANDLE WINAPI GetStdHandle(
+      _In_ DWORD nStdHandle
+    );
+    
+    STD_INPUT_HANDLE (DWORD)-10 	
+    The standard input device. Initially, this is the console input buffer, CONIN$.
+
+    STD_OUTPUT_HANDLE (DWORD)-11 	
+    The standard output device. Initially, this is the active console screen buffer, CONOUT$.
+
+    STD_ERROR_HANDLE (DWORD)-12 	
+    The standard error device. Initially, this is the active console screen buffer, CONOUT$.    
+    '''
+    ret_ad, args = jitter.func_args_stdcall(["nStdHandle"])
+    jitter.func_ret_stdcall(ret_ad, {
+        STD_OUTPUT_HANDLE: 1,
+        STD_ERROR_HANDLE: 2,
+        STD_INPUT_HANDLE: 3,
+    }[args.nStdHandle])
+
+    
+FILE_TYPE_UNKNOWN = 0x0000
+FILE_TYPE_CHAR = 0x0002
+
+
+def kernel32_GetFileType(jitter):
+    '''
+    DWORD GetFileType(
+      HANDLE hFile
+    );
+    '''
+    ret_ad, args = jitter.func_args_stdcall(["hFile"])
+    jitter.func_ret_stdcall(ret_ad, {
+        # STD_OUTPUT_HANDLE
+        1: FILE_TYPE_CHAR,
+        # STD_ERROR_HANDLE
+        2: FILE_TYPE_CHAR,
+        # STD_INPUT_HANDLE
+        3: FILE_TYPE_CHAR,
+    }.get(args.hFile, FILE_TYPE_UNKNOWN))
+
+
+def kernel32_IsProcessorFeaturePresent(jitter):
+    '''
+    BOOL IsProcessorFeaturePresent(
+      DWORD ProcessorFeature
+    );
+    '''
+    ret_ad, args = jitter.func_args_stdcall(["ProcessorFeature"])
+    jitter.func_ret_stdcall(ret_ad, {
+        # PF_ARM_64BIT_LOADSTORE_ATOMIC
+        25: False,
+        # PF_ARM_DIVIDE_INSTRUCTION_AVAILABLE
+        24: False,
+        # PF_ARM_EXTERNAL_CACHE_AVAILABLE
+        26: False,
+        # PF_ARM_FMAC_INSTRUCTIONS_AVAILABLE
+        27: False,
+        # PF_ARM_VFP_32_REGISTERS_AVAILABLE
+        18: False,
+        # PF_3DNOW_INSTRUCTIONS_AVAILABLE
+        7: False,
+        # PF_CHANNELS_ENABLED
+        16: True,
+        # PF_COMPARE_EXCHANGE_DOUBLE
+        2: False,
+        # PF_COMPARE_EXCHANGE128
+        14: False,
+        # PF_COMPARE64_EXCHANGE128
+        15: False,
+        # PF_FASTFAIL_AVAILABLE
+        23: False,
+        # PF_FLOATING_POINT_EMULATED
+        1: False,
+        # PF_FLOATING_POINT_PRECISION_ERRATA
+        0: True,
+        # PF_MMX_INSTRUCTIONS_AVAILABLE
+        3: True,
+        # PF_NX_ENABLED
+        12: True,
+        # PF_PAE_ENABLED
+        9: True,
+        # PF_RDTSC_INSTRUCTION_AVAILABLE
+        8: True,
+        # PF_RDWRFSGSBASE_AVAILABLE
+        22: True,
+        # PF_SECOND_LEVEL_ADDRESS_TRANSLATION
+        20: True,
+        # PF_SSE3_INSTRUCTIONS_AVAILABLE
+        13: True,
+        # PF_VIRT_FIRMWARE_ENABLED
+        21: False,
+        # PF_XMMI_INSTRUCTIONS_AVAILABLE
+        6: True,
+        # PF_XMMI64_INSTRUCTIONS_AVAILABLE
+        10: True,
+        # PF_XSAVE_ENABLED
+        17: False,
+    }[args.ProcessorFeature])
+
+    
+def kernel32_GetACP(jitter):
+    '''
+    UINT GetACP();
+    '''
+    ret_ad, args = jitter.func_args_stdcall([])
+    # Windows-1252: Latin 1 / Western European  Superset of ISO-8859-1 (without C1 controls). 
+    jitter.func_ret_stdcall(ret_ad, 1252)
+
+
+# ref: https://docs.microsoft.com/en-us/windows/win32/intl/code-page-identifiers
+VALID_CODE_PAGES = {
+    37,437,500,708,709,710,720,737,775,850,852,855,857,858,860,861,862,863,864,865,866,869,870,874,875,
+    932,936,949,950,1026,1047,1140,1141,1142,1143,1144,1145,1146,1147,1148,1149,1200,1201,1250,1251,1252,
+    1253,1254,1255,1256,1257,1258,1361,10000,10001,10002,10003,10004,10005,10006,10007,10008,10010,10017,
+    10021,10029,10079,10081,10082,12000,12001,20000,20001,20002,20003,20004,20005,20105,20106,20107,20108,
+    20127,20261,20269,20273,20277,20278,20280,20284,20285,20290,20297,20420,20423,20424,20833,20838,20866,
+    20871,20880,20905,20924,20932,20936,20949,21025,21027,21866,28591,28592,28593,28594,28595,28596,28597,
+    28598,28599,28603,28605,29001,38598,50220,50221,50222,50225,50227,50229,50930,50931,50933,50935,50936,
+    50937,50939,51932,51936,51949,51950,52936,54936,57002,57003,57004,57005,57006,57007,57008,57009,57010,
+    57011,65000,65001
+}
+
+
+def kernel32_IsValidCodePage(jitter):
+    '''
+    BOOL IsValidCodePage(
+      UINT CodePage
+    );
+    '''
+    ret_ad, args = jitter.func_args_stdcall(["CodePage"])
+    jitter.func_ret_stdcall(ret_ad, args.CodePage in VALID_CODE_PAGES)    
+
+
+def kernel32_GetCPInfo(jitter):
+    '''
+    BOOL GetCPInfo(
+      UINT     CodePage,
+      LPCPINFO lpCPInfo
+    );
+    '''
+    ret_ad, args = jitter.func_args_stdcall(["CodePage", "lpCPInfo"])
+    assert args.CodePage == 1252
+    # ref: http://www.rensselaer.org/dept/cis/software/g77-mingw32/include/winnls.h
+    #define MAX_LEADBYTES 	12
+    #define MAX_DEFAULTCHAR	2
+    jitter.vm.set_mem(args.lpCPInfo, struct.pack('<I', 0x1) + b'??' + b'\x00' * 12)
+    jitter.func_ret_stdcall(ret_ad, 1)
+    
