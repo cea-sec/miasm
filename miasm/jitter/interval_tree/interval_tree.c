@@ -64,7 +64,6 @@ interval_tree_alloc_new_node(struct interval interval)
         fprintf(stderr, "INTERVAL: cannot alloc new node\n");
         return NULL;
     }
-    printf("New NODE %lu %lu\n", interval.start, interval.last);
 
     node->interval = interval;
 

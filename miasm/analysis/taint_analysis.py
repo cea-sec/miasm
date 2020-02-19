@@ -11,9 +11,9 @@ def makeTaintGen(C_Gen, ir_arch):
       uint64_t current_color;
       uint64_t current_mem_addr, current_mem_size, current_reg_size, current_reg_index;
       struct rb_root taint_interval_tree_tmp, taint_interval_tree, taint_interval_tree_before;
-      //taint_interval_tree_tmp = interval_tree_new();
-      //taint_interval_tree = interval_tree_new();
-      //taint_interval_tree_before = interval_tree_new();
+      taint_interval_tree_tmp = interval_tree_new();
+      taint_interval_tree = interval_tree_new();
+      taint_interval_tree_before = interval_tree_new();
       struct interval_tree_node *node;
       struct rb_node *rb_node;
       struct interval taint_interval, interval_tmp;
@@ -24,69 +24,73 @@ def makeTaintGen(C_Gen, ir_arch):
 
       CODE_INIT = CODE_INIT_TAINT + C_Gen.CODE_INIT
 
-      #CODE_RETURN_EXCEPTION = r"""
-      #interval_tree_free(&taint_interval_tree_tmp);
-      #interval_tree_free(&taint_interval_tree);
-      #interval_tree_free(&taint_interval_tree_before);
-      #return JIT_RET_EXCEPTION;
-      #"""
+      CODE_RETURN_EXCEPTION = r"""
+      interval_tree_free(&taint_interval_tree_tmp);
+      interval_tree_free(&taint_interval_tree);
+      interval_tree_free(&taint_interval_tree_before);
+      """ + C_Gen.CODE_RETURN_EXCEPTION
 
-      #CODE_EXCEPTION_AT_INSTR = r"""
-      #if (CPU_exception_flag_at_instr) {
-      #    interval_tree_free(&taint_interval_tree_tmp);
-      #    interval_tree_free(&taint_interval_tree);
-      #    interval_tree_free(&taint_interval_tree_before);
-      #    %s = %s;
-      #    BlockDst->address = %s;
-      #    return JIT_RET_EXCEPTION;
-      #}
-      #"""
+      # TODO: use C_Gen.CODE_EXCEPTION_AT_INSTR
+      CODE_EXCEPTION_AT_INSTR = r"""
+      if (CPU_exception_flag_at_instr) {
+          interval_tree_free(&taint_interval_tree_tmp);
+          interval_tree_free(&taint_interval_tree);
+          interval_tree_free(&taint_interval_tree_before);
+          %s = %s;
+          BlockDst->address = %s;
+          return JIT_RET_EXCEPTION;
+      }
+      """
 
-      #CODE_RETURN_NO_EXCEPTION = r"""
-      #%s:
-      #%s = %s;
-      #BlockDst->address = %s;
-      #interval_tree_free(&taint_interval_tree_tmp);
-      #interval_tree_free(&taint_interval_tree);
-      #interval_tree_free(&taint_interval_tree_before);
-      #return JIT_RET_NO_EXCEPTION;
-      #"""
+      # TODO: use C_Gen.CODE_RETURN_NO_EXCEPTION
+      CODE_RETURN_NO_EXCEPTION = r"""
+      %s:
+      %s = %s;
+      BlockDst->address = %s;
+      interval_tree_free(&taint_interval_tree_tmp);
+      interval_tree_free(&taint_interval_tree);
+      interval_tree_free(&taint_interval_tree_before);
+      return JIT_RET_NO_EXCEPTION;
+      """
 
-      #CODE_CPU_EXCEPTION_POST_INSTR = r"""
-      #if (CPU_exception_flag) {
-      #    %s = DST_value;
-      #    BlockDst->address = DST_value;
-      #    interval_tree_free(&taint_interval_tree_tmp);
-      #    interval_tree_free(&taint_interval_tree);
-      #    interval_tree_free(&taint_interval_tree_before);
-      #    return JIT_RET_EXCEPTION;
-      #}
-      #"""
+      # TODO: use C_Gen.CODE_CPU_EXCEPTION_POST_INSTR
+      CODE_CPU_EXCEPTION_POST_INSTR = r"""
+      if (CPU_exception_flag) {
+          %s = DST_value;
+          BlockDst->address = DST_value;
+          interval_tree_free(&taint_interval_tree_tmp);
+          interval_tree_free(&taint_interval_tree);
+          interval_tree_free(&taint_interval_tree_before);
+          return JIT_RET_EXCEPTION;
+      }
+      """
 
-      #CODE_VM_EXCEPTION_POST_INSTR = r"""
-      #check_memory_breakpoint(&(jitcpu->pyvm->vm_mngr));
-      #check_invalid_code_blocs(&(jitcpu->pyvm->vm_mngr));
-      #if (VM_exception_flag) {
-      #    interval_tree_free(&taint_interval_tree_tmp);
-      #    interval_tree_free(&taint_interval_tree);
-      #    interval_tree_free(&taint_interval_tree_before);
-      #    %s = DST_value;
-      #    BlockDst->address = DST_value;
-      #    return JIT_RET_EXCEPTION;
-      #}
-      #"""
+      # TODO: use C_Gen.CODE_VM_EXCEPTION_POST_INSTR
+      CODE_VM_EXCEPTION_POST_INSTR = r"""
+      check_memory_breakpoint(&(jitcpu->pyvm->vm_mngr));
+      check_invalid_code_blocs(&(jitcpu->pyvm->vm_mngr));
+      if (VM_exception_flag) {
+          interval_tree_free(&taint_interval_tree_tmp);
+          interval_tree_free(&taint_interval_tree);
+          interval_tree_free(&taint_interval_tree_before);
+          %s = DST_value;
+          BlockDst->address = DST_value;
+          return JIT_RET_EXCEPTION;
+      }
+      """
 
-      #CODE_EXCEPTION_MEM_AT_INSTR = r"""
-      #// except fetch mem at instr noauto
-      #if ((VM_exception_flag & ~EXCEPT_CODE_AUTOMOD) & EXCEPT_DO_NOT_UPDATE_PC) {
-      #    %s = %s;
-      #    BlockDst->address = %s;
-      #    interval_tree_free(&taint_interval_tree_tmp);
-      #    interval_tree_free(&taint_interval_tree);
-      #    interval_tree_free(&taint_interval_tree_before);
-      #    return JIT_RET_EXCEPTION;
-      #}
-      #"""
+      # TODO: use C_Gen.CODE_EXCEPTION_MEM_AT_INSTR
+      CODE_EXCEPTION_MEM_AT_INSTR = r"""
+      // except fetch mem at instr noauto
+      if ((VM_exception_flag & ~EXCEPT_CODE_AUTOMOD) & EXCEPT_DO_NOT_UPDATE_PC) {
+          %s = %s;
+          BlockDst->address = %s;
+          interval_tree_free(&taint_interval_tree_tmp);
+          interval_tree_free(&taint_interval_tree);
+          interval_tree_free(&taint_interval_tree_before);
+          return JIT_RET_EXCEPTION;
+      }
+      """
 
       CODE_GET_REG_TAINT = r"""
       taint_interval.start = %d;
@@ -378,7 +382,6 @@ def makeTaintGen(C_Gen, ir_arch):
 
                 reads:
                     "start":
-                    "last":
                     "full": if an element is tainted, dst gets fully tainted
                     "composition":
                         [(start, composition, full)]
@@ -589,7 +592,7 @@ def makeTaintGen(C_Gen, ir_arch):
             new_out.append(out[0])
             new_out.append("// Taint analysis")
             new_out += self.gen_clean_callback_info()
-            #new_out += self.c_taint
+            new_out += self.c_taint
             new_out += out[1:exception_index]
 
             # Taint callbacks
@@ -686,11 +689,15 @@ def test_cond_op_compose_slice_not_addr(expr, read):
     elif expr.is_mem():
         read["elements"].add(expr)
         return False
+    #else:
+    #    only ExprInt left
     return True
 
 def empty_cache(jitter):
     """ Empty the cache directory in order to create new code """
 
+    # TODO: use other cache for taint jitter instead of deleting the normal
+    # one...
     import os
     import shutil
 
