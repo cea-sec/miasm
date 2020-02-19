@@ -89,6 +89,37 @@ def sys_generic_brk(jitter, linux_env):
     jitter.syscall_ret_systemv(linux_env.brk(addr, jitter.vm))
 
 
+def sys_x86_32_newuname(jitter, linux_env):
+    # struct utsname {
+    #     char sysname[];    /* Operating system name (e.g., "Linux") */
+    #     char nodename[];   /* Name within "some implementation-defined
+    #                            network" */
+    #     char release[];    /* Operating system release (e.g., "2.6.28") */
+    #     char version[];    /* Operating system version */
+    #     char machine[];    /* Hardware identifier */
+    # }
+
+    # Parse arguments
+    nameptr, = jitter.syscall_args_systemv(1)
+    log.debug("sys_newuname(%x)", nameptr)
+
+    # Stub
+    info = [
+        linux_env.sys_sysname,
+        linux_env.sys_nodename,
+        linux_env.sys_release,
+        linux_env.sys_version,
+        linux_env.sys_machine
+    ]
+    # TODO: Elements start at 0x41 multiples on my tests...
+    output = b""
+    for elem in info:
+        output += elem
+        output += b"\x00" * (0x41 - len(elem))
+    jitter.vm.set_mem(nameptr, output)
+    jitter.syscall_ret_systemv(0)
+
+
 def sys_x86_64_newuname(jitter, linux_env):
     # struct utsname {
     #     char sysname[];    /* Operating system name (e.g., "Linux") */
@@ -865,6 +896,11 @@ def sys_arml_gettimeofday(jitter, linux_env):
     if tz:
         jitter.vm.set_mem(tz, struct.pack("II", 0, 0))
     jitter.cpu.R0 = 0
+
+
+syscall_callbacks_x86_32 = {
+    0x7A: sys_x86_32_newuname,
+}
 
 
 syscall_callbacks_x86_64 = {

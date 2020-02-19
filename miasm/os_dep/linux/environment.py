@@ -666,6 +666,19 @@ class LinuxEnvironment(object):
         return addr
 
 
+class LinuxEnvironment_x86_32(LinuxEnvironment):
+    platform_arch = b"x86_32"
+    sys_machine = b"x86_32"
+
+    # TODO FIXME
+    ## O_ACCMODE = 0x3
+    ## O_CLOEXEC = 0x80000
+    ## O_DIRECTORY = 0x10000
+    ## O_LARGEFILE = 0x8000
+    ## O_NONBLOCK = 0x800
+    ## O_RDONLY = 0
+
+
 class LinuxEnvironment_x86_64(LinuxEnvironment):
     platform_arch = b"x86_64"
     sys_machine = b"x86_64"
