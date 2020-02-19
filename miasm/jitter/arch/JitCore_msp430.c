@@ -33,12 +33,12 @@ reg_dict gpreg_dict[] = { {.name = "PC", .offset = offsetof(struct vm_cpu, PC)},
 			  {.name = "of", .offset = offsetof(struct vm_cpu, of)},
 			  {.name = "cf", .offset = offsetof(struct vm_cpu, cf)},
 
-			  {.name = "cpuoff", .offset = offsetof(struct vm_cpu, zf)},
-			  {.name = "gie", .offset = offsetof(struct vm_cpu, zf)},
-			  {.name = "osc", .offset = offsetof(struct vm_cpu, zf)},
-			  {.name = "scg0", .offset = offsetof(struct vm_cpu, zf)},
-			  {.name = "scg1", .offset = offsetof(struct vm_cpu, zf)},
-			  {.name = "res", .offset = offsetof(struct vm_cpu, zf)},
+			  {.name = "cpuoff", .offset = offsetof(struct vm_cpu, cpuoff)},
+			  {.name = "gie", .offset = offsetof(struct vm_cpu, gie)},
+			  {.name = "osc", .offset = offsetof(struct vm_cpu, osc)},
+			  {.name = "scg0", .offset = offsetof(struct vm_cpu, scg0)},
+			  {.name = "scg1", .offset = offsetof(struct vm_cpu, scg1)},
+			  {.name = "res", .offset = offsetof(struct vm_cpu, res)},
 
 };
 
