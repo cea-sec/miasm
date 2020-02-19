@@ -51,6 +51,7 @@ class ExpressionSimplifier(object):
             simplifications_common.simp_ext_eq_ext,
 
             simplifications_common.simp_cmp_int,
+            simplifications_common.simp_cmp_bijective_op,
             simplifications_common.simp_sign_inf_zeroext,
             simplifications_common.simp_cmp_int_int,
             simplifications_common.simp_ext_cst,

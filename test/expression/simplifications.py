@@ -522,6 +522,38 @@ to_test = [
     ),
 
 
+    (
+        ExprOp(TOK_EQUAL, a ^ b, a ^ c),
+        ExprOp(TOK_EQUAL, b , c)
+    ),
+
+    (
+        ExprOp(TOK_EQUAL, a + b, a + c),
+        ExprOp(TOK_EQUAL, b , c)
+    ),
+
+    (
+        ExprOp(TOK_EQUAL, a + b, a),
+        ExprOp(TOK_EQUAL, b , i0)
+    ),
+
+    (
+        ExprOp(TOK_EQUAL, a, a + b),
+        ExprOp(TOK_EQUAL, b , i0)
+    ),
+
+
+    (
+        ExprOp(TOK_EQUAL, ExprOp("+", a, b, c), a),
+        ExprOp(TOK_EQUAL, b+c , i0)
+    ),
+
+    (
+        ExprOp(TOK_EQUAL, a, ExprOp("+", a, b, c)),
+        ExprOp(TOK_EQUAL, b+c , i0)
+    ),
+
+
     (ExprOp(TOK_INF_SIGNED, i1, i2), ExprInt(1, 1)),
     (ExprOp(TOK_INF_UNSIGNED, i1, i2), ExprInt(1, 1)),
     (ExprOp(TOK_INF_EQUAL_SIGNED, i1, i2), ExprInt(1, 1)),
