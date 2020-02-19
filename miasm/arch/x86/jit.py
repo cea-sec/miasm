@@ -182,6 +182,17 @@ class jitter_x86_32(Jitter):
             return getattr(self.cpu, args_regs[index])
         return self.get_stack_arg(index - len(args_regs))
 
+    def syscall_args_systemv(self, n_args):
+        # Documentation: http://man7.org/linux/man-pages/man2/syscall.2.html
+        # args: 
+        #   i386          ebx   ecx   edx   esi   edi   ebp   -
+        args = [self.cpu.EBX, self.cpu.ECX, self.cpu.EDX, self.cpu.ESI,
+                self.cpu.EDI, self.cpu.EBP][:n_args]
+        return args
+
+    def syscall_ret_systemv(self, value):
+        # Documentation: http://man7.org/linux/man-pages/man2/syscall.2.html
+        self.cpu.EAX = value
 
 
 class jitter_x86_64(Jitter):
