@@ -1,3 +1,6 @@
+import os
+import tempfile
+
 import miasm.jitter.csts as csts
 from miasm.expression.expression import ExprMem, ExprId
 from miasm.core.interval import interval
@@ -693,23 +696,6 @@ def test_cond_op_compose_slice_not_addr(expr, read):
     #    only ExprInt left
     return True
 
-def empty_cache(jitter):
-    """ Empty the cache directory in order to create new code """
-
-    # TODO: use other cache for taint jitter instead of deleting the normal
-    # one...
-    import os
-    import shutil
-
-    folder = jitter.jit.tempdir
-    for the_file in os.listdir(folder):
-        file_path = os.path.join(folder, the_file)
-        try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
-        except Exception as e:
-            print(e)
-
 def init_registers_index(jitter):
     """ Associate register names with an index (needed during JiT) """
 
@@ -733,12 +719,13 @@ def enable_taint_analysis(jitter, nb_colors=1):
     # Allocate taint holder
     jitter.cpu.init_taint_analysis(nb_colors, nb_regs)
     jitter.nb_colors = nb_colors
-    empty_cache(jitter)
+    # Switch to taint cache
+    jitter.jit.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache_taint")
 
 def disable_taint_analysis(jitter):
     # TODO: Add a test for this function
     jitter.jit.codegen = jitter.C_Gen(jitter.ir_arch)
-    empty_cache(jitter)
+    jitter.jit.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache")
 
 # API examples
 

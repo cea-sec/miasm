@@ -22,8 +22,8 @@ def gen_core(arch, attrib):
     txt += '#include "%s/bn.h"\n' % lib_dir
     txt += '#include "%s/vm_mngr_py.h"\n' % lib_dir
     txt += '#include "%s/JitCore.h"\n' % lib_dir
-    txt += '#include "%s/analysis/taint_analysis.h"\n' % os.path.dirname(lib_dir)
-    txt += '#include "%s/interval_tree/interval_tree.h"\n' % lib_dir
+    txt += '#include "%s/analysis/taint_analysis.h"\n' % os.path.dirname(lib_dir) # TODO: only when taint
+    txt += '#include "%s/interval_tree/interval_tree.h"\n' % lib_dir # TODO: only when taint
     txt += '#include "%s/arch/JitCore_%s.h"\n' % (lib_dir, arch.name)
 
     txt += r'''
@@ -53,13 +53,17 @@ class resolver(object):
 class JitCore_Cc_Base(JitCore):
     "JiT management, abstract class using a C compiler as backend"
 
-    def __init__(self, ir_arch, bin_stream):
+    def __init__(self, ir_arch, bin_stream, taint=False):
         self.jitted_block_delete_cb = self.deleteCB
         super(JitCore_Cc_Base, self).__init__(ir_arch, bin_stream)
         self.resolver = resolver()
         self.ir_arch = ir_arch
         self.states = {}
-        self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache")
+        self.taint = taint
+        if self.taint:
+            self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache_taint")
+        else:
+            self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache")
         try:
             os.mkdir(self.tempdir, 0o755)
         except OSError:
@@ -74,8 +78,7 @@ class JitCore_Cc_Base(JitCore):
     def deleteCB(self, offset):
         raise NotImplementedError()
 
-    def load(self, taint):
-        self.taint = taint
+    def load(self):
         lib_dir = os.path.dirname(os.path.realpath(__file__))
         ext = sysconfig.get_config_var('EXT_SUFFIX')
         if ext is None:
@@ -93,7 +96,7 @@ class JitCore_Cc_Base(JitCore):
                 lib_dir,
                 "arch",
                 "JitCore_%s%s" % (self.ir_arch.arch.name,
-                                  "_taint" + ext if taint else ext)
+                                  "_taint" + ext if self.taint else ext)
             )
         ]
 

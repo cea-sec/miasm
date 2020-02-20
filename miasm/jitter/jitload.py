@@ -256,7 +256,10 @@ class Jitter(object):
         except ImportError:
             raise RuntimeError('Unsupported jitter: %s' % jit_type)
 
-        self.jit = JitCore(self.ir_arch, self.bs)
+        if taint and jit_type == "gcc":
+            # Only GCC supports taint analysis for now
+            self.jit = JitCore(self.ir_arch, self.bs, taint)
+
         if isinstance(self.jit, JitCore_Cc_Base):
             self.jit.init_codegen(self.C_Gen(self.ir_arch))
         elif jit_type == "python":
@@ -267,7 +270,7 @@ class Jitter(object):
         self.vm.init_code_bloc_pool()
         self.vm.init_memory_breakpoint()
 
-        self.jit.load(taint)
+        self.jit.load()
         self.cpu.vmmngr = self.vm
         self.cpu.jitter = self.jit
         self.stack_size = 0x10000

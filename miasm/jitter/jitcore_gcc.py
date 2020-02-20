@@ -17,8 +17,8 @@ is_win = platform.system() == "Windows"
 class JitCore_Gcc(JitCore_Cc_Base):
     "JiT management, using a C compiler as backend"
 
-    def __init__(self, ir_arch, bin_stream):
-        super(JitCore_Gcc, self).__init__(ir_arch, bin_stream)
+    def __init__(self, ir_arch, bin_stream, taint=False):
+        super(JitCore_Gcc, self).__init__(ir_arch, bin_stream, taint)
         self.exec_wrapper = Jitgcc.gcc_exec_block
 
     def deleteCB(self, offset):
