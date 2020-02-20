@@ -259,6 +259,8 @@ class Jitter(object):
         if taint and jit_type == "gcc":
             # Only GCC supports taint analysis for now
             self.jit = JitCore(self.ir_arch, self.bs, taint)
+        else:
+            self.jit = JitCore(self.ir_arch, self.bs)
 
         if isinstance(self.jit, JitCore_Cc_Base):
             self.jit.init_codegen(self.C_Gen(self.ir_arch))

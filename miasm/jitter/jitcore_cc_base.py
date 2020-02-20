@@ -12,7 +12,7 @@ from miasm.core.utils import keydefaultdict
 
 is_win = platform.system() == "Windows"
 
-def gen_core(arch, attrib):
+def gen_core(arch, attrib, taint):
     lib_dir = os.path.dirname(os.path.realpath(__file__))
 
     txt = ""
@@ -22,8 +22,9 @@ def gen_core(arch, attrib):
     txt += '#include "%s/bn.h"\n' % lib_dir
     txt += '#include "%s/vm_mngr_py.h"\n' % lib_dir
     txt += '#include "%s/JitCore.h"\n' % lib_dir
-    txt += '#include "%s/analysis/taint_analysis.h"\n' % os.path.dirname(lib_dir) # TODO: only when taint
-    txt += '#include "%s/interval_tree/interval_tree.h"\n' % lib_dir # TODO: only when taint
+    if taint:
+        txt += '#include "%s/analysis/taint_analysis.h"\n' % os.path.dirname(lib_dir)
+        txt += '#include "%s/interval_tree/interval_tree.h"\n' % lib_dir
     txt += '#include "%s/arch/JitCore_%s.h"\n' % (lib_dir, arch.name)
 
     txt += r'''
@@ -128,8 +129,8 @@ class JitCore_Cc_Base(JitCore):
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out
 
-        return self.gen_C_source(self.ir_arch, c_code)
+        return self.gen_C_source(self.ir_arch, c_code, self.taint)
 
     @staticmethod
-    def gen_C_source(ir_arch, func_code):
+    def gen_C_source(ir_arch, func_code, taint):
         raise NotImplementedError()
