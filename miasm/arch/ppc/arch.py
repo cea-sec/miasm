@@ -790,8 +790,8 @@ ppcop("SRAWI", [bs('011111'), rs, ra, sh, bs('1100111000'), rc_mod],
 
 ppcop("EIEIO", [bs('011111'), bs('000000000000000'), bs('11010101100')])
 
-ppcop("load1fu", [bs_name(l=6, name=load1_name_float), frd, ra_noarg, dregimm])
-ppcop("load1f", [bs_name(l=6, name=load1_name_float_u), frd, ra_noarg, dregimm])
+ppcop("load1f", [bs_name(l=6, name=load1_name_float), frd, ra_noarg, dregimm])
+ppcop("load1fu", [bs_name(l=6, name=load1_name_float_u), frd, ra_noarg, dregimm])
 ppcop("store1f", [bs_name(l=6, name=store1_name_float), frd, ra_noarg, dregimm])
 ppcop("store1fu", [bs_name(l=6, name=store1_name_float_u), frd, ra_noarg, dregimm])
 ppcop("MTFSF", [bs('111111'), bs('0'), fm, bs('0'), frb, bs('10110001110')])
