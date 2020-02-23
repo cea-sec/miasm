@@ -19,6 +19,11 @@ _MIASM_EXPORT extern const uint8_t parity_table[256];
 #endif
 #define parity(a) parity_table[(a) & 0xFF]
 
+
+_MIASM_EXPORT uint16_t bcdadd_16(uint16_t a, uint16_t b);
+_MIASM_EXPORT uint16_t bcdadd_cf_16(uint16_t a, uint16_t b);
+
+
 _MIASM_EXPORT unsigned int my_imul08(unsigned int a, unsigned int b);
 _MIASM_EXPORT unsigned int mul_lo_op(unsigned int size, unsigned int a, unsigned int b);
 _MIASM_EXPORT unsigned int mul_hi_op(unsigned int size, unsigned int a, unsigned int b);
