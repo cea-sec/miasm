@@ -4,7 +4,7 @@ from miasm.core import parse_asm
 from miasm.core.asmblock import asm_resolve_final
 from miasm.analysis.machine import Machine
 import miasm.jitter.csts as csts
-import miasm.analysis.taint_analysis as taint
+import miasm.analysis.taint as taint
 from miasm.core.interval import interval
 
 ## CSTS

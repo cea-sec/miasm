@@ -25,7 +25,7 @@ def test_callbacks():
         jitter.cpu.disable_taint_reg_cb(red)
         jitter.cpu.disable_taint_reg_cb(blue)
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_REG))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REG))
         return True
 
     def on_taint_register_handler_2(jitter):
@@ -48,7 +48,7 @@ def test_callbacks():
         jitter.cpu.disable_taint_reg_cb(red)
         jitter.cpu.disable_taint_reg_cb(blue)
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_REG))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REG))
         return True
 
     def on_untaint_register_handler(jitter):
@@ -68,7 +68,7 @@ def test_callbacks():
         jitter.cpu.disable_untaint_reg_cb(red)
         jitter.cpu.disable_untaint_reg_cb(blue)
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_REG))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_UNTAINT_REG))
         return True
 
     def on_untaint_register_handler_2(jitter):
@@ -91,7 +91,7 @@ def test_callbacks():
         jitter.cpu.disable_untaint_reg_cb(red)
         jitter.cpu.disable_untaint_reg_cb(blue)
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_REG))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_UNTAINT_REG))
         return True
 
     def on_taint_memory_handler(jitter):
@@ -110,7 +110,7 @@ def test_callbacks():
         jitter.cpu.disable_taint_mem_cb(red)
         jitter.cpu.disable_taint_mem_cb(blue)
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_MEM))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_MEM))
         return True
 
     def on_taint_memory_handler_2(jitter):
@@ -129,7 +129,7 @@ def test_callbacks():
         jitter.cpu.disable_taint_mem_cb(red)
         jitter.cpu.disable_taint_mem_cb(blue)
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_MEM))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_MEM))
         return True
 
     def on_taint_memory_handler_3(jitter):
@@ -152,7 +152,7 @@ def test_callbacks():
         jitter.cpu.disable_taint_mem_cb(red)
         jitter.cpu.disable_taint_mem_cb(blue)
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_MEM))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_MEM))
         return True
 
     def on_untaint_memory_handler(jitter):
@@ -171,7 +171,7 @@ def test_callbacks():
         jitter.cpu.disable_untaint_mem_cb(red)
         jitter.cpu.disable_untaint_mem_cb(blue)
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_MEM))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_UNTAINT_MEM))
         return True
 
     def on_untaint_memory_handler_2(jitter):
@@ -190,14 +190,14 @@ def test_callbacks():
         jitter.cpu.disable_untaint_mem_cb(red)
         jitter.cpu.disable_untaint_mem_cb(blue)
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_MEM))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_UNTAINT_MEM))
         return True
 
     def second_handlers(jitter):
         jitter.exceptions_handler.remove_callback(on_taint_memory_handler)
         jitter.exceptions_handler.remove_callback(on_untaint_memory_handler)
-        jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_MEM, on_taint_memory_handler_2)
-        jitter.add_exception_handler(csts.EXCEPT_TAINT_REMOVE_MEM, on_untaint_memory_handler_2)
+        jitter.add_exception_handler(csts.EXCEPT_TAINT_MEM, on_taint_memory_handler_2)
+        jitter.add_exception_handler(csts.EXCEPT_UNTAINT_MEM, on_untaint_memory_handler_2)
         jitter.cpu.enable_taint_mem_cb(red)
         jitter.cpu.enable_taint_mem_cb(blue)
         jitter.cpu.enable_untaint_mem_cb(red)
@@ -207,8 +207,8 @@ def test_callbacks():
     def third_handlers(jitter):
         jitter.exceptions_handler.remove_callback(on_taint_register_handler)
         jitter.exceptions_handler.remove_callback(on_untaint_register_handler)
-        jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_REG, on_taint_register_handler_2)
-        jitter.add_exception_handler(csts.EXCEPT_TAINT_REMOVE_REG, on_untaint_register_handler_2)
+        jitter.add_exception_handler(csts.EXCEPT_TAINT_REG, on_taint_register_handler_2)
+        jitter.add_exception_handler(csts.EXCEPT_UNTAINT_REG, on_untaint_register_handler_2)
         jitter.cpu.taint_register(red, jitter.jit.codegen.regs_index["of"], 0, 0)
 
         jitter.cpu.enable_taint_reg_cb(red)
@@ -219,7 +219,7 @@ def test_callbacks():
 
     def fourth_handlers(jitter):
         jitter.exceptions_handler.remove_callback(on_taint_memory_handler_2)
-        jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_MEM, on_taint_memory_handler_3)
+        jitter.add_exception_handler(csts.EXCEPT_TAINT_MEM, on_taint_memory_handler_3)
         jitter.cpu.enable_taint_mem_cb(red)
         jitter.cpu.enable_taint_mem_cb(blue)
         jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RBX"])
@@ -229,7 +229,7 @@ def test_callbacks():
         print("\t[+] LODSD")
 
         jitter.exceptions_handler.remove_callback(on_taint_register_handler_2)
-        jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_REG, on_taint_register_handler_3)
+        jitter.add_exception_handler(csts.EXCEPT_TAINT_REG, on_taint_register_handler_3)
         jitter.cpu.enable_taint_reg_cb(blue)
         jitter.cpu.taint_memory(0x80000000,1,blue) # taint [ESI]
         return True
@@ -242,7 +242,7 @@ def test_callbacks():
         assert len(last_regs) == 1
         check_reg(last_regs[0], jitter, "RAX", interval([(0, 0)]))
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_REG))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REG))
         return True
 
     def last_handlers(jitter):
@@ -250,8 +250,8 @@ def test_callbacks():
 
         jitter.exceptions_handler.remove_callback(on_taint_register_handler_3)
         jitter.exceptions_handler.remove_callback(on_untaint_register_handler_2)
-        jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_REG, on_taint_register_handler_4)
-        jitter.add_exception_handler(csts.EXCEPT_TAINT_REMOVE_REG, on_untaint_register_handler_4)
+        jitter.add_exception_handler(csts.EXCEPT_TAINT_REG, on_taint_register_handler_4)
+        jitter.add_exception_handler(csts.EXCEPT_UNTAINT_REG, on_untaint_register_handler_4)
 
         jitter.cpu.enable_taint_reg_cb(red)
         jitter.cpu.enable_untaint_reg_cb(red)
@@ -271,7 +271,7 @@ def test_callbacks():
         assert len(last_regs) == 1
         check_reg(last_regs[0], jitter, "RBX", interval([(0, 1)]))
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_REG))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REG))
         return True
 
     def on_untaint_register_handler_4(jitter):
@@ -282,7 +282,7 @@ def test_callbacks():
         assert len(last_regs) == 1
         check_reg(last_regs[0], jitter, "RBX", interval([(2, 3)]))
 
-        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_REG))
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_UNTAINT_REG))
         return True
 
     global check_callback_occured
@@ -317,16 +317,16 @@ def test_callbacks():
     jitter.add_breakpoint(code_addr+0x1D, LODSD_handlers)
     jitter.add_breakpoint(code_addr+0x23, last_handlers)
 
-    jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_REG, on_taint_register_handler)
+    jitter.add_exception_handler(csts.EXCEPT_TAINT_REG, on_taint_register_handler)
     jitter.cpu.enable_taint_reg_cb(red)
     jitter.cpu.enable_taint_reg_cb(blue)
-    jitter.add_exception_handler(csts.EXCEPT_TAINT_REMOVE_REG, on_untaint_register_handler)
+    jitter.add_exception_handler(csts.EXCEPT_UNTAINT_REG, on_untaint_register_handler)
     jitter.cpu.enable_untaint_reg_cb(red)
     jitter.cpu.enable_untaint_reg_cb(blue)
-    jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_MEM, on_taint_memory_handler)
+    jitter.add_exception_handler(csts.EXCEPT_TAINT_MEM, on_taint_memory_handler)
     jitter.cpu.enable_taint_mem_cb(red)
     jitter.cpu.enable_taint_mem_cb(blue)
-    jitter.add_exception_handler(csts.EXCEPT_TAINT_REMOVE_MEM, on_untaint_memory_handler)
+    jitter.add_exception_handler(csts.EXCEPT_UNTAINT_MEM, on_untaint_memory_handler)
     jitter.cpu.enable_untaint_mem_cb(red)
     jitter.cpu.enable_untaint_mem_cb(blue)
 

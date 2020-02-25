@@ -62,14 +62,14 @@ def start_analysis(jitter, libs, libbase, fname):
     return True
 
 
-def on_memory_taint(jitter):
+def on_taint_memory(jitter):
     taint.display_all_taint(jitter)
     last_mem = jitter.cpu.last_tainted_memory(0)
     addr, size = last_mem[0]
     print("\t[>] FOUND : %x->%s" % (addr, fname_global))
     lib_add_dst_ad(libs_global, libbase_global, fname_global, addr) # Add the import (use during PE rebuild)
     jitter.cpu.untaint_all()
-    jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_MEM))
+    jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_MEM))
     jitter.jit.log_mn = False
     return True
 
@@ -134,13 +134,13 @@ def update_binary(jitter):
 sb.jitter.add_breakpoint(end_offset, update_binary)
 
 #####################TAINT##########################
-import miasm.analysis.taint_analysis as taint
+import miasm.analysis.taint as taint
 
 taint.enable_taint_analysis(sb.jitter)
 color_index = 0
 
 import miasm.jitter.csts as csts
-sb.jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_MEM, on_memory_taint)
+sb.jitter.add_exception_handler(csts.EXCEPT_TAINT_MEM, on_taint_memory)
 sb.jitter.cpu.enable_taint_mem_cb(color_index)
 ####################################################
 

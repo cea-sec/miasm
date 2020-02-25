@@ -14,7 +14,7 @@
 #include "../jitter/JitCore.h"
 #include "../jitter/interval_tree/interval_tree.h"
 
-#include "taint_analysis.h"
+#include "taint.h"
 
 
 /* Taint setters/getters */

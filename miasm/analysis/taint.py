@@ -147,7 +147,7 @@ def makeTaintGen(C_Gen, ir_arch):
 
             if ( taint_analysis->colors[current_color].callback_info->exception_flag & DO_TAINT_REG_CB )
             {
-              jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_ADD_REG;
+              jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REG;
               taint_update_register_callback_info(taint_analysis,
                                                   current_color,
                                                   current_reg_index,
@@ -182,7 +182,7 @@ def makeTaintGen(C_Gen, ir_arch):
                 if ( taint_analysis->colors[current_color].callback_info->exception_flag
                      & DO_TAINT_REG_CB )
                 {
-                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_ADD_REG;
+                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REG;
                     taint_update_register_callback_info(taint_analysis,
                                                       current_color,
                                                       current_reg_index,
@@ -211,7 +211,7 @@ def makeTaintGen(C_Gen, ir_arch):
                 {
                     node = rb_entry(rb_node, struct interval_tree_node, rb);
                     taint_interval = node->interval;
-                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REMOVE_REG;
+                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_UNTAINT_REG;
                     taint_update_register_callback_info(taint_analysis, current_color, current_reg_index,
                                                       taint_interval,
                                                       UNTAINT_EVENT);
@@ -241,7 +241,7 @@ def makeTaintGen(C_Gen, ir_arch):
             if ( taint_analysis->colors[current_color].callback_info->exception_flag
                  & DO_TAINT_MEM_CB )
             {
-                jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_ADD_MEM;
+                jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_MEM;
                 taint_update_memory_callback_info(taint_analysis,
                                                   current_color,
                                                   taint_interval,
@@ -275,7 +275,7 @@ def makeTaintGen(C_Gen, ir_arch):
                 if ( taint_analysis->colors[current_color].callback_info->exception_flag
                      & DO_TAINT_MEM_CB )
                 {
-                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_ADD_MEM;
+                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_MEM;
                     taint_update_memory_callback_info(taint_analysis,
                                                       current_color,
                                                       taint_interval,
@@ -305,7 +305,7 @@ def makeTaintGen(C_Gen, ir_arch):
                 {
                     node = rb_entry(rb_node, struct interval_tree_node, rb);
                     taint_interval = node->interval;
-                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_TAINT_REMOVE_MEM;
+                    jitcpu->pyvm->vm_mngr.exception_flags |= EXCEPT_UNTAINT_MEM;
                     taint_update_memory_callback_info(taint_analysis, current_color,
                                                       taint_interval,
                                                       UNTAINT_EVENT);
@@ -737,7 +737,7 @@ def on_taint_register(jitter):
 
             for reg_id, intervals in last_regs:
                 print("\t+ %s %s" % (jitter.jit.codegen.regs_name[reg_id], interval(intervals)))
-            jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_REG))
+            jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REG))
     return True
 
 def on_untaint_register(jitter):
@@ -748,7 +748,7 @@ def on_untaint_register(jitter):
 
             for reg_id, intervals in last_regs:
                 print("\t- %s %s" % (jitter.jit.codegen.regs_name[reg_id], interval(intervals)))
-            jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_REG))
+            jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_UNTAINT_REG))
     is_taint_vanished(jitter)
     return True
 
@@ -758,7 +758,7 @@ def on_taint_memory(jitter):
         if last_mem:
             print("[Color:%s] Taint memory" % (color))
             print(interval(last_mem))
-            jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_MEM))
+            jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_MEM))
     return True
 
 def on_untaint_memory(jitter):
@@ -767,7 +767,7 @@ def on_untaint_memory(jitter):
         if last_mem:
             print("[Color%s] Untaint memory" % (color))
             print(interval(last_mem))
-            jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_MEM))
+            jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_UNTAINT_MEM))
     is_taint_vanished(jitter)
     return True
 

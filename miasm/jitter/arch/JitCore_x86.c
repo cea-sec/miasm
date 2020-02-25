@@ -10,7 +10,7 @@
 #include "../JitCore.h"
 #include "../op_semantics.h"
 #ifdef TAINT
-#include "../../analysis/taint_analysis.h"
+#include "../../analysis/taint.h"
 #endif
 #include "JitCore_x86.h"
 

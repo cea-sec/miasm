@@ -9,7 +9,7 @@
 #include "../vm_mngr_py.h"
 #include "../JitCore.h"
 #ifdef TAINT
-#include "../../analysis/taint_analysis.h"
+#include "../../analysis/taint.h"
 #endif
 #include "JitCore_ppc32.h"
 

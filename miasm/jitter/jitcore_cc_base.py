@@ -23,7 +23,7 @@ def gen_core(arch, attrib, taint):
     txt += '#include "%s/vm_mngr_py.h"\n' % lib_dir
     txt += '#include "%s/JitCore.h"\n' % lib_dir
     if taint:
-        txt += '#include "%s/analysis/taint_analysis.h"\n' % os.path.dirname(lib_dir)
+        txt += '#include "%s/analysis/taint.h"\n' % os.path.dirname(lib_dir)
         txt += '#include "%s/interval_tree/interval_tree.h"\n' % lib_dir
     txt += '#include "%s/arch/JitCore_%s.h"\n' % (lib_dir, arch.name)
 
