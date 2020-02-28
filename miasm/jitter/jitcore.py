@@ -104,7 +104,7 @@ class JitCore(object):
             cur_block.ad_max = cur_block.lines[-1].offset + cur_block.lines[-1].l
         else:
             # 1 byte block for unknown mnemonic
-            offset = ir_arch.loc_db.get_location_offset(cur_block.loc_key)
+            offset = self.ir_arch.loc_db.get_location_offset(cur_block.loc_key)
             cur_block.ad_min = offset
             cur_block.ad_max = offset+1
 
