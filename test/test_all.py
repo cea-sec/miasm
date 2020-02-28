@@ -548,6 +548,13 @@ test_x86_32_if_reg = ExampleShellcode(['x86_32', 'x86_32_if_reg.S', "x86_32_if_r
 test_x86_32_seh = ExampleShellcode(["x86_32", "x86_32_seh.S", "x86_32_seh.bin",
                                     "--PE"])
 test_x86_32_dead = ExampleShellcode(['x86_32', 'x86_32_dead.S', "x86_32_dead.bin"])
+test_x86_32_automod_2 = ExampleShellcode(
+    [
+        'x86_32', 'x86_32_automod_2.S', "x86_32_automod_2.bin", "--PE"
+    ]
+)
+
+
 test_x86_32_dis = ExampleShellcode(
     [
         "x86_32", "test_x86_32_dis.S", "test_x86_32_dis.bin", "--PE"
@@ -573,6 +580,7 @@ testset += test_x86_32_seh
 testset += test_x86_32_dead
 testset += test_human
 testset += test_x86_32_dis
+testset += test_x86_32_automod_2
 
 class ExampleDisassembler(Example):
     """Disassembler examples specificities:
@@ -801,6 +809,8 @@ for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
                     (["arm_sc.py", "0", Example.get_sample("demo_arm_l.bin"),
                       "l", "-a", "0"], [test_arml]),
                     (["sandbox_call.py", Example.get_sample("md5_arm")], []),
+                    (["sandbox_pe_x86_32.py", Example.get_sample("x86_32_automod_2.bin")],
+                          [test_x86_32_automod_2])
                     ] + [(["sandbox_pe_x86_32.py",
                            Example.get_sample("x86_32_" + name + ".bin")],
                           [test_box[name]])
