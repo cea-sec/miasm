@@ -104,7 +104,7 @@ class JitCore(object):
             cur_block.ad_max = cur_block.lines[-1].offset + cur_block.lines[-1].l
         else:
             # 1 byte block for unknown mnemonic
-            offset = ir_arch.loc_db.get_location_offset(cur_block.loc_key)
+            offset = self.ir_arch.loc_db.get_location_offset(cur_block.loc_key)
             cur_block.ad_min = offset
             cur_block.ad_max = offset+1
 
@@ -235,12 +235,6 @@ class JitCore(object):
                 # Modified blocks
                 modified_blocks.add(block)
 
-        # Generate interval to delete
-        del_interval = self.blocks_to_memrange(modified_blocks)
-
-        # Remove interval from monitored interval list
-        self.blocks_mem_interval -= del_interval
-
         # Remove modified blocks
         for block in modified_blocks:
             try:
@@ -258,6 +252,9 @@ class JitCore(object):
 
             # Remove label -> block link
             del(self.loc_key_to_block[block.loc_key])
+
+        # Re generate blocks intervals
+        self.blocks_mem_interval = self.blocks_to_memrange(self.loc_key_to_block.values())
 
         return modified_blocks
 
