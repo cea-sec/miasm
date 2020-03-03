@@ -1,5 +1,5 @@
-#ifndef INTERVAL_TREE_H 
-#define INTERVAL_TREE_H 
+#ifndef INTERVAL_TREE_H
+#define INTERVAL_TREE_H
 
 #include <stdbool.h>
 #include "rbtree.h"
@@ -9,9 +9,9 @@
 #define LAST(node)  ((node)->interval.last)
 
 struct interval_tree_node {
-	struct rb_node rb;
+    struct rb_node rb;
     struct interval interval;
-	unsigned long __subtree_last;
+    unsigned long __subtree_last;
 };
 
 void

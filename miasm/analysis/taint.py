@@ -482,7 +482,7 @@ def makeTaintGen(C_Gen, ir_arch):
           return c_code
 
       def gen_taint_calculation_from_read_elements(self, read_elements, prefetchers):
-          c_code = [] 
+          c_code = []
 
           for composant in read_elements:
               c_code += self.gen_taint_calculation_from_full_elements(composant["full"], prefetchers)
@@ -672,7 +672,7 @@ def test_cond_op_compose_slice_not_addr(expr, read):
         old_start = read["start"]
         new_last = old_start
         for element in expr.args:
-            new_start = new_last 
+            new_start = new_last
             new_last = new_start + (element.size/8 - 1)
             new_composition = dict()
             new_composition["start"]  = new_start
@@ -683,7 +683,7 @@ def test_cond_op_compose_slice_not_addr(expr, read):
             element.visit(lambda x: visit_get_read_elements(x, new_composition["elements"]),
                           lambda x: test_cond_op_compose_slice_not_addr(x, new_composition))
             new_last += 1
-            
+
         return False
     elif expr.is_slice():
         if expr.arg.is_id():

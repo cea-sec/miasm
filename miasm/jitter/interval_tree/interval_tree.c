@@ -7,15 +7,15 @@
 #include "interval_tree_generic.h"
 
 INTERVAL_TREE_DEFINE(struct interval_tree_node, rb,
-		     unsigned long, __subtree_last,
-		     START, LAST,, interval_tree)
+             unsigned long, __subtree_last,
+             START, LAST,, interval_tree)
 
 
 void
 interval_tree_print(struct rb_root *root)
 {
-	struct interval_tree_node *node;
-	struct rb_node *rb_node;
+    struct interval_tree_node *node;
+    struct rb_node *rb_node;
 
     printf("[");
 
@@ -33,8 +33,8 @@ interval_tree_print(struct rb_root *root)
 void
 interval_tree_free(struct rb_root *root)
 {
-	struct interval_tree_node *node;
-	struct rb_node *rb_node;
+    struct interval_tree_node *node;
+    struct rb_node *rb_node;
 
     rb_node = rb_first(root);
 
@@ -81,14 +81,14 @@ interval_tree_insert_new_node(struct rb_root *root, struct interval interval)
 unsigned long
 interval_tree_search_interval(struct rb_root *root, struct interval interval)
 {
-	struct interval_tree_node *node;
-	unsigned long results = 0;
+    struct interval_tree_node *node;
+    unsigned long results = 0;
 
-	for (node = interval_tree_iter_first(root, interval.start, interval.last);
+    for (node = interval_tree_iter_first(root, interval.start, interval.last);
          node != NULL;
-	     node = interval_tree_iter_next(node, interval.start,interval. last))
+         node = interval_tree_iter_next(node, interval.start,interval. last))
         results++;
-	return results;
+    return results;
 }
 
 /*
@@ -102,7 +102,7 @@ interval_tree_remove_from(struct rb_root *root,
                           struct interval_tree_node *from)
 {
     struct interval last_interval;
-	struct interval_tree_node *prev_node, *cur_node;
+    struct interval_tree_node *prev_node, *cur_node;
 
     cur_node = from;
     while(cur_node != NULL)
@@ -110,7 +110,7 @@ interval_tree_remove_from(struct rb_root *root,
         last_interval = cur_node->interval;
 
         prev_node = cur_node;
-	    cur_node = interval_tree_iter_next(cur_node,
+        cur_node = interval_tree_iter_next(cur_node,
                                            interval.start,
                                            interval.last);
 
@@ -143,7 +143,7 @@ interval_tree_add_merged(struct rb_root *root,
 void
 interval_tree_sub(struct rb_root *root, struct interval interval)
 {
-	struct interval_tree_node *first_node;
+    struct interval_tree_node *first_node;
     struct interval first_interval, last_interval;
 
     first_node = interval_tree_iter_first(root, interval.start, interval.last);
@@ -168,7 +168,7 @@ interval_tree_add(struct rb_root *root, struct interval interval)
 {
     struct interval_result result_union;
     struct interval first_interval, last_interval;
-	struct interval_tree_node *first_node;
+    struct interval_tree_node *first_node;
 
     first_node = interval_tree_iter_first(root, interval.start, interval.last);
 
@@ -224,7 +224,7 @@ interval_tree_add(struct rb_root *root, struct interval interval)
 struct rb_root
 interval_tree_intersection(struct rb_root *root, struct interval interval)
 {
-	struct interval_tree_node *cur_node, *first_node, *last_node;
+    struct interval_tree_node *cur_node, *first_node, *last_node;
     struct interval first_interval, last_interval;
 
     struct rb_root intersection_tree = interval_tree_new();
@@ -242,7 +242,7 @@ interval_tree_intersection(struct rb_root *root, struct interval interval)
     {
         interval_tree_insert_new_node(&intersection_tree, cur_node->interval);
         last_node = cur_node;
-	    cur_node = interval_tree_iter_next(cur_node,
+        cur_node = interval_tree_iter_next(cur_node,
                                            interval.start,
                                            interval.last);
     }

@@ -301,13 +301,13 @@ def test_callbacks():
        PUSHAD                                       ; multiple colors
        MOV    ESI, 0x80000000                       ; LODSD preparation
        LODSD                                        ;
-       MOV    EBX, EAX                              ; should taint BX and untaint all the rest 
+       MOV    EBX, EAX                              ; should taint BX and untaint all the rest
        PUSH   0x1337BEEF                            ; clean exit value
        RET
     '''
 
     jitter = create_jitter()
-    
+
     jitter.vm.add_memory_page(code_addr, csts.PAGE_READ | csts.PAGE_WRITE, assemble_code(code_str))
 
     jitter.add_breakpoint(code_addr+0x5, taint_EAX) # Taint EAX
