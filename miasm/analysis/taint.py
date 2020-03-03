@@ -10,7 +10,7 @@ def makeTaintGen(C_Gen, ir_arch):
   class TaintGen(C_Gen):
 
       CODE_INIT_TAINT = r"""
-      struct taint_colors_t* taint_analysis = jitcpu->taint_analysis;
+      struct taint_t* taint_analysis = jitcpu->taint->taint;
       uint64_t current_color;
       uint64_t current_mem_addr, current_mem_size, current_reg_size, current_reg_index;
       struct rb_root taint_interval_tree_tmp, taint_interval_tree, taint_interval_tree_before;
@@ -717,7 +717,7 @@ def enable_taint_analysis(jitter, nb_colors=1):
     jitter.jit.codegen = makeTaintGen(jitter.C_Gen, jitter.ir_arch)
     nb_regs = init_registers_index(jitter)
     # Allocate taint holder
-    jitter.cpu.init_taint_analysis(nb_colors, nb_regs)
+    jitter.taint.init_taint_analysis(nb_colors, nb_regs)
     jitter.nb_colors = nb_colors
     # Switch to taint cache
     jitter.jit.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache_taint")
@@ -731,7 +731,7 @@ def disable_taint_analysis(jitter):
 
 def on_taint_register(jitter):
     for color in range(jitter.nb_colors):
-        last_regs = jitter.cpu.last_tainted_registers(color)
+        last_regs = jitter.taint.last_tainted_registers(color)
         if last_regs:
             print("[Color:%s] Taint registers" % (color))
 
@@ -742,7 +742,7 @@ def on_taint_register(jitter):
 
 def on_untaint_register(jitter):
     for color in range(jitter.nb_colors):
-        last_regs = jitter.cpu.last_untainted_registers(color)
+        last_regs = jitter.taint.last_untainted_registers(color)
         if last_regs:
             print("[Color:%s] Untaint registers" % (color))
 
@@ -754,7 +754,7 @@ def on_untaint_register(jitter):
 
 def on_taint_memory(jitter):
     for color in range(jitter.nb_colors):
-        last_mem = jitter.cpu.last_tainted_memory(color)
+        last_mem = jitter.taint.last_tainted_memory(color)
         if last_mem:
             print("[Color:%s] Taint memory" % (color))
             print(interval(last_mem))
@@ -763,7 +763,7 @@ def on_taint_memory(jitter):
 
 def on_untaint_memory(jitter):
     for color in range(jitter.nb_colors):
-        last_mem = jitter.cpu.last_untainted_memory(color)
+        last_mem = jitter.taint.last_untainted_memory(color)
         if last_mem:
             print("[Color%s] Untaint memory" % (color))
             print(interval(last_mem))
@@ -773,7 +773,7 @@ def on_untaint_memory(jitter):
 
 def display_all_taint(jitter):
     for color in range(jitter.nb_colors):
-        regs, mems = jitter.cpu.get_all_taint(color)
+        regs, mems = jitter.taint.get_all_taint(color)
         print("\n","_"*20)
         print("Color: %s" % (color))
         print("_"*20)
@@ -787,7 +787,7 @@ def display_all_taint(jitter):
 
 def is_taint_vanished(jitter):
     for color in range(jitter.nb_colors):
-        regs, mems = jitter.cpu.get_all_taint(color)
+        regs, mems = jitter.taint.get_all_taint(color)
         if regs or mems:
             return; # There is still some taint
     print("\n\n/!\\ All taint is gone ! /!\\\n\n")

@@ -16,26 +16,26 @@ def test_propagation_precision():
 
         print("\t[+] Test MOV WORD PTR [EBX], AX")
 
-        regs, mems = jitter.cpu.get_all_taint(red)
+        regs, mems = jitter.taint.get_all_taint(red)
         assert len(regs) == 1
         check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
         check_mem(interval(mems), interval([(data_addr, data_addr+1)]))
-        regs, mems = jitter.cpu.get_all_taint(blue)
+        regs, mems = jitter.taint.get_all_taint(blue)
         assert not regs
         assert not mems
-        jitter.cpu.untaint_all_memory()
+        jitter.taint.untaint_all_memory()
         return True
 
     def test_dst_reg_slice(jitter):
 
         print("\t[+] Test MOV BL, AH")
 
-        regs, mems = jitter.cpu.get_all_taint(red)
+        regs, mems = jitter.taint.get_all_taint(red)
         assert len(regs) == 2
         check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
         check_reg(regs[1], jitter, "RBX", interval([(0, 0)]))
         assert not mems
-        regs, mems = jitter.cpu.get_all_taint(blue)
+        regs, mems = jitter.taint.get_all_taint(blue)
         assert not regs
         assert not mems
         return True
@@ -44,12 +44,12 @@ def test_propagation_precision():
 
         print("\t[+] Test MOV BH, AL")
 
-        regs, mems = jitter.cpu.get_all_taint(red)
+        regs, mems = jitter.taint.get_all_taint(red)
         assert len(regs) == 2
         check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
         check_reg(regs[1], jitter, "RBX", interval([(0, 1)]))
         assert not mems
-        regs, mems = jitter.cpu.get_all_taint(blue)
+        regs, mems = jitter.taint.get_all_taint(blue)
         assert not regs
         assert not mems
         return True
@@ -58,39 +58,39 @@ def test_propagation_precision():
 
         print("\t[+] Test MOV AH, 0x80000000")
 
-        regs, mems = jitter.cpu.get_all_taint(red)
+        regs, mems = jitter.taint.get_all_taint(red)
         assert len(regs) == 2
         check_reg(regs[0], jitter, "RAX", interval([(0, 0), (2, 3)]))
         check_reg(regs[1], jitter, "RBX", interval([(0, 1)]))
         assert not mems
-        regs, mems = jitter.cpu.get_all_taint(blue)
+        regs, mems = jitter.taint.get_all_taint(blue)
         assert not regs
         assert not mems
-        jitter.cpu.untaint_all()
+        jitter.taint.untaint_all()
         return True
 
     def test_src_slice(jitter):
 
         print("\t[+] Test MOV DWORD PTR [EBX], EAX")
 
-        regs, mems = jitter.cpu.get_all_taint(red)
+        regs, mems = jitter.taint.get_all_taint(red)
         assert len(regs) == 1
         check_reg(regs[0], jitter, "RAX", interval([(0, 1)]))
         check_mem(interval(mems), interval([(data_addr, data_addr+1)]))
-        regs, mems = jitter.cpu.get_all_taint(blue)
+        regs, mems = jitter.taint.get_all_taint(blue)
         assert not regs
         assert not mems
-        jitter.cpu.untaint_all()
+        jitter.taint.untaint_all()
         return True
 
     def test_untaint_src_slice(jitter):
 
         print("\t[+] Test MOV DWORD PTR [EBX], CX")
 
-        regs, mems = jitter.cpu.get_all_taint(red)
+        regs, mems = jitter.taint.get_all_taint(red)
         assert not regs
         check_mem(interval(mems), interval([(data_addr+2, data_addr+3)]))
-        regs, mems = jitter.cpu.get_all_taint(blue)
+        regs, mems = jitter.taint.get_all_taint(blue)
         assert not regs
         assert not mems
         return True
@@ -99,11 +99,11 @@ def test_propagation_precision():
 
         print("\t[+] Test MOV DWORD PTR [EBX], AL")
 
-        regs, mems = jitter.cpu.get_all_taint(red)
+        regs, mems = jitter.taint.get_all_taint(red)
         assert len(regs) == 1
         check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
         check_mem(interval(mems), interval([(data_addr, data_addr), (data_addr+2, data_addr+3)]))
-        regs, mems = jitter.cpu.get_all_taint(blue)
+        regs, mems = jitter.taint.get_all_taint(blue)
         assert not regs
         assert not mems
         return True
@@ -112,12 +112,12 @@ def test_propagation_precision():
 
         print("\t[+] Test MOV ECX, DWORD PTR [EBX]")
 
-        regs, mems = jitter.cpu.get_all_taint(red)
+        regs, mems = jitter.taint.get_all_taint(red)
         assert len(regs) == 2
         check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
         check_reg(regs[1], jitter, "RCX", interval([(0, 0), (2, 3)]))
         check_mem(interval(mems), interval([(data_addr, data_addr), (data_addr+2, data_addr+3)]))
-        regs, mems = jitter.cpu.get_all_taint(blue)
+        regs, mems = jitter.taint.get_all_taint(blue)
         assert not regs
         assert not mems
         return True

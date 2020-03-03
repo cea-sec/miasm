@@ -96,9 +96,9 @@ class JitCore_Cc_Base(JitCore):
             os.path.join(
                 lib_dir,
                 "arch",
-                "JitCore_%s%s" % (self.ir_arch.arch.name,
-                                  "_taint" + ext if self.taint else ext)
-            )
+                "JitCore_%s%s" % (self.ir_arch.arch.name, ext)
+            ),
+            os.path.join(lib_dir, "../analysis/TaintMngr" + ext),
         ]
 
         include_files = [

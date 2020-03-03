@@ -1,10 +1,9 @@
-#include <Python.h>
-
 #include <inttypes.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+
+#include "taint.h"
 
 #include "../jitter/compat_py23.h"
 #include "../jitter/bn.h"
@@ -12,17 +11,13 @@
 #include "../jitter/vm_mngr.h"
 #include "../jitter/vm_mngr_py.h"
 #include "../jitter/JitCore.h"
-#include "../jitter/interval_tree/interval_tree.h"
-
-#include "taint.h"
-
 
 /* Taint setters/getters */
 /* Colors */
-struct taint_colors_t*
+struct taint_t*
 taint_init_colors(uint64_t nb_colors, uint64_t nb_registers, uint32_t max_register_size)
 {
-	struct taint_colors_t* taint_colors;
+	struct taint_t* taint_colors;
 
 	taint_colors = malloc(sizeof(*taint_colors));
 	if (taint_colors == NULL)
@@ -125,7 +120,7 @@ taint_check_register(uint64_t register_index,
 
 /* Registers */
 void
-taint_register_generic_access(struct taint_colors_t *colors,
+taint_register_generic_access(struct taint_t *colors,
 			      uint64_t color_index,
 			      uint64_t register_index,
 			      struct interval interval,
@@ -141,7 +136,7 @@ taint_register_generic_access(struct taint_colors_t *colors,
 }
 
 struct rb_root
-taint_get_register_color(struct taint_colors_t *colors,
+taint_get_register_color(struct taint_t *colors,
 			 uint64_t color_index,
 			 uint64_t register_index,
 			 struct interval interval
@@ -201,7 +196,7 @@ taint_color_init_memory(struct taint_color_t *color)
 }
 
 void
-taint_color_remove_all_registers(struct taint_colors_t *colors, uint64_t color_index)
+taint_color_remove_all_registers(struct taint_t *colors, uint64_t color_index)
 {
 	uint64_t i;
 	for(i = 0; i < colors->nb_registers; i++)
@@ -212,7 +207,7 @@ taint_color_remove_all_registers(struct taint_colors_t *colors, uint64_t color_i
 }
 
 void
-taint_remove_all_registers(struct taint_colors_t *colors)
+taint_remove_all_registers(struct taint_t *colors)
 {
        uint64_t color_index;
        for (color_index = 0 ; color_index < colors->nb_colors ; color_index++)
@@ -223,7 +218,7 @@ taint_remove_all_registers(struct taint_colors_t *colors)
 
 /* Memory */
 void
-taint_memory_generic_access(struct taint_colors_t *colors,
+taint_memory_generic_access(struct taint_t *colors,
                             uint64_t color_index,
                             struct interval interval,
                             uint32_t access_type)
@@ -237,7 +232,7 @@ taint_memory_generic_access(struct taint_colors_t *colors,
 }
 
 struct rb_root
-taint_get_memory(struct taint_colors_t *colors,
+taint_get_memory(struct taint_t *colors,
                  uint64_t color_index,
                  struct interval interval)
 {
@@ -246,7 +241,7 @@ taint_get_memory(struct taint_colors_t *colors,
 }
 
 void
-taint_remove_all_memory(struct taint_colors_t *colors)
+taint_remove_all_memory(struct taint_t *colors)
 {
     uint64_t i;
     for (i = 0; i < colors->nb_colors ; i++)
@@ -254,7 +249,7 @@ taint_remove_all_memory(struct taint_colors_t *colors)
 }
 
 void
-taint_color_remove_all_memory(struct taint_colors_t *colors, uint64_t color_index)
+taint_color_remove_all_memory(struct taint_t *colors, uint64_t color_index)
 {
     interval_tree_free(colors->colors[color_index].memory);
     *(colors->colors[color_index].memory) = interval_tree_new();
@@ -324,7 +319,7 @@ taint_init_callback_info(uint64_t nb_registers, uint32_t max_register_size)
 }
 
 void
-taint_clean_all_callback_info(struct taint_colors_t *colors)
+taint_clean_all_callback_info(struct taint_t *colors)
 {
 	uint64_t color_index;
 
@@ -335,7 +330,7 @@ taint_clean_all_callback_info(struct taint_colors_t *colors)
 }
 
 void
-taint_clean_callback_info(struct taint_colors_t *colors, uint64_t color_index)
+taint_clean_callback_info(struct taint_t *colors, uint64_t color_index)
 {
 	uint64_t i = 0; 
 	for( i = 0; i < colors->nb_registers ; i++)
@@ -352,7 +347,7 @@ taint_clean_callback_info(struct taint_colors_t *colors, uint64_t color_index)
 }
 
 void
-taint_update_memory_callback_info(struct taint_colors_t *colors,
+taint_update_memory_callback_info(struct taint_t *colors,
                                   uint64_t color_index,
                                   struct interval interval,
                                   int event_type)
@@ -373,7 +368,7 @@ taint_update_memory_callback_info(struct taint_colors_t *colors,
 }
 
 void
-taint_update_register_callback_info(struct taint_colors_t *colors,
+taint_update_register_callback_info(struct taint_t *colors,
                                     uint64_t color_index,
                                     uint64_t register_index,
                                     struct interval interval,
@@ -385,507 +380,4 @@ taint_update_register_callback_info(struct taint_colors_t *colors,
 	else if (event_type == UNTAINT_EVENT)
         interval_tree_add(colors->colors[color_index].callback_info->last_untainted.registers[register_index],
                           interval);
-}
-
-
-/* Python API */
-PyObject*
-cpu_access_register(JitCpu* cpu, PyObject* args, uint32_t access_type)
-{
-	PyObject *color_index_py;
-	PyObject *register_index_py;
-	PyObject *start_py;
-	start_py = PyLong_FromLong(DEFAULT_REG_START);
-	PyObject *end_py;
-	end_py = PyLong_FromLong(cpu->taint_analysis->max_register_size-1);
-	uint64_t color_index;
-	uint64_t register_index;
-	uint64_t start;
-	uint64_t end;
-	struct interval interval;
-
-	if (!PyArg_ParseTuple(args,
-			      "OO|OO",
-			      &color_index_py,
-			      &register_index_py,
-			      &start_py,
-			      &end_py))
-		return NULL;
-
-	PyGetInt_uint64_t(color_index_py, color_index);
-	PyGetInt_uint64_t(register_index_py, register_index);
-	PyGetInt_uint64_t(start_py, start);
-	PyGetInt_uint64_t(end_py, end);
-
-	interval.start = start;
-	interval.last = end;
-
-	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
-	taint_check_register(register_index,
-                         interval,
-                         cpu->taint_analysis->nb_registers,
-                         cpu->taint_analysis->max_register_size);
-	taint_register_generic_access(cpu->taint_analysis,
-				      color_index,
-				      register_index,
-				      interval,
-				      access_type);
-
-	Py_INCREF(Py_None);
-	return Py_None;
-
-}
-PyObject*
-cpu_taint_register(JitCpu* self, PyObject* args)
-{
-	return cpu_access_register(self, args, ADD);
-}
-
-PyObject*
-cpu_untaint_register(JitCpu* self, PyObject* args)
-{
-	return cpu_access_register(self, args, REMOVE);
-}
-
-PyObject*
-cpu_untaint_all_registers(JitCpu* self)
-{
-	taint_remove_all_registers(self->taint_analysis);
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-PyObject*
-cpu_color_untaint_all_registers(JitCpu* self, PyObject* args)
-{
-	PyObject *color_index_py;
-	uint64_t color_index;
-
-	if (!PyArg_ParseTuple(args, "O", &color_index_py))
-		return NULL;
-
-	PyGetInt_uint64_t(color_index_py, color_index);
-
-	taint_check_color(color_index, self->taint_analysis->nb_colors);
-	taint_color_remove_all_registers(self->taint_analysis, color_index);
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-PyObject*
-cpu_access_memory(JitCpu* cpu, PyObject* args, uint32_t access_type)
-{
-	PyObject *addr_py;
-	PyObject *size_py;
-	PyObject *color_index_py;
-	uint64_t addr;
-	uint64_t size;
-	uint64_t color_index;
-	struct interval interval_arg;
-
-	if (!PyArg_ParseTuple(args, "OOO", &addr_py, &size_py, &color_index_py))
-		return NULL;
-
-	PyGetInt_uint64_t(addr_py, addr);
-	PyGetInt_uint64_t(size_py, size);
-	PyGetInt_uint64_t(color_index_py, color_index);
-
-    if (size > 0)
-    {
-	    interval_arg.start = addr;
-	    interval_arg.last = addr + (size - 1);
-
-	    taint_check_color(color_index, cpu->taint_analysis->nb_colors);
-	    taint_memory_generic_access(cpu->taint_analysis, color_index, interval_arg, access_type);
-    }
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-PyObject*
-cpu_taint_memory(JitCpu* self, PyObject* args)
-{
-	return cpu_access_memory(self, args, ADD);
-}
-
-PyObject *
-cpu_untaint_memory(JitCpu* self, PyObject* args)
-{
-	return cpu_access_memory(self, args, REMOVE);
-}
-
-PyObject *
-cpu_untaint_all_memory(JitCpu* self)
-{
-	taint_remove_all_memory(self->taint_analysis);
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-PyObject *
-cpu_color_untaint_all_memory(JitCpu* self, PyObject* args)
-{
-	PyObject *color_index_py;
-	uint64_t color_index;
-
-	if (!PyArg_ParseTuple(args, "O", &color_index_py))
-		return NULL;
-
-	PyGetInt_uint64_t(color_index_py, color_index);
-
-	taint_check_color(color_index, self->taint_analysis->nb_colors);
-	taint_color_remove_all_memory(self->taint_analysis, color_index);
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-PyObject *
-cpu_untaint_all(JitCpu* self)
-{
-	taint_remove_all_registers(self->taint_analysis);
-	taint_remove_all_memory(self->taint_analysis);
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-PyObject *
-cpu_color_untaint_all(JitCpu* self, PyObject* args)
-{
-	PyObject *color_index_py;
-	uint64_t color_index;
-
-	if (!PyArg_ParseTuple(args, "O", &color_index_py))
-		return NULL;
-
-	PyGetInt_uint64_t(color_index_py, color_index);
-
-	taint_check_color(color_index, self->taint_analysis->nb_colors);
-	taint_color_remove_all_registers(self->taint_analysis, color_index);
-	taint_color_remove_all_memory(self->taint_analysis, color_index);
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-PyObject *
-cpu_init_taint(JitCpu* self, PyObject* args)
-{
-	/* Init colors (registers and callback info) */
-	PyObject *nb_regs_py;
-	PyObject *nb_colors_py;
-	PyObject *max_register_size_py;
-	/* REF: docs.python.org
-	 * 'C variables corresponding to optional arguments [...]
-	 * PyArg_ParseTuple() does not touch the contents of the corresponding C
-	 * variables.'
-	 * -> That why we initialize it to the default value.
-	 */
-	max_register_size_py = PyLong_FromLong(DEFAULT_MAX_REG_SIZE);
-
-	uint64_t nb_regs;
-	uint64_t nb_colors;
-	uint32_t max_register_size;
-
-	if (!PyArg_ParseTuple(args,
-			      "OO|O",
-			      &nb_colors_py,
-			      &nb_regs_py,
-			      &max_register_size_py))
-		return NULL;
-
-	PyGetInt_uint64_t(nb_regs_py, nb_regs);
-	PyGetInt_uint64_t(nb_colors_py, nb_colors);
-	PyGetInt_uint64_t(max_register_size_py, max_register_size);
-
-	self->taint_analysis = taint_init_colors(nb_colors,
-                                             nb_regs,
-                                             max_register_size);
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-PyObject*
-cpu_get_registers(struct rb_root ** registers,
-		  uint64_t nb_registers,
-		  uint32_t max_register_size
-		  )
-{
-	PyObject *tainted_registers = PyList_New(0);
-    PyObject *tainted_interval_list, *tuple, *register_index_py, *start, *last;
-	struct rb_root tainted_interval_tree;
-    struct rb_node *rb_node;
-	struct interval interval_arg;
-    struct interval_tree_node *node;
-	uint64_t register_index;
-
-	interval_arg.start = DEFAULT_REG_START;
-	interval_arg.last = DEFAULT_MAX_REG_SIZE-1;
-
-	for(register_index = 0; register_index < nb_registers; register_index++)
-	{
-		tainted_interval_tree = taint_get_register(registers,
-                                                   register_index,
-                                                   interval_arg,
-                                                   max_register_size);
-
-		if (rb_first(&tainted_interval_tree) != NULL)
-		{
-            tainted_interval_list = PyList_New(0);
-            register_index_py = PyLong_FromLong(register_index);
-
-            rb_node = rb_first(&tainted_interval_tree);
-
-            if (rb_node == NULL)
-            {
-                continue;
-            }
-
-            while(rb_node != NULL)
-            {
-                node = rb_entry(rb_node, struct interval_tree_node, rb);
-                start = PyLong_FromLong(node->interval.start);
-                last = PyLong_FromLong(node->interval.last);
-
-                tuple = PyTuple_New(2);
-                PyTuple_SetItem(tuple, 0, start);
-                PyTuple_SetItem(tuple, 1, last);
-                PyList_Append(tainted_interval_list, tuple);
-
-                rb_node = rb_next(rb_node);
-            }
-            tuple = PyTuple_New(2);
-            PyTuple_SetItem(tuple, 0, register_index_py);
-            PyTuple_SetItem(tuple, 1, tainted_interval_list);
-            PyList_Append(tainted_registers, tuple);
-		}
-	}
-
-	return tainted_registers;
-}
-
-PyObject *
-cpu_get_last_register(JitCpu* cpu, PyObject* args, uint32_t event_type)
-{
-	PyObject *color_index_py;
-	uint64_t color_index;
-
-	if (!PyArg_ParseTuple(args, "O", &color_index_py))
-		return NULL;
-
-	PyGetInt_uint64_t(color_index_py, color_index);
-
-	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
-
-	struct rb_root ** registers;
-	if (event_type == TAINT_EVENT)
-		registers = cpu->taint_analysis->colors[color_index]
-			.callback_info->last_tainted.registers;
-	else
-		registers = cpu->taint_analysis->colors[color_index]
-			.callback_info->last_untainted.registers;
-
-	return cpu_get_registers(registers,
-				 cpu->taint_analysis->nb_registers,
-				 cpu->taint_analysis->max_register_size);
-}
-
-PyObject*
-cpu_get_last_tainted_registers(JitCpu* self, PyObject* args)
-{
-	return cpu_get_last_register(self, args, TAINT_EVENT);
-}
-
-PyObject *
-cpu_get_last_untainted_registers(JitCpu* self, PyObject* args)
-{
-	return cpu_get_last_register(self, args, UNTAINT_EVENT);
-}
-
-PyObject*
-cpu_get_memory(struct rb_root * memory)
-{
-	PyObject *tainted_memory = PyList_New(0);
-    PyObject *tuple, *start, *end;
-    struct rb_node *rb_node;
-    struct interval_tree_node *node;
-
-
-    rb_node = rb_first(memory);
-
-    while(rb_node != NULL)
-    {
-        node = rb_entry(rb_node, struct interval_tree_node, rb);
-        start = PyLong_FromLong(node->interval.start);
-        end = PyLong_FromLong(node->interval.last);
-
-        tuple = PyTuple_New(2);
-        PyTuple_SetItem(tuple, 0, start);
-        PyTuple_SetItem(tuple, 1, end);
-        PyList_Append(tainted_memory, tuple);
-
-        rb_node = rb_next(rb_node);
-    }
-
-    return tainted_memory;
-}
-
-PyObject *
-cpu_get_last_memory(JitCpu* cpu, PyObject* args, uint32_t event_type)
-{
-	PyObject *color_index_py;
-	uint64_t color_index;
-
-	if (!PyArg_ParseTuple(args, "O", &color_index_py))
-		return NULL;
-
-	PyGetInt_uint64_t(color_index_py, color_index);
-
-	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
-
-	struct rb_root * memory;
-	if (event_type == TAINT_EVENT)
-		memory = cpu->taint_analysis->colors[color_index].callback_info->last_tainted.memory;
-	else
-		memory = cpu->taint_analysis->colors[color_index].callback_info->last_untainted.memory;
-
-	return cpu_get_memory(memory);
-}
-
-PyObject *
-cpu_get_last_tainted_memory(JitCpu* self, PyObject* args)
-{
-	return cpu_get_last_memory(self, args, TAINT_EVENT);
-}
-
-PyObject *
-cpu_get_last_untainted_memory(JitCpu* self, PyObject* args)
-{
-	return cpu_get_last_memory(self, args, UNTAINT_EVENT);
-}
-
-PyObject *
-cpu_get_all_taint(JitCpu* self, PyObject* args)
-{
-	PyObject *color_index_py;
-	uint64_t color_index;
-
-	if (!PyArg_ParseTuple(args, "O", &color_index_py))
-		return NULL;
-
-	PyGetInt_uint64_t(color_index_py, color_index);
-
-	taint_check_color(color_index, self->taint_analysis->nb_colors);
-
-	/* Registers */
-	PyObject *tainted_registers
-		= cpu_get_registers(self->taint_analysis->colors[color_index].registers,
-				    self->taint_analysis->nb_registers,
-				    self->taint_analysis->max_register_size);
-
-	/* Memory */
-	PyObject *tainted_memory = cpu_get_memory(self->taint_analysis->colors[color_index].memory);
-
-	/* Joining data */
-	PyObject *out_obj = PyTuple_New(2);
-
-	PyTuple_SetItem(out_obj, 0, tainted_registers);
-	PyTuple_SetItem(out_obj, 1, tainted_memory);
-
-	return out_obj;
-}
-
-/* Set or unset exception flags */
-PyObject *
-cpu_enable_cb(JitCpu* cpu, PyObject* args, uint32_t cb)
-{
-	PyObject *color_index_py;
-	uint64_t color_index;
-
-	if (!PyArg_ParseTuple(args, "O", &color_index_py))
-		return NULL;
-
-	PyGetInt_uint64_t(color_index_py, color_index);
-
-	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
-
-	cpu->taint_analysis->colors[color_index].callback_info->exception_flag
-		|= cb;
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-PyObject *
-cpu_enable_taint_reg_cb(JitCpu* self, PyObject* args)
-{
-	return cpu_enable_cb(self, args, DO_TAINT_REG_CB);
-}
-
-PyObject *
-cpu_enable_untaint_reg_cb(JitCpu* self, PyObject* args)
-{
-	return cpu_enable_cb(self, args, DO_UNTAINT_REG_CB);
-}
-
-PyObject *
-cpu_enable_taint_mem_cb(JitCpu* self, PyObject* args)
-{
-	return cpu_enable_cb(self, args, DO_TAINT_MEM_CB);
-}
-
-PyObject *
-cpu_enable_untaint_mem_cb(JitCpu* self, PyObject* args)
-{
-	return cpu_enable_cb(self, args, DO_UNTAINT_MEM_CB);
-}
-
-PyObject *
-cpu_disable_cb(JitCpu* cpu, PyObject* args, uint32_t cb)
-{
-	PyObject *color_index_py;
-	uint64_t color_index;
-
-	if (!PyArg_ParseTuple(args, "O", &color_index_py))
-		return NULL;
-
-	PyGetInt_uint64_t(color_index_py, color_index);
-
-	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
-
-	cpu->taint_analysis->colors[color_index].callback_info->exception_flag
-		&= ~cb;
-
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-PyObject *
-cpu_disable_taint_reg_cb(JitCpu* self, PyObject* args)
-{
-	return cpu_disable_cb(self, args, DO_TAINT_REG_CB);
-}
-
-PyObject *
-cpu_disable_untaint_reg_cb(JitCpu* self, PyObject* args)
-{
-	return cpu_disable_cb(self, args, DO_UNTAINT_REG_CB);
-}
-
-PyObject *
-cpu_disable_taint_mem_cb(JitCpu* self, PyObject* args)
-{
-	return cpu_disable_cb(self, args, DO_TAINT_MEM_CB);
-}
-
-PyObject *
-cpu_disable_untaint_mem_cb(JitCpu* self, PyObject* args)
-{
-	return cpu_disable_cb(self, args, DO_UNTAINT_MEM_CB);
 }

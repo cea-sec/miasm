@@ -57,20 +57,20 @@ def nothing_tainted(jitter, color):
     no_mem_tainted(jitter, color)
 
 def no_reg_tainted(jitter, color):
-    last_regs = jitter.cpu.last_tainted_registers(color)
+    last_regs = jitter.taint.last_tainted_registers(color)
     assert not last_regs
-    last_regs = jitter.cpu.last_untainted_registers(color)
+    last_regs = jitter.taint.last_untainted_registers(color)
     assert not last_regs
 
 def no_mem_tainted(jitter, color):
-    last_mem = jitter.cpu.last_tainted_memory(color)
+    last_mem = jitter.taint.last_tainted_memory(color)
     assert not last_mem
-    last_mem = jitter.cpu.last_untainted_memory(color)
+    last_mem = jitter.taint.last_untainted_memory(color)
     assert not last_mem
 
 def no_more_taint(jitter):
     for color in range(jitter.nb_colors):
-        regs, mems = jitter.cpu.get_all_taint(color)
+        regs, mems = jitter.taint.get_all_taint(color)
         assert not regs
         assert not mems
     return True
@@ -83,7 +83,7 @@ def check_mem(mem, taint_interval):
     assert mem == taint_interval
 
 def taint_register(jitter, color, register, start=0, end=7):
-    jitter.cpu.taint_register(color, jitter.jit.codegen.regs_index[register], start, end)
+    jitter.taint.taint_register(color, jitter.jit.codegen.regs_index[register], start, end)
     return True
 
 def taint_EAX(jitter):
@@ -111,14 +111,14 @@ def taint_EDX_blue(jitter):
     return True
 
 def taint_mem_0x123FFE8(jitter):
-    jitter.cpu.taint_memory(0x123FFe8,4,red)
+    jitter.taint.taint_memory(0x123FFe8,4,red)
     return True
 
 def taint_mem_RAX(jitter):
-    jitter.cpu.taint_memory(jitter.cpu.RAX,4,red)
+    jitter.taint.taint_memory(jitter.cpu.RAX,4,red)
     return True
 
 def taint_mem_RBX(jitter):
-    jitter.cpu.taint_memory(jitter.cpu.RBX,4,red)
+    jitter.taint.taint_memory(jitter.cpu.RBX,4,red)
     return True
 

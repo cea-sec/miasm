@@ -1,3 +1,6 @@
+#ifndef INTERVAL_TREE_H 
+#define INTERVAL_TREE_H 
+
 #include <stdbool.h>
 #include "rbtree.h"
 #include "interval.h"
@@ -45,3 +48,5 @@ interval_tree_add(struct rb_root *root, struct interval interval);
 */
 void
 interval_tree_sub(struct rb_root *root, struct interval interval);
+
+#endif

@@ -117,6 +117,21 @@ def buil_all():
             ]
         ),
         Extension(
+            "miasm.analysis.TaintMngr",
+            [
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/interval_tree/rbtree.c",
+                "miasm/jitter/interval_tree/interval.c",
+                "miasm/jitter/interval_tree/interval_tree.c",
+                "miasm/analysis/taint.c",
+                "miasm/analysis/taint_py.c",
+            ]
+        ),
+        Extension(
             "miasm.jitter.arch.JitCore_x86",
             [
                 "miasm/jitter/JitCore.c",
@@ -196,122 +211,6 @@ def buil_all():
                 "miasm/jitter/arch/JitCore_ppc32_regs.h",
                 "miasm/jitter/bn.h",
             ]
-        ),
-        Extension( "miasm.jitter.arch.JitCore_x86_taint",
-            [
-                "miasm/jitter/JitCore.c",
-                "miasm/jitter/vm_mngr.c",
-                "miasm/jitter/vm_mngr_py.c",
-                "miasm/jitter/op_semantics.c",
-                "miasm/jitter/interval_tree/rbtree.c",
-                "miasm/jitter/interval_tree/interval.c",
-                "miasm/jitter/interval_tree/interval_tree.c",
-                "miasm/analysis/taint.c",
-                "miasm/jitter/bn.c",
-                "miasm/jitter/arch/JitCore_x86.c"
-            ],
-            define_macros = [('TAINT', None)]
-        ),
-        Extension(
-            "miasm.jitter.arch.JitCore_arm_taint",
-            [
-                "miasm/jitter/JitCore.c",
-                "miasm/jitter/vm_mngr.c",
-                "miasm/jitter/vm_mngr_py.c",
-                "miasm/jitter/op_semantics.c",
-                "miasm/jitter/interval_tree/rbtree.c",
-                "miasm/jitter/interval_tree/interval.c",
-                "miasm/jitter/interval_tree/interval_tree.c",
-                "miasm/analysis/taint.c",
-                "miasm/jitter/bn.c",
-                "miasm/jitter/arch/JitCore_arm.c"
-            ],
-            define_macros = [('TAINT', None)]
-        ),
-        Extension(
-            "miasm.jitter.arch.JitCore_aarch64_taint",
-            [
-                "miasm/jitter/JitCore.c",
-                "miasm/jitter/vm_mngr.c",
-                "miasm/jitter/vm_mngr_py.c",
-                "miasm/jitter/op_semantics.c",
-                "miasm/jitter/interval_tree/rbtree.c",
-                "miasm/jitter/interval_tree/interval.c",
-                "miasm/jitter/interval_tree/interval_tree.c",
-                "miasm/analysis/taint.c",
-                "miasm/jitter/bn.c",
-                "miasm/jitter/arch/JitCore_aarch64.c"
-            ],
-            define_macros = [('TAINT', None)]
-        ),
-        Extension(
-            "miasm.jitter.arch.JitCore_msp430_taint",
-            [
-                "miasm/jitter/JitCore.c",
-                "miasm/jitter/vm_mngr.c",
-                "miasm/jitter/vm_mngr_py.c",
-                "miasm/jitter/op_semantics.c",
-                "miasm/jitter/interval_tree/rbtree.c",
-                "miasm/jitter/interval_tree/interval.c",
-                "miasm/jitter/interval_tree/interval_tree.c",
-                "miasm/analysis/taint.c",
-                "miasm/jitter/bn.c",
-                "miasm/jitter/arch/JitCore_msp430.c"
-            ],
-            define_macros = [('TAINT', None)]
-        ),
-        Extension(
-            "miasm.jitter.arch.JitCore_mep_taint",
-            [
-                "miasm/jitter/JitCore.c",
-                "miasm/jitter/vm_mngr.c",
-                "miasm/jitter/vm_mngr_py.c",
-                "miasm/jitter/op_semantics.c",
-                "miasm/jitter/interval_tree/rbtree.c",
-                "miasm/jitter/interval_tree/interval.c",
-                "miasm/jitter/interval_tree/interval_tree.c",
-                "miasm/analysis/taint.c",
-                "miasm/jitter/bn.c",
-                "miasm/jitter/arch/JitCore_mep.c"
-            ],
-            define_macros = [('TAINT', None)]
-        ),
-        Extension(
-            "miasm.jitter.arch.JitCore_mips32_taint",
-            [
-                "miasm/jitter/JitCore.c",
-                "miasm/jitter/vm_mngr.c",
-                "miasm/jitter/vm_mngr_py.c",
-                "miasm/jitter/op_semantics.c",
-                "miasm/jitter/interval_tree/rbtree.c",
-                "miasm/jitter/interval_tree/interval.c",
-                "miasm/jitter/interval_tree/interval_tree.c",
-                "miasm/analysis/taint.c",
-                "miasm/jitter/bn.c",
-                "miasm/jitter/arch/JitCore_mips32.c"
-            ],
-            define_macros = [('TAINT', None)]
-        ),
-        Extension(
-            "miasm.jitter.arch.JitCore_ppc32",
-            [
-                "miasm/jitter/JitCore.c",
-                "miasm/jitter/vm_mngr.c",
-                "miasm/jitter/vm_mngr_py.c",
-                "miasm/jitter/op_semantics.c",
-                "miasm/jitter/interval_tree/rbtree.c",
-                "miasm/jitter/interval_tree/interval.c",
-                "miasm/jitter/interval_tree/interval_tree.c",
-                "miasm/analysis/taint.c",
-                "miasm/jitter/bn.c",
-                "miasm/jitter/arch/JitCore_ppc32.c"
-            ],
-            depends=[
-                "miasm/jitter/arch/JitCore_ppc32.h",
-                "miasm/jitter/arch/JitCore_ppc32_regs.h",
-                "miasm/jitter/bn.h",
-            ],
-            define_macros = [('TAINT', None)]
         ),
         Extension("miasm.jitter.Jitllvm",
                   ["miasm/jitter/Jitllvm.c",

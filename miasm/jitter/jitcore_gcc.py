@@ -79,7 +79,6 @@ class JitCore_Gcc(JitCore_Cc_Base):
                     "/Od", "/DNDEBUG", "/D_WINDOWS", "/Gm-", "/EHsc",
                     "/RTC1", "/MD", "/GS"
                 ]
-                cl += ["/DTAINT"] if self.taint else []
                 cl += [fname_in] + inc_dir + libs
                 cl += ["/link", "/DLL", "/OUT:" + fname_tmp]
                 out_dir, _ = os.path.split(fname_tmp)
@@ -108,7 +107,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
                     fname_in,
                     "-o",
                     fname_tmp
-                ] + (["-DTAINT"] if self.taint else []) + inc_dir + libs
+                ] + inc_dir + libs
                 check_call(args)
 
             # Move temporary file to final file

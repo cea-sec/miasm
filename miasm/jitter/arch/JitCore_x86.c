@@ -9,16 +9,9 @@
 #include "../vm_mngr_py.h"
 #include "../JitCore.h"
 #include "../op_semantics.h"
-#ifdef TAINT
-#include "../../analysis/taint.h"
-#endif
 #include "JitCore_x86.h"
 
-#ifdef TAINT
-#define PYTHON_CLASS_NAME "JitCore_x86_taint"
-#else
 #define PYTHON_CLASS_NAME "JitCore_x86"
-#endif
 
 struct vm_cpu ref_arch_regs;
 
@@ -485,10 +478,6 @@ static PyMethodDef JitCpu_methods[] = {
 	 "X"},
 	{"set_interrupt_num", (PyCFunction)cpu_set_interrupt_num, METH_VARARGS,
 	 "X"},
-#ifdef TAINT
-	TAINT_METHODS
-#endif
-
 	{NULL}  /* Sentinel */
 };
 
@@ -728,22 +717,7 @@ PyObject* get_gpreg_offset_all(void)
 
 
 static PyGetSetDef JitCpu_getseters[] = {
-    {"vmmngr",
-     (getter)JitCpu_get_vmmngr, (setter)JitCpu_set_vmmngr,
-     "vmmngr",
-     NULL},
-
-    {"vmcpu",
-     (getter)JitCpu_get_vmcpu, (setter)JitCpu_set_vmcpu,
-     "vmcpu",
-     NULL},
-
-    {"jitter",
-     (getter)JitCpu_get_jitter, (setter)JitCpu_set_jitter,
-     "jitter",
-     NULL},
-
-
+    DEFAULT_GETSETERS
     {"RAX", (getter)JitCpu_get_RAX, (setter)JitCpu_set_RAX, "RAX", NULL},
     {"RBX", (getter)JitCpu_get_RBX, (setter)JitCpu_set_RBX, "RBX", NULL},
     {"RCX", (getter)JitCpu_get_RCX, (setter)JitCpu_set_RCX, "RCX", NULL},
@@ -886,11 +860,7 @@ static PyMethodDef JitCore_x86_Methods[] = {
 };
 
 
-#ifdef TAINT
-MOD_INIT(JitCore_x86_taint)
-#else
 MOD_INIT(JitCore_x86)
-#endif
 {
 	PyObject *module = NULL;
 

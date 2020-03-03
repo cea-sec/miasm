@@ -9,17 +9,10 @@
 #include "../vm_mngr_py.h"
 #include "../JitCore.h"
 #include "../op_semantics.h"
-#ifdef TAINT
-#include "../../analysis/taint.h"
-#endif
 #include "JitCore_arm.h"
 
 
-#ifdef TAINT
-#define PYTHON_CLASS_NAME "JitCore_arm_taint"
-#else
 #define PYTHON_CLASS_NAME "JitCore_arm"
-#endif
 
 reg_dict gpreg_dict[] = {
 			 {.name = "R0", .offset = offsetof(struct vm_cpu, R0), .size = 32},
@@ -244,10 +237,6 @@ static PyMethodDef JitCpu_methods[] = {
 	 "X"},
 	{"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS,
 	 "X"},
-#ifdef TAINT
-	TAINT_METHODS
-#endif
-
 	{NULL}  /* Sentinel */
 };
 
@@ -332,18 +321,7 @@ PyObject* get_gpreg_offset_all(void)
 }
 
 static PyGetSetDef JitCpu_getseters[] = {
-    {"vmmngr",
-     (getter)JitCpu_get_vmmngr, (setter)JitCpu_set_vmmngr,
-     "vmmngr",
-     NULL},
-
-    {"jitter",
-     (getter)JitCpu_get_jitter, (setter)JitCpu_set_jitter,
-     "jitter",
-     NULL},
-
-
-
+    DEFAULT_GETSETERS
     {"R0" , (getter)JitCpu_get_R0 , (setter)JitCpu_set_R0 , "R0" , NULL},
     {"R1" , (getter)JitCpu_get_R1 , (setter)JitCpu_set_R1 , "R1" , NULL},
     {"R2" , (getter)JitCpu_get_R2 , (setter)JitCpu_set_R2 , "R2" , NULL},
@@ -432,11 +410,7 @@ static PyMethodDef JitCore_arm_Methods[] = {
 };
 
 
-#ifdef TAINT
-MOD_INIT(JitCore_arm_taint)
-#else
 MOD_INIT(JitCore_arm)
-#endif
 {
 	PyObject *module = NULL;
 
