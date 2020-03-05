@@ -10,6 +10,9 @@ import miasm.jitter.jitcore as jitcore
 from miasm.jitter import Jitllvm
 import platform
 
+import llvmlite
+llvmlite.binding.load_library_permanently(Jitllvm.__file__)
+
 is_win = platform.system() == "Windows"
 
 class JitCore_LLVM(jitcore.JitCore):

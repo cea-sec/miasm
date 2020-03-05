@@ -11,18 +11,22 @@ import fnmatch
 import io
 import os
 import platform
-from shutil import copy2
+from shutil import copy2, copyfile, rmtree
 import sys
+import tempfile
+import atexit
 
 is_win = platform.system() == "Windows"
 is_mac = platform.system() == "Darwin"
+is_64bit = platform.architecture()[0] == "64bit"
+if is_win:
+    import winreg
 
 def set_extension_compile_args(extension):
     rel_lib_path = extension.name.replace('.', '/')
     abs_lib_path = os.path.join(get_python_lib(), rel_lib_path)
     lib_name = abs_lib_path + '.so'
     extension.extra_link_args = [ '-Wl,-install_name,' + lib_name]
-
 
 class smart_install_data(install_data):
     """Replacement for distutils.command.install_data to handle
@@ -36,6 +40,48 @@ class smart_install_data(install_data):
         ]
         return install_data.run(self)
 
+def win_get_llvm_reg():
+    REG_PATH = "SOFTWARE\\LLVM\\LLVM"
+    try:
+      return winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, REG_PATH, 0, winreg.KEY_READ | winreg.KEY_WOW64_32KEY)
+    except FileNotFoundError:
+      pass
+    return winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, REG_PATH, 0, winreg.KEY_READ)
+  
+def win_find_clang_path():
+    try:
+        with win_get_llvm_reg() as rkey:
+            return winreg.QueryValueEx(rkey, None)[0]
+    except FileNotFoundError:
+        return None
+
+def win_use_clang():
+    # Recent (>= 8 ?) LLVM versions does not ship anymore a cl.exe binary in
+    # the msbuild-bin directory. Thus, we need to
+    # * copy-paste bin/clang-cl.exe into a temporary directory
+    # * rename it to cl.exe
+    # * add that path first in %Path%
+    # * clean this mess on exit
+    # We could use the build directory created by distutils for this, but it
+    # seems non trivial to gather
+    # (https://stackoverflow.com/questions/12896367/reliable-way-to-get-the-build-directory-from-within-setup-py).
+    clang_path = win_find_clang_path()
+    if clang_path is None:
+        return False
+    tmpdir = tempfile.mkdtemp(prefix="llvm")
+    copyfile(os.path.join(clang_path, "bin", "clang-cl.exe"), os.path.join(tmpdir, "cl.exe"))
+    os.environ['Path'] = "%s;%s" % (tmpdir, os.environ["Path"])
+    atexit.register(lambda dir_: rmtree(dir_), tmpdir)
+
+    return True
+
+win_force_clang = False
+if is_win and is_64bit:
+    # We do not change to clang if under 32 bits, because even with Clang we
+    # don't have uint128_t with the 32 bits ABI.
+    win_force_clang = win_use_clang()
+    if not win_force_clang:
+        print("Warning: couldn't find a Clang/LLVM installation. Some runtime functions needed by the jitter won't be compiled.")
 
 def buil_all():
     packages=[
@@ -154,6 +200,9 @@ def buil_all():
         Extension("miasm.jitter.Jitllvm",
                   ["miasm/jitter/Jitllvm.c",
                    "miasm/jitter/bn.c",
+                   "miasm/runtime/udivmodti4.c",
+                   "miasm/runtime/divti3.c",
+                   "miasm/runtime/udivti3.c"
                   ]),
         Extension("miasm.jitter.Jitgcc",
                   ["miasm/jitter/Jitgcc.c",
@@ -165,6 +214,10 @@ def buil_all():
         # Force setuptools to use whatever msvc version installed
         os.environ['MSSdk'] = '1'
         os.environ['DISTUTILS_USE_SDK'] = '1'
+        if win_force_clang:
+            march = "-m64" if is_64bit else "-m32"
+            for extension in ext_modules_all:
+                extension.extra_compile_args = [march]
     elif is_mac:
         for extension in ext_modules_all:
             set_extension_compile_args(extension)
