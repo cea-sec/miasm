@@ -150,6 +150,8 @@ written: IRDst
 
 ```
 
+More information on Miasm IR is in the [corresponding Jupyter Notebook](https://github.com/cea-sec/miasm/blob/master/doc/expression/expression.ipynb).
+
 Emulation
 ---------
 
