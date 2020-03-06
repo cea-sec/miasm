@@ -134,8 +134,8 @@ interval_tree_add_merged(struct rb_root *root,
                                                                struct interval))
 {
     struct interval_result sub = merge_function(a, b);
-
-    for(unsigned long index = 0; index < sub.nb_results; index++)
+    unsigned long index = 0;
+    for(index = 0; index < sub.nb_results; index++)
         interval_tree_insert_new_node(root,
                                       sub.intervals[index]);
 }

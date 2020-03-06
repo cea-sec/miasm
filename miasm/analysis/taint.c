@@ -248,7 +248,8 @@ taint_get_memory(struct taint_colors_t *colors,
 void
 taint_remove_all_memory(struct taint_colors_t *colors)
 {
-    for (uint64_t i = 0; i < colors->nb_colors ; i++)
+    uint64_t i;
+    for (i = 0; i < colors->nb_colors ; i++)
         taint_color_remove_all_memory(colors, i);
 }
 
@@ -287,7 +288,8 @@ taint_init_callback_info(uint64_t nb_registers, uint32_t max_register_size)
 		exit(EXIT_FAILURE);
 	}
 
-    for( uint64_t index = 0; index < nb_registers; index ++)
+    uint64_t index = 0;
+    for( index = 0; index < nb_registers; index ++)
     {
         callback_info->last_tainted.registers[index] = calloc(1, sizeof(*callback_info->last_tainted.registers[index]));
     }
@@ -307,7 +309,7 @@ taint_init_callback_info(uint64_t nb_registers, uint32_t max_register_size)
 		exit(EXIT_FAILURE);
 	}
 
-    for( uint64_t index = 0; index < nb_registers; index ++)
+    for( index = 0; index < nb_registers; index ++)
     {
         callback_info->last_untainted.registers[index] = calloc(1, sizeof(*callback_info->last_untainted.registers[index])); 
     }
@@ -335,7 +337,8 @@ taint_clean_all_callback_info(struct taint_colors_t *colors)
 void
 taint_clean_callback_info(struct taint_colors_t *colors, uint64_t color_index)
 {
-	for(uint64_t i = 0; i < colors->nb_registers ; i++)
+	uint64_t i = 0; 
+	for( i = 0; i < colors->nb_registers ; i++)
 	{
         interval_tree_free(colors->colors[color_index].callback_info->last_tainted.registers[i]);
         //colors->colors[color_index].callback_info->last_tainted.registers[i] = calloc(1, sizeof(*colors->colors[color_index].callback_info->last_tainted.registers[i]));
