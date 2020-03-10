@@ -27,6 +27,8 @@ class Machine(object):
         jitter = None
         log_jit = None
         log_arch = None
+        bits = 32
+        endian = "BE"
 
         # Import on runtime for performance issue
         if machine_name == "arml":
@@ -38,6 +40,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_arm
+            endian = "LE"
             from miasm.arch.arm.ira import ir_a_arml as ira
             from miasm.arch.arm.sem import ir_arml as ir
         elif machine_name == "armb":
@@ -60,6 +63,8 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_aarch64
+            endian = "LE"
+            bits = 64
             from miasm.arch.aarch64.ira import ir_a_aarch64l as ira
             from miasm.arch.aarch64.sem import ir_aarch64l as ir
         elif machine_name == "aarch64b":
@@ -71,12 +76,15 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_aarch64
+            bits = 64
             from miasm.arch.aarch64.ira import ir_a_aarch64b as ira
             from miasm.arch.aarch64.sem import ir_aarch64b as ir
         elif machine_name == "armtl":
             from miasm.arch.arm.disasm import dis_armtl as dis_engine
             from miasm.arch.arm import arch
             mn = arch.mn_armt
+            endian = "LE"
+            bits = 16
             from miasm.arch.arm.ira import ir_a_armtl as ira
             from miasm.arch.arm.sem import ir_armtl as ir
             try:
@@ -88,6 +96,7 @@ class Machine(object):
             from miasm.arch.arm.disasm import dis_armtb as dis_engine
             from miasm.arch.arm import arch
             mn = arch.mn_armt
+            bits = 16
             from miasm.arch.arm.ira import ir_a_armtb as ira
             from miasm.arch.arm.sem import ir_armtb as ir
         elif machine_name == "sh4":
@@ -102,6 +111,8 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_x86
+            endian = "LE"
+            bits = 16
             from miasm.arch.x86.ira import ir_a_x86_16 as ira
             from miasm.arch.x86.sem import ir_x86_16 as ir
         elif machine_name == "x86_32":
@@ -113,6 +124,8 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_x86
+            endian = "LE"
+            bits = 32
             from miasm.arch.x86.ira import ir_a_x86_32 as ira
             from miasm.arch.x86.sem import ir_x86_32 as ir
             try:
@@ -128,6 +141,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_x86
+            endian = "LE"
             from miasm.arch.x86.ira import ir_a_x86_64 as ira
             from miasm.arch.x86.sem import ir_x86_64 as ir
         elif machine_name == "msp430":
@@ -139,6 +153,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_msp430
+            bits = 16
             from miasm.arch.msp430.ira import ir_a_msp430 as ira
             from miasm.arch.msp430.sem import ir_msp430 as ir
             try:
@@ -165,6 +180,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_mips32
+            endian = "LE"
             from miasm.arch.mips32.ira import ir_a_mips32l as ira
             from miasm.arch.mips32.sem import ir_mips32l as ir
         elif machine_name == "ppc32b":
@@ -198,6 +214,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_mep
+            endian = "LE"
             from miasm.arch.mep.ira import ir_a_mepl as ira
             from miasm.arch.mep.sem import ir_mepl as ir
         else:
@@ -217,6 +234,8 @@ class Machine(object):
         self.__log_arch = log_arch
         self.__base_expr = arch.base_expr
         self.__ir = ir
+        self.__bits = bits
+        self.__endian = endian
         self.__name = machine_name
 
     @property
@@ -250,6 +269,14 @@ class Machine(object):
     @property
     def log_arch(self):
         return self.__log_arch
+
+    @property
+    def bits(self):
+        return self.__bits
+
+    @property
+    def endian(self):
+        return self.__endian
 
     @property
     def base_expr(self):
