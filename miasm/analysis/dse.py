@@ -333,8 +333,8 @@ class DSEEngine(object):
         self.handle(ExprInt(cur_addr, self.ir_arch.IRDst.size))
 
         # Avoid memory issue in ExpressionSimplifier
-        if len(self.symb.expr_simp.simplified_exprs) > 100000:
-            self.symb.expr_simp.simplified_exprs.clear()
+        if len(self.symb.expr_simp.cache) > 100000:
+            self.symb.expr_simp.cache.clear()
 
         # Get IR blocks
         if cur_addr in self.addr_to_cacheblocks:
