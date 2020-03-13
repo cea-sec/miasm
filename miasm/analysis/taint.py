@@ -11,6 +11,7 @@ def makeTaintGen(C_Gen, ir_arch):
 
       CODE_INIT_TAINT = r"""
       struct taint_t* taint_analysis = jitcpu->taint->taint;
+
       uint64_t current_color;
       uint64_t current_mem_addr, current_mem_size, current_reg_size, current_reg_index;
       struct rb_root taint_interval_tree_tmp, taint_interval_tree, taint_interval_tree_before;
@@ -125,6 +126,7 @@ def makeTaintGen(C_Gen, ir_arch):
           taint_interval.last = current_reg_size;
           interval_tree_free(&taint_interval_tree_before);
           taint_interval_tree_before = taint_get_register_color(taint_analysis, current_color, current_reg_index, taint_interval);
+          fully_tainted = 0;
       """
 
       CODE_CHECK_FULLY_TAINTED = r"""
@@ -230,6 +232,7 @@ def makeTaintGen(C_Gen, ir_arch):
       taint_interval_tree = interval_tree_new();
       interval_tree_free(&taint_interval_tree_before);
       taint_interval_tree_before = taint_get_memory(taint_analysis, current_color, taint_interval);
+      fully_tainted = 0;
       """
 
       CODE_TAINT_MEM = r"""
@@ -315,36 +318,10 @@ def makeTaintGen(C_Gen, ir_arch):
         }
       """
 
-      CODE_UPDATE_INTERVALLE = r"""
-      if (rb_first(&taint_interval_tree_tmp) != NULL)
-      {
-        rb_node = rb_first(&taint_interval_tree_tmp);
-
-        while(rb_node != NULL)
-        {
-            node = rb_entry(rb_node, struct interval_tree_node, rb);
-            interval_tmp.start = node->interval.start+current_compose_start-taint_interval.start;
-            interval_tmp.last = node->interval.last+current_compose_start-taint_interval.start;
-            interval_tree_add(&taint_interval_tree, interval_tmp);
-            rb_node = rb_next(rb_node);
-        }
-      }
-      """
-
-      CODE_UPDATE_INTERVALLE_MEM = r"""
-      if (rb_first(&taint_interval_tree_tmp) != NULL)
-      {
-        rb_node = rb_first(&taint_interval_tree_tmp);
-
-        while(rb_node != NULL)
-        {
-            node = rb_entry(rb_node, struct interval_tree_node, rb);
-            interval_tmp.start = node->interval.start-taint_interval.start+current_compose_start;
-            interval_tmp.last = node->interval.last-taint_interval.start+current_compose_start;
-            interval_tree_add(&taint_interval_tree, interval_tmp);
-            rb_node = rb_next(rb_node);
-        }
-      }
+      CODE_UPDATE_INTERVAL = r"""
+      interval_tree_merge(&taint_interval_tree,
+                          &taint_interval_tree_tmp,
+                          current_compose_start-taint_interval.start);
       """
 
       CODE_EXCEPTION_TAINT = r"""
@@ -434,21 +411,19 @@ def makeTaintGen(C_Gen, ir_arch):
                   c_code += self.gen_get_register_taint(str(element.arg),
                                                         element.start,
                                                         element.stop)
-                  c_code += (self.CODE_UPDATE_INTERVALLE).split('\n')
               elif element.is_mem():
                   start = self.gen_segm2addr(element, prefetchers)
                   size = element.size / 8 # We use bytes for size
                   c_code.append(self.gen_get_memory_taint(start, size))
-                  c_code += (self.CODE_UPDATE_INTERVALLE_MEM).split('\n')
               elif element.is_id():
                   c_code.append(self.gen_get_register_taint(str(element),
                                                             0,
                                                             element.size))
-                  c_code += (self.CODE_UPDATE_INTERVALLE).split('\n')
               else:
                   raise NotImplementedError("Taint analysis: do not know how to \
                           handle expression type %s",
                                             type(element))
+              c_code += (self.CODE_UPDATE_INTERVAL).split('\n')
           c_code.append("}")
 
           return c_code
@@ -496,7 +471,6 @@ def makeTaintGen(C_Gen, ir_arch):
 
       def gen_taint_calculation(self, src, prefetchers, dst=None):
           c_code = []
-          c_code.append("fully_tainted = 0;")
 
           read_elements = self.get_detailed_read_elements(dst, src)
 

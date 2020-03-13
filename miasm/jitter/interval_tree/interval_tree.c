@@ -278,3 +278,24 @@ interval_tree_intersection(struct rb_root *root, struct interval interval)
     return intersection_tree;
 }
 
+void
+interval_tree_merge(struct rb_root *a, struct rb_root *b, signed long offset)
+{
+    struct interval interval_tmp;
+    struct interval_tree_node *node;
+    struct rb_node *rb_node;
+
+    if (rb_first(b) != NULL)
+    {
+        rb_node = rb_first(b);
+
+        while(rb_node != NULL)
+        {
+            node = rb_entry(rb_node, struct interval_tree_node, rb);
+            interval_tmp.start = node->interval.start + offset;
+            interval_tmp.last = node->interval.last + offset;
+            interval_tree_add(a, interval_tmp);
+            rb_node = rb_next(rb_node);
+        }
+    }
+}

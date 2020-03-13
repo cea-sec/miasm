@@ -49,4 +49,10 @@ interval_tree_add(struct rb_root *root, struct interval interval);
 void
 interval_tree_sub(struct rb_root *root, struct interval interval);
 
+/*
+ Merge interval tree b into interval tree a.
+ Interval boundaries of interval tree b can be adjust using offset argument.
+*/
+void
+interval_tree_merge(struct rb_root *a, struct rb_root *b, signed long offset);
 #endif
