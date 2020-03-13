@@ -254,7 +254,7 @@ class Jitter(object):
         self.vm.init_code_bloc_pool()
         self.vm.init_memory_breakpoint()
 
-        self.jit.load(taint)
+        self.jit.load()
         self.cpu.vmmngr = self.vm
         self.cpu.jitter = self.jit
         if taint:
