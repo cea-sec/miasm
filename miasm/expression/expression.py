@@ -424,6 +424,10 @@ class Expr(object):
         return False
 
     def is_aff(self):
+        warnings.warn('DEPRECATION WARNING: use is_assign()')
+        return False
+
+    def is_assign(self):
         return False
 
     def is_cond(self):
@@ -788,7 +792,12 @@ class ExprAssign(Expr):
             arg.graph_recursive(graph)
             graph.add_uniq_edge(self, arg)
 
+
     def is_aff(self):
+        warnings.warn('DEPRECATION WARNING: use is_assign()')
+        return True
+
+    def is_assign(self):
         return True
 
 
@@ -1669,8 +1678,8 @@ def match_expr(expr, pattern, tks, result=None):
                 return False
         return result
 
-    elif expr.is_aff():
-        if not pattern.is_aff():
+    elif expr.is_assign():
+        if not pattern.is_assign():
             return False
         if match_expr(expr.src, pattern.src, tks, result) is False:
             return False
