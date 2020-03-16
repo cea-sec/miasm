@@ -286,3 +286,25 @@ assert sols[0] == {j1: 1,
                    j2: 2,
                    j3: 3}
 
+
+
+# Test replace_node
+graph = DiGraph()
+graph.add_edge(1, 2)
+graph.add_edge(2, 2)
+graph.add_edge(2, 3)
+
+graph.replace_node(2, 4)
+assert graph.nodes() == set([1, 3, 4])
+assert sorted(graph.edges()) == [(1, 4), (4, 3), (4, 4)]
+
+
+
+# Test compute_weakly_connected_components
+graph = DiGraph()
+graph.add_edge(1, 2)
+graph.add_edge(2, 2)
+graph.add_edge(3, 4)
+
+components = graph.compute_weakly_connected_components()
+assert sorted(components) == [set([1, 2]), set([3, 4])]
