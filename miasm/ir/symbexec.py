@@ -567,7 +567,7 @@ class MemSparse(object):
         memarray = self.base_to_memarray.get(base, None)
         if memarray is not None:
             mems = memarray.read(offset, size)
-            ret = ExprCompose(*mems)
+            ret = mems[0] if len(mems) == 1 else ExprCompose(*mems)
         else:
             ret = ExprMem(ptr, size)
         return ret
