@@ -732,6 +732,49 @@ class DiGraph(object):
                         yield scc
 
 
+    def compute_weakly_connected_components(self):
+        """
+        Return the weakly connected components
+        """
+        remaining = set(self.nodes())
+        components = []
+        while remaining:
+            node = remaining.pop()
+            todo = set()
+            todo.add(node)
+            component = set()
+            done = set()
+            while todo:
+                node = todo.pop()
+                if node in done:
+                    continue
+                done.add(node)
+                remaining.discard(node)
+                component.add(node)
+                todo.update(self.predecessors(node))
+                todo.update(self.successors(node))
+            components.append(component)
+        return components
+
+
+
+    def replace_node(self, node, new_node):
+        """
+        Replace @node by @new_node
+        """
+
+        predecessors = self.predecessors(node)
+        successors = self.successors(node)
+        self.del_node(node)
+        for predecessor in predecessors:
+            if predecessor == node:
+                predecessor = new_node
+            self.add_uniq_edge(predecessor, new_node)
+        for successor in successors:
+            if successor == node:
+                successor = new_node
+            self.add_uniq_edge(new_node, successor)
+
 class DiGraphSimplifier(object):
 
     """Wrapper on graph simplification passes.
