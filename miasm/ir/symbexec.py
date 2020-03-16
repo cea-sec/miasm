@@ -1096,7 +1096,7 @@ class SymbolicExecutionEngine(object):
         """
 
         # Update value if needed
-        if expr.is_aff():
+        if expr.is_assign():
             ret = self.eval_expr(expr.src)
             self.eval_updt_assignblk(AssignBlock([expr]))
         else:
