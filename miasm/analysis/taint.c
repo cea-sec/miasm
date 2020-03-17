@@ -8,7 +8,6 @@
 #include "../jitter/compat_py23.h"
 #include "../jitter/bn.h"
 #include "../jitter/queue.h"
-#include "../jitter/vm_mngr.h"
 #include "../jitter/vm_mngr_py.h"
 #include "../jitter/JitCore.h"
 
@@ -184,6 +183,117 @@ taint_color_init_registers(struct taint_color_t *color, uint64_t nb_registers)
 }
 
 void
+taint_register(uint64_t fully_tainted,
+               uint64_t current_reg_index,
+               uint64_t current_reg_size,
+               uint64_t current_color,
+               struct taint_t* taint_analysis,
+               vm_mngr_t* vm_mngr,
+               struct rb_root* taint_interval_tree_before,
+               struct rb_root* taint_interval_tree_new)
+{
+    struct rb_node *rb_node;
+    struct interval_tree_node *node;
+
+    if (fully_tainted)
+    {
+        struct interval taint_interval;
+        taint_interval.start = 0;
+        taint_interval.last = current_reg_size;
+        taint_register_generic_access(taint_analysis,
+                                      current_color,
+                                      current_reg_index,
+                                      taint_interval,
+                                      ADD);
+
+        if (taint_analysis->colors[current_color].callback_info->exception_flag
+            & DO_TAINT_REG_CB)
+        {
+          vm_mngr->exception_flags |= EXCEPT_TAINT_REG;
+          taint_update_register_callback_info(taint_analysis,
+                                              current_color,
+                                              current_reg_index,
+                                              taint_interval,
+                                              TAINT_EVENT
+                                              );
+        }
+    }
+    else
+    {
+        // Remove previous taint
+        rb_node = rb_first(taint_interval_tree_before);
+
+        while(rb_node != NULL)
+        {
+            node = rb_entry(rb_node, struct interval_tree_node, rb);
+            taint_register_generic_access(taint_analysis,
+                                          current_color,
+                                          current_reg_index,
+                                          node->interval,
+                                          REMOVE);
+            rb_node = rb_next(rb_node);
+        }
+
+        // Add new taint
+        rb_node = rb_first(taint_interval_tree_new);
+
+        while(rb_node != NULL)
+        {
+            node = rb_entry(rb_node, struct interval_tree_node, rb);
+            taint_register_generic_access(taint_analysis,
+                                          current_color,
+                                          current_reg_index,
+                                          node->interval,
+                                          ADD);
+            rb_node = rb_next(rb_node);
+            // Update TAINT callback information
+            if (taint_analysis->colors[current_color].callback_info->exception_flag
+                & DO_TAINT_REG_CB)
+            {
+                vm_mngr->exception_flags |= EXCEPT_TAINT_REG;
+                taint_update_register_callback_info(taint_analysis,
+                                                    current_color,
+                                                    current_reg_index,
+                                                    node->interval,
+                                                    TAINT_EVENT);
+            }
+        }
+
+        // Update untaint callback information
+        if (taint_analysis->colors[current_color].callback_info->exception_flag
+            & DO_UNTAINT_REG_CB)
+        {
+            // Remove taint_interval_tree_new from taint_interval_tree_before
+            rb_node = rb_first(taint_interval_tree_new);
+
+            while(rb_node != NULL)
+            {
+                node = rb_entry(rb_node, struct interval_tree_node, rb);
+                interval_tree_sub(taint_interval_tree_before, node->interval);
+                rb_node = rb_next(rb_node);
+            }
+
+
+            // What is left in taint_interval_tree_before was remove from
+            // register taint
+            rb_node = rb_first(taint_interval_tree_before);
+
+            while(rb_node != NULL)
+            {
+                node = rb_entry(rb_node, struct interval_tree_node, rb);
+                vm_mngr->exception_flags |= EXCEPT_UNTAINT_REG;
+                taint_update_register_callback_info(taint_analysis,
+                                                    current_color,
+                                                    current_reg_index,
+                                                    node->interval,
+                                                    UNTAINT_EVENT);
+                rb_node = rb_next(rb_node);
+            }
+        }
+    }
+}
+
+void
 taint_color_init_memory(struct taint_color_t *color)
 {
     color->memory = calloc(1, sizeof(*color->memory));
@@ -255,6 +365,112 @@ taint_color_remove_all_memory(struct taint_t *colors, uint64_t color_index)
     *(colors->colors[color_index].memory) = interval_tree_new();
 }
 
+void
+taint_memory(uint64_t fully_tainted,
+             uint64_t current_mem_addr,
+             uint64_t current_mem_size,
+             uint64_t current_color,
+             struct taint_t* taint_analysis,
+             vm_mngr_t* vm_mngr,
+             struct rb_root* taint_interval_tree_before,
+             struct rb_root* taint_interval_tree_new)
+{
+    struct rb_node *rb_node;
+    struct interval_tree_node *node;
+    struct interval taint_interval;
+
+    if (fully_tainted)
+    {
+        taint_interval.start = current_mem_addr;
+        taint_interval.last = current_mem_addr + (current_mem_size - 1);
+        taint_memory_generic_access(taint_analysis,
+                                    current_color,
+                                    taint_interval,
+                                    ADD);
+        if (taint_analysis->colors[current_color].callback_info->exception_flag
+            & DO_TAINT_MEM_CB)
+        {
+            vm_mngr->exception_flags |= EXCEPT_TAINT_MEM;
+            taint_update_memory_callback_info(taint_analysis,
+                                              current_color,
+                                              taint_interval,
+                                              TAINT_EVENT);
+        }
+    }
+    else
+    {
+        // Remove previous taint
+        rb_node = rb_first(taint_interval_tree_before);
+
+        while(rb_node != NULL)
+        {
+            node = rb_entry(rb_node, struct interval_tree_node, rb);
+            taint_memory_generic_access(taint_analysis,
+                                        current_color,
+                                        node->interval,
+                                        REMOVE);
+            rb_node = rb_next(rb_node);
+        }
+
+        // Add new taint
+        rb_node = rb_first(taint_interval_tree_new);
+
+        while(rb_node != NULL)
+        {
+            node = rb_entry(rb_node, struct interval_tree_node, rb);
+            taint_interval.start = current_mem_addr + node->interval.start;
+            taint_interval.last = current_mem_addr + node->interval.last;
+            taint_memory_generic_access(taint_analysis,
+                                        current_color,
+                                        taint_interval,
+                                        ADD);
+            rb_node = rb_next(rb_node);
+            // Update TAINT callback information
+            if (taint_analysis->colors[current_color].callback_info->exception_flag
+                & DO_TAINT_MEM_CB)
+            {
+                vm_mngr->exception_flags |= EXCEPT_TAINT_MEM;
+                taint_update_memory_callback_info(taint_analysis,
+                                                  current_color,
+                                                  taint_interval,
+                                                  TAINT_EVENT);
+            }
+        }
+
+        // Update untaint callback information
+        if (taint_analysis->colors[current_color].callback_info->exception_flag
+            & DO_UNTAINT_MEM_CB)
+        {
+            // Remove taint_interval_tree_new from taint_interval_tree_before
+            rb_node = rb_first(taint_interval_tree_new);
+
+            while(rb_node != NULL)
+            {
+                node = rb_entry(rb_node, struct interval_tree_node, rb);
+                taint_interval.start = node->interval.start + current_mem_addr;
+                taint_interval.last = node->interval.last + current_mem_addr;
+                interval_tree_sub(taint_interval_tree_before, taint_interval);
+                rb_node = rb_next(rb_node);
+            }
+
+
+            // What is left in taint_interval_tree_before was remove from
+            // register taint
+            rb_node = rb_first(taint_interval_tree_before);
+
+            while(rb_node != NULL)
+            {
+                node = rb_entry(rb_node, struct interval_tree_node, rb);
+                vm_mngr->exception_flags |= EXCEPT_UNTAINT_MEM;
+                taint_update_memory_callback_info(taint_analysis,
+                                                  current_color,
+                                                  node->interval,
+                                                  UNTAINT_EVENT);
+                rb_node = rb_next(rb_node);
+            }
+        }
+    }
+}
 
 /* Callback info */
 struct taint_callback_info_t *

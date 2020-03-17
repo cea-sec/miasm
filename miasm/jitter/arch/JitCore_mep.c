@@ -13,7 +13,6 @@
 #include "../JitCore.h"
 #include "JitCore_mep.h"
 
-#define PYTHON_CLASS_NAME "JitCore_mep"
 
 reg_dict gpreg_dict[] = {
 	{.name = "R0", .offset = offsetof(struct vm_cpu, R0), .size = 32},
@@ -483,7 +482,7 @@ static PyGetSetDef JitCpu_getseters[] = {
 
 static PyTypeObject JitCpuType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    PYTHON_CLASS_NAME".JitCpu",/*tp_name*/
+    "JitCore_mep.JitCpu",   /*tp_name*/
     sizeof(JitCpu),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)JitCpu_dealloc,/*tp_dealloc*/
@@ -535,11 +534,12 @@ static PyMethodDef JitCore_mep_Methods[] = {
 };
 
 
+
 MOD_INIT(JitCore_mep)
 {
 	PyObject *module = NULL;
 
-	MOD_DEF(module, PYTHON_CLASS_NAME, PYTHON_CLASS_NAME" module", JitCore_mep_Methods);
+	MOD_DEF(module, "JitCore_mep", "JitCore_mep module", JitCore_mep_Methods);
 
 	if (module == NULL)
 		RET_MODULE;

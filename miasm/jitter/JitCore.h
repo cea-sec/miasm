@@ -189,7 +189,6 @@
 	 "X"}, \
 
 
-//#ifdef TAINT
 #define DEFAULT_GETSETERS {"vmmngr", \
      (getter)JitCpu_get_vmmngr, (setter)JitCpu_set_vmmngr, \
      "vmmngr", \
@@ -202,22 +201,6 @@
      (getter)JitCpu_get_taint, (setter)JitCpu_set_taint, \
      "taint", \
      NULL}, \
-
-
-/*
-#else
-#define DEFAULT_GETSETERS {"vmmngr", \
-     (getter)JitCpu_get_vmmngr, (setter)JitCpu_set_vmmngr, \
-     "vmmngr", \
-     NULL}, \
-    {"jitter", \
-     (getter)JitCpu_get_jitter, (setter)JitCpu_set_jitter, \
-     "jitter", \
-     NULL}, \
-
-
-#endif
-*/
 
 typedef struct {
 	uint8_t is_local;
@@ -251,10 +234,8 @@ PyObject * JitCpu_get_vmcpu(JitCpu *self, void *closure);
 PyObject * JitCpu_set_vmcpu(JitCpu *self, PyObject *value, void *closure);
 PyObject * JitCpu_get_jitter(JitCpu *self, void *closure);
 PyObject * JitCpu_set_jitter(JitCpu *self, PyObject *value, void *closure);
-//#ifdef TAINT
 PyObject * JitCpu_get_taint(JitCpu *self, void *closure);
 PyObject * JitCpu_set_taint(JitCpu *self, PyObject *value, void *closure);
-//#endif
 void Resolve_dst(block_id* BlockDst, uint64_t addr, uint64_t is_local);
 
 #define Resolve_dst(b, arg_addr, arg_is_local) do {(b)->address = (arg_addr); (b)->is_local = (arg_is_local);} while(0)

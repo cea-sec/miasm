@@ -12,7 +12,6 @@
 #include "JitCore_mips32.h"
 
 
-#define PYTHON_CLASS_NAME "JitCore_mips32"
 
 reg_dict gpreg_dict[] = { {.name = "ZERO", .offset = offsetof(struct vm_cpu, ZERO), .size = 32},
 			  {.name = "AT", .offset = offsetof(struct vm_cpu, AT), .size = 32},
@@ -383,7 +382,7 @@ static PyGetSetDef JitCpu_getseters[] = {
 
 static PyTypeObject JitCpuType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    PYTHON_CLASS_NAME".JitCpu",/*tp_name*/
+    "JitCore_mips32.JitCpu",   /*tp_name*/
     sizeof(JitCpu),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)JitCpu_dealloc,/*tp_dealloc*/
@@ -435,11 +434,14 @@ static PyMethodDef JitCore_mips32_Methods[] = {
 };
 
 
+
+
+
 MOD_INIT(JitCore_mips32)
 {
 	PyObject *module = NULL;
 
-	MOD_DEF(module, PYTHON_CLASS_NAME, PYTHON_CLASS_NAME" module", JitCore_mips32_Methods);
+	MOD_DEF(module, "JitCore_mips32", "JitCore_mips32 module", JitCore_mips32_Methods);
 
 	if (module == NULL)
 		RET_MODULE;

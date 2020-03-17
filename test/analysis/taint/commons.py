@@ -4,7 +4,7 @@ from miasm.core import parse_asm
 from miasm.core.asmblock import asm_resolve_final
 from miasm.analysis.machine import Machine
 import miasm.jitter.csts as csts
-import miasm.analysis.taint as taint
+from miasm.analysis.taint_helpers import enable_taint_analysis
 from miasm.core.interval import interval
 
 ## CSTS
@@ -34,7 +34,7 @@ def create_jitter():
     jitter.vm.add_memory_page(data_addr, csts.PAGE_READ | csts.PAGE_WRITE, b'0'*200)
     jitter.add_breakpoint(0x1337beef, code_sentinelle)
     jitter.push_uint32_t(0x1337beef)
-    taint.enable_taint_analysis(jitter, nb_colors)
+    enable_taint_analysis(jitter, nb_colors)
     return jitter
 
 def assemble_code(code_str):

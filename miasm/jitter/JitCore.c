@@ -8,9 +8,7 @@
 #include "vm_mngr.h"
 #include "bn.h"
 #include "vm_mngr_py.h"
-//#ifdef TAINT
 #include "../analysis/taint.h"
-//#endif
 #include "JitCore.h"
 
 
@@ -79,7 +77,6 @@ PyObject * JitCpu_set_jitter(JitCpu *self, PyObject *value, void *closure)
 	return 0;
 }
 
-//#ifdef TAINT
 PyObject * JitCpu_get_taint(JitCpu *self, void *closure)
 {
 	if (self->taint) {
@@ -95,7 +92,6 @@ PyObject * JitCpu_set_taint(JitCpu *self, PyObject *value, void *closure)
 	self->taint = (PyTaint*)value;
 	return 0;
 }
-//#endif
 
 uint8_t MEM_LOOKUP_08(JitCpu* jitcpu, uint64_t addr)
 {

@@ -12,7 +12,6 @@
 #include "JitCore_aarch64.h"
 
 
-#define PYTHON_CLASS_NAME "JitCore_aarch64"
 
 reg_dict gpreg_dict[] = {
 	{.name = "X0", .offset = offsetof(struct vm_cpu, X0), .size = 64},
@@ -429,7 +428,7 @@ static PyGetSetDef JitCpu_getseters[] = {
 
 static PyTypeObject JitCpuType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    PYTHON_CLASS_NAME".JitCpu",  /*tp_name*/
+    "JitCore_aarch64.JitCpu",  /*tp_name*/
     sizeof(JitCpu),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)JitCpu_dealloc,/*tp_dealloc*/
@@ -469,6 +468,7 @@ static PyTypeObject JitCpuType = {
 };
 
 
+
 static PyMethodDef JitCore_aarch64_Methods[] = {
 	{"get_gpreg_offset_all", (PyCFunction)get_gpreg_offset_all, METH_NOARGS},
 	{NULL, NULL, 0, NULL}        /* Sentinel */
@@ -476,11 +476,12 @@ static PyMethodDef JitCore_aarch64_Methods[] = {
 };
 
 
+
 MOD_INIT(JitCore_aarch64)
 {
 	PyObject *module = NULL;
 
-	MOD_DEF(module, PYTHON_CLASS_NAME, PYTHON_CLASS_NAME" module", JitCore_aarch64_Methods);
+	MOD_DEF(module, "JitCore_aarch64", "JitCore_aarch64 module", JitCore_aarch64_Methods);
 
 	if (module == NULL)
 		RET_MODULE;
@@ -494,3 +495,4 @@ MOD_INIT(JitCore_aarch64)
 
 	RET_MODULE;
 }
+

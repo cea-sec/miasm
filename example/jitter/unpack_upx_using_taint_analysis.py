@@ -7,6 +7,10 @@ from miasm.analysis.sandbox import Sandbox_Win_x86_32
 
 from miasm.os_dep.common import get_win_str_a
 
+from miasm.analysis.taint_helpers import enable_taint_analysis, display_all_taint
+from miasm.jitter.csts import EXCEPT_TAINT_MEM
+
+
 # User defined methods
 
 def kernel32_GetProcAddress(jitter):
@@ -63,13 +67,13 @@ def start_analysis(jitter, libs, libbase, fname):
 
 
 def on_taint_memory(jitter):
-    taint.display_all_taint(jitter)
+    display_all_taint(jitter)
     last_mem = jitter.taint.last_tainted_memory(0)
     addr, size = last_mem[0]
     print("\t[>] FOUND : %x->%s" % (addr, fname_global))
     lib_add_dst_ad(libs_global, libbase_global, fname_global, addr) # Add the import (use during PE rebuild)
     jitter.taint.untaint_all()
-    jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_MEM))
+    jitter.vm.set_exception(jitter.vm.get_exception() & (~EXCEPT_TAINT_MEM))
     jitter.jit.log_mn = False
     return True
 
@@ -134,13 +138,10 @@ def update_binary(jitter):
 sb.jitter.add_breakpoint(end_offset, update_binary)
 
 #####################TAINT##########################
-import miasm.analysis.taint as taint
-
-taint.enable_taint_analysis(sb.jitter)
+enable_taint_analysis(sb.jitter)
 color_index = 0
 
-import miasm.jitter.csts as csts
-sb.jitter.add_exception_handler(csts.EXCEPT_TAINT_MEM, on_taint_memory)
+sb.jitter.add_exception_handler(EXCEPT_TAINT_MEM, on_taint_memory)
 sb.jitter.taint.enable_taint_mem_cb(color_index)
 ####################################################
 

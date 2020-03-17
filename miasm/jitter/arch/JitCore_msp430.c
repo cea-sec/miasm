@@ -10,7 +10,6 @@
 #include "../JitCore.h"
 #include "JitCore_msp430.h"
 
-#define PYTHON_CLASS_NAME "JitCore_msp430"
 
 reg_dict gpreg_dict[] = { {.name = "PC", .offset = offsetof(struct vm_cpu, PC)},
 			  {.name = "SP", .offset = offsetof(struct vm_cpu, SP)},
@@ -212,7 +211,7 @@ static PyMemberDef JitCpu_members[] = {
 static PyMethodDef JitCpu_methods[] = {
 	DEFAULT_METHODS
 	{"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS,
-	"X"},
+	 "X"},
 	{NULL}  /* Sentinel */
 };
 
@@ -329,7 +328,7 @@ static PyGetSetDef JitCpu_getseters[] = {
 
 static PyTypeObject JitCpuType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    PYTHON_CLASS_NAME".JitCpu",/*tp_name*/
+    "JitCore_msp430.JitCpu",   /*tp_name*/
     sizeof(JitCpu),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)JitCpu_dealloc,/*tp_dealloc*/
@@ -381,11 +380,13 @@ static PyMethodDef JitCore_msp430_Methods[] = {
 };
 
 
+
+
 MOD_INIT(JitCore_msp430)
 {
 	PyObject *module = NULL;
 
-	MOD_DEF(module, PYTHON_CLASS_NAME, PYTHON_CLASS_NAME" module", JitCore_msp430_Methods);
+	MOD_DEF(module, "JitCore_msp430", "JitCore_msp430 module", JitCore_msp430_Methods);
 
 	if (module == NULL)
 		RET_MODULE;

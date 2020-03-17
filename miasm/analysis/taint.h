@@ -2,6 +2,7 @@
 #define TAINT_H
 
 #include "../jitter/interval_tree/interval_tree.h"
+#include "../jitter/vm_mngr.h"
 
 #if _WIN32
 #define _MIASM_EXPORT __declspec(dllexport)
@@ -86,6 +87,14 @@ void taint_remove_all_registers(struct taint_t *colors);
 void taint_color_remove_all_registers(struct taint_t *colors,
                       uint64_t color_index
                       );
+_MIASM_EXPORT void taint_register(uint64_t fully_tainted,
+                                  uint64_t current_reg_index,
+                                  uint64_t current_reg_size,
+                                  uint64_t current_color,
+                                  struct taint_t* taint_analysis,
+                                  vm_mngr_t* vm_mngr,
+                                  struct rb_root* taint_interval_tree_before,
+                                  struct rb_root* taint_interval_tree_new);
 
 /* Memory */
 _MIASM_EXPORT void taint_memory_generic_access(struct taint_t *colors,
@@ -98,6 +107,14 @@ _MIASM_EXPORT struct rb_root taint_get_memory(struct taint_t *colors,
 void taint_remove_all_memory(struct taint_t *colors);
 void taint_color_remove_all_memory(struct taint_t *colors, uint64_t color_index);
 void taint_color_init_memory(struct taint_color_t *color);
+_MIASM_EXPORT void taint_memory(uint64_t fully_tainted,
+                                uint64_t current_mem_addr,
+                                uint64_t current_mem_size,
+                                uint64_t current_color,
+                                struct taint_t* taint_analysis,
+                                vm_mngr_t* vm_mngr,
+                                struct rb_root* taint_interval_tree_before,
+                                struct rb_root* taint_interval_tree_new);
 
 /* Callback information */
 struct taint_callback_info_t *taint_init_callback_info(uint64_t nb_registers,

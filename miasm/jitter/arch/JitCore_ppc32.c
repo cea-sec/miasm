@@ -10,8 +10,6 @@
 #include "../JitCore.h"
 #include "JitCore_ppc32.h"
 
-#define PYTHON_CLASS_NAME "JitCore_ppc32"
-
 reg_dict gpreg_dict[] = {
 #define JITCORE_PPC_REG_EXPAND(_name, _size)				\
     { .name = #_name, .offset = offsetof(struct vm_cpu, _name), .size = _size },
@@ -169,8 +167,7 @@ static PyMemberDef JitCpu_members[] = {
 
 static PyMethodDef JitCpu_methods[] = {
     DEFAULT_METHODS
-    {"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS,
-     "X"},
+    {"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS, "X"},
     {"get_spr_access", (PyCFunction)cpu_get_spr_access, METH_VARARGS, "X"},
     {NULL}  /* Sentinel */
 };
@@ -218,7 +215,7 @@ static PyGetSetDef JitCpu_getseters[] = {
 
 static PyTypeObject JitCpuType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    PYTHON_CLASS_NAME".JitCpu",/*tp_name*/
+    "JitCore_ppc.JitCpu",      /*tp_name*/
     sizeof(JitCpu),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)JitCpu_dealloc,/*tp_dealloc*/
@@ -265,11 +262,12 @@ static PyMethodDef JitCore_ppc32_Methods[] = {
 };
 
 
+
 MOD_INIT(JitCore_ppc32)
 {
 	PyObject *module = NULL;
 
-	MOD_DEF(module, PYTHON_CLASS_NAME, PYTHON_CLASS_NAME" module", JitCore_ppc32_Methods);
+	MOD_DEF(module, "JitCore_ppc32", "JitCore_ppc32 module", JitCore_ppc32_Methods);
 
 	if (module == NULL)
 		RET_MODULE;
