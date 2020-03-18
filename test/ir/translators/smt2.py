@@ -43,8 +43,8 @@ e_z3 = t_z3.from_expr(e)
 smt2 = t_smt2.to_smt2([t_smt2.from_expr(e)])
 
 # parse smt2 string with z3
-smt2_z3 = parse_smt2_string(smt2)
-
+result = parse_smt2_string(smt2)
+smt2_z3 = result[0]
 # initialise SMT solver
 s = Solver()
 

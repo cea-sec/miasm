@@ -24,13 +24,12 @@ def check_interp(interp, constraints, bits=32, valbits=8):
     constraints = dict((addr,
                         z3.BitVecVal(val, valbits))
                        for addr, val in constraints)
-    l = interp.as_list()
-    for entry in l:
-        if not isinstance(entry, list) or len(entry) < 2:
-            continue
-        addr, value = entry[0], entry[1]
-        if addr.as_long() in constraints:
-            assert equiv(value, constraints[addr.as_long()])
+    entry = interp.children()
+    assert len(entry) == 3
+    _, addr, value = entry
+    addr = addr.as_long()
+    assert addr in constraints
+    assert equiv(value, constraints[addr])
 
 # equiv short test
 # --------------------------------------------------------------------------
@@ -100,7 +99,7 @@ solver.add(ez3 == 10)
 solver.check()
 model = solver.model()
 check_interp(model[mem.get_mem_array(32)],
-             [(0xdeadbeef, 2), (0xdeadbeef + 3, 0)])
+             [(0xdeadbeef, 2)])
 
 # --------------------------------------------------------------------------
 ez3 = translator2.from_expr(e4)
@@ -116,7 +115,7 @@ solver.add(ez3 == 10)
 solver.check()
 model = solver.model()
 check_interp(model[memb.get_mem_array(32)],
-             [(0xdeadbeef, 0), (0xdeadbeef + 3, 2)])
+             [(0xdeadbeef+3, 2)])
 
 # --------------------------------------------------------------------------
 e5 = ExprSlice(ExprCompose(e, four), 0, 32) * five
