@@ -457,6 +457,7 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
     (ExprOp("signExt_16", ExprInt(-0x8, 8)), ExprInt(-0x8, 16)),
 
     (ExprCond(a8.zeroExtend(32), a, b), ExprCond(a8, a, b)),
+    (ExprCond(a8, bi1, bi0).zeroExtend(32), ExprCond(a8, i1, i0)),
 
 
     (- (i2*a), a * im2),
