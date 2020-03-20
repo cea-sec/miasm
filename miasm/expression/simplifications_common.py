@@ -906,6 +906,15 @@ def simp_cond_flag(_, expr):
     return expr
 
 
+def simp_sub_cf_zero(_, expr):
+    """FLAG_SUB_CF(0, X) => (X)?1:0"""
+    if not expr.is_op("FLAG_SUB_CF"):
+        return expr
+    if not expr.args[0].is_int(0):
+        return expr
+    return ExprCond(expr.args[1], ExprInt(1, 1), ExprInt(0, 1))
+
+
 def simp_cmp_int(expr_simp, expr):
     """
     ({X, 0} == int) => X == int[:]
@@ -1360,6 +1369,23 @@ def simp_ext_cst(_, expr):
         ret = int(mod_size2int[arg.size](int(arg)))
     ret = ExprInt(ret, expr.size)
     return ret
+
+
+
+def simp_ext_cond_int(e_s, expr):
+    """
+    zeroExt(ExprCond(X, Int, Int)) => ExprCond(X, Int, Int)
+    """
+    if not (expr.op.startswith("zeroExt") or expr.op.startswith("signExt")):
+        return expr
+    arg = expr.args[0]
+    if not arg.is_cond():
+        return expr
+    if not (arg.src1.is_int() and arg.src2.is_int()):
+        return expr
+    src1 = ExprOp(expr.op, arg.src1)
+    src2 = ExprOp(expr.op, arg.src2)
+    return e_s(ExprCond(arg.cond, src1, src2))
 
 
 def simp_slice_of_ext(_, expr):
