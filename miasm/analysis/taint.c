@@ -199,7 +199,7 @@ taint_register(uint64_t fully_tainted,
     {
         struct interval taint_interval;
         taint_interval.start = 0;
-        taint_interval.last = current_reg_size;
+        taint_interval.last = current_reg_size - 1;
         taint_register_generic_access(taint_analysis,
                                       current_color,
                                       current_reg_index,

@@ -41,7 +41,7 @@ def makeTaintGen(C_Gen, ir_arch):
       current_reg_size = %d;
       current_reg_index = %d;
       taint_interval.start = 0;
-      taint_interval.last = current_reg_size;
+      taint_interval.last = current_reg_size - 1;
       taint_interval_tree_before = taint_get_register_color(taint_analysis,
                                                             current_color,
                                                             current_reg_index,
@@ -294,7 +294,7 @@ def makeTaintGen(C_Gen, ir_arch):
           c_code = []
 
           c_code.append("// Analyse reg")
-          c_code.append(self.CODE_PREPARE_ANALYSE_REG % ((dst.size/8 - 1), self.regs_index[str(dst)]))
+          c_code.append(self.CODE_PREPARE_ANALYSE_REG % (bits2bytes(dst.size), self.regs_index[str(dst)]))
           c_code += self.gen_taint_calculation(src, prefetchers)
           c_code.append(self.CODE_TAINT_REG)
 
@@ -423,7 +423,7 @@ def test_cond_op_compose_slice_not_addr(expr, read):
         new_last = old_start
         for element in expr.args:
             new_start = new_last
-            new_last = new_start + (element.size/8 - 1)
+            new_last = new_start + (bits2bytes(element.size) - 1)
             new_composition = dict()
             new_composition["start"]  = new_start
             new_composition["full"] = get_read_elements_in_addr_with_real_size(None, element)
@@ -445,3 +445,6 @@ def test_cond_op_compose_slice_not_addr(expr, read):
     #else:
     #    only ExprInt left
     return True
+
+def bits2bytes(nb_bits):
+    return nb_bits//8 + (1 if nb_bits%8 else 0)
