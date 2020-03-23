@@ -12,7 +12,9 @@ def init_registers_index(jitter):
     regs_index = dict()
     regs_name = dict()
     index = 0
-    for reg in jitter.arch.regs.all_regs_ids_byname.keys():
+    regs = list(jitter.arch.regs.all_regs_ids_byname.keys())
+    regs.sort()
+    for reg in regs:
         regs_index[reg] = index
         regs_name[index] = reg
         index += 1

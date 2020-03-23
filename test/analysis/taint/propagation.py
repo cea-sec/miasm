@@ -128,8 +128,8 @@ def test_taint_propagation():
         check_mem(interval(mems), interval([(0X123FFC8, 0X123FFC8+3), (0X123FFD0, 0X123FFD0+7)]))
         regs, mems = jitter.taint.get_all_taint(blue)
         assert len(regs) == 2
-        check_reg(regs[1], jitter, "RDX", interval([(0, 3)]))
         check_reg(regs[0], jitter, "RCX", interval([(0, 3)]))
+        check_reg(regs[1], jitter, "RDX", interval([(0, 3)]))
         check_mem(interval(mems), interval([(0X123FFCC, 0X123FFCC+7)]))
         jitter.taint.untaint_all()
         return True

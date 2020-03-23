@@ -36,9 +36,9 @@ def test_callbacks():
 
         last_regs = jitter.taint.last_tainted_registers(red)
         assert len(last_regs) == 3
-        check_reg(last_regs[0], jitter, "zf", interval([(0, 0)]))
-        check_reg(last_regs[2], jitter, "pf", interval([(0, 0)]))
-        check_reg(last_regs[1], jitter, "nf", interval([(0, 0)]))
+        check_reg(last_regs[1], jitter, "pf", interval([(0, 0)]))
+        check_reg(last_regs[0], jitter, "nf", interval([(0, 0)]))
+        check_reg(last_regs[2], jitter, "zf", interval([(0, 0)]))
         last_regs = jitter.taint.last_untainted_registers(red)
         assert len(last_regs) == 1
         check_reg(last_regs[0], jitter, "of", interval([(0, 0)]))
@@ -79,9 +79,9 @@ def test_callbacks():
 
         last_regs = jitter.taint.last_tainted_registers(red)
         assert len(last_regs) == 3
-        check_reg(last_regs[0], jitter, "zf", interval([(0, 0)]))
-        check_reg(last_regs[2], jitter, "pf", interval([(0, 0)]))
-        check_reg(last_regs[1], jitter, "nf", interval([(0, 0)]))
+        check_reg(last_regs[0], jitter, "nf", interval([(0, 0)]))
+        check_reg(last_regs[1], jitter, "pf", interval([(0, 0)]))
+        check_reg(last_regs[2], jitter, "zf", interval([(0, 0)]))
         last_regs = jitter.taint.last_untainted_registers(red)
         assert len(last_regs) == 1
         check_reg(last_regs[0], jitter, "of", interval([(0, 0)]))
