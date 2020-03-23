@@ -3409,8 +3409,6 @@ def l_sysenter(_, instr):
 def l_syscall(_, instr):
     e = []
     e.append(m2_expr.ExprAssign(exception_flags,
-                             m2_expr.ExprInt(EXCEPT_PRIV_INSN, 32)))
-    e.append(m2_expr.ExprAssign(exception_flags,
                              m2_expr.ExprInt(EXCEPT_SYSCALL, 32)))
     return e, []
 
