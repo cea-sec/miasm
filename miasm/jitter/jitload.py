@@ -26,6 +26,7 @@ try:
 except ImportError:
     log.error('cannot import VmMngr')
 
+
 def named_arguments(func):
     """Function decorator to allow the use of .func_args_*() methods
     with either the number of arguments or the list of the argument
@@ -207,7 +208,6 @@ class Jitter(object):
                 from miasm.jitter.arch import JitCore_mep as jcore
             else:
                 raise ValueError("unknown jit arch: %s" % arch_name)
-
         except ImportError:
             raise RuntimeError('Unsupported jit arch: %s' % arch_name)
 
@@ -242,6 +242,7 @@ class Jitter(object):
             # Only GCC supports taint analysis for now
             self.jit = JitCore(self.ir_arch, self.bs, taint)
         else:
+            raise NotImplementedError('Jitter %s does not support taint analysis' % jit_type)
             self.jit = JitCore(self.ir_arch, self.bs)
 
         if isinstance(self.jit, JitCore_Cc_Base):

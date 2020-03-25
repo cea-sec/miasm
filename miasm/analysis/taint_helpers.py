@@ -7,7 +7,7 @@ from miasm.analysis.taint_codegen import makeTaintGen
 
 
 def init_registers_index(jitter):
-    """ Associate register names with an index (needed during JiT) """
+    """Associate register names with an index (needed during JiT)"""
 
     regs_index = dict()
     regs_name = dict()
@@ -23,7 +23,7 @@ def init_registers_index(jitter):
     return len(regs_index)
 
 def enable_taint_analysis(jitter, nb_colors=1):
-    """ Init all component of the taint analysis engine """
+    """Init all component of the taint analysis engine"""
 
     # Enable generation of C code analysing taint
     jitter.jit.codegen = makeTaintGen(jitter.C_Gen, jitter.ir_arch)
