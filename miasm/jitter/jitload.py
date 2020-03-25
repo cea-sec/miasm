@@ -222,10 +222,6 @@ class Jitter(object):
         )
         self.symbexec.reset_regs()
 
-        if taint:
-            from miasm.analysis import TaintMngr
-            self.taint = TaintMngr.Taint()
-
         try:
             if jit_type == "llvm":
                 from miasm.jitter.jitcore_llvm import JitCore_LLVM as JitCore
@@ -238,11 +234,12 @@ class Jitter(object):
         except ImportError:
             raise RuntimeError('Unsupported jitter: %s' % jit_type)
 
-        if taint and jit_type == "gcc":
-            # Only GCC supports taint analysis for now
-            self.jit = JitCore(self.ir_arch, self.bs, taint)
+        if taint:
+            if jit_type == "gcc":
+                self.jit = JitCore(self.ir_arch, self.bs, taint)
+            else:
+                raise NotImplementedError('Jitter %s does not support taint analysis' % jit_type)
         else:
-            raise NotImplementedError('Jitter %s does not support taint analysis' % jit_type)
             self.jit = JitCore(self.ir_arch, self.bs)
 
         if isinstance(self.jit, JitCore_Cc_Base):
@@ -259,6 +256,8 @@ class Jitter(object):
         self.cpu.vmmngr = self.vm
         self.cpu.jitter = self.jit
         if taint:
+            from miasm.analysis import TaintMngr
+            self.taint = TaintMngr.Taint()
             self.cpu.taint = self.taint
         self.stack_size = 0x10000
         self.stack_base = 0x1230000
