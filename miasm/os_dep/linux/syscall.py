@@ -985,10 +985,6 @@ def syscall_x86_64_exception_handler(linux_env, syscall_callbacks, jitter):
     @linux_env: LinuxEnvironment_x86_64 instance
     @syscall_callbacks: syscall number -> func(jitter, linux_env)
     """
-    # Ensure the jitter has break on a SYSCALL
-    cur_instr = jitter.jit.mdis.dis_instr(jitter.pc)
-    if cur_instr.name != "SYSCALL":
-        return True
 
     # Dispatch to SYSCALL stub
     syscall_number = jitter.cpu.RAX
@@ -1003,7 +999,6 @@ def syscall_x86_64_exception_handler(linux_env, syscall_callbacks, jitter):
     # Clean exception and move pc to the next instruction, to let the jitter
     # continue
     jitter.cpu.set_exception(jitter.cpu.get_exception() ^ EXCEPT_SYSCALL)
-    jitter.pc += cur_instr.l
     return True
 
 
