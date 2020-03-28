@@ -28,7 +28,8 @@ from miasm.arch.x86.arch import mn_x86, repeat_mn, replace_regs
 from miasm.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm.core.sembuilder import SemBuilder
 from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_ILLEGAL_INSN, \
-    EXCEPT_PRIV_INSN, EXCEPT_SOFT_BP, EXCEPT_INT_XX, EXCEPT_INT_1
+    EXCEPT_PRIV_INSN, EXCEPT_SOFT_BP, EXCEPT_INT_XX, EXCEPT_INT_1, \
+    EXCEPT_SYSCALL
 import math
 import struct
 
@@ -3408,7 +3409,7 @@ def l_sysenter(_, instr):
 def l_syscall(_, instr):
     e = []
     e.append(m2_expr.ExprAssign(exception_flags,
-                             m2_expr.ExprInt(EXCEPT_PRIV_INSN, 32)))
+                             m2_expr.ExprInt(EXCEPT_SYSCALL, 32)))
     return e, []
 
 # XXX
