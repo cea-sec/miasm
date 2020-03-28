@@ -183,6 +183,9 @@ class FileDescriptorSocket(FileDescriptor):
         self.type_ = type_
         self.protocol = protocol
 
+    def read(self, count):
+        return b""
+
 
 class FileSystem(object):
     """File system abstraction
