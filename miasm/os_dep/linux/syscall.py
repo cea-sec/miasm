@@ -153,13 +153,20 @@ def sys_x86_32_socket(jitter, linux_env):
         #         socklen_t addrlen);
         fd = jitter.vm.get_u32(jitter.cpu.ESP)
         socklen = jitter.vm.get_u32(jitter.cpu.ESP+8)
-        sockaddr = jitter.vm.get_mem(jitter.cpu.ESP+4, socklen)
+        sockaddr = jitter.vm.get_mem(
+                jitter.vm.get_u32(jitter.cpu.ESP+4),
+                socklen)
         family = struct.unpack("H", sockaddr[0:2])[0]
         if family == 2:
             # IPv4
             port = struct.unpack(">H", sockaddr[2:4])[0]
             ip = ".".join([str(i) for i in struct.unpack("BBBB", sockaddr[4:8])])
-            log.debug("socket_bind(fd, [%s, %i, %s], %i)", SOCKET_DOMAINS[family],
+            log.debug("socket_bind(fd, [%s, %i, %s], %i)", "AF_INET",
+                    port, ip, socklen)
+        elif family == 10:
+            port = struct.unpack(">H", sockaddr[2:4])[0]
+            ip = ".".join([str(i) for i in struct.unpack("B"*16, sockaddr[8:24])])
+            log.debug("socket_bind(fd, [%s, %i, %s], %i)", "AF_INET6",
                     port, ip, socklen)
         else:
             log.debug("socket_bind(fd, sockaddr, socklen_t)")
@@ -169,14 +176,22 @@ def sys_x86_32_socket(jitter, linux_env):
         #           socklen_t addrlen);
         fd = jitter.vm.get_u32(jitter.cpu.ESP)
         socklen = jitter.vm.get_u32(jitter.cpu.ESP+8)
-        # Not the exact size because shellcodes won't provide the full struct
-        sockaddr = jitter.vm.get_mem(jitter.vm.get_u32(jitter.cpu.ESP+4), 8)
+        try:
+            sockaddr = jitter.vm.get_mem(jitter.vm.get_u32(jitter.cpu.ESP+4), 28)
+        except RuntimeError:
+            # Not the exact size because shellcodes won't provide the full struct
+            sockaddr = jitter.vm.get_mem(jitter.vm.get_u32(jitter.cpu.ESP+4), 8)
         family = struct.unpack("H", sockaddr[0:2])[0]
         if family == 2:
             # IPv4
             port = struct.unpack(">H", sockaddr[2:4])[0]
             ip = ".".join([str(i) for i in struct.unpack("BBBB", sockaddr[4:8])])
-            log.debug("socket_connect(fd, [%s, %i, %s], %i)", SOCKET_DOMAINS[family],
+            log.debug("socket_connect(fd, [%s, %i, %s], %i)", "AF_INET",
+                    port, ip, socklen)
+        elif family == 10:
+            port = struct.unpack(">H", sockaddr[2:4])[0]
+            ip = ".".join([str(i) for i in struct.unpack("B"*16, sockaddr[8:24])])
+            log.debug("socket_connect(fd, [%s, %i, %s], %i)", "AF_INET6",
                     port, ip, socklen)
         else:
             log.debug("socket_connect(fd, sockaddr, socklen)")
@@ -207,7 +222,6 @@ def sys_x86_32_socket(jitter, linux_env):
                 optval_addr, optlen)
         jitter.syscall_ret_systemv(0)
     else:
-        print(jitter.cpu.EBX)
         raise NotImplemented()
 
 
