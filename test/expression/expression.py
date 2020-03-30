@@ -17,6 +17,7 @@ assert big_cst.size == 0x1000
 # Possible values
 #- Common constants
 A = ExprId("A", 32)
+B = ExprId("B", 32)
 cond1 = ExprId("cond1", 1)
 cond2 = ExprId("cond2", 16)
 cst1 = ExprInt(1, 32)
@@ -71,3 +72,47 @@ for expr in [
 aff = ExprAssign(A[0:32], cst1)
 
 assert aff.dst == A and aff.src == cst1
+
+
+mem = ExprMem(A, 32)
+assert mem.get_r() == set([mem])
+assert mem.get_r(mem_read=True) == set([mem, A])
+
+C = A+B
+D = C + A
+
+assert A in A
+assert A in C
+assert B in C
+assert C in C
+
+assert A in D
+assert B in D
+assert C in D
+assert D in D
+
+assert C not in A
+assert C not in B
+
+assert D not in A
+assert D not in B
+assert D not in C
+
+
+assert cst1.get_r(cst_read=True) == set([cst1])
+mem1 = ExprMem(A, 32)
+mem2 = ExprMem(mem1 + B, 32)
+assert mem2.get_r() == set([mem2])
+
+assign1 = ExprAssign(A, cst1)
+assert assign1.get_r() == set([])
+
+assign2 = ExprAssign(mem1, D)
+assert assign2.get_r() == set([A, B])
+assert assign2.get_r(mem_read=True) == set([A, B])
+assert assign2.get_w() == set([mem1])
+
+assign3 = ExprAssign(mem1, mem2)
+assert assign3.get_r() == set([mem2])
+assert assign3.get_r(mem_read=True) == set([mem1, mem2, A, B])
+assert assign3.get_w() == set([mem1])

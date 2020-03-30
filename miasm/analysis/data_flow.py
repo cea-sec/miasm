@@ -6,8 +6,8 @@ from future.utils import viewitems, viewvalues
 from miasm.core.utils import encode_hex
 from miasm.core.graph import DiGraph
 from miasm.ir.ir import AssignBlock, IRBlock
-from miasm.expression.expression import ExprLoc, ExprMem, ExprId, ExprInt,\
-    ExprAssign, ExprOp
+from miasm.expression.expression import ExprLoc, ExprMem, ExprSlice, ExprId, \
+    ExprInt, ExprAssign, ExprOp, ExprCompose, ExprCond, ExprWalk
 from miasm.expression.simplifications import expr_simp
 from miasm.core.interval import interval
 from miasm.expression.expression_helper import possible_values
@@ -736,22 +736,16 @@ def expr_test_visit(expr, test):
         return False
 
 
-def expr_has_mem_test(expr, result):
-    if result:
-        # Don't analyse if we already found a candidate
-        return False
-    if expr.is_mem():
-        result.add(expr)
-        return False
-    return True
-
-
 def expr_has_mem(expr):
     """
     Return True if expr contains at least one memory access
     @expr: Expr instance
     """
-    return expr_test_visit(expr, expr_has_mem_test)
+
+    def has_mem(self):
+        return self.is_mem()
+    visitor = ExprWalk(has_mem)
+    return visitor.visit(expr)
 
 
 class PropagateThroughExprId(object):

@@ -4,7 +4,8 @@ from functools import total_ordering
 
 from future.utils import viewitems
 
-from miasm.expression.expression import ExprInt, ExprLoc, ExprAssign
+from miasm.expression.expression import ExprInt, ExprLoc, ExprAssign, \
+    ExprWalk
 from miasm.core.graph import DiGraph
 from miasm.core.locationdb import LocationDB
 from miasm.expression.simplifications import expr_simp_explicit
@@ -449,6 +450,50 @@ class FollowExpr(object):
                    if not(only_follow) or follow_expr.follow)
 
 
+class FilterExprSources(ExprWalk):
+    """
+    Walk Expression to find sources to track
+    @follow_mem: (optional) Track memory syntactically
+    @follow_call: (optional) Track through "call"
+    """
+    def __init__(self, follow_mem, follow_call):
+        super(FilterExprSources, self).__init__(lambda x:None)
+        self.follow_mem = follow_mem
+        self.follow_call = follow_call
+        self.nofollow = set()
+        self.follow = set()
+
+    def visit(self, expr, *args, **kwargs):
+        if expr in self.cache:
+            return None
+        ret = self.visit_inner(expr, *args, **kwargs)
+        self.cache.add(expr)
+        return ret
+
+    def visit_inner(self, expr, *args, **kwargs):
+        if expr.is_id():
+            self.follow.add(expr)
+        elif expr.is_int():
+            self.nofollow.add(expr)
+        elif expr.is_loc():
+            self.nofollow.add(expr)
+        elif expr.is_mem():
+            if self.follow_mem:
+                self.follow.add(expr)
+            else:
+                self.nofollow.add(expr)
+                return None
+        elif expr.is_function_call():
+            if self.follow_call:
+                self.follow.add(expr)
+            else:
+                self.nofollow.add(expr)
+                return None
+
+        ret = super(FilterExprSources, self).visit(expr, *args, **kwargs)
+        return ret
+
+
 class DependencyGraph(object):
 
     """Implementation of a dependency graph
@@ -480,10 +525,14 @@ class DependencyGraph(object):
         self._cb_follow = []
         if apply_simp:
             self._cb_follow.append(self._follow_simp_expr)
-        self._cb_follow.append(lambda exprs: self._follow_exprs(exprs,
-                                                                follow_mem,
-                                                                follow_call))
-        self._cb_follow.append(self._follow_no_loc_key)
+        self._cb_follow.append(lambda exprs: self.do_follow(exprs, follow_mem, follow_call))
+
+    @staticmethod
+    def do_follow(exprs, follow_mem, follow_call):
+        visitor = FilterExprSources(follow_mem, follow_call)
+        for expr in exprs:
+            visitor.visit(expr)
+        return visitor.follow, visitor.nofollow
 
     @staticmethod
     def _follow_simp_expr(exprs):
@@ -493,64 +542,6 @@ class DependencyGraph(object):
         follow = set()
         for expr in exprs:
             follow.add(expr_simp_explicit(expr))
-        return follow, set()
-
-    @staticmethod
-    def get_expr(expr, follow, nofollow):
-        """Update @follow/@nofollow according to insteresting nodes
-        Returns same expression (non modifier visitor).
-
-        @expr: expression to handle
-        @follow: set of nodes to follow
-        @nofollow: set of nodes not to follow
-        """
-        if expr.is_id():
-            follow.add(expr)
-        elif expr.is_int():
-            nofollow.add(expr)
-        elif expr.is_mem():
-            follow.add(expr)
-        return expr
-
-    @staticmethod
-    def follow_expr(expr, _, nofollow, follow_mem=False, follow_call=False):
-        """Returns True if we must visit sub expressions.
-        @expr: expression to browse
-        @follow: set of nodes to follow
-        @nofollow: set of nodes not to follow
-        @follow_mem: force the visit of memory sub expressions
-        @follow_call: force the visit of call sub expressions
-        """
-        if not follow_mem and expr.is_mem():
-            nofollow.add(expr)
-            return False
-        if not follow_call and expr.is_function_call():
-            nofollow.add(expr)
-            return False
-        return True
-
-    @classmethod
-    def _follow_exprs(cls, exprs, follow_mem=False, follow_call=False):
-        """Extracts subnodes from exprs and returns followed/non followed
-        expressions according to @follow_mem/@follow_call
-
-        """
-        follow, nofollow = set(), set()
-        for expr in exprs:
-            expr.visit(lambda x: cls.get_expr(x, follow, nofollow),
-                       lambda x: cls.follow_expr(x, follow, nofollow,
-                                                 follow_mem, follow_call))
-        return follow, nofollow
-
-    @staticmethod
-    def _follow_no_loc_key(exprs):
-        """Do not follow loc_keys"""
-        follow = set()
-        for expr in exprs:
-            if expr.is_int() or expr.is_loc():
-                continue
-            follow.add(expr)
-
         return follow, set()
 
     def _follow_apply_cb(self, expr):

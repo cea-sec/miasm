@@ -450,8 +450,8 @@ def simp_cond_factor(e_s, expr):
     for cond, vals in viewitems(conds):
         new_src1 = [x.src1 for x in vals]
         new_src2 = [x.src2 for x in vals]
-        src1 = e_s.expr_simp_wrapper(ExprOp(expr.op, *new_src1))
-        src2 = e_s.expr_simp_wrapper(ExprOp(expr.op, *new_src2))
+        src1 = e_s.expr_simp(ExprOp(expr.op, *new_src1))
+        src2 = e_s.expr_simp(ExprOp(expr.op, *new_src2))
         c_out.append(ExprCond(cond, src1, src2))
 
     if len(c_out) == 1:
@@ -521,7 +521,7 @@ def simp_slice(e_s, expr):
     # distributivity of slice and &
     # (a & int)[x:y] => 0 if int[x:y] == 0
     if expr.arg.is_op("&") and expr.arg.args[-1].is_int():
-        tmp = e_s.expr_simp_wrapper(expr.arg.args[-1][expr.start:expr.stop])
+        tmp = e_s.expr_simp(expr.arg.args[-1][expr.start:expr.stop])
         if tmp.is_int(0):
             return tmp
     # distributivity of slice and exprcond
@@ -536,7 +536,7 @@ def simp_slice(e_s, expr):
 
     # (a * int)[0:y] => (a[0:y] * int[0:y])
     if expr.start == 0 and expr.arg.is_op("*") and expr.arg.args[-1].is_int():
-        args = [e_s.expr_simp_wrapper(a[expr.start:expr.stop]) for a in expr.arg.args]
+        args = [e_s.expr_simp(a[expr.start:expr.stop]) for a in expr.arg.args]
         return ExprOp(expr.arg.op, *args)
 
     # (a >> int)[x:y] => a[x+int:y+int] with int+y <= a.size
