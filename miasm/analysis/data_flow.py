@@ -15,7 +15,7 @@ from miasm.expression.expression_helper import possible_values
 from miasm.analysis.ssa import get_phi_sources_parent_block, \
     irblock_has_phi
 from miasm.ir.symbexec import get_expr_base_offset
-
+from collections import deque
 
 class ReachingDefinitions(dict):
     """
@@ -1940,7 +1940,8 @@ class State(object):
             if self.may_interfer(dsts, node):
                 # Interfer with known equivalence class
                 self.equivalence_classes.del_element(node)
-                self.undefined.add(node)
+                if node.is_id() or node.is_mem():
+                    self.undefined.add(node)
 
 
         # Update equivalence classes
@@ -1953,13 +1954,15 @@ class State(object):
                     to_del.add(node)
             for node in to_del:
                 self.equivalence_classes.del_element(node)
-                self.undefined.add(node)
+                if node.is_id() or node.is_mem():
+                    self.undefined.add(node)
 
             # Don't create equivalence if self interfer
             if self.may_interfer(dsts, src):
                 if dst in self.equivalence_classes.nodes():
                     self.equivalence_classes.del_element(dst)
-                    self.undefined.add(dst)
+                    if dst.is_id() or dst.is_mem():
+                        self.undefined.add(dst)
                 continue
 
             if not self.propagation_allowed(src):
@@ -2017,7 +2020,6 @@ class State(object):
                 if len(common) == 1:
                     if node.is_id() or node.is_mem():
                         assert(node not in nodes_ok)
-
                         undefined.add(node)
                         component2.discard(common.pop())
                     continue
@@ -2071,6 +2073,7 @@ class State(object):
 
         return state
 
+
 class PropagateExpressions(object):
     """
     Propagate expressions
@@ -2107,10 +2110,10 @@ class PropagateExpressions(object):
 
         prev_states = []
         for predecessor in ircfg.predecessors(loc_key):
-            prev_states.append(states[predecessor])
+            prev_states.append((predecessor, states[predecessor]))
 
         filtered_prev_states = []
-        for prev_state in prev_states:
+        for (_, prev_state) in prev_states:
             if prev_state is not None:
                 filtered_prev_states.append(prev_state)
 
@@ -2141,7 +2144,6 @@ class PropagateExpressions(object):
         for index, assignblock in enumerate(irblock):
             if not assignblock.items():
                 continue
-
             new_assignblk = state.eval_assignblock(assignblock)
             new_assignblocks.append(new_assignblk)
             if new_assignblk != assignblock:
@@ -2162,16 +2164,18 @@ class PropagateExpressions(object):
         for loc_key, irblock in irblocks.items():
             states[loc_key] = None
 
-        todo = set([head])
+        todo = deque([head])
         while todo:
-            loc_key = todo.pop()
+            loc_key = todo.popleft()
             irblock = irblocks.get(loc_key)
             if irblock is None:
                 continue
 
             state_orig = states[loc_key]
             state = self.merge_prev_states(ircfg, states, loc_key)
-            new_irblock, _ = self.update_state(irblock, state)
+            state = state.copy()
+
+            new_irblock, modified_irblock = self.update_state(irblock, state)
             if (
                     state_orig is not None and
                     state.equivalence_classes == state_orig.equivalence_classes and
@@ -2179,9 +2183,11 @@ class PropagateExpressions(object):
             ):
                 continue
 
+
             states[loc_key] = state
             # Propagate to sons
-            todo.update(ircfg.successors(loc_key))
+            for successor in ircfg.successors(loc_key):
+                todo.append(successor)
 
         # Update blocks
         todo = set(loc_key for loc_key in irblocks)
