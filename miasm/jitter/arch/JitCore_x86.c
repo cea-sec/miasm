@@ -414,7 +414,7 @@ PyObject* cpu_set_segm_base(JitCpu* self, PyObject* args)
 
 	PyGetInt_uint64_t(item1, segm_num);
 	PyGetInt_uint64_t(item2, segm_base);
-	((struct vm_cpu*)self->cpu)->segm_base[segm_num] = segm_base;
+	((struct vm_cpu*)self->cpu)->segm_base[segm_num & 0xFFFF] = segm_base;
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -429,13 +429,13 @@ PyObject* cpu_get_segm_base(JitCpu* self, PyObject* args)
 	if (!PyArg_ParseTuple(args, "O", &item1))
 		RAISE(PyExc_TypeError,"Cannot parse arguments");
 	PyGetInt_uint64_t(item1, segm_num);
-	v = PyLong_FromLong((long)(((struct vm_cpu*)self->cpu)->segm_base[segm_num]));
+	v = PyLong_FromLong((long)(((struct vm_cpu*)self->cpu)->segm_base[segm_num & 0xFFFF]));
 	return v;
 }
 
 uint64_t segm2addr(JitCpu* jitcpu, uint64_t segm, uint64_t addr)
 {
-	return addr + ((struct vm_cpu*)jitcpu->cpu)->segm_base[segm];
+	return addr + ((struct vm_cpu*)jitcpu->cpu)->segm_base[segm & 0xFFFF];
 }
 
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
