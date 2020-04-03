@@ -14,7 +14,8 @@ from functools import total_ordering
 
 from miasm.core.utils import cmp_elts
 from miasm.expression.expression_reduce import ExprReducer
-from miasm.expression.expression import ExprInt, ExprId, ExprOp, ExprMem
+from miasm.expression.expression import ExprInt, ExprId, ExprOp, ExprMem, \
+    is_op_segm
 
 from miasm.core.ctypesmngr import CTypeUnion, CTypeStruct, CTypeId, CTypePtr,\
     CTypeArray, CTypeOp, CTypeSizeof, CTypeEnum, CTypeFunc, CTypeEllipsis
@@ -1045,7 +1046,7 @@ class ExprToAccessC(ExprReducer):
 
     def reduce_op(self, node, lvl=0, **kwargs):
         """Generate access for ExprOp"""
-        if not (node.expr.is_op("+") or node.expr.is_op_segm()) \
+        if not (node.expr.is_op("+") or is_op_segm(node.expr)) \
            or len(node.args) != 2:
             return None
         type_arg1 = self.get_solo_type(node.args[1])

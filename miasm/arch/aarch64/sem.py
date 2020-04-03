@@ -401,7 +401,7 @@ def movk(ir, instr, arg1, arg2):
         assert(arg2.op == 'slice_at' and
                isinstance(arg2.args[0], ExprInt) and
                isinstance(arg2.args[1], ExprInt))
-        value, shift = int(arg2.args[0].arg), int(arg2.args[1])
+        value, shift = int(arg2.args[0]), int(arg2.args[1])
         e.append(
             ExprAssign(arg1[shift:shift + 16], ExprInt(value, 16)))
     else:
@@ -434,7 +434,7 @@ def csel(arg1, arg2, arg3, arg4):
 def ccmp(ir, instr, arg1, arg2, arg3, arg4):
     e = []
     if(arg2.is_int()):
-        arg2=ExprInt(arg2.arg.arg,arg1.size)
+        arg2=ExprInt(int(arg2),arg1.size)
     default_nf = arg3[0:1]
     default_zf = arg3[1:2]
     default_cf = arg3[2:3]
@@ -697,7 +697,7 @@ def ldp(ir, instr, arg1, arg2, arg3):
 
 def sbfm(ir, instr, arg1, arg2, arg3, arg4):
     e = []
-    rim, sim = int(arg3.arg), int(arg4) + 1
+    rim, sim = int(arg3), int(arg4) + 1
     if sim > rim:
         res = arg2[rim:sim].signExtend(arg1.size)
     else:
@@ -709,7 +709,7 @@ def sbfm(ir, instr, arg1, arg2, arg3, arg4):
 
 def ubfm(ir, instr, arg1, arg2, arg3, arg4):
     e = []
-    rim, sim = int(arg3.arg), int(arg4) + 1
+    rim, sim = int(arg3), int(arg4) + 1
     if sim != arg1.size - 1 and rim == sim:
         # Simple case: lsl
         value = int(rim)
@@ -733,7 +733,7 @@ def ubfm(ir, instr, arg1, arg2, arg3, arg4):
 
 def bfm(ir, instr, arg1, arg2, arg3, arg4):
     e = []
-    rim, sim = int(arg3.arg), int(arg4) + 1
+    rim, sim = int(arg3), int(arg4) + 1
     if sim > rim:
         res = arg2[rim:sim]
         e.append(ExprAssign(arg1[:sim-rim], res))
@@ -1038,7 +1038,7 @@ def rev16(ir, instr, arg1, arg2):
 @sbuild.parse
 def extr(arg1, arg2, arg3, arg4):
     compose = ExprCompose(arg2, arg3)
-    arg1 = compose[int(arg4.arg):int(arg4)+arg1.size]
+    arg1 = compose[int(arg4):int(arg4)+arg1.size]
 
 
 @sbuild.parse

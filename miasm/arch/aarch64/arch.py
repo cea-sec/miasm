@@ -330,19 +330,19 @@ class instruction_aarch64(instruction):
             op_str = expr.op
             return "%s %s %s" % (expr.args[0], op_str, expr.args[1])
         elif isinstance(expr, m2_expr.ExprOp) and expr.op == "postinc":
-            if expr.args[1].arg != 0:
+            if int(expr.args[1]) != 0:
                 return "[%s], %s" % (expr.args[0], expr.args[1])
             else:
                 return "[%s]" % (expr.args[0])
         elif isinstance(expr, m2_expr.ExprOp) and expr.op == "preinc_wb":
-            if expr.args[1].arg != 0:
+            if int(expr.args[1]) != 0:
                 return "[%s, %s]!" % (expr.args[0], expr.args[1])
             else:
                 return "[%s]" % (expr.args[0])
         elif isinstance(expr, m2_expr.ExprOp) and expr.op == "preinc":
             if len(expr.args) == 1:
                 return "[%s]" % (expr.args[0])
-            elif not isinstance(expr.args[1], m2_expr.ExprInt) or expr.args[1].arg != 0:
+            elif not isinstance(expr.args[1], m2_expr.ExprInt) or int(expr.args[1]) != 0:
                 return "[%s, %s]" % (expr.args[0], expr.args[1])
             else:
                 return "[%s]" % (expr.args[0])
@@ -350,7 +350,7 @@ class instruction_aarch64(instruction):
             arg = expr.args[1]
             if isinstance(arg, m2_expr.ExprId):
                 arg = str(arg)
-            elif arg.op == 'LSL' and arg.args[1].arg == 0:
+            elif arg.op == 'LSL' and int(arg.args[1]) == 0:
                 arg = str(arg.args[0])
             else:
                 arg = "%s %s %s" % (arg.args[0], arg.op, arg.args[1])
@@ -375,7 +375,7 @@ class instruction_aarch64(instruction):
         expr = self.args[index]
         if not expr.is_int():
             return
-        addr = expr.arg + self.offset
+        addr = (int(expr) + self.offset) & 0xFFFFFFFFFFFFFFFF
         loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[index] = m2_expr.ExprLoc(loc_key, expr.size)
 
@@ -403,7 +403,7 @@ class instruction_aarch64(instruction):
         if not isinstance(e, m2_expr.ExprInt):
             log.debug('dyn dst %r', e)
             return
-        off = e.arg - self.offset
+        off = (int(e) + 0x10000000000000000 - self.offset) & 0xFFFFFFFFFFFFFFFF
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
         self.args[index] = m2_expr.ExprInt(int(off), 64)
@@ -643,7 +643,7 @@ class aarch64_gpreg0(bsi, aarch64_arg):
 
     def encode(self):
         if isinstance(self.expr, m2_expr.ExprInt):
-            if self.expr.arg == 0:
+            if int(self.expr) == 0:
                 self.value = 0x1F
                 return True
             return False
@@ -793,7 +793,7 @@ def set_imm_to_size(size, expr):
     if size > expr.size:
         expr = m2_expr.ExprInt(int(expr), size)
     else:
-        if expr.arg > (1 << size) - 1:
+        if int(expr) > (1 << size) - 1:
             return None
         expr = m2_expr.ExprInt(int(expr), size)
     return expr
@@ -954,11 +954,11 @@ class aarch64_gpreg_ext2(reg_noarg, aarch64_arg):
         if arg1.op not in EXT2_OP_INV:
             return False
         self.parent.option.value = EXT2_OP_INV[arg1.op]
-        if arg1.args[1].arg == 0:
+        if int(arg1.args[1]) == 0:
             self.parent.shift.value = 0
             return True
 
-        if arg1.args[1].arg != self.get_size():
+        if int(arg1.args[1]) != self.get_size():
             return False
 
         self.parent.shift.value = 1
@@ -1273,7 +1273,7 @@ class aarch64_imm_nsr(aarch64_imm_sf, aarch64_arg):
             return False
         if not test_set_sf(self.parent, self.expr.size):
             return False
-        value = self.expr.arg
+        value = int(self.expr)
         if value == 0:
             return False
 
@@ -1376,7 +1376,7 @@ class aarch64_imm_hw_sc(aarch64_arg):
 
     def encode(self):
         if isinstance(self.expr, m2_expr.ExprInt):
-            if self.expr.arg > 0xFFFF:
+            if int(self.expr) > 0xFFFF:
                 return False
             self.value = int(self.expr)
             self.parent.hw.value = 0
@@ -1498,7 +1498,7 @@ class aarch64_deref(aarch64_arg):
 
     def decode(self, v):
         reg = gpregs64_info.expr[v]
-        off = self.parent.imm.expr.arg
+        off = int(self.parent.imm.expr)
         op = self.get_postpre(self.parent)
         off = self.decode_w_size(off)
         self.expr = m2_expr.ExprOp(op, reg, m2_expr.ExprInt(off, 64))
@@ -1568,7 +1568,7 @@ class aarch64_deref_nooff(aarch64_deref):
             reg, off = expr.args
             if not isinstance(off, m2_expr.ExprInt):
                 return False
-            if off.arg != 0:
+            if int(off) != 0:
                 return False
         else:
             return False

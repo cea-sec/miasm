@@ -104,7 +104,7 @@ class TestX86Semantic(unittest.TestCase):
         sem = compute(ir_32, m32, '%s XMM0, XMM1' % name,
                                   {XMM0: arg1, XMM1: arg2},
                                   False)
-        ref = ExprInt(int_vec_op(op, elt_size, reg_size, arg1.arg, arg2.arg), XMM0.size)
+        ref = ExprInt(int_vec_op(op, elt_size, reg_size, int(arg1), int(arg2)), XMM0.size)
         self.assertEqual(sem, {XMM0: ref, XMM1: arg2})
 
     def symb_sse_ops(self, names, a, b, ref):
@@ -121,7 +121,7 @@ class TestX86Semantic(unittest.TestCase):
         sem = compute(ir_32, m32, '%s MM0, MM1' % name,
                                   {mm0: arg1, mm1: arg2},
                                   False)
-        ref = ExprInt(op(arg1.arg, arg2.arg), mm0.size)
+        ref = ExprInt(op(int(arg1), int(arg2)), mm0.size)
         self.assertEqual(sem, {mm0: ref, mm1: arg2})
 
     def sse_logical_op(self, name, op, arg1, arg2):
@@ -130,7 +130,7 @@ class TestX86Semantic(unittest.TestCase):
         sem = compute(ir_32, m32, '%s XMM0, XMM1' % name,
                                   {XMM0: arg1, XMM1: arg2},
                                   False)
-        ref = ExprInt(op(arg1.arg, arg2.arg), XMM0.size)
+        ref = ExprInt(op(int(arg1), int(arg2)), XMM0.size)
         self.assertEqual(sem, {XMM0: ref, XMM1: arg2})
 
     def test_SSE_ADD(self):

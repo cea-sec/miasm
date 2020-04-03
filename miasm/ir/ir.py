@@ -44,6 +44,26 @@ def _expr_loc_to_symb(expr, loc_db):
             name = sorted(names)[0]
     return m2_expr.ExprId(name, expr.size)
 
+def slice_rest(expr):
+    "Return the completion of the current slice"
+    size = expr.arg.size
+    if expr.start >= size or expr.stop > size:
+        raise ValueError('bad slice rest %s %s %s' %
+                         (size, expr.start, expr.stop))
+
+    if expr.start == expr.stop:
+        return [(0, size)]
+
+    rest = []
+    if expr.start != 0:
+        rest.append((0, expr.start))
+    if expr.stop < size:
+        rest.append((expr.stop, size))
+
+    return rest
+
+
+
 class AssignBlock(object):
     """Represent parallel IR assignment, such as:
     EAX = EBX
@@ -99,7 +119,7 @@ class AssignBlock(object):
             # Complete the source with missing slice parts
             new_dst = dst.arg
             rest = [(m2_expr.ExprSlice(dst.arg, r[0], r[1]), r[0], r[1])
-                    for r in dst.slice_rest()]
+                    for r in slice_rest(dst)]
             all_a = [(src, dst.start, dst.stop)] + rest
             all_a.sort(key=lambda x: x[1])
             args = [expr for (expr, _, _) in all_a]
@@ -752,7 +772,7 @@ class IntermediateRepresentation(object):
 
         if loc_key is None:
             offset = getattr(instr, "offset", None)
-            loc_key = self.loc_db.add_location(offset=offset)
+            loc_key = self.loc_db.get_or_create_offset_location(offset)
         block = AsmBlock(loc_key)
         block.lines = [instr]
         self.add_asmblock_to_ircfg(block, ircfg, gen_pc_updt)

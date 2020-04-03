@@ -94,10 +94,10 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         data = self.expr_simp(data)
         if not isinstance(data, m2_expr.ExprInt):
             raise RuntimeError("A simplification is missing: %s" % data)
-        to_write = data.arg.arg
+        to_write = int(data)
 
         # Format information
-        addr = dest.ptr.arg.arg
+        addr = int(dest.ptr)
         size = data.size // 8
         content = hex(to_write).replace("0x", "").replace("L", "")
         content = "0" * (size * 2 - len(content)) + content
@@ -120,7 +120,7 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
                     if not isinstance(value, m2_expr.ExprInt):
                         raise ValueError("A simplification is missing: %s" % value)
 
-                    setattr(self.cpu, symbol.name, value.arg.arg)
+                    setattr(self.cpu, symbol.name, int(value))
             else:
                 raise NotImplementedError("Type not handled: %s" % symbol)
 
@@ -140,7 +140,7 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
     # CPU specific simplifications
     def _simp_handle_segm(self, e_s, expr):
         """Handle 'segm' operation"""
-        if not expr.is_op_segm():
+        if not m2_expr.is_op_segm(expr):
             return expr
         if not expr.args[0].is_int():
             return expr

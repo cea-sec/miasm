@@ -3387,9 +3387,11 @@ def icebp(_, instr):
 def l_int(_, instr, src):
     e = []
     # XXX
-    if src.arg == 1:
+    assert src.is_int()
+    value = int(src)
+    if value == 1:
         except_int = EXCEPT_INT_1
-    elif src.arg == 3:
+    elif value == 3:
         except_int = EXCEPT_SOFT_BP
     else:
         except_int = EXCEPT_INT_XX
