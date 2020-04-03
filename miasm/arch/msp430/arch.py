@@ -64,7 +64,7 @@ class msp430_arg(m_arg):
     def asm_ast_to_expr(self, value, loc_db):
         if isinstance(value, AstId):
             name = value.name
-            if isinstance(name, Expr):
+            if is_expr(name):
                 return name
             assert isinstance(name, str)
             if name in gpregs.str:

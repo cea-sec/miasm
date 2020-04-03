@@ -39,10 +39,12 @@ def compute(asm, inputstate={}, debug=False):
         for k, v in viewitems(symexec.symbols):
             if regs_init.get(k, None) != v:
                 print(k, v)
-    return {
-        k: v.arg.arg for k, v in viewitems(symexec.symbols)
+
+    result =  {
+        k: int(v) for k, v in viewitems(symexec.symbols)
         if k not in EXCLUDE_REGS and regs_init.get(k, None) != v
     }
+    return result
 
 
 class TestMSP430Semantic(unittest.TestCase):

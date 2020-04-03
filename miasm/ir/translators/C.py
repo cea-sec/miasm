@@ -3,7 +3,8 @@ from miasm.expression.modint import size2mask
 from miasm.expression.expression import ExprInt, ExprCond, ExprCompose, \
     TOK_EQUAL, \
     TOK_INF_SIGNED, TOK_INF_UNSIGNED, \
-    TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED
+    TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED, \
+    is_associative
 
 def int_size_to_bn(value, size):
     if size < 32:
@@ -288,7 +289,7 @@ class TranslatorC(Translator):
                     out = "bignum_mask(%s, %d)"% (out, expr.size)
                 return out
 
-            elif expr.is_associative():
+            elif is_associative(expr):
                 args = [self.from_expr(arg)
                         for arg in expr.args]
                 if expr.size <= self.NATIVE_INT_MAX_SIZE:
@@ -466,7 +467,7 @@ class TranslatorC(Translator):
             else:
                 raise NotImplementedError('Unknown op: %r' % expr.op)
 
-        elif len(expr.args) >= 3 and expr.is_associative():  # ?????
+        elif len(expr.args) >= 3 and is_associative(expr):  # ?????
             oper = ['(%s&%s)' % (
                 self.from_expr(arg),
                 self._size2mask(arg.size),

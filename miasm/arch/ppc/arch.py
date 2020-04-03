@@ -129,9 +129,9 @@ class instruction_ppc(instruction):
             if not isinstance(e, ExprInt):
                 return
             if name[-1] != 'A':
-                ad = e.arg + self.offset
+                ad = (int(e) + self.offset) & 0xFFFFFFFF
             else:
-                ad = e.arg
+                ad = int(e)
             loc_key = loc_db.get_or_create_offset_location(ad)
             s = ExprLoc(loc_key, e.size)
             self.args[address_index] = s
@@ -175,11 +175,11 @@ class instruction_ppc(instruction):
         if self.name[-1] != 'A':
             if self.offset is None:
                 raise ValueError('symbol not resolved %s' % self.l)
-            off = e.arg - (self.offset + self.l)
+            off = (int(e) + 0x100000000 - (self.offset + self.l)) & 0xFFFFFFFF
             if int(off % 4):
                 raise ValueError('Offset %r must be a multiple of four' % off)
         else:
-            off = e.arg
+            off = int(e)
         self.args[0] = ExprInt(off, 32)
 
     def get_args_expr(self):
@@ -343,7 +343,7 @@ class ppc_s14imm_branch(ppc_imm):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        v = int(self.expr)
         if v & 0x3:
             return False
         v = v >> 2
@@ -362,7 +362,7 @@ class ppc_s24imm_branch(ppc_imm):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        v = int(self.expr)
         if v & 0x3:
             return False
         v = v >> 2
@@ -381,7 +381,7 @@ class ppc_s16imm(ppc_imm):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        v = int(self.expr)
         if sign_ext(v & self.lmask, 16, 32) != v:
             return False
         self.value = v & self.lmask
@@ -398,7 +398,7 @@ class ppc_u16imm(ppc_imm):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        v = int(self.expr)
         if v & self.lmask != v:
             return False
         self.value = v & self.lmask
@@ -416,7 +416,7 @@ class ppc_spr(ppc_imm):
     def encode(self, e):
         if not isinstance(e, ExprInt):
             return False
-        self.value = ppc_swap_10(e.arg)
+        self.value = ppc_swap_10(int(e))
         return True
 
 class ppc_tbr(ppc_imm):
@@ -428,7 +428,7 @@ class ppc_tbr(ppc_imm):
     def encode(self, e):
         if not isinstance(e, ExprInt):
             return False
-        self.value = ppc_swap_10(e.arg)
+        self.value = ppc_swap_10(int(e))
         return True
 
 class ppc_u08imm(ppc_u16imm):
@@ -520,7 +520,7 @@ class ppc_deref32(ppc_arg):
         if len(addr.args) != 2:
             return False
         reg, disp = addr.args[0], addr.args[1]
-        v = int(disp.arg)
+        v = int(disp)
         if sign_ext(v & 0xFFFF, 16, 32) != v:
             return False
         v &= 0xFFFF

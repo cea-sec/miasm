@@ -960,7 +960,9 @@ def fix_loc_offset(loc_db, loc_key, offset, modified):
     loc_offset = loc_db.get_location_offset(loc_key)
     if loc_offset == offset:
         return
-    loc_db.set_location_offset(loc_key, offset, force=True)
+    if loc_offset is not None:
+        loc_db.unset_location_offset(loc_key)
+    loc_db.set_location_offset(loc_key, offset)
     modified.add(loc_key)
 
 
@@ -1209,7 +1211,7 @@ def assemble_block(mnemo, block, loc_db, conservative=False):
                 data = b""
                 for expr in instr.raw:
                     expr_int = fix_expr_val(expr, loc_db)
-                    data += pck[expr_int.size](expr_int.arg)
+                    data += pck[expr_int.size](int(expr_int))
                 instr.data = data
 
             instr.offset = offset_i

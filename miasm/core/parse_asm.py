@@ -65,7 +65,7 @@ def guess_next_new_label(loc_db):
     """Generate a new label
     @loc_db: the LocationDB instance"""
     i = 0
-    gen_name = b"loc_%.8X"
+    gen_name = "loc_%.8X"
     while True:
         name = gen_name % i
         label = loc_db.get_name_location(name)
@@ -121,7 +121,7 @@ def parse_txt(mnemo, attrib, txt, loc_db=None):
         # label beginning with .L
         match_re = LABEL_RE.match(line)
         if match_re:
-            label_name = match_re.group(1).encode()
+            label_name = match_re.group(1)
             label = loc_db.get_or_create_name_location(label_name)
             lines.append(label)
             continue

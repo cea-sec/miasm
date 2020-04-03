@@ -278,7 +278,7 @@ class x86_arg(m_arg):
             if value.name in ["FAR"]:
                 return None
 
-            loc_key = loc_db.get_or_create_name_location(value.name.encode())
+            loc_key = loc_db.get_or_create_name_location(value.name)
             return ExprLoc(loc_key, size_hint)
         if isinstance(value, AstOp):
             # First pass to retrieve fixed_size

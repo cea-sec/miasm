@@ -140,6 +140,32 @@ class DiGraphExpr(DiGraph):
 
         return ""
 
+def is_expr(expr):
+    return isinstance(
+        expr,
+        (
+            ExprInt, ExprId, ExprMem,
+            ExprSlice, ExprCompose, ExprCond,
+            ExprLoc, ExprOp
+        )
+    )
+
+def is_associative(expr):
+    "Return True iff current operation is associative"
+    return (expr.op in ['+', '*', '^', '&', '|'])
+
+def is_commutative(expr):
+    "Return True iff current operation is commutative"
+    return (expr.op in ['+', '*', '^', '&', '|'])
+
+def is_op_segm(expr):
+    """Returns True if is ExprOp and op == 'segm'"""
+    return expr.is_op('segm')
+
+def is_mem_segm(expr):
+    """Returns True if is ExprMem and ptr is_op_segm"""
+    return expr.is_mem() and is_op_segm(expr.ptr)
+
 
 @total_ordering
 class LocKey(object):

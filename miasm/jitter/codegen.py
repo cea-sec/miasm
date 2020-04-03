@@ -6,8 +6,8 @@ from builtins import zip
 
 from future.utils import viewitems, viewvalues
 
-from miasm.expression.expression import Expr, ExprId, ExprLoc, ExprInt, \
-    ExprMem, ExprCond, LocKey
+from miasm.expression.expression import ExprId, ExprLoc, ExprInt, \
+    ExprMem, ExprCond, LocKey, is_expr
 from miasm.ir.ir import IRBlock, AssignBlock
 
 from miasm.ir.translators.C import TranslatorC
@@ -123,7 +123,7 @@ class CGen(object):
 
     def dst_to_c(self, src):
         """Translate Expr @src into C code"""
-        if not isinstance(src, Expr):
+        if not is_expr(src):
             src = ExprInt(src, self.PC.size)
         return self.id_to_c(src)
 
@@ -413,7 +413,7 @@ class CGen(object):
         @dst: potential instruction destination"""
 
         out = []
-        if isinstance(dst, Expr):
+        if is_expr(dst):
             out += self.gen_post_code(attrib, "DST_value")
             out.append('BlockDst->address = DST_value;')
             out += self.gen_post_instr_checks(attrib)

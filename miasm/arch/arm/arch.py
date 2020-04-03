@@ -437,9 +437,9 @@ class instruction_arm(instruction):
         if not isinstance(expr, ExprInt):
             return
         if self.name == 'BLX':
-            addr = expr.arg + self.offset
+            addr = (expr.arg + self.offset) & 0xFFFFFFFF
         else:
-            addr = expr.arg + self.offset
+            addr = (expr.arg + self.offset) & 0xFFFFFFFF
         loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[0] = ExprLoc(loc_key, expr.size)
 
@@ -481,7 +481,7 @@ class instruction_arm(instruction):
         if not isinstance(e, ExprInt):
             log.debug('dyn dst %r', e)
             return
-        off = e.arg - self.offset
+        off = (e.arg + 0x100000000 - self.offset) & 0xFFFFFFFF
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
         self.args[0] = ExprInt(off, 32)
@@ -516,13 +516,13 @@ class instruction_armt(instruction_arm):
         if self.name == 'BLX':
             addr = expr.arg + (self.offset & 0xfffffffc)
         elif self.name == 'BL':
-            addr = expr.arg + self.offset
+            addr = (expr.arg + self.offset) & 0xFFFFFFFF
         elif self.name.startswith('BP'):
-            addr = expr.arg + self.offset
+            addr = (expr.arg + self.offset) & 0xFFFFFFFF
         elif self.name.startswith('CB'):
-            addr = expr.arg + self.offset + self.l + 2
+            addr = (expr.arg + self.offset + self.l + 2) & 0xFFFFFFFF
         else:
-            addr = expr.arg + self.offset
+            addr = (expr.arg + self.offset) & 0xFFFFFFFF
 
         loc_key = loc_db.get_or_create_offset_location(addr)
         dst = ExprLoc(loc_key, expr.size)
@@ -564,7 +564,7 @@ class instruction_armt(instruction_arm):
         # The first +2 is to compensate instruction len, but strangely, 32 bits
         # thumb2 instructions len is 2... For the second +2, didn't find it in
         # the doc.
-        off = e.arg - self.offset
+        off = (e.arg + 0x100000000 - self.offset) & 0xFFFFFFFF
         if int(off % 2):
             raise ValueError('strange offset! %r' % off)
         self.args[0] = ExprInt(off, 32)
