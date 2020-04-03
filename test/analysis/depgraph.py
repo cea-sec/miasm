@@ -748,7 +748,7 @@ def flatNode(node):
         if isinstance(node.element, ExprId):
             element = node.element.name
         elif isinstance(node.element, ExprInt):
-            element = int(node.element.arg)
+            element = int(node.element)
         else:
             RuntimeError("Unsupported type '%s'" % type(enode.element))
         names = loc_db.get_location_names(node.loc_key)

@@ -95,7 +95,7 @@ class instruction_mips32(cpu.instruction):
 
     def dstflow2label(self, loc_db):
         if self.name in ["J", 'JAL']:
-            expr = self.args[0].arg
+            expr = int(self.args[0])
             addr = (self.offset & (0xFFFFFFFF ^ ((1<< 28)-1))) + expr
             loc_key = loc_db.get_or_create_offset_location(addr)
             self.args[0] = ExprLoc(loc_key, expr.size)
@@ -106,7 +106,7 @@ class instruction_mips32(cpu.instruction):
 
         if not isinstance(expr, ExprInt):
             return
-        addr = expr.arg + self.offset
+        addr = int(expr) + self.offset
         loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[ndx] = ExprLoc(loc_key, expr.size)
 
@@ -157,7 +157,7 @@ class instruction_mips32(cpu.instruction):
             raise ValueError('symbol not resolved %s' % self.l)
         if not isinstance(e, ExprInt):
             return
-        off = e.arg - self.offset
+        off = (int(e) - self.offset) & int(e.mask)
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
         self.args[ndx] = ExprInt(off, 32)
@@ -312,7 +312,7 @@ class mips32_s16imm_noarg(mips32_imm):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        v = int(self.expr)
         if v & 0x80000000:
             nv = v & ((1 << 16) - 1)
             assert( v == cpu.sign_ext(nv, 16, 32))
@@ -333,7 +333,7 @@ class mips32_soff_noarg(mips32_imm):
         if not isinstance(self.expr, ExprInt):
             return False
         # Remove pipeline offset
-        v = int(self.expr.arg - 4)
+        v = (int(self.expr) - 4) & 0xFFFFFFFF
         if v & 0x80000000:
             nv = v & ((1 << 16+2) - 1)
             assert( v == cpu.sign_ext(nv, 16+2, 32))
@@ -358,7 +358,7 @@ class mips32_instr_index(mips32_imm, mips32_arg):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        v = int(self.expr)
         if v & 3:
             return False
         v>>=2
@@ -377,7 +377,7 @@ class mips32_u16imm(mips32_imm, mips32_arg):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        v = int(self.expr)
         assert(v < (1<<16))
         self.value = v
         return True
@@ -424,7 +424,7 @@ class mips32_esize(mips32_imm, mips32_arg):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg -1
+        v = int(self.expr) -1
         assert(v < (1<<16))
         self.value = v
         return True
@@ -437,7 +437,7 @@ class mips32_eposh(mips32_imm, mips32_arg):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = int(self.expr.arg) + int(self.parent.epos.expr) -1
+        v = int(self.expr) + int(self.parent.epos.expr) -1
         self.value = v
         return True
 

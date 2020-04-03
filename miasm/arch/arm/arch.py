@@ -413,10 +413,10 @@ class instruction_arm(instruction):
 
         if isinstance(expr, ExprOp) and expr.op == 'postinc':
             o = '[%s]' % r
-            if s and not (isinstance(s, ExprInt) and s.arg == 0):
+            if s and not (isinstance(s, ExprInt) and int(s) == 0):
                 o += ', %s' % s
         else:
-            if s and not (isinstance(s, ExprInt) and s.arg == 0):
+            if s and not (isinstance(s, ExprInt) and int(s) == 0):
                 o = '[%s, %s]' % (r, s)
             else:
                 o = '[%s]' % (r)
@@ -437,9 +437,9 @@ class instruction_arm(instruction):
         if not isinstance(expr, ExprInt):
             return
         if self.name == 'BLX':
-            addr = (expr.arg + self.offset) & 0xFFFFFFFF
+            addr = (int(expr) + self.offset) & int(expr.mask)
         else:
-            addr = (expr.arg + self.offset) & 0xFFFFFFFF
+            addr = (int(expr) + self.offset) & int(expr.mask)
         loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[0] = ExprLoc(loc_key, expr.size)
 
@@ -481,7 +481,7 @@ class instruction_arm(instruction):
         if not isinstance(e, ExprInt):
             log.debug('dyn dst %r', e)
             return
-        off = (e.arg + 0x100000000 - self.offset) & 0xFFFFFFFF
+        off = (int(e) - self.offset) & int(e.mask)
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
         self.args[0] = ExprInt(off, 32)
@@ -514,15 +514,15 @@ class instruction_armt(instruction_arm):
         if not isinstance(expr, ExprInt):
             return
         if self.name == 'BLX':
-            addr = expr.arg + (self.offset & 0xfffffffc)
+            addr = (int(expr) + (self.offset & 0xfffffffc)) & int(expr.mask)
         elif self.name == 'BL':
-            addr = (expr.arg + self.offset) & 0xFFFFFFFF
+            addr = (int(expr) + self.offset) & int(expr.mask)
         elif self.name.startswith('BP'):
-            addr = (expr.arg + self.offset) & 0xFFFFFFFF
+            addr = (int(expr) + self.offset) & int(expr.mask)
         elif self.name.startswith('CB'):
-            addr = (expr.arg + self.offset + self.l + 2) & 0xFFFFFFFF
+            addr = (int(expr) + self.offset + self.l + 2) & int(expr.mask)
         else:
-            addr = (expr.arg + self.offset) & 0xFFFFFFFF
+            addr = (int(expr) + self.offset) & int(expr.mask)
 
         loc_key = loc_db.get_or_create_offset_location(addr)
         dst = ExprLoc(loc_key, expr.size)
@@ -564,7 +564,7 @@ class instruction_armt(instruction_arm):
         # The first +2 is to compensate instruction len, but strangely, 32 bits
         # thumb2 instructions len is 2... For the second +2, didn't find it in
         # the doc.
-        off = (e.arg + 0x100000000 - self.offset) & 0xFFFFFFFF
+        off = (int(e) - self.offset) & int(e.mask)
         if int(off % 2):
             raise ValueError('strange offset! %r' % off)
         self.args[0] = ExprInt(off, 32)
@@ -798,6 +798,9 @@ class arm_arg(m_arg):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]
             if None in args:
                 return None
+            if arg.op == "-":
+                assert len(args) == 2
+                return args[0] - args[1]
             return ExprOp(arg.op, *args)
         if isinstance(arg, AstInt):
             return ExprInt(arg.value, 32)
@@ -1345,7 +1348,7 @@ class arm_offs_blx(arm_imm):
         if not isinstance(self.expr, ExprInt):
             return False
         # Remove pipeline offset
-        v = int(self.expr.arg - 8)
+        v = (int(self.expr) - 8) & int(self.expr.mask)
         if v & 0x80000000:
             v &= (1 << 26) - 1
         self.parent.lowb.value = (v >> 1) & 1
@@ -2738,7 +2741,7 @@ class armt2_imm10l(arm_imm):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        v = int(self.expr)
         s = 0
         if v & 0x80000000:
             s = 1
@@ -2775,7 +2778,7 @@ class armt2_imm11l(arm_imm):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg - 4
+        v = (int(self.expr) - 4) & int(self.expr.mask)
         s = 0
         if v & 0x80000000:
             s = 1
@@ -2813,7 +2816,7 @@ class armt2_imm6_11l(arm_imm):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg - 4
+        v = (int(self.expr) - 4) & int(self.expr.mask)
         s = 0
         if v != sign_ext(v & ((1 << 22) - 1), 21, 32):
             return False
@@ -2881,7 +2884,7 @@ class armt_imm5_1(arm_imm):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        v = int(self.expr)
         if v & 0x1:
             return False
         self.parent.imm1.value = (v >> 6) & 1

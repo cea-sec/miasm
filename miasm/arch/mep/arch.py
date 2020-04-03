@@ -4,8 +4,8 @@
 from builtins import range
 from miasm.core.cpu import *
 from miasm.core.utils import Disasm_Exception
-from miasm.expression.expression import Expr, ExprId, ExprInt, ExprLoc, \
-    ExprMem, ExprOp
+from miasm.expression.expression import ExprId, ExprInt, ExprLoc, \
+    ExprMem, ExprOp, is_expr
 from miasm.core.asm_ast import AstId, AstMem
 
 from miasm.arch.mep.regs import *
@@ -35,7 +35,7 @@ def ExprInt2SignedString(expr, pos_fmt="%d", neg_fmt="%d", size=None, offset=0):
     else:
         mask_length = size
     mask = (1 << mask_length) - 1
-    value = int(expr.arg) & mask
+    value = int(expr) & mask
 
     # Return a signed integer if necessary
     if (value >> mask_length - 1) == 1:
@@ -90,7 +90,7 @@ class instruction_mep(instruction):
             return "(%s)" % expr.ptr
 
         elif isinstance(expr, ExprMem) and isinstance(expr.ptr, ExprOp):
-            return "0x%X(%s)" % (expr.ptr.args[1].arg, expr.ptr.args[0])
+            return "0x%X(%s)" % (int(expr.ptr.args[1]), expr.ptr.args[0])
 
         # Raise an exception if the expression type was not processed
         message = "instruction_mep.arg2str(): don't know what \
@@ -111,13 +111,13 @@ class instruction_mep(instruction):
 
         if self.name == "SSARB":
             # The first operand is displayed in decimal, not in hex
-            o += " %d" % self.args[0].arg
+            o += " %d" % int(self.args[0])
             o += self.arg2str(self.args[1])
 
         elif self.name in ["MOV", "ADD"] and isinstance(self.args[1], ExprInt):
             # The second operand is displayed in decimal, not in hex
             o += " " + self.arg2str(self.args[0])
-            o += ", %s" % ExprInt2SignedString(self.args[1].arg)
+            o += ", %s" % ExprInt2SignedString(self.args[1])
 
         elif "CPI" in self.name:
             # The second operand ends with the '+' sign
@@ -131,7 +131,7 @@ class instruction_mep(instruction):
             deref_reg_str = self.arg2str(self.args[1])
             o += ", %s+)" % deref_reg_str[:-1]  # GV: looks ugly
             # The third operand is displayed in decimal, not in hex
-            o += ", %s" % ExprInt2SignedString(self.args[2].arg)
+            o += ", %s" % ExprInt2SignedString(self.args[2])
 
         elif len(self.args) == 2 and self.name in ["SB", "SH", "LBU", "LB", "LH", "LW"] and \
                 isinstance(self.args[1], ExprMem) and isinstance(self.args[1].ptr, ExprOp):  # Major Opcodes #12
@@ -150,13 +150,13 @@ class instruction_mep(instruction):
         elif self.name == "SLL" and isinstance(self.args[1], ExprInt):  # Major Opcodes #6
             # The second operand is displayed in hex, not in decimal
             o += " " + self.arg2str(self.args[0])
-            o += ", 0x%X" % self.args[1].arg
+            o += ", 0x%X" % int(self.args[1])
 
         elif self.name in ["ADD3", "SLT3"] and isinstance(self.args[2], ExprInt):
             o += " %s" % self.arg2str(self.args[0])
             o += ", %s" % self.arg2str(self.args[1])
             # The third operand is displayed in decimal, not in hex
-            o += ", %s" % ExprInt2SignedString(self.args[2].arg, pos_fmt="0x%X")
+            o += ", %s" % ExprInt2SignedString(self.args[2], pos_fmt="0x%X")
 
         elif self.name == "(RI)":
             return o
@@ -166,7 +166,7 @@ class instruction_mep(instruction):
             if self.args:
                 o += " "
             for i, arg in enumerate(self.args):
-                if not isinstance(arg, Expr):
+                if not is_expr(arg):
                     raise ValueError('zarb arg type')
                 x = self.arg2str(arg, pos=i)
                 args.append(x)
@@ -218,7 +218,7 @@ class instruction_mep(instruction):
 
         # Compute the correct address
         num = self.get_dst_num()
-        addr = self.args[num].arg
+        addr = int(self.args[num])
         if not self.name == "JMP":
             addr += self.offset
 
@@ -671,7 +671,7 @@ class mep_deref_reg_offset(mep_arg):
             return False
 
         # Get the integer and check the upper bound
-        v = int(self.expr.ptr.args[1].arg & 0xFFFF)
+        v = int(self.expr.ptr.args[1]) & 0xFFFF
 
         # Encode the values
         self.parent.reg04_deref.value = gpr_exprs.index(self.expr.ptr.args[0])
@@ -845,7 +845,7 @@ class mep_int32_noarg(int32_noarg):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = int(self.expr.arg)
+        v = int(self.expr)
         # Note: the following lines were commented on purpose
         #if sign_ext(v & self.lmask, self.l, self.intsize) != v:
         #    return False
@@ -923,7 +923,7 @@ class mep_target24(mep_imm):
             return False
 
         # Get the integer and apply a mask
-        v = int(self.expr.arg) & 0x00FFFFFF
+        v = int(self.expr) & 0x00FFFFFF
 
         # Encode the value into two parts
         self.parent.imm7.value = (v & 0xFF) >> 1
@@ -940,7 +940,7 @@ class mep_target24_signed(mep_target24):
         """
 
         mep_target24.decode(self, v)
-        v = int(self.expr.arg)
+        v = int(self.expr)
         self.expr = ExprInt(sign_ext(v, 24, 32), 32)
 
         return True
@@ -1046,7 +1046,7 @@ class mep_imm7_align4(mep_imm):
             return False
 
         # Get the integer and check the upper bound
-        v = int(self.expr.arg)
+        v = int(self.expr)
         if v > 0x80:
             return False
 
@@ -1129,7 +1129,7 @@ class mep_disp7_align2(mep_imm):
             return False
 
         # Get the integer
-        v = int(self.expr.arg) & self.upper_bound
+        v = int(self.expr) & self.upper_bound
 
         # Encode the value
         self.value = (v >> self.bits_shift) & self.upper_bound
@@ -1161,7 +1161,7 @@ class mep_disp12_align2_signed(mep_disp12_align2):
         """Perform sign extension.
         """
         mep_disp12_align2.decode(self, v)
-        v = int(self.expr.arg)
+        v = int(self.expr)
 
         self.expr = ExprInt(sign_ext(v, 12, 32), 32)
         return True
@@ -1198,7 +1198,7 @@ class mep_imm24(mep_imm):
             return False
 
         # Get the integer and check the upper bound
-        v = int(self.expr.arg)
+        v = int(self.expr)
         if v > 0xFFFFFF:
             return False
 
@@ -1236,7 +1236,7 @@ class mep_abs24(mep_imm):
             return False
 
         # Get the integer and check the upper bound
-        v = int(self.expr.ptr.arg)
+        v = int(self.expr.ptr)
         if v > 0xffffff:
             return False
 

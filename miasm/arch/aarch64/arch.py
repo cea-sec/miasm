@@ -375,7 +375,7 @@ class instruction_aarch64(instruction):
         expr = self.args[index]
         if not expr.is_int():
             return
-        addr = (int(expr) + self.offset) & 0xFFFFFFFFFFFFFFFF
+        addr = (int(expr) + self.offset) & int(expr.mask)
         loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[index] = m2_expr.ExprLoc(loc_key, expr.size)
 
@@ -403,7 +403,7 @@ class instruction_aarch64(instruction):
         if not isinstance(e, m2_expr.ExprInt):
             log.debug('dyn dst %r', e)
             return
-        off = (int(e) + 0x10000000000000000 - self.offset) & 0xFFFFFFFFFFFFFFFF
+        off = (int(e) - self.offset) & int(e.mask)
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
         self.args[index] = m2_expr.ExprInt(int(off), 64)

@@ -6,8 +6,8 @@ from future.utils import viewitems, viewvalues
 from miasm.core.utils import encode_hex
 from miasm.core.graph import DiGraph
 from miasm.ir.ir import AssignBlock, IRBlock
-from miasm.expression.expression import ExprLoc, ExprMem, ExprSlice, ExprId, \
-    ExprInt, ExprAssign, ExprOp, ExprCompose, ExprCond, ExprWalk
+from miasm.expression.expression import ExprLoc, ExprMem, ExprId, ExprInt,\
+    ExprAssign, ExprOp, ExprWalk, is_function_call
 from miasm.expression.simplifications import expr_simp
 from miasm.core.interval import interval
 from miasm.expression.expression_helper import possible_values
@@ -223,7 +223,7 @@ class DeadRemoval(object):
                 lval.is_mem() or
                 self.ir_arch.IRDst == lval or
                 lval.is_id("exception_flags") or
-                rval.is_function_call()
+                is_function_call(rval)
         ):
             return True
         return False
@@ -760,7 +760,7 @@ class PropagateThroughExprId(object):
         """
         for assignblk in assignblks:
             for dst, src in viewitems(assignblk):
-                if src.is_function_call():
+                if is_function_call(src):
                     return True
                 if dst.is_mem():
                     return True
@@ -857,7 +857,7 @@ class PropagateThroughExprId(object):
             src = defuse.get_node_target(node)
             if max_expr_depth is not None and len(str(src)) > max_expr_depth:
                 continue
-            if src.is_function_call():
+            if is_function_call(src):
                 continue
             if node.var.is_mem():
                 continue
@@ -938,7 +938,7 @@ class PropagateExprIntThroughExprId(PropagateThroughExprId):
             src = defuse.get_node_target(node)
             if not src.is_int():
                 continue
-            if src.is_function_call():
+            if is_function_call(src):
                 continue
             if node.var.is_mem():
                 continue

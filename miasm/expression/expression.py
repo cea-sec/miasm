@@ -166,6 +166,23 @@ def is_mem_segm(expr):
     """Returns True if is ExprMem and ptr is_op_segm"""
     return expr.is_mem() and is_op_segm(expr.ptr)
 
+def canonize_to_exprloc(locdb, expr):
+    """
+    If expr is ExprInt, return ExprLoc with corresponding loc_key
+    Else, return expr
+
+    @expr: Expr instance
+    """
+    if expr.is_int():
+        loc_key = locdb.get_or_create_offset_location(int(expr))
+        ret = ExprLoc(loc_key, expr.size)
+        return ret
+    return expr
+
+def is_function_call(expr):
+    """Returns true if the considered Expr is a function call
+    """
+    return expr.is_op() and expr.op.startswith('call')
 
 @total_ordering
 class LocKey(object):

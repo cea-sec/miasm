@@ -239,7 +239,7 @@ def add3(ir, instr, reg_dst, reg_src, reg_or_imm):
         result = ExprOp("+", reg_src, reg_or_imm)
     else:
         # Rn <- Rm + SignExt(imm16)
-        value = int(reg_or_imm.arg)
+        value = int(reg_or_imm)
         result = ExprOp("+", reg_src, ExprInt(value, 32))
 
     return [ExprAssign(reg_dst, result)], []
@@ -645,7 +645,7 @@ def repeat(rn, disp17):
     # RPB <- pc+4 // Repeat Begin
     RPB = PC + i32(4)
     # RPE <- pc+SignExt((disp17)16..1||0)) // Repeat End
-    RPE = PC + i32(disp17.arg & 0xFFFFFFFE)
+    RPE = PC + i32(int(disp17) & 0xFFFFFFFE)
     # RPC <- Rn
     RPC = rn
     in_erepeat = ExprInt(0, 32)
@@ -660,7 +660,7 @@ def erepeat(disp17):
     # RPB <- pc+4 // Repeat Begin
     RPB = PC + i32(4)
     # RPE <- pc+SignExt((disp17)16..1||1)) (EREPEAT)
-    RPE = PC + i32(disp17.arg + 1)
+    RPE = PC + i32(int(disp17) + 1)
     # RPC <- undefined
     in_erepeat = ExprInt(1, 32)
 

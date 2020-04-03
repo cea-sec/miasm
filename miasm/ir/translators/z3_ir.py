@@ -129,7 +129,7 @@ class TranslatorZ3(Translator):
         self.loc_db = loc_db
 
     def from_ExprInt(self, expr):
-        return z3.BitVecVal(expr.arg.arg, expr.size)
+        return z3.BitVecVal(int(expr), expr.size)
 
     def from_ExprId(self, expr):
         return z3.BitVec(str(expr), expr.size)
