@@ -762,7 +762,6 @@ def blx(ir, instr, a):
 def st_ld_r(ir, instr, a, a2, b, store=False, size=32, s_ext=False, z_ext=False):
     e = []
     wb = False
-    b = b.copy()
     postinc = False
     b = b.ptr
     if isinstance(b, ExprOp):

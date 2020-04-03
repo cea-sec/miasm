@@ -730,6 +730,11 @@ static PyGetSetDef JitCpu_getseters[] = {
      "vmmngr",
      NULL},
 
+    {"vmcpu",
+     (getter)JitCpu_get_vmcpu, (setter)JitCpu_set_vmcpu,
+     "vmcpu",
+     NULL},
+
     {"jitter",
      (getter)JitCpu_get_jitter, (setter)JitCpu_set_jitter,
      "jitter",

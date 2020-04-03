@@ -1706,7 +1706,7 @@ def exprfindmod(e, o=None):
 
 def test_addr_size(ptr, size):
     if isinstance(ptr, ExprInt):
-        return ptr.arg < (1 << size)
+        return int(ptr) < (1 << size)
     else:
         return ptr.size == size
 
@@ -1767,13 +1767,13 @@ def parse_mem(expr, parent, w8, sx=0, xmm=0, mm=0, bnd=0):
             value = ExprInt(int(disp), cast_size)
             if admode < value.size:
                 if signed:
-                    if int(disp.arg) != sign_ext(int(value), admode, disp.size):
+                    if int(disp) != sign_ext(int(value), admode, disp.size):
                         continue
                 else:
-                    if int(disp.arg) != int(value):
+                    if int(disp) != int(value):
                         continue
             else:
-                if int(disp.arg) != sign_ext(int(value), value.size, admode):
+                if int(disp) != sign_ext(int(value), value.size, admode):
                     continue
             x1 = dict(dct_expr)
             x1[f_imm] = (encoding, value)
@@ -2918,7 +2918,7 @@ class bs_rel_off(bs_cond_imm):
         parent_len = len(prefix) * 8 + self.parent.l + self.l
         assert(parent_len % 8 == 0)
 
-        v = int(self.expr.arg) - parent_len // 8
+        v = int(self.expr) - parent_len // 8
         if prefix is None:
             return
         mask = ((1 << self.l) - 1)

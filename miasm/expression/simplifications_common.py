@@ -54,8 +54,8 @@ def simp_cst_propagation(e_s, expr):
                 else:
                     out = mod_size2uint[int1.size](int(int1) << int(int2))
             elif op_name == 'a>>':
-                tmp1 = mod_size2int[int1.size](int1.arg)
-                tmp2 = mod_size2uint[int2.arg.size](int2.arg)
+                tmp1 = mod_size2int[int1.size](int(int1))
+                tmp2 = mod_size2uint[int2.size](int(int2))
                 if tmp2 > int1.size:
                     is_signed = int(int1) & (1 << (int1.size - 1))
                     if is_signed:
@@ -65,34 +65,34 @@ def simp_cst_propagation(e_s, expr):
                 else:
                     out = mod_size2uint[int1.size](tmp1 >> tmp2)
             elif op_name == '>>>':
-                shifter = int2.arg % int2.size
-                out = (int1.arg >> shifter) | (int1.arg << (int2.size - shifter))
+                shifter = int(int2) % int2.size
+                out = (int(int1) >> shifter) | (int(int1) << (int2.size - shifter))
             elif op_name == '<<<':
-                shifter = int2.arg % int2.size
-                out = (int1.arg << shifter) | (int1.arg >> (int2.size - shifter))
+                shifter = int(int2) % int2.size
+                out = (int(int1) << shifter) | (int(int1) >> (int2.size - shifter))
             elif op_name == '/':
-                out = int1.arg // int2.arg
+                out = int(int1) // int(int2)
             elif op_name == '%':
-                out = int1.arg % int2.arg
+                out = int(int1) % int(int2)
             elif op_name == 'sdiv':
-                assert int2.arg.arg
-                tmp1 = mod_size2int[int1.size](int1.arg)
-                tmp2 = mod_size2int[int2.arg.size](int2.arg)
+                assert int(int2)
+                tmp1 = mod_size2int[int1.size](int(int1))
+                tmp2 = mod_size2int[int2.size](int(int2))
                 out = mod_size2uint[int1.size](tmp1 // tmp2)
             elif op_name == 'smod':
-                assert int2.arg.arg
-                tmp1 = mod_size2int[int1.size](int1.arg)
-                tmp2 = mod_size2int[int2.arg.size](int2.arg)
+                assert int(int2)
+                tmp1 = mod_size2int[int1.size](int(int1))
+                tmp2 = mod_size2int[int2.size](int(int2))
                 out = mod_size2uint[int1.size](tmp1 % tmp2)
             elif op_name == 'umod':
-                assert int2.arg.arg
-                tmp1 = mod_size2uint[int1.size](int1.arg)
-                tmp2 = mod_size2uint[int2.arg.size](int2.arg)
+                assert int(int2)
+                tmp1 = mod_size2uint[int1.size](int(int1))
+                tmp2 = mod_size2uint[int2.size](int(int2))
                 out = mod_size2uint[int1.size](tmp1 % tmp2)
             elif op_name == 'udiv':
-                assert int2.arg.arg
-                tmp1 = mod_size2uint[int1.size](int1.arg)
-                tmp2 = mod_size2uint[int2.arg.size](int2.arg)
+                assert int(int2)
+                tmp1 = mod_size2uint[int1.size](int(int1))
+                tmp2 = mod_size2uint[int2.size](int(int2))
                 out = mod_size2uint[int1.size](tmp1 // tmp2)
 
 
@@ -102,16 +102,16 @@ def simp_cst_propagation(e_s, expr):
     # cnttrailzeros(int) => int
     if op_name == "cnttrailzeros" and args[0].is_int():
         i = 0
-        while args[0].arg & (1 << i) == 0 and i < args[0].size:
+        while int(args[0]) & (1 << i) == 0 and i < args[0].size:
             i += 1
         return ExprInt(i, args[0].size)
 
     # cntleadzeros(int) => int
     if op_name == "cntleadzeros" and args[0].is_int():
-        if args[0].arg == 0:
+        if int(args[0]) == 0:
             return ExprInt(args[0].size, args[0].size)
         i = args[0].size - 1
-        while args[0].arg & (1 << i) == 0:
+        while int(args[0]) & (1 << i) == 0:
             i -= 1
         return ExprInt(expr.size - (i + 1), args[0].size)
 
@@ -649,8 +649,8 @@ def simp_cond(_, expr):
     elif (expr.cond.is_cond() and
           expr.cond.src1.is_int() and
           expr.cond.src2.is_int()):
-        int1 = expr.cond.src1.arg.arg
-        int2 = expr.cond.src2.arg.arg
+        int1 = int(expr.cond.src1)
+        int2 = int(expr.cond.src2)
         if int1 and int2:
             expr = expr.src1
         elif int1 == 0 and int2 == 0:

@@ -5,7 +5,7 @@ from functools import total_ordering
 from future.utils import viewitems
 
 from miasm.expression.expression import ExprInt, ExprLoc, ExprAssign, \
-    ExprWalk
+    ExprWalk, canonize_to_exprloc
 from miasm.core.graph import DiGraph
 from miasm.core.locationdb import LocationDB
 from miasm.expression.simplifications import expr_simp_explicit
@@ -334,10 +334,10 @@ class DependencyResultImplicit(DependencyResult):
         generated loc_keys
         """
         out = []
-        expected = self._ircfg.loc_db.canonize_to_exprloc(expected)
+        expected = canonize_to_exprloc(self._ircfg.loc_db, expected)
         expected_is_loc_key = expected.is_loc()
         for consval in possible_values(expr):
-            value = self._ircfg.loc_db.canonize_to_exprloc(consval.value)
+            value = canonize_to_exprloc(self._ircfg.loc_db, consval.value)
             if expected_is_loc_key and value != expected:
                 continue
             if not expected_is_loc_key and value.is_loc_key():

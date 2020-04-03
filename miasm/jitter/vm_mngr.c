@@ -551,6 +551,17 @@ int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, size_t siz
        return 0;
 }
 
+char *vm_read_mem_ret_buf(vm_mngr_t* vm_mngr, uint64_t addr, size_t size)
+{
+	int ret;
+	char *buffer;
+	ret = vm_read_mem(vm_mngr, addr, &buffer, size);
+	if (ret == 0 ) {
+		return buffer;
+	}
+	return NULL;
+}
+
 int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, size_t size)
 {
        size_t len;

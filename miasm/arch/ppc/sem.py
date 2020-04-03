@@ -125,7 +125,7 @@ def mn_do_cntlzw(ir, instr, ra, rs):
     return ret, []
 
 def crbit_to_reg(bit):
-    bit = bit.arg.arg
+    bit = int(bit)
     crid = bit // 4
     bitname = [ 'LT', 'GT', 'EQ', 'SO' ][bit % 4]
     return all_regs_ids_byname["CR%d_%s" % (crid, bitname)]
@@ -298,7 +298,7 @@ def mn_do_load(ir, instr, arg1, arg2, arg3=None):
 
 def mn_do_lmw(ir, instr, rd, src):
     ret = []
-    address = src.arg
+    address = int(src)
     ri = int(rd.name[1:],10)
     i = 0
     while ri <= 31:
@@ -348,7 +348,7 @@ def mn_mfmsr(rd):
     rd = MSR
 
 def mn_mfspr(ir, instr, arg1, arg2):
-    sprid = arg2.arg.arg
+    sprid = int(arg2)
     gprid = int(arg1.name[1:])
     if sprid in spr_dict:
         return [ ExprAssign(arg1, spr_dict[sprid]) ], []
@@ -365,7 +365,7 @@ def mn_mtcrf(ir, instr, crm, rs):
     ret = []
 
     for i in range(8):
-        if crm.arg.arg & (1 << (7 - i)):
+        if int(crm) & (1 << (7 - i)):
             j = (28 - 4 * i) + 3
             for b in ['LT', 'GT', 'EQ', 'SO']:
                 ret.append(ExprAssign(all_regs_ids_byname["CR%d_%s" % (i, b)],
@@ -379,7 +379,7 @@ def mn_mtmsr(ir, instr, rs):
     return [ ExprAssign(MSR, rs) ], []
 
 def mn_mtspr(ir, instr, arg1, arg2):
-    sprid = arg1.arg.arg
+    sprid = int(arg1)
     gprid = int(arg2.name[1:])
     if sprid in spr_dict:
         return [ ExprAssign(spr_dict[sprid], arg2) ], []
@@ -562,7 +562,7 @@ def mn_do_srawi(ir, instr, ra, rs, imm):
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
 
-    mask = ExprInt(0xFFFFFFFF >> (32 - imm.arg.arg), 32)
+    mask = ExprInt(0xFFFFFFFF >> (32 - int(imm)), 32)
 
     ret.append(ExprAssign(XER_CA, rs.msb() &
                        ExprCond(rs & mask, ExprInt(1, 1), ExprInt(0, 1))))
@@ -580,7 +580,7 @@ def mn_do_srw(ir, instr, ra, rs, rb):
 
 def mn_do_stmw(ir, instr, rs, dest):
     ret = []
-    address = dest.arg
+    address = int(dest)
     ri = int(rs.name[1:],10)
     i = 0
     while ri <= 31:
@@ -879,7 +879,7 @@ class ir_ppc32b(IntermediateRepresentation):
     def get_ir(self, instr):
         args = instr.args[:]
         if instr.name[0:5] in [ 'ADDIS', 'ORIS', 'XORIS', 'ANDIS' ]:
-            args[2] = ExprInt(args[2].arg << 16, 32)
+            args[2] = ExprInt(int(args[2]) << 16, 32)
         if instr.name[0:3] == 'ADD':
             if instr.name[0:4] == 'ADDZ':
                 last_arg = ExprInt(0, 32)
@@ -920,8 +920,8 @@ class ir_ppc32b(IntermediateRepresentation):
             instr_ir, extra_ir = mn_do_or(self, instr, *args)
         elif instr.name[0:2] == 'RL':
             instr_ir, extra_ir = mn_do_rotate(self, instr, args[0], args[1],
-                                              args[2], args[3].arg.arg,
-                                              args[4].arg.arg)
+                                              args[2], int(args[3]),
+                                              int(args[4]))
         elif instr.name == 'STMW':
             instr_ir, extra_ir = mn_do_stmw(self, instr, *args)
         elif instr.name[0:2] == 'ST':
