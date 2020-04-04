@@ -75,7 +75,7 @@ class JitCore_Cc_Base(JitCore):
         lib_dir = os.path.dirname(os.path.realpath(__file__))
         ext = sysconfig.get_config_var('EXT_SUFFIX')
         if ext is None:
-            ext = ".so" if not is_win else ".lib"
+            ext = self._get_ext()
 
         libs = [
             os.path.join(lib_dir, "VmMngr" + ext),
@@ -118,4 +118,7 @@ class JitCore_Cc_Base(JitCore):
 
     @staticmethod
     def gen_C_source(ir_arch, func_code):
+        raise NotImplementedError()
+
+    def _get_ext(self):
         raise NotImplementedError()

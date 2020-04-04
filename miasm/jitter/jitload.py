@@ -181,6 +181,7 @@ class Jitter(object):
         @jit_type: JiT backend to use. Available options are:
             - "gcc"
             - "llvm"
+            - "msvc"
             - "python"
         """
 
@@ -229,6 +230,8 @@ class Jitter(object):
                 from miasm.jitter.jitcore_python import JitCore_Python as JitCore
             elif jit_type == "gcc":
                 from miasm.jitter.jitcore_gcc import JitCore_Gcc as JitCore
+            elif jit_type == "msvc":
+                from miasm.jitter.jitcore_msvc import JitCore_MSVC as JitCore
             else:
                 raise ValueError("Unknown jitter %s" % jit_type)
         except ImportError:
