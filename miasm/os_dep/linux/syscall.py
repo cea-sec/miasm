@@ -83,9 +83,9 @@ def sys_x86_32_execve(jitter, linux_env):
     envp = []
     i = 0
     while envp_addr != 0:
-        argv.append(jitter.get_c_str(envp_addr))
+        envp.append(jitter.get_c_str(envp_addr))
         i += 4
-        argv_addr = jitter.vm.get_u32(jitter.cpu.EDX+i)
+        envp_addr = jitter.vm.get_u32(jitter.cpu.EDX+i)
     log.debug("sys_execve(%s, [%s], [%s])", pathname,
             ", ".join(argv), ", ".join(envp))
     jitter.syscall_ret_systemv(0)
@@ -107,9 +107,9 @@ def sys_x86_64_execve(jitter, linux_env):
     envp = []
     i = 0
     while envp_addr != 0:
-        argv.append(jitter.get_c_str(envp_addr))
+        envp.append(jitter.get_c_str(envp_addr))
         i += 8
-        argv_addr = jitter.vm.get_u64(jitter.cpu.EDX+i)
+        envp_addr = jitter.vm.get_u64(jitter.cpu.EDX+i)
     log.debug("sys_execve(%s, [%s], [%s])", pathname,
             ", ".join(argv), ", ".join(envp))
     jitter.syscall_ret_systemv(0)
@@ -118,6 +118,16 @@ def sys_x86_64_execve(jitter, linux_env):
 def sys_x86_32_socket(jitter, linux_env):
     # int socketcall(int call, unsigned long *args)
     # Redirect to several other socket syscalls
+    # https://github.com/torvalds/linux/blob/master/include/uapi/linux/net.h
+    SOCKET_CALLS = {
+        1: "SYS_SOCKET",
+        2: "SYS_BIND",
+        3: "SYS_CONNECT",
+        4: "SYS_LISTEN",
+        5: "SYS_ACCEPT",
+        14: "SYS_SETSOCKOPT"
+    }
+
     SOCKET_DOMAINS = {
         0: "AF_UNSPEC",
         1: "AF_UNIX",
@@ -139,7 +149,9 @@ def sys_x86_32_socket(jitter, linux_env):
         3: "SOCK_RAW"
     }
 
-    if jitter.cpu.EBX == 1:
+    if jitter.cpu.EBX not in SOCKET_CALLS.keys():
+        raise NotImplemented("SysCall Not Implemented")
+    if SOCKET_CALLS[jitter.cpu.EBX] == "SYS_SOCKET":
         # int socket(int domain, int type, int protocol);
         domain = jitter.vm.get_u32(jitter.cpu.ESP)
         stype = jitter.vm.get_u32(jitter.cpu.ESP+4)
@@ -148,14 +160,18 @@ def sys_x86_32_socket(jitter, linux_env):
         log.debug("socket(%s, %s, %s)", SOCKET_DOMAINS[domain],
                 SOCKET_TYPE[stype], proto)
         jitter.syscall_ret_systemv(fd)
-    elif jitter.cpu.EBX == 2:
+    elif SOCKET_CALLS[jitter.cpu.EBX] == "SYS_BIND":
         # int bind(int sockfd, const struct sockaddr *addr,
         #         socklen_t addrlen);
         fd = jitter.vm.get_u32(jitter.cpu.ESP)
         socklen = jitter.vm.get_u32(jitter.cpu.ESP+8)
-        sockaddr = jitter.vm.get_mem(
-                jitter.vm.get_u32(jitter.cpu.ESP+4),
-                socklen)
+        try:
+            sockaddr = jitter.vm.get_mem(
+                    jitter.vm.get_u32(jitter.cpu.ESP+4),
+                    socklen)
+        except RuntimeError:
+            # Not the exact size because shellcodes won't provide the full struct
+            sockaddr = jitter.vm.get_mem(jitter.vm.get_u32(jitter.cpu.ESP+4), 8)
         family = struct.unpack("H", sockaddr[0:2])[0]
         if family == 2:
             # IPv4
@@ -164,6 +180,7 @@ def sys_x86_32_socket(jitter, linux_env):
             log.debug("socket_bind(fd, [%s, %i, %s], %i)", "AF_INET",
                     port, ip, socklen)
         elif family == 10:
+            # IPv6
             port = struct.unpack(">H", sockaddr[2:4])[0]
             ip = ".".join([str(i) for i in struct.unpack("B"*16, sockaddr[8:24])])
             log.debug("socket_bind(fd, [%s, %i, %s], %i)", "AF_INET6",
@@ -171,13 +188,15 @@ def sys_x86_32_socket(jitter, linux_env):
         else:
             log.debug("socket_bind(fd, sockaddr, socklen_t)")
         jitter.syscall_ret_systemv(0)
-    elif jitter.cpu.EBX == 3:
+    elif SOCKET_CALLS[jitter.cpu.EBX] == "SYS_CONNECT":
         # int connect(int sockfd, const struct sockaddr *addr,
         #           socklen_t addrlen);
         fd = jitter.vm.get_u32(jitter.cpu.ESP)
         socklen = jitter.vm.get_u32(jitter.cpu.ESP+8)
         try:
-            sockaddr = jitter.vm.get_mem(jitter.vm.get_u32(jitter.cpu.ESP+4), 28)
+            sockaddr = jitter.vm.get_mem(
+                    jitter.vm.get_u32(jitter.cpu.ESP+4),
+                    socklen)
         except RuntimeError:
             # Not the exact size because shellcodes won't provide the full struct
             sockaddr = jitter.vm.get_mem(jitter.vm.get_u32(jitter.cpu.ESP+4), 8)
@@ -196,20 +215,20 @@ def sys_x86_32_socket(jitter, linux_env):
         else:
             log.debug("socket_connect(fd, sockaddr, socklen)")
         jitter.syscall_ret_systemv(0)
-    elif jitter.cpu.EBX == 4:
+    elif SOCKET_CALLS[jitter.cpu.EBX] == "SYS_LISTEN":
         #  int listen(int sockfd, int backlog);
         sockfd = jitter.vm.get_u32(jitter.cpu.ESP)
         backlog = jitter.vm.get_u32(jitter.cpu.ESP+4)
         log.debug("socket_listen(%x, %x)", sockfd, backlog)
         jitter.syscall_ret_systemv(0)
-    elif jitter.cpu.EBX == 5:
+    elif SOCKET_CALLS[jitter.cpu.EBX] == "SYS_ACCEPT":
         # int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
         sockfd = jitter.vm.get_u32(jitter.cpu.ESP)
         sockaddr = jitter.vm.get_u32(jitter.cpu.ESP+4)
         addrlen = jitter.vm.get_u32(jitter.cpu.ESP+8)
         log.debug("socket_accept(%x, %x, %x)", sockfd, sockaddr, addrlen)
         jitter.syscall_ret_systemv(0)
-    elif jitter.cpu.EBX == 14:
+    elif SOCKET_CALLS[jitter.cpu.EBX] == "SYS_SETSOCKOPT":
         # SYS_SETSOCKOPT
         # int setsockopt(int sockfd, int level, int optname,
         #     const void *optval, socklen_t optlen);
@@ -230,7 +249,10 @@ def sys_generic_chmod(jitter, linux_env):
     path_addr, mode = jitter.syscall_args_systemv(2)
     pathname = jitter.get_c_str(path_addr)
     log.debug("sys_chmod(%s, %x)", pathname, mode)
-    jitter.syscall_ret_systemv(0)
+
+    # Stub
+    ret = linux_env.filesystem.chmod(pathname, mode)
+    jitter.syscall_ret_systemv(ret)
 
 
 def sys_x86_64_rt_sigaction(jitter, linux_env):
@@ -789,7 +811,6 @@ def sys_generic_exit(jitter, linux_env):
     status, = jitter.syscall_args_systemv(1)
     log.debug("sys_exit(%i)", status)
     jitter.run = False
-    jitter.pc = 0
 
 
 def sys_arml_lstat64(jitter, linux_env):
@@ -1003,6 +1024,13 @@ def sys_generic_setreuid(jitter, linux_env):
     # Parse arguments
     ruid, euid = jitter.syscall_args_systemv(2)
     log.debug("sys_setreuid(%x, %x)", ruid, euid)
+
+    # WARNING : no privilege check here
+    # Easy privilege escalation, just ask
+    if ruid > -1:
+        linux_env.user_uid = ruid
+    if euid > -1:
+        linux_env.user_euid = euid
 
     jitter.syscall_ret_systemv(0)
 
