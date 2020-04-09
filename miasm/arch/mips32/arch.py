@@ -95,8 +95,9 @@ class instruction_mips32(cpu.instruction):
 
     def dstflow2label(self, loc_db):
         if self.name in ["J", 'JAL']:
-            expr = int(self.args[0])
-            addr = (self.offset & (0xFFFFFFFF ^ ((1<< 28)-1))) + expr
+            expr = self.args[0]
+            offset = int(expr)
+            addr = ((self.offset & (0xFFFFFFFF ^ ((1<< 28)-1))) + offset) & int(expr.mask)
             loc_key = loc_db.get_or_create_offset_location(addr)
             self.args[0] = ExprLoc(loc_key, expr.size)
             return
@@ -106,7 +107,7 @@ class instruction_mips32(cpu.instruction):
 
         if not isinstance(expr, ExprInt):
             return
-        addr = int(expr) + self.offset
+        addr = (int(expr) + self.offset) & int(expr.mask)
         loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[ndx] = ExprLoc(loc_key, expr.size)
 
