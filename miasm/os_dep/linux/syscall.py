@@ -401,7 +401,7 @@ def sys_x86_64_arch_prctl(jitter, linux_env):
         jitter.cpu.set_segm_base(jitter.cpu.FS, addr)
     elif code == 0x3001:
         # CET status (disabled)
-        jitter.cpu.set_mem(addr, pck64(0))
+        jitter.vm.set_mem(addr, pck64(0))
     else:
         raise RuntimeError("Not implemented")
     jitter.cpu.RAX = 0
