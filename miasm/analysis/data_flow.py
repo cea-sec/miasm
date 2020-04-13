@@ -723,19 +723,6 @@ class SSADefUse(DiGraph):
 
 
 
-
-def expr_test_visit(expr, test):
-    result = set()
-    expr.visit(
-        lambda expr: expr,
-        lambda expr: test(expr, result)
-    )
-    if result:
-        return True
-    else:
-        return False
-
-
 def expr_has_mem(expr):
     """
     Return True if expr contains at least one memory access
@@ -1055,7 +1042,11 @@ def visitor_get_stack_accesses(ir_arch_a, expr, stack_vars):
 
 def get_stack_accesses(ir_arch_a, expr):
     result = set()
-    expr.visit(lambda expr:visitor_get_stack_accesses(ir_arch_a, expr, result))
+    def get_stack(expr_to_test):
+        visitor_get_stack_accesses(ir_arch_a, expr_to_test, result)
+        return None
+    visitor = ExprWalk(get_stack)
+    visitor.visit(expr)
     return result
 
 
@@ -1201,10 +1192,12 @@ def memlookup_test(expr, bs, is_addr_ro_variable, result):
 
 def memlookup_visit(expr, bs, is_addr_ro_variable):
     result = set()
-    expr.visit(lambda expr: expr,
-               lambda expr: memlookup_test(expr, bs, is_addr_ro_variable, result))
+    def retrieve_memlookup(expr_to_test):
+        memlookup_test(expr_to_test, bs, is_addr_ro_variable, result)
+        return None
+    visitor = ExprWalk(retrieve_memlookup)
+    visitor.visit(expr)
     return result
-
 
 def get_memlookup(expr, bs, is_addr_ro_variable):
     return memlookup_visit(expr, bs, is_addr_ro_variable)
