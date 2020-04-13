@@ -628,6 +628,7 @@ class AsmCFG(DiGraph):
         This method should be called if a block's '.bto' in nodes have been
         modified without notifying this instance to resynchronize edges.
         """
+        self._pendings = {}
         for block in self.blocks:
             edges = []
             # Rebuild edges from bto
