@@ -33,7 +33,7 @@ class depGraphSettingsForm(ida_kernwin.Form):
         self.stk_args = {'ARG%d' % i:i for i in range(10)}
         self.stk_unalias_force = False
 
-        self.address = idc.ScreenEA()
+        self.address = idc.get_screen_ea()
         cur_block = None
         for loc_key in ircfg.getby_offset(self.address):
             block = ircfg.get_block(loc_key)
@@ -54,7 +54,7 @@ class depGraphSettingsForm(ida_kernwin.Form):
         regs += list(self.stk_args)
         reg_default = regs[0]
         for i in range(10):
-            opnd = idc.GetOpnd(self.address, i).upper()
+            opnd = idc.print_operand(self.address, i).upper()
             if opnd in regs:
                 reg_default = opnd
                 break
@@ -128,7 +128,7 @@ Method to use:
         if value in self.stk_args:
             line = self.ircfg.blocks[self.loc_key][self.line_nb].instr
             arg_num = self.stk_args[value]
-            stk_high = m2_expr.ExprInt(idc.GetSpd(line.offset), ir_arch.sp.size)
+            stk_high = m2_expr.ExprInt(idc.get_spd(line.offset), ir_arch.sp.size)
             stk_off = m2_expr.ExprInt(self.ira.sp.size // 8 * arg_num, ir_arch.sp.size)
             element =  m2_expr.ExprMem(self.mn.regs.regs_init[ir_arch.sp] + stk_high + stk_off, self.ira.sp.size)
             element = expr_simp(element)
@@ -161,8 +161,8 @@ def clean_lines():
     "Remove previous comments"
     global comments
     for offset in comments:
-        idc.SetColor(offset, idc.CIC_ITEM, 0xffffff)
-        idc.MakeComm(offset, "")
+        idc.set_color(offset, idc.CIC_ITEM, 0xffffff)
+        idc.set_cmt(offset, "", 0)
     comments = {}
 
 def treat_element():
@@ -189,7 +189,7 @@ def treat_element():
             print("Unable to highlight %s" % node)
             continue
         comments[offset] = comments.get(offset, []) + [node.element]
-        idc.SetColor(offset, idc.CIC_ITEM, settings.color)
+        idc.set_color(offset, idc.CIC_ITEM, settings.color)
 
     if graph.has_loop:
         print('Graph has dependency loop: symbolic execution is inexact')
@@ -197,7 +197,7 @@ def treat_element():
         print("Possible value: %s" % next(iter(viewvalues(graph.emul(ir_arch)))))
 
     for offset, elements in viewitems(comments):
-        idc.MakeComm(offset, ", ".join(map(str, elements)))
+        idc.set_cmt(offset, ", ".join(map(str, elements)), 0)
 
 def next_element():
     "Display the next element"
@@ -208,11 +208,11 @@ def next_element():
 def launch_depgraph():
     global graphs, comments, sol_nb, settings, addr, ir_arch, ircfg
     # Get the current function
-    addr = idc.ScreenEA()
+    addr = idc.get_screen_ea()
     func = ida_funcs.get_func(addr)
 
     # Init
-    machine = guess_machine(addr=func.startEA)
+    machine = guess_machine(addr=func.start_ea)
     mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
 
     bs = bin_stream_ida()
@@ -225,7 +225,7 @@ def launch_depgraph():
             continue
         mdis.loc_db.add_location(name, ad)
 
-    asmcfg = mdis.dis_multiblock(func.startEA)
+    asmcfg = mdis.dis_multiblock(func.start_ea)
 
     # Generate IR
     ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
@@ -242,7 +242,7 @@ def launch_depgraph():
         fix_stack = offset is not None and settings.unalias_stack
         for assignblk in irb:
             if fix_stack:
-                stk_high = m2_expr.ExprInt(idc.GetSpd(assignblk.instr.offset), ir_arch.sp.size)
+                stk_high = m2_expr.ExprInt(idc.get_spd(assignblk.instr.offset), ir_arch.sp.size)
                 fix_dct = {ir_arch.sp: mn.regs.regs_init[ir_arch.sp] + stk_high}
 
             new_assignblk = {}
@@ -259,7 +259,7 @@ def launch_depgraph():
     # Get dependency graphs
     dg = settings.depgraph
     graphs = dg.get(loc_key, elements, line_nb,
-                    set([ir_arch.loc_db.get_offset_location(func.startEA)]))
+                    set([ir_arch.loc_db.get_offset_location(func.start_ea)]))
 
     # Display the result
     comments = {}

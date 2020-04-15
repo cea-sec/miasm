@@ -10,7 +10,7 @@ import miasm.expression.expression as m2_expr
 def guess_machine(addr=None):
     "Return an instance of Machine corresponding to the IDA guessed processor"
 
-    processor_name = GetLongPrm(INF_PROCNAME)
+    processor_name = get_inf_attr(INF_PROCNAME)
     info = idaapi.get_inf_structure()
 
     if info.is_64bit():

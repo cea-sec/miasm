@@ -27,13 +27,13 @@ class TypePropagationForm(ida_kernwin.Form):
         default_types_info = r"""ExprId("RDX", 64): char *"""
         archs = ["AMD64_unk", "X86_32_unk", "msp430_unk"]
 
-        func = ida_funcs.get_func(idc.ScreenEA())
-        func_addr = func.startEA
+        func = ida_funcs.get_func(idc.get_screen_ea())
+        func_addr = func.start_ea
 
-        start_addr = idc.SelStart()
+        start_addr = idc.read_selection_start()
         if start_addr == idc.BADADDR:
-            start_addr = idc.ScreenEA()
-        end_addr = idc.SelEnd()
+            start_addr = idc.get_screen_ea()
+        end_addr = idc.read_selection_end()
 
         ida_kernwin.Form.__init__(self,
                       r"""BUTTON YES* Launch
@@ -205,7 +205,7 @@ class SymbExecCTypeFix(SymbExecCType):
                     )
             self.eval_updt_assignblk(assignblk)
         for offset, value in viewitems(offset2cmt):
-            idc.MakeComm(offset, '\n'.join(value))
+            idc.set_cmt(offset, '\n'.join(value), 0)
             print("%x\n" % offset, '\n'.join(value))
 
         return self.eval_expr(self.ir_arch.IRDst)
@@ -227,8 +227,8 @@ def get_ira_call_fixer(ira):
 
         def call_effects(self, ad, instr):
             print(hex(instr.offset), instr)
-            stk_before = idc.GetSpd(instr.offset)
-            stk_after = idc.GetSpd(instr.offset + instr.l)
+            stk_before = idc.get_spd(instr.offset)
+            stk_after = idc.get_spd(instr.offset + instr.l)
             stk_diff = stk_after - stk_before
             print(hex(stk_diff))
             call_assignblk = AssignBlock(
