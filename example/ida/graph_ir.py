@@ -125,11 +125,11 @@ class GraphMiasmIR(idaapi.GraphViewer):
     def OnRefresh(self):
         self.Clear()
         addr_id = {}
-        for irblock in viewvalues(self.ircfg.blocks):
+        for (loc_key, irblock) in viewitems(self.ircfg.blocks):
             id_irblock = self.AddNode(color_irblock(irblock, self.ircfg))
-            addr_id[irblock] = id_irblock
+            addr_id[loc_key] = id_irblock
 
-        for irblock in viewvalues(self.ircfg.blocks):
+        for (loc_key, irblock) in viewitems(self.ircfg.blocks):
             if not irblock:
                 continue
             all_dst = self.ircfg.dst_trackback(irblock)
@@ -138,9 +138,8 @@ class GraphMiasmIR(idaapi.GraphViewer):
                     continue
                 if not dst.loc_key in self.ircfg.blocks:
                     continue
-                dst_block = self.ircfg.blocks[dst.loc_key]
-                node1 = addr_id[irblock]
-                node2 = addr_id[dst_block]
+                node1 = addr_id[loc_key]
+                node2 = addr_id[dst.loc_key]
                 self.AddEdge(node1, node2)
         return True
 
