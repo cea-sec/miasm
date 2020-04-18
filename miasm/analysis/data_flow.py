@@ -2183,7 +2183,8 @@ class PropagateExpressions(object):
             ):
                 continue
 
-
+            if state_orig:
+                state.undefined.update(state_orig.undefined)
             states[loc_key] = state
             # Propagate to sons
             for successor in ircfg.successors(loc_key):
