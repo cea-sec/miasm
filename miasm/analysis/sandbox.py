@@ -213,6 +213,7 @@ class OS_Win(OS):
                 fstream.read(),
                 load_hdr=self.options.load_hdr,
                 name=self.fname,
+                winobjs=win_api_x86_32.winobjs,
                 **kwargs
             )
             self.name2module[fname_basename] = self.pe
@@ -227,6 +228,7 @@ class OS_Win(OS):
                     self.ALL_IMP_DLL,
                     libs,
                     self.modules_path,
+                    winobjs=win_api_x86_32.winobjs,
                     **kwargs
                 )
             )
@@ -242,6 +244,7 @@ class OS_Win(OS):
                 self.name2module,
                 libs,
                 self.modules_path,
+                winobjs=win_api_x86_32.winobjs,
                 **kwargs
             )
 

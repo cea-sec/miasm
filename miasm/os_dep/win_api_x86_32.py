@@ -759,7 +759,9 @@ def kernel32_VirtualProtect(jitter):
         jitter.vm.set_u32(args.lpfloldprotect, ACCESS_DICT_INV[old])
 
     paddr = args.lpvoid - (args.lpvoid % winobjs.alloc_align)
-    psize = args.dwsize
+    paddr_max = (args.lpvoid + args.dwsize + winobjs.alloc_align - 1)
+    paddr_max_round = paddr_max - (paddr_max % winobjs.alloc_align)
+    psize = paddr_max_round - paddr
     for addr, items in list(winobjs.allocated_pages.items()):
         alloc_addr, alloc_size = items
         if not (alloc_addr <= paddr and
