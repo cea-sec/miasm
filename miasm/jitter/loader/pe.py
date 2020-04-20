@@ -171,7 +171,7 @@ def get_export_name_addr_list(e):
     return out
 
 
-def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", **kargs):
+def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", winobjs=None, **kargs):
     """Load a PE in memory (@vm) from a data buffer @fdata
     @vm: VmMngr instance
     @fdata: data buffer to parse
@@ -207,6 +207,9 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", **kargs):
                 pe.content[:hdr_len] +
                 max(0, (min_len - hdr_len)) * b"\x00"
             )
+
+            if winobjs:
+                winobjs.allocated_pages[pe.NThdr.ImageBase] = (pe.NThdr.ImageBase, len(pe_hdr))
             vm.add_memory_page(
                 pe.NThdr.ImageBase,
                 PAGE_READ | PAGE_WRITE,
@@ -237,8 +240,12 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", **kargs):
             attrib = PAGE_READ
             if section.flags & 0x80000000:
                 attrib |= PAGE_WRITE
+
+            section_addr = pe.rva2virt(section.addr)
+            if winobjs:
+                winobjs.allocated_pages[section_addr] = (section_addr, len(data))
             vm.add_memory_page(
-                pe.rva2virt(section.addr),
+                section_addr,
                 attrib,
                 data,
                 "%r: %r" % (name, section.name)
