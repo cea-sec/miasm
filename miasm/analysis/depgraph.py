@@ -615,12 +615,9 @@ class DependencyGraph(object):
             if done_state in done:
                 continue
             done.add(done_state)
-            if (not state.pending or
-                    state.loc_key in heads or
-                    not self._ircfg.predecessors(state.loc_key)):
+            if not state.pending or state.loc_key in heads:
                 yield dpResultcls(self._ircfg, initial_state, state, elements)
-                if not state.pending:
-                    continue
+                continue
 
             if self._implicit:
                 # Force IRDst to be tracked, except in the input block
