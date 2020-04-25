@@ -918,7 +918,7 @@ class DirDelay(CStruct):
         return out, off
 
     def sete(self, entries):
-        return "".join(bytes(entry) for entry in entries) + b"\x00" * (4 * 8)  # DelayDesc_e
+        return b"".join(bytes(entry) for entry in entries) + b"\x00" * (4 * 8)  # DelayDesc_e
 
     def __len__(self):
         rva_size = self.parent_head._wsize // 8
