@@ -183,6 +183,9 @@ class FileDescriptorSocket(FileDescriptor):
         self.type_ = type_
         self.protocol = protocol
 
+    def read(self, count):
+        return b""
+
 
 class FileSystem(object):
     """File system abstraction
@@ -364,6 +367,18 @@ class FileSystem(object):
         fdesc.blksize = self.blocksize
         fdesc.blocks = (size + ((512 - (size % 512)) % 512)) // 512
         return fd
+
+    def chmod(self, path, mode):
+        """Stub for 'chmod' syscall"""
+        sb_path = self.resolve_path(path)
+        if os.path.exists(sb_path):
+            try:
+                os.chmod(sb_path, mode)
+            except (OverflowError, FileNotFoundError):
+                return -1
+            return 0
+        else:
+            return -1
 
 
 class Networking(object):

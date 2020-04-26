@@ -68,6 +68,193 @@ def _dump_struct_stat_arml(info):
     return data
 
 
+def sys_x86_32_execve(jitter, linux_env):
+    # int execve(const char *pathname, char *const argv[],
+    #              char *const envp[]);
+    pathname_addr, argv_ptr, envp_addr = jitter.syscall_args_systemv(3)
+    pathname = jitter.get_c_str(pathname_addr)
+    argv = []
+    i = 0
+    argv_addr = jitter.vm.get_u32(argv_ptr)
+    while argv_addr != 0:
+        argv.append(jitter.get_c_str(argv_addr))
+        argv_ptr += 4
+        argv_addr = jitter.vm.get_u32(argv_ptr)
+    envp = []
+    i = 0
+    while envp_addr != 0:
+        envp.append(jitter.get_c_str(envp_addr))
+        i += 4
+        envp_addr = jitter.vm.get_u32(jitter.cpu.EDX+i)
+    log.debug("sys_execve(%s, [%s], [%s])", pathname,
+            ", ".join(argv), ", ".join(envp))
+    jitter.syscall_ret_systemv(0)
+
+
+def sys_x86_64_execve(jitter, linux_env):
+    # int execve(const char *pathname, char *const argv[],
+    #              char *const envp[]);
+    # TODO : merge that into a generic execve
+    pathname_addr, argv_ptr, envp_addr = jitter.syscall_args_systemv(3)
+    pathname = jitter.get_c_str(pathname_addr)
+    argv = []
+    i = 0
+    argv_addr = jitter.vm.get_u64(argv_ptr)
+    while argv_addr != 0:
+        argv.append(jitter.get_c_str(argv_addr))
+        argv_ptr += 8
+        argv_addr = jitter.vm.get_u64(argv_ptr)
+    envp = []
+    i = 0
+    while envp_addr != 0:
+        envp.append(jitter.get_c_str(envp_addr))
+        i += 8
+        envp_addr = jitter.vm.get_u64(jitter.cpu.EDX+i)
+    log.debug("sys_execve(%s, [%s], [%s])", pathname,
+            ", ".join(argv), ", ".join(envp))
+    jitter.syscall_ret_systemv(0)
+
+
+def sys_x86_32_socket(jitter, linux_env):
+    # int socketcall(int call, unsigned long *args)
+    # Redirect to several other socket syscalls
+    # https://github.com/torvalds/linux/blob/master/include/uapi/linux/net.h
+    SOCKET_CALLS = {
+        1: "SYS_SOCKET",
+        2: "SYS_BIND",
+        3: "SYS_CONNECT",
+        4: "SYS_LISTEN",
+        5: "SYS_ACCEPT",
+        14: "SYS_SETSOCKOPT"
+    }
+
+    SOCKET_DOMAINS = {
+        0: "AF_UNSPEC",
+        1: "AF_UNIX",
+        2: "AF_INET",
+        3: "AF_AX25",
+        4: "AF_IPX",
+        5: "AF_APPLETALK",
+        6: "AF_NETROM",
+        7: "AF_BRIDGE",
+        8: "AF_AAL5",
+        9: "AF_X25", #Who cares ?
+        10: "AF_INET6",
+        11: "AF_MAX"
+    }
+
+    SOCKET_TYPE = {
+        1: "SOCK_STREAM",
+        2: "SOCK_DGRAM",
+        3: "SOCK_RAW"
+    }
+
+    if jitter.cpu.EBX not in SOCKET_CALLS.keys():
+        raise NotImplemented("SysCall Not Implemented")
+    if SOCKET_CALLS[jitter.cpu.EBX] == "SYS_SOCKET":
+        # int socket(int domain, int type, int protocol);
+        domain = jitter.vm.get_u32(jitter.cpu.ESP)
+        stype = jitter.vm.get_u32(jitter.cpu.ESP+4)
+        proto = jitter.vm.get_u32(jitter.cpu.ESP+8)
+        fd = linux_env.socket(domain, stype, proto)
+        log.debug("socket(%s, %s, %s)", SOCKET_DOMAINS[domain],
+                SOCKET_TYPE[stype], proto)
+        jitter.syscall_ret_systemv(fd)
+    elif SOCKET_CALLS[jitter.cpu.EBX] == "SYS_BIND":
+        # int bind(int sockfd, const struct sockaddr *addr,
+        #         socklen_t addrlen);
+        fd = jitter.vm.get_u32(jitter.cpu.ESP)
+        socklen = jitter.vm.get_u32(jitter.cpu.ESP+8)
+        try:
+            sockaddr = jitter.vm.get_mem(
+                    jitter.vm.get_u32(jitter.cpu.ESP+4),
+                    socklen)
+        except RuntimeError:
+            # Not the exact size because shellcodes won't provide the full struct
+            sockaddr = jitter.vm.get_mem(jitter.vm.get_u32(jitter.cpu.ESP+4), 8)
+        family = struct.unpack("H", sockaddr[0:2])[0]
+        if family == 2:
+            # IPv4
+            port = struct.unpack(">H", sockaddr[2:4])[0]
+            ip = ".".join([str(i) for i in struct.unpack("BBBB", sockaddr[4:8])])
+            log.debug("socket_bind(fd, [%s, %i, %s], %i)", "AF_INET",
+                    port, ip, socklen)
+        elif family == 10:
+            # IPv6
+            port = struct.unpack(">H", sockaddr[2:4])[0]
+            ip = ".".join([str(i) for i in struct.unpack("B"*16, sockaddr[8:24])])
+            log.debug("socket_bind(fd, [%s, %i, %s], %i)", "AF_INET6",
+                    port, ip, socklen)
+        else:
+            log.debug("socket_bind(fd, sockaddr, socklen_t)")
+        jitter.syscall_ret_systemv(0)
+    elif SOCKET_CALLS[jitter.cpu.EBX] == "SYS_CONNECT":
+        # int connect(int sockfd, const struct sockaddr *addr,
+        #           socklen_t addrlen);
+        fd = jitter.vm.get_u32(jitter.cpu.ESP)
+        socklen = jitter.vm.get_u32(jitter.cpu.ESP+8)
+        try:
+            sockaddr = jitter.vm.get_mem(
+                    jitter.vm.get_u32(jitter.cpu.ESP+4),
+                    socklen)
+        except RuntimeError:
+            # Not the exact size because shellcodes won't provide the full struct
+            sockaddr = jitter.vm.get_mem(jitter.vm.get_u32(jitter.cpu.ESP+4), 8)
+        family = struct.unpack("H", sockaddr[0:2])[0]
+        if family == 2:
+            # IPv4
+            port = struct.unpack(">H", sockaddr[2:4])[0]
+            ip = ".".join([str(i) for i in struct.unpack("BBBB", sockaddr[4:8])])
+            log.debug("socket_connect(fd, [%s, %i, %s], %i)", "AF_INET",
+                    port, ip, socklen)
+        elif family == 10:
+            port = struct.unpack(">H", sockaddr[2:4])[0]
+            ip = ".".join([str(i) for i in struct.unpack("B"*16, sockaddr[8:24])])
+            log.debug("socket_connect(fd, [%s, %i, %s], %i)", "AF_INET6",
+                    port, ip, socklen)
+        else:
+            log.debug("socket_connect(fd, sockaddr, socklen)")
+        jitter.syscall_ret_systemv(0)
+    elif SOCKET_CALLS[jitter.cpu.EBX] == "SYS_LISTEN":
+        #  int listen(int sockfd, int backlog);
+        sockfd = jitter.vm.get_u32(jitter.cpu.ESP)
+        backlog = jitter.vm.get_u32(jitter.cpu.ESP+4)
+        log.debug("socket_listen(%x, %x)", sockfd, backlog)
+        jitter.syscall_ret_systemv(0)
+    elif SOCKET_CALLS[jitter.cpu.EBX] == "SYS_ACCEPT":
+        # int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+        sockfd = jitter.vm.get_u32(jitter.cpu.ESP)
+        sockaddr = jitter.vm.get_u32(jitter.cpu.ESP+4)
+        addrlen = jitter.vm.get_u32(jitter.cpu.ESP+8)
+        log.debug("socket_accept(%x, %x, %x)", sockfd, sockaddr, addrlen)
+        jitter.syscall_ret_systemv(0)
+    elif SOCKET_CALLS[jitter.cpu.EBX] == "SYS_SETSOCKOPT":
+        # SYS_SETSOCKOPT
+        # int setsockopt(int sockfd, int level, int optname,
+        #     const void *optval, socklen_t optlen);
+        sockfd = jitter.vm.get_u32(jitter.cpu.ESP)
+        level = jitter.vm.get_u32(jitter.cpu.ESP+4)
+        optname = jitter.vm.get_u32(jitter.cpu.ESP+8)
+        optval_addr = jitter.vm.get_u32(jitter.cpu.ESP+12)
+        optlen = jitter.vm.get_u32(jitter.cpu.ESP+16)
+        log.debug("socket_setsockopt(%x, %x, %x, %x, %x)", sockfd, level, optname,
+                optval_addr, optlen)
+        jitter.syscall_ret_systemv(0)
+    else:
+        raise NotImplemented()
+
+
+def sys_generic_chmod(jitter, linux_env):
+    # int chmod(const char *pathname, mode_t mode);
+    path_addr, mode = jitter.syscall_args_systemv(2)
+    pathname = jitter.get_c_str(path_addr)
+    log.debug("sys_chmod(%s, %x)", pathname, mode)
+
+    # Stub
+    ret = linux_env.filesystem.chmod(pathname, mode)
+    jitter.syscall_ret_systemv(ret)
+
+
 def sys_x86_64_rt_sigaction(jitter, linux_env):
     # Parse arguments
     sig, act, oact, sigsetsize = jitter.syscall_args_systemv(4)
@@ -531,7 +718,12 @@ def sys_generic_write(jitter, linux_env):
 
     # Stub
     data = jitter.vm.get_mem(buf, count)
-    jitter.syscall_ret_systemv(linux_env.write(fd, data))
+    r = linux_env.write(fd, data)
+    if r is None:
+        log.debug("-> write : failed")
+        jitter.syscall_ret_systemv(-1)
+    else:
+        jitter.syscall_ret_systemv(r)
 
 
 def sys_x86_64_getdents(jitter, linux_env):
@@ -612,6 +804,13 @@ def sys_x86_64_newlstat(jitter, linux_env):
         data = _dump_struct_stat_x86_64(info)
         jitter.vm.set_mem(statbuf, data)
         jitter.cpu.RAX = 0
+
+
+def sys_generic_exit(jitter, linux_env):
+    # void exit(int status);
+    status, = jitter.syscall_args_systemv(1)
+    log.debug("sys_exit(%i)", status)
+    jitter.run = False
 
 
 def sys_arml_lstat64(jitter, linux_env):
@@ -821,6 +1020,21 @@ def sys_generic_setgid(jitter, linux_env):
         jitter.syscall_ret_systemv(0)
 
 
+def sys_generic_setreuid(jitter, linux_env):
+    # Parse arguments
+    ruid, euid = jitter.syscall_args_systemv(2)
+    log.debug("sys_setreuid(%x, %x)", ruid, euid)
+
+    # WARNING : no privilege check here
+    # Easy privilege escalation, just ask
+    if ruid > -1:
+        linux_env.user_uid = ruid
+    if euid > -1:
+        linux_env.user_euid = euid
+
+    jitter.syscall_ret_systemv(0)
+
+
 def sys_generic_setuid(jitter, linux_env):
     # Parse arguments
     uid, = jitter.syscall_args_systemv(1)
@@ -899,7 +1113,16 @@ def sys_arml_gettimeofday(jitter, linux_env):
 
 
 syscall_callbacks_x86_32 = {
+    0x1: sys_generic_exit,
+    0x3: sys_generic_read,
+    0x4: sys_generic_write,
+    0x5: sys_generic_open,
+    0xB: sys_x86_32_execve,
+    0xF: sys_generic_chmod,
+    0x46: sys_generic_setreuid,
+    0x66: sys_x86_32_socket,
     0x7A: sys_x86_32_newuname,
+    0x7D: sys_generic_mprotect,
 }
 
 
@@ -925,15 +1148,18 @@ syscall_callbacks_x86_64 = {
     0x27: sys_x86_64_getpid,
     0x29: sys_x86_64_socket,
     0x2A: sys_x86_64_connect,
+    0x3B: sys_x86_64_execve,
     0x3F: sys_x86_64_newuname,
     0x48: sys_generic_fcntl64,
     0x4E: sys_x86_64_getdents,
     0x59: sys_x86_64_readlink,
+    0x5A: sys_generic_chmod,
     0x63: sys_x86_64_sysinfo,
     0x66: sys_generic_getuid,
     0x68: sys_generic_getgid,
     0x6B: sys_generic_geteuid,
     0x6C: sys_generic_getegid,
+    0x71: sys_generic_setreuid,
     0xE4: sys_x86_64_clock_gettime,
     0x89: sys_x86_64_statfs,
     0x9E: sys_x86_64_arch_prctl,
