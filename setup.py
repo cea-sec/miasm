@@ -7,6 +7,7 @@ from distutils.sysconfig import get_python_lib, get_config_vars
 from distutils.dist import DistributionMetadata
 from distutils.command.install_data import install_data
 from tempfile import TemporaryFile
+import fnmatch
 import io
 import os
 import platform
@@ -248,7 +249,8 @@ def buil_all():
         for lib in libs:
             filename = os.path.basename(lib)
             dst = os.path.join(build_base, lib_dirname, "miasm", "jitter")
-            if filename not in ["VmMngr.lib", "Jitgcc.lib", "Jitllvm.lib"]:
+            # Windows built libraries may have a name like VmMngr.cp38-win_amd64.lib
+            if not any([fnmatch.fnmatch(filename, pattern) for pattern in ["VmMngr.*lib", "Jitgcc.*lib", "Jitllvm.*lib"]]):
                 dst = os.path.join(dst, "arch")
             dst = os.path.join(dst, filename)
             if not os.path.isfile(dst):
