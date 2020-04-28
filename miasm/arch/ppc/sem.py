@@ -248,8 +248,8 @@ def mn_do_exts(ir, instr, ra, rs):
 
 def byte_swap(expr):
     nbytes = expr.size // 8
-    bytes = [ expr[i*8:i*8+8] for i in range(nbytes - 1, -1, -1) ]
-    return ExprCompose(bytes)
+    lbytes = [ expr[i*8:i*8+8] for i in range(nbytes - 1, -1, -1) ]
+    return ExprCompose(*lbytes)
 
 def mn_do_load(ir, instr, arg1, arg2, arg3=None):
     assert instr.name[0] == 'L'
