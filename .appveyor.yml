@@ -19,6 +19,17 @@ environment:
       PYTHON: c:\Python27-x64
       PYTHON_VERSION: "2.7.x"
 
+    - platform: Win32
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      PLATFORM_TOOLSET: v141
+      PYTHON: c:\Python38
+      PYTHON_VERSION: "3.8.x"
+
+    - platform: x64
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      PLATFORM_TOOLSET: v141
+      PYTHON: c:\Python38-x64
+      PYTHON_VERSION: "3.8.x"
       # on_finish:
       #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 

@@ -79,7 +79,7 @@ class JitCore_Cc_Base(JitCore):
             ext = ".so" if not is_win else ".lib"
         if is_win:
             # sysconfig.get_config_var('EXT_SUFFIX') is .pyd on Windows and need to be forced to .lib
-            # Additionaly windows built libraries may have a name like VmMngr.cp38-win_amd64.lib
+            # Additionally windows built libraries may have a name like VmMngr.cp38-win_amd64.lib
             ext_files = glob.glob(os.path.join(lib_dir, "VmMngr.*lib"))
             if len(ext_files) == 1:
                 ext = os.path.basename(ext_files[0]).replace("VmMngr", "")
