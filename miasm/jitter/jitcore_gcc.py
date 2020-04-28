@@ -1,5 +1,6 @@
 #-*- coding:utf-8 -*-
 
+import sys
 import os
 import tempfile
 import ctypes
@@ -70,7 +71,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
                         get_python_inc(),
                         "..",
                         "libs",
-                        "python27.lib"
+                        "python%d%d.lib" % (sys.version_info.major, sys.version_info.minor)
                     )
                 )
                 cl = [

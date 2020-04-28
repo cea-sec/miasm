@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import glob
 import importlib
 import tempfile
 import sysconfig
@@ -56,10 +57,16 @@ class JitCore_LLVM(jitcore.JitCore):
 
         # Get architecture dependent Jitcore library (if any)
         lib_dir = os.path.dirname(os.path.realpath(__file__))
-        lib_dir = os.path.join(lib_dir, 'arch')
         ext = sysconfig.get_config_var('EXT_SUFFIX')
         if ext is None:
             ext = ".so" if not is_win else ".pyd"
+        if is_win:
+            # sysconfig.get_config_var('EXT_SUFFIX') is .pyd on Windows and need to be forced to .lib
+            # Additionally windows built libraries may have a name like VmMngr.cp38-win_amd64.lib
+            ext_files = glob.glob(os.path.join(lib_dir, "VmMngr.*pyd"))
+            if len(ext_files) == 1:
+                ext = os.path.basename(ext_files[0]).replace("VmMngr", "")
+        lib_dir = os.path.join(lib_dir, 'arch')
         try:
             jit_lib = os.path.join(
                 lib_dir, self.arch_dependent_libs[self.ir_arch.arch.name] + ext
