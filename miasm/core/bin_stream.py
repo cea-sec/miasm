@@ -137,7 +137,7 @@ class bin_stream(object):
         if endianness == LITTLE_ENDIAN:
             return upck16le(data)
         else:
-            return upck32be(data)
+            return upck16be(data)
 
     def get_u32(self, addr, endianness=None):
         """
