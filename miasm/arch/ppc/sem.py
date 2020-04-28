@@ -958,9 +958,9 @@ class ir_ppc32b(IntermediateRepresentation):
             instr_ir, extra_ir = mn_do_store(self, instr, *args)
         elif instr.name[0:4] == 'SUBF':
             if instr.name[0:5] == 'SUBFZ':
-                last_arg = ExprInt(0)
+                last_arg = ExprInt(0, 32)
             elif instr.name[0:5] == 'SUBFM':
-                last_arg = ExprInt(0xFFFFFFFF)
+                last_arg = ExprInt(0xFFFFFFFF, 32)
             else:
                 last_arg = args[2]
             instr_ir, extra_ir = mn_do_sub(self, instr, args[0], args[1],
