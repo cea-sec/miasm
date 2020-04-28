@@ -35,7 +35,7 @@ xerbcreg_expr, xerbcreg_init, xerbcreg = gen_regs(xerbcreg_str,
                                                   globals(), 7)
 
 
-otherregs_str = ["PC", "CTR", "LR" ]
+otherregs_str = ["PC", "CTR", "LR", "FPSCR", "VRSAVE", "VSCR" ]
 otherregs_expr, otherregs_init, otherregs = gen_regs(otherregs_str,
                                                      globals(), 32)
 
@@ -55,10 +55,18 @@ mmuregs_str = (["SR%d" % i for i in range(16)] +
 mmuregs_expr, mmuregs_init, mmuregs = gen_regs(mmuregs_str,
                                                globals(), 32)
 
+floatregs_str = (["FPR%d" % i for i in range(32)])
+floatregs_expr, floatregs_init, floatregs = gen_regs(floatregs_str,
+                                                     globals(), 64)
+
+vexregs_str = (["VR%d" % i for i in range(32)])
+vexregs_expr, vexregs_init, vexregs = gen_regs(vexregs_str,
+                                              globals(), 128)
+
 regs_flt_expr = []
 
 all_regs_ids = (gpregs_expr + crfbitregs_expr + xerbitregs_expr +
-                xerbcreg_expr + otherregs_expr + superregs_expr + mmuregs_expr +
+                xerbcreg_expr + otherregs_expr + superregs_expr + mmuregs_expr + floatregs_expr + vexregs_expr +
                 [ exception_flags, spr_access, reserve, reserve_address ])
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
 all_regs_ids_init = [ExprId("%s_init" % x.name, x.size) for x in all_regs_ids]

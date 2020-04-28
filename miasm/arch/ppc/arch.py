@@ -443,6 +443,13 @@ class ppc_u04imm(ppc_u16imm):
 class ppc_u02imm_noarg(imm_noarg):
     pass
 
+class ppc_float(ppc_reg):
+    reg_info = floatregs
+    parser = reg_info.parser
+
+class ppc_vex(ppc_reg):
+    reg_info = vexregs
+    parser = reg_info.parser
 
 def ppc_bo_bi_to_mnemo(bo, bi, prefer_taken=True, default_taken=True):
     bo2mnemo = { 0: 'DNZF', 2: 'DZF', 4: 'F', 8: 'DNZT',
@@ -566,6 +573,16 @@ dregimm = bs(l=16, cls=(ppc_deref32,))
 
 rc_mod = bs_mod_name(l=1, mn_mod=['', '.'], fname='rc')
 
+frd = bs(l=5, cls=(ppc_float,))
+frb = bs(l=5, cls=(ppc_float,))
+frs = bs(l=5, cls=(ppc_float,))
+fm = bs(l=8, cls=(ppc_u08imm,))
+
+va = bs(l=5, cls=(ppc_vex,))
+vb = bs(l=5, cls=(ppc_vex,))
+vd = bs(l=5, cls=(ppc_vex,))
+rb_noarg = bs(l=5, cls=(ppc_gpreg_noarg,), fname="rb")
+
 arith1_name = {"MULLI": 0b000111, "SUBFIC": 0b001000, "ADDIC": 0b001100,
                "ADDIC.": 0b001101 }
 
@@ -635,6 +652,17 @@ dcb_name = {"DCBST": 0b00001, "DCBF": 0b00010,
             "DCBTST": 0b00111, "DCBT": 0b01000,
             "DCBI": 0b01110, "DCBA": 0b10111,
             "ICBI": 0b11110, "DCBZ": 0b11111 }
+
+
+load1_name_float = {"LFS": 0b110000, "LFD": 0b110010 }
+load1_name_float_u = {"LFSU": 0b110001, "LFDU": 0b110011 }
+store1_name_float = {"STFS": 0b110100, "STFD": 0b110110 }
+store1_name_float_u = {"STFSU": 0b110101, "STFDU": 0b110111 }
+
+load1_name_vex = {"LVEBX": 0b0000000111, "LVEHX": 0b0000100111,
+                  "LVEWX": 0b0001000111, "LVSL": 0b0000000110,
+                  "LVSR": 0b0000100110, "LVX": 0b0001100111,
+                  "LVXL": 0b0101100111 }
 
 class bs_mod_name_prio4(bs_mod_name):
     prio = 4
@@ -762,3 +790,15 @@ ppcop("SRAWI", [bs('011111'), rs, ra, sh, bs('1100111000'), rc_mod],
       [ra, rs, sh])
 
 ppcop("EIEIO", [bs('011111'), bs('000000000000000'), bs('11010101100')])
+
+ppcop("load1f", [bs_name(l=6, name=load1_name_float), frd, ra_noarg, dregimm])
+ppcop("load1fu", [bs_name(l=6, name=load1_name_float_u), frd, ra_noarg, dregimm])
+ppcop("store1f", [bs_name(l=6, name=store1_name_float), frd, ra_noarg, dregimm])
+ppcop("store1fu", [bs_name(l=6, name=store1_name_float_u), frd, ra_noarg, dregimm])
+ppcop("MTFSF", [bs('111111'), bs('0'), fm, bs('0'), frb, bs('10110001110')])
+ppcop("MTFSF.", [bs('111111'), bs('0'), fm, bs('0'), frb, bs('10110001111')])
+ppcop("MFFS", [bs('111111'), frd, bs('00000000001001000111'), bs('0')])
+ppcop("MFFS.", [bs('111111'), frd, bs('00000000001001000111'), bs('1')])
+
+ppcop("load1vex", [bs('011111'), vd, ra, rb, bs_name(l=10, name=load1_name_vex), bs('0')])
+ppcop("mtvscr", [bs('0001000000000000'), vb, bs('11001000100')])
