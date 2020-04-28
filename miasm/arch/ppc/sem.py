@@ -867,7 +867,7 @@ sem_dir = {
     'MFSRIN': mn_do_nop_warn,
     'MTFSF': mn_do_nop_warn,
     'MTFSF.': mn_do_nop_warn,
-    'MFTB': mn_mfmsr,
+    'MFTB': mn_mfspr,
     'MTCRF': mn_mtcrf,
     'MTMSR': mn_mtmsr,
     'MTSPR': mn_mtspr,
