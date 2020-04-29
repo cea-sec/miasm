@@ -203,7 +203,7 @@ struct vm_cpu {
 	uint32_t CPR0_125;
 	uint32_t CPR0_126;
 	uint32_t CPR0_127;
-	uint32_t CONFIG0;
+	uint32_t CONFIG;
 	uint32_t CONFIG1;
 	uint32_t CONFIG2;
 	uint32_t CONFIG3;
