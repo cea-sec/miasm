@@ -267,7 +267,7 @@ class DescName(CStruct):
         return name, off + len(name) + 1
 
     def sets(self, value):
-        return bytes(value) + b"\x00"
+        return force_bytes(value) + b"\x00"
 
 
 class ImportByName(CStruct):
