@@ -373,7 +373,7 @@ class ExprVisitorCallbackTopToBottom(ExprVisitorBase):
     """
     Rebuild expression by visiting sub-expressions
     Call @callback on each sub-expression
-    if @¢allback return non None value, replace current node with this value
+    if @callback return non None value, replace current node with this value
     Else, continue visit of sub-expressions
     """
     def __init__(self, callback):
