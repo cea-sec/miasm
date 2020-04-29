@@ -35,14 +35,6 @@ def sw(arg1, arg2):
     arg2 = arg1
 
 @sbuild.parse
-def swl(arg1, arg2):
-    "Store the most-significant part of a word to an unaligned memory address." # XXX TODO
-
-@sbuild.parse
-def swr(arg1, arg2):
-    "Store the least-significant part of a word to an unaligned memory address." # XXX TODO 
-
-@sbuild.parse
 def jal(arg1):
     "Jumps to the calculated address @arg1 and stores the return address in $RA"
     PC = arg1
@@ -495,14 +487,6 @@ def ei(arg1):
 @sbuild.parse
 def ehb(arg1):
     "NOP"
-
-@sbuild.parse
-def cfc1(arg1, arg2):
-    "NOP" # XXX TODO
-
-@sbuild.parse
-def cft1(arg1, arg2):
-    "NOP" #XXX TODO
 
 def teq(ir, instr, arg1, arg2):
     e = []
