@@ -47,8 +47,8 @@ class additional_info(object):
         self.except_on_instr = False
 
 br_0 = ['B', 'J', 'JR', 'BAL', 'JAL', 'JALR']
-br_1 = ['BGEZ', 'BLTZ', 'BGTZ', 'BLEZ', 'BC1T', 'BC1F']
-br_2 = ['BEQ', 'BEQL', 'BNE']
+br_1 = ['BGEZ', 'BLTZ', 'BGTZ', 'BGTZL', 'BLEZ', 'BLEZL', 'BC1T', 'BC1TL', 'BC1F', 'BC1FL']
+br_2 = ['BEQ', 'BEQL', 'BNE', 'BNEL']
 
 
 class instruction_mips32(cpu.instruction):
@@ -669,13 +669,18 @@ mips32op("mfhi",    [cpu.bs('000000'), cpu.bs('0000000000'), rd,
 mips32op("b",       [cpu.bs('000100'), cpu.bs('00000'), cpu.bs('00000'), soff],
          alias = True)
 mips32op("bne",     [cpu.bs('000101'), rs, rt, soff])
+mips32op("bnel",    [cpu.bs('010101'), rs, rt, soff])
+
 mips32op("beq",     [cpu.bs('000100'), rs, rt, soff])
+mips32op("beql",    [cpu.bs('010100'), rs, rt, soff])
 
 mips32op("blez",    [cpu.bs('000110'), rs, cpu.bs('00000'), soff])
+mips32op("blezl",   [cpu.bs('010110'), rs, cpu.bs('00000'), soff])
 
 mips32op("bcc",     [cpu.bs('000001'), rs, bs_bcc, soff])
 
 mips32op("bgtz",    [cpu.bs('000111'), rs, cpu.bs('00000'), soff])
+mips32op("bgtzl",   [cpu.bs('010111'), rs, cpu.bs('00000'), soff])
 mips32op("bal",     [cpu.bs('000001'), cpu.bs('00000'), cpu.bs('10001'), soff],
          alias = True)
 
@@ -716,7 +721,11 @@ mips32op("c",       [cpu.bs('010001'), bs_fmt, ft, fs, fcc, cpu.bs('0'),
 
 mips32op("bc1t",    [cpu.bs('010001'), cpu.bs('01000'), fcc, cpu.bs('0'),
                      cpu.bs('1'), soff])
+mips32op("bc1tl",    [cpu.bs('010001'), cpu.bs('01000'), fcc, cpu.bs('1'),
+                     cpu.bs('1'), soff])
 mips32op("bc1f",    [cpu.bs('010001'), cpu.bs('01000'), fcc, cpu.bs('0'),
+                     cpu.bs('0'), soff])
+mips32op("bc1fl",    [cpu.bs('010001'), cpu.bs('01000'), fcc, cpu.bs('1'),
                      cpu.bs('0'), soff])
 
 mips32op("swc1",    [cpu.bs('111001'), base, ft, s16imm_noarg], [ft, base])
