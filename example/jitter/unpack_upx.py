@@ -1,9 +1,8 @@
 from __future__ import print_function
 import os
 import logging
-from pdb import pm
-from miasm.loader import pe
 from miasm.analysis.sandbox import Sandbox_Win_x86_32
+from miasm.jitter.loader.pe import vm2pe
 
 from miasm.os_dep.common import get_win_str_a
 
@@ -77,45 +76,30 @@ if options.verbose is True:
     print(sb.jitter.vm)
 
 
-def update_binary(jitter):
-    sb.pe.Opthdr.AddressOfEntryPoint = sb.pe.virt2rva(jitter.pc)
-    logging.info('updating binary')
-    for s in sb.pe.SHList:
-        sdata = sb.jitter.vm.get_mem(sb.pe.rva2virt(s.addr), s.rawsize)
-        sb.pe.rva.set(s.addr, sdata)
+def stop(jitter):
+    logging.info('OEP reached')
 
     # Stop execution
     jitter.run = False
     return False
 
 # Set callbacks
-sb.jitter.add_breakpoint(end_offset, update_binary)
+sb.jitter.add_breakpoint(end_offset, stop)
 
 # Run
 sb.run()
 
-# Rebuild PE
-# Alternative solution: miasm.jitter.loader.pe.vm2pe(sb.jitter, out_fname,
-# libs=sb.libs, e_orig=sb.pe)
-new_dll = []
-
-sb.pe.SHList.align_sections(0x1000, 0x1000)
-logging.info(repr(sb.pe.SHList))
-
-sb.pe.DirRes = pe.DirRes(sb.pe)
-sb.pe.DirImport.impdesc = None
-logging.info(repr(sb.pe.DirImport.impdesc))
-new_dll = sb.libs.gen_new_lib(sb.pe)
-logging.info(new_dll)
-sb.pe.DirImport.impdesc = []
-sb.pe.DirImport.add_dlldesc(new_dll)
-s_myimp = sb.pe.SHList.add_section(name="myimp", rawsize=len(sb.pe.DirImport))
-logging.info(repr(sb.pe.SHList))
-sb.pe.DirImport.set_rva(s_myimp.addr)
-
-# XXXX TODO
-sb.pe.NThdr.optentries[pe.DIRECTORY_ENTRY_DELAY_IMPORT].rva = 0
-
+# Construct the output filename
 bname, fname = os.path.split(options.filename)
 fname = os.path.join(bname, fname.replace('.', '_'))
-open(fname + '_unupx.bin', 'wb').write(bytes(sb.pe))
+out_fname = fname + '_unupx.bin'
+
+# Rebuild the PE thanks to `vm2pe`
+#
+# vm2pe will:
+# - set the new entry point to the current address (ie, the OEP)
+# - dump each section from the virtual memory into the new PE
+# - use `sb.libs` to generate a new import directory, and use it in the new PE
+# - save the resulting PE in `out_fname`
+
+vm2pe(sb.jitter, out_fname, libs=sb.libs, e_orig=sb.pe)
