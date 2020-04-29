@@ -675,8 +675,8 @@ def mn_do_store(ir, instr, arg1, arg2, arg3=None):
         ret.append(ExprAssign(ir.IRDst, loc_next))
         dont = flags + [ ExprAssign(CR0_EQ, ExprInt(0,1)),
                          ExprAssign(ir.IRDst, loc_next) ]
-        additional_ir = [ IRBlock(loc_do, [ AssignBlock(ret) ]),
-                          IRBlock(loc_dont, [ AssignBlock(dont) ]) ]
+        additional_ir = [ IRBlock(loc_do.loc_key, [ AssignBlock(ret) ]),
+                          IRBlock(loc_dont.loc_key, [ AssignBlock(dont) ]) ]
         ret = [ ExprAssign(reserve, ExprInt(0, 1)),
                 ExprAssign(ir.IRDst, ExprCond(reserve, loc_do, loc_dont)) ]
 
