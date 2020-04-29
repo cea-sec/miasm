@@ -320,7 +320,7 @@ def mn_do_load(ir, instr, arg1, arg2, arg3=None):
 
 def mn_do_lmw(ir, instr, rd, src):
     ret = []
-    address = int(src)
+    address = src.ptr
     ri = int(rd.name[1:],10)
     i = 0
     while ri <= 31:
@@ -602,7 +602,7 @@ def mn_do_srw(ir, instr, ra, rs, rb):
 
 def mn_do_stmw(ir, instr, rs, dest):
     ret = []
-    address = int(dest)
+    address = dest.ptr
     ri = int(rs.name[1:],10)
     i = 0
     while ri <= 31:
