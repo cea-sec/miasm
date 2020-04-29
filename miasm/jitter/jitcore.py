@@ -198,10 +198,7 @@ class JitCore(object):
         """
 
         mem_range = interval()
-
-        for block in blocks:
-            mem_range += interval([(block.ad_min, block.ad_max - 1)])
-
+        mem_range = interval([(block.ad_min, block.ad_max - 1) for block in blocks])
         return mem_range
 
     def __updt_jitcode_mem_range(self, vm):
