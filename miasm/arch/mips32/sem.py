@@ -327,12 +327,12 @@ def ins(ir, instr, a, b, c, d):
 
     my_slices = []
     if pos != 0:
-        my_slices.append((a[:pos], 0, pos))
+        my_slices.append(a[:pos])
     if l != 0:
-        my_slices.append((b[:l], pos, pos+l))
+        my_slices.append(b[:l])
     if pos + l != 32:
-        my_slices.append((a[pos+l:], pos+l, 32))
-    r = m2_expr.ExprCompose(my_slices)
+        my_slices.append(a[pos+l:])
+    r = m2_expr.ExprCompose(*my_slices)
     e.append(m2_expr.ExprAssign(a, r))
     return e, []
 
