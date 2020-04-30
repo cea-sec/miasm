@@ -81,10 +81,16 @@ def printable(string):
 
 
 def force_bytes(value):
-    try:
-        return value.encode()
-    except AttributeError:
+    if isinstance(value, bytes):
         return value
+    if not isinstance(value, str):
+        return value
+    out = []
+    for c in value:
+        c = ord(c)
+        assert c < 0x100
+        out.append(c)
+    return bytes(out)
 
 
 def force_str(value):

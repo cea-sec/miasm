@@ -4,6 +4,7 @@ from __future__ import print_function
 import re
 import struct
 
+from miasm.core.utils import force_bytes
 from future.utils import PY3, viewitems, with_metaclass
 
 type2realtype = {}
@@ -213,9 +214,10 @@ class CStruct(with_metaclass(Cstruct_Metaclass, object)):
                 if cpt == None:
                     if value == None:
                         o = struct.calcsize(fmt) * b"\x00"
+                    elif ffmt.endswith('s'):
+                        new_value = force_bytes(value)
+                        o = struct.pack(self.sex + fmt, new_value)
                     else:
-                        if isinstance(value, str):
-                            value = value.encode()
                         o = struct.pack(self.sex + fmt, value)
                 else:
                     o = b""
