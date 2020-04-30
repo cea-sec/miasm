@@ -24,7 +24,8 @@ env:
     - MIASM_TEST_EXTRA_ARG="-o python -t qemu,long"
     - MIASM_TEST_EXTRA_ARG="-o z3"
     - MIASM_TEST_EXTRA_ARG="-o cparser"
-    - MIASM_EXTENTED_TESTS="ls_x64"
+    - MIASM_EXTENTED_TESTS_LS_X64="ls_x64"
+    - MIASM_EXTENTED_TESTS_LOADER="loader"
 before_script:
 - pip install -r optional_requirements.txt
 # codespell
@@ -36,4 +37,5 @@ before_script:
 - git clone https://github.com/cea-sec/miasm-extended-tests
 script:
   - test -z "$MIASM_TEST_EXTRA_ARG" || (cd test && flags=""; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard)
-  - test -z "$MIASM_EXTENTED_TESTS" || (cd "miasm-extended-tests/$MIASM_EXTENTED_TESTS" && ./run.sh "$TRAVIS_BUILD_DIR")
+  - test -z "$MIASM_EXTENTED_TESTS_LS_x64" || (cd "miasm-extended-tests/$MIASM_EXTENTED_TESTS_LS_X64" && ./run.sh "$TRAVIS_BUILD_DIR")
+  - test -z "$MIASM_EXTENTED_TESTS_LOADER" || (cd "miasm-extended-tests/$MIASM_EXTENTED_TESTS_LOADER" && ./test_dll.py)
