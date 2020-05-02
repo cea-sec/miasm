@@ -434,7 +434,7 @@ class DirImport(CStruct):
             #    entry.firstthunk = rva
             # rva+=(len(entry.firstthunks)+1)*self.parent_head._wsize//8 # Rva size
             if entry.originalfirstthunk and entry.firstthunk:
-                if isinstance(entry.originalfirstthunk, struct_array):
+                if isinstance(entry.originalfirstthunks, struct_array):
                     tmp_thunk = entry.originalfirstthunks
                 elif isinstance(entry.firstthunks, struct_array):
                     tmp_thunk = entry.firstthunks
@@ -457,6 +457,11 @@ class DirImport(CStruct):
                     rva += len(imp)
 
     def build_content(self, raw):
+        if self.parent_head._wsize == 32:
+            mask_ptr = 0x80000000
+        elif self.parent_head._wsize == 64:
+            mask_ptr = 0x8000000000000000
+
         dirimp = self.parent_head.NThdr.optentries[DIRECTORY_ENTRY_IMPORT]
         of1 = dirimp.rva
         if not of1:  # No Import
