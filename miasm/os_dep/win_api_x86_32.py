@@ -764,8 +764,8 @@ def kernel32_VirtualProtect(jitter):
     psize = paddr_max_round - paddr
     for addr, items in list(winobjs.allocated_pages.items()):
         alloc_addr, alloc_size = items
-        if not (alloc_addr <= paddr and
-                paddr + psize <= alloc_addr + alloc_size):
+        if (paddr + psize <= alloc_addr or
+            paddr > alloc_addr + alloc_size):
             continue
         size = jitter.vm.get_all_memory()[addr]["size"]
         # Page is included in Protect area
