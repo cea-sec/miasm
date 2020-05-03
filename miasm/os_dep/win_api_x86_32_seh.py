@@ -312,9 +312,11 @@ def set_link_list_entry(jitter, loaded_modules, modules_info, offset):
             prev_module_entry = peb_ldr_data_address + 0xC
         if i == len(loaded_modules) - 1:
             next_module_entry = peb_ldr_data_address + 0xC
-        jitter.vm.set_mem(cur_module_entry + offset,
-                          (pck32(next_module_entry + offset) +
-                           pck32(prev_module_entry + offset)))
+
+        list_entry = ListEntry(jitter.vm, cur_module_entry + offset)
+        list_entry.flink = next_module_entry + offset
+        list_entry.blink = prev_module_entry + offset
+
 
 
 def fix_InLoadOrderModuleList(jitter, modules_info):
