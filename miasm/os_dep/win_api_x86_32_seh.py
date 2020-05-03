@@ -189,18 +189,23 @@ def build_ldr_data(jitter, modules_info):
         "Loader struct"
     )  # (ldrdata.get_size() - offset))
 
+    last_module = modules_info.module2entry[
+        modules_info.modules[-1]]
+
     if main_pe:
         ldrdata.InLoadOrderModuleList.flink = main_addr_entry
-        ldrdata.InLoadOrderModuleList.blink = 0
+        ldrdata.InLoadOrderModuleList.blink = last_module
+
 
         ldrdata.InMemoryOrderModuleList.flink = main_addr_entry + \
             LdrDataEntry.get_type().get_offset("InMemoryOrderLinks")
-        ldrdata.InMemoryOrderModuleList.blink = 0
-
+        ldrdata.InMemoryOrderModuleList.blink = last_module + \
+            LdrDataEntry.get_type().get_offset("InMemoryOrderLinks")
     if ntdll_pe:
         ldrdata.InInitializationOrderModuleList.flink = ntdll_addr_entry + \
             LdrDataEntry.get_type().get_offset("InInitializationOrderLinks")
-        ldrdata.InInitializationOrderModuleList.blink = 0
+        ldrdata.InInitializationOrderModuleList.blink = last_module + \
+                LdrDataEntry.get_type().get_offset("InInitializationOrderLinks")
 
     # Add dummy dll base
     jitter.vm.add_memory_page(peb_ldr_data_address + 0x24,
