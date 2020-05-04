@@ -11,8 +11,8 @@ from miasm.expression.simplifications import expr_simp
 from miasm.ir.ir import AssignBlock, IRBlock
 from miasm.analysis.data_flow import DeadRemoval, \
     merge_blocks, remove_empty_assignblks, \
-    PropagateExprIntThroughExprId, PropagateThroughExprId, \
-    PropagateThroughExprMem, del_unused_edges
+    del_unused_edges, \
+    PropagateExpressions, DelDummyPhi
 
 
 log = logging.getLogger("simplifier")
@@ -129,9 +129,7 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
     and apply out-of-ssa. Final passes of IRcfgSimplifier are applied
 
     This class apply following pass until reaching a fix point:
-    - do_propagate_int
-    - do_propagate_mem
-    - do_propagate_expr
+    - do_propagate_expressions
     - do_dead_simp_ssa
     """
 
@@ -143,9 +141,9 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
 
         self.ssa_forbidden_regs = self.get_forbidden_regs()
 
-        self.propag_int = PropagateExprIntThroughExprId()
-        self.propag_expr = PropagateThroughExprId()
-        self.propag_mem = PropagateThroughExprMem()
+        self.propag_expressions = PropagateExpressions()
+        self.del_dummy_phi = DelDummyPhi()
+
         self.deadremoval = DeadRemoval(self.ir_arch, self.all_ssa_vars)
 
     def get_forbidden_regs(self):
@@ -167,9 +165,8 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         """
         self.passes = [
             self.simplify_ssa,
-            self.do_propagate_int,
-            self.do_propagate_mem,
-            self.do_propagate_expr,
+            self.do_propagate_expressions,
+            self.do_del_dummy_phi,
             self.do_dead_simp_ssa,
             self.do_remove_empty_assignblks,
             self.do_del_unused_edges,
@@ -245,13 +242,21 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         modified = self.propag_mem.propagate(ssa, head)
         return modified
 
-    @fix_point
-    def do_propagate_expr(self, ssa, head):
+    def do_propagate_expressions(self, ssa, head):
         """
         Expressions propagation through ExprId in the @ssa graph
         @head: Location instance of the graph head
         """
-        modified = self.propag_expr.propagate(ssa, head)
+        modified = self.propag_expressions.propagate(ssa, head)
+        return modified
+
+    @fix_point
+    def do_del_dummy_phi(self, ssa, head):
+        """
+        Del dummy phi
+        @head: Location instance of the graph head
+        """
+        modified = self.del_dummy_phi.del_dummy_phi(ssa, head)
         return modified
 
     @fix_point

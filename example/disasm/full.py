@@ -10,8 +10,7 @@ from miasm.core.asmblock import log_asmblock, AsmCFG
 from miasm.core.interval import interval
 from miasm.analysis.machine import Machine
 from miasm.analysis.data_flow import \
-    DiGraphDefUse, ReachingDefinitions, \
-    replace_stack_vars, load_from_int, del_unused_edges
+    DiGraphDefUse, ReachingDefinitions, load_from_int
 from miasm.expression.simplifications import expr_simp
 from miasm.analysis.ssa import SSADiGraph
 from miasm.ir.ir import AssignBlock, IRBlock
@@ -65,10 +64,6 @@ parser.add_argument('-p', "--ssa", action="store_true",
                     help="Generate the ssa form in  'ssa.dot'.")
 parser.add_argument('-x', "--propagexpr", action="store_true",
                     help="Do Expression propagation.")
-parser.add_argument('-y', "--stack2var", action="store_true",
-                    help="*Try* to do transform stack accesses into variables. "
-                    "Use only with --propagexpr option. "
-                    "WARNING: not reliable, may fail.")
 parser.add_argument('-e', "--loadint", action="store_true",
                     help="Load integers from binary in fixed memory lookup.")
 parser.add_argument('-j', "--calldontmodstack", action="store_true",
@@ -309,15 +304,10 @@ if args.propagexpr:
             ssa = self.do_simplify_loop(ssa, head)
             ircfg = self.ssa_to_unssa(ssa, head)
 
-            if args.stack2var:
-                replace_stack_vars(self.ir_arch, ircfg)
-
             ircfg_simplifier = IRCFGSimplifierCommon(self.ir_arch)
             ircfg_simplifier.deadremoval.add_expr_to_original_expr(ssa.ssa_variable_to_expr)
             ircfg_simplifier.simplify(ircfg, head)
             return ircfg
-
-
 
     head = list(entry_points)[0]
     simplifier = CustomIRCFGSimplifierSSA(ir_arch_a)
