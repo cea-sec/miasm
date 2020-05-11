@@ -8,6 +8,84 @@ from miasm.arch.arm.regs import *
 
 from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_INT_XX
 
+coproc_reg_dict = {
+        ("p15", 0, "c0", "c0", 0): MIDR,
+        ("p15", 0, "c0", "c0", 1): CTR,
+        ("p15", 0, "c0", "c0", 2): TCMTR,
+        ("p15", 0, "c0", "c0", 3): TLBTR,
+        ("p15", 0, "c0", "c0", 4): MIDR,
+        ("p15", 0, "c0", "c0", 5): MPIDR,
+        ("p15", 0, "c0", "c0", 6): REVIDR,
+
+        ("p15", 0, "c0", "c1", 0): ID_PFR0,
+        ("p15", 0, "c0", "c1", 1): ID_PFR1,
+        ("p15", 0, "c0", "c1", 2): ID_DFR0,
+        ("p15", 0, "c0", "c1", 3): ID_AFR0,
+        ("p15", 0, "c0", "c1", 4): ID_MMFR0,
+        ("p15", 0, "c0", "c1", 5): ID_MMFR1,
+        ("p15", 0, "c0", "c1", 6): ID_MMFR2,
+        ("p15", 0, "c0", "c1", 7): ID_MMFR3,
+
+        ("p15", 0, "c0", "c2", 0): ID_ISAR0,
+        ("p15", 0, "c0", "c2", 1): ID_ISAR1,
+        ("p15", 0, "c0", "c2", 2): ID_ISAR2,
+        ("p15", 0, "c0", "c2", 3): ID_ISAR3,
+        ("p15", 0, "c0", "c2", 4): ID_ISAR4,
+        ("p15", 0, "c0", "c2", 5): ID_ISAR5,
+
+        ("p15", 1, "c0", "c0", 0): CCSIDR,
+        ("p15", 1, "c0", "c0", 1): CLIDR,
+        ("p15", 1, "c0", "c0", 7): AIDR,
+
+        ("p15", 2, "c0", "c0", 0): CSSELR,
+
+        ("p15", 0, "c1", "c0", 0): SCTLR,
+
+        ("p15", 0, "c2", "c0", 0): TTBR0,
+        ("p15", 0, "c2", "c0", 1): TTBR1,
+        ("p15", 0, "c2", "c0", 2): TTBCR,
+
+        ("p15", 4,  "c2", "c0", 2): HTCR,
+        ("p15", 4,  "c2", "c1", 2): VTCR,
+
+        ("p15", 0, "c3", "c0", 0): DACR,
+
+        ("p15", 0, "c5", "c0", 0): DFSR,
+        ("p15", 0, "c5", "c0", 1): IFSR,
+        ("p15", 0, "c5", "c1", 0): ADFSR,
+        ("p15", 0, "c5", "c1", 1): AIFSR,
+
+        ("p15", 4, "c5", "c1", 0): HADFSR,
+        ("p15", 4, "c5", "c1", 1): HAIFSR,
+        ("p15", 4, "c5", "c2", 0): HSR,
+
+        ("p15", 0, "c6", "c0", 0): DFAR,
+        ("p15", 0, "c6", "c0", 2): IFAR,
+
+        ("p15", 4, "c6", "c0", 0): HDFAR,
+        ("p15", 4, "c6", "c0", 2): HIFAR,
+        ("p15", 4, "c6", "c0", 4): HPFAR,
+
+        ("p15", 0, "c10", "c3", 0): AMAIR0,
+        ("p15", 0, "c10", "c3", 1): AMAIR1,
+
+        ("p15", 0, "c10", "c2", 0): PRRR,   # ALIAS MAIR0
+        ("p15", 0, "c10", "c2", 1): NMRR,   # ALIAS MAIR1
+
+        ("p15", 4, "c10", "c2", 0): HMAIR0,
+        ("p15", 4, "c10", "c2", 1): HMAIR1,
+        ("p15", 4, "c10", "c3", 0): HAMAIR0,
+        ("p15", 4, "c10", "c3", 1): HAMAIR1,
+
+        ("p15", 0, "c12", "c0", 0): VBAR,
+        ("p15", 0, "c12", "c0", 1): MVBAR,
+        ("p15", 0, "c12", "c1", 0): ISR,
+
+        ("p15", 4, "c12", "c0", 0): HVBAR,
+
+        ("p15", 0, "c13", "c0", 1): CONTEXTIDR
+        }
+
 # liris.cnrs.fr/~mmrissa/lib/exe/fetch.php?media=armv7-a-r-manual.pdf
 EXCEPT_SOFT_BP = (1 << 1)
 
@@ -1376,6 +1454,25 @@ def pkhtb(ir, instr, arg1, arg2, arg3):
     )
     return e, []
 
+def mcr(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
+    e = []
+    sreg = (str(arg1), int(arg2), str(arg4), str(arg5), int(arg6))
+    if sreg in coproc_reg_dict:
+        e.append(ExprAssign(arg3, coproc_reg_dict[sreg]))
+    else:
+        raise NotImplementedError("Unknown coprocessor register")
+
+    return e, []
+
+def mrc(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
+    e = []
+    sreg = (str(arg1), int(arg2), str(arg4), str(arg5), int(arg6))
+    if sreg in coproc_reg_dict:
+        e.append(ExprAssign(coproc_reg_dict[sreg], arg3))
+    else:
+        raise NotImplementedError("Unknown coprocessor register")
+
+    return e, []
 
 COND_EQ = 0
 COND_NE = 1
@@ -1573,6 +1670,9 @@ mnemo_condm1 = {'adds': add,
                 'movs': movs,
                 'bics': bics,
                 'mvns': mvns,
+
+                'mrc': mrc,
+                'mcr': mcr,
 
                 'mrs': mrs,
                 'msr': msr,

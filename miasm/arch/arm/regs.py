@@ -2,7 +2,7 @@
 
 from builtins import range
 from miasm.expression.expression import *
-
+from miasm.core.cpu import gen_reg, gen_regs
 
 # GP
 
@@ -110,5 +110,35 @@ all_regs_ids_init = [R0_init, R1_init, R2_init, R3_init,
 regs_init = {}
 for i, r in enumerate(all_regs_ids):
     regs_init[r] = all_regs_ids_init[i]
+
+coproc_reg_str = [
+                    "MIDR", "CTR", "TCMTR", "TLBTR", "MPIDR", "REVIDR",
+                    "ID_PFR0", "ID_PFR1", "ID_AFR0", "ID_DFR0", "ID_MMFR0", "ID_MMFR1", "ID_MMFR2", "ID_MMFR3",
+                    "ID_ISAR0", "ID_ISAR1", "ID_ISAR2", "ID_ISAR3", "ID_ISAR4", "ID_ISAR5",
+                    "CCSIDR", "CLIDR", "AIDR",
+                    "CSSELR",
+                    "SCTLR",
+                    "TTBR0", "TTBR1", "TTBCR",
+                    "HTCR", "VTCR",
+                    "DACR",
+                    "DFSR", "IFSR", "ADFSR", "AIFSR",
+                    "HADFSR", "HAIFSR", "HSR",
+                    "DFAR", "IFAR",
+                    "HDFAR", "HIFAR", "HPFAR",
+                    "AMAIR0", "AMAIR1",
+                    "PRRR", "NMRR", # Alias MAIR0/MAIR1
+                    "HMAIR0", "HMAIR1", "HAMAIR0", "HAMAIR1",
+                    "VBAR", "MVBAR", "ISR",
+                    "HVBAR",
+                    "CONTEXTIDR"
+                ]
+coproc_reg_expr, coproc_reg_init, coproc_reg_info = gen_regs(coproc_reg_str, globals(), 32)
+
+all_regs_ids = all_regs_ids + coproc_reg_expr
+all_regs_ids_byname.update(dict([(x.name, x) for x in coproc_reg_expr]))
+all_regs_ids_init = all_regs_ids_init + coproc_reg_init
+
+for i, r in enumerate(coproc_reg_expr):
+    regs_init[r] = coproc_reg_init[i]
 
 regs_flt_expr = []
