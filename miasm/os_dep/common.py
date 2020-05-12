@@ -71,15 +71,15 @@ class heap(object):
         self.addr &= self.mask ^ (self.align - 1)
         return ret
 
-    def alloc(self, jitter, size, perm=PAGE_READ | PAGE_WRITE):
+    def alloc(self, jitter, size, perm=PAGE_READ | PAGE_WRITE, cmt=""):
         """
         @jitter: a jitter instance
         @size: the size to allocate
         @perm: permission flags (see vm_alloc doc)
         """
-        return self.vm_alloc(jitter.vm, size, perm)
+        return self.vm_alloc(jitter.vm, size, perm=perm, cmt=cmt)
 
-    def vm_alloc(self, vm, size, perm=PAGE_READ | PAGE_WRITE):
+    def vm_alloc(self, vm, size, perm=PAGE_READ | PAGE_WRITE, cmt=""):
         """
         @vm: a VmMngr instance
         @size: the size to allocate
@@ -91,7 +91,7 @@ class heap(object):
             addr,
             perm,
             b"\x00" * (size),
-            "Heap alloc by %s" % get_caller_name(2)
+            "Heap alloc by %s %s" % (get_caller_name(2), cmt)
         )
         return addr
 
