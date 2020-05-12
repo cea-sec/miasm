@@ -1454,7 +1454,7 @@ def pkhtb(ir, instr, arg1, arg2, arg3):
     )
     return e, []
 
-def mcr(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
+def mrc(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
     e = []
     sreg = (str(arg1), int(arg2), str(arg4), str(arg5), int(arg6))
     if sreg in coproc_reg_dict:
@@ -1464,7 +1464,7 @@ def mcr(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
 
     return e, []
 
-def mrc(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
+def mcr(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
     e = []
     sreg = (str(arg1), int(arg2), str(arg4), str(arg5), int(arg6))
     if sreg in coproc_reg_dict:
