@@ -1120,7 +1120,7 @@ def shell32_CommandLineToArgvW(jitter):
     addr_ret = winobjs.heap.alloc(jitter, 4 * (len(tks) + 1))
     o = 0
     for i, t in enumerate(tks):
-        jitter.set_win_str_w(addr + o, t)
+        set_win_str_w(jitter, addr + o, t)
         jitter.vm.set_u32(addr_ret + 4 * i, addr + o)
         o += len(t)*2 + 2
 
@@ -1335,7 +1335,7 @@ def ntoskrnl_RtlGetVersion(jitter):
                     0x2,  # min vers
                     0x666,  # build nbr
                     0x2,   # platform id
-                    ) + jitter.set_win_str_w("Service pack 4")
+                    ) + encode_win_str_w("Service pack 4")
 
     jitter.vm.set_mem(args.ptr_version, s)
     jitter.func_ret_stdcall(ret_ad, 0)
@@ -1521,7 +1521,7 @@ def kernel32_lstrcpy(jitter):
 def msvcrt__mbscpy(jitter):
     ret_ad, args = jitter.func_args_cdecl(["ptr_str1", "ptr_str2"])
     s2 = get_win_str_w(jitter, args.ptr_str2)
-    jitter.set_win_str_w(args.ptr_str1, s2)
+    set_win_str_w(jitter, args.ptr_str1, s2)
     jitter.func_ret_cdecl(ret_ad, args.ptr_str1)
 
 def msvcrt_wcscpy(jitter):
@@ -1535,7 +1535,7 @@ def kernel32_lstrcpyn(jitter):
     if len(s2) >= args.mlen:
         s2 = s2[:args.mlen - 1]
     log.info("Copy '%r'", s2)
-    jitter.set_win_str_a(args.ptr_str1, s2)
+    set_win_str_a(jitter, args.ptr_str1, s2)
     jitter.func_ret_stdcall(ret_ad, args.ptr_str1)
 
 
@@ -2889,10 +2889,10 @@ class win32_find_data(object):
                         self.filesizelow,
                         self.dwreserved0,
                         self.dwreserved1)
-        fname = self.cfilename.encode('utf-8') + b'\x00' * MAX_PATH
+        fname = encode_win_str_w(self.cfilename) + b'\x00' * MAX_PATH
         fname = fname[:MAX_PATH]
         s += fname
-        fname = self.alternamefilename.encode('utf-8') + b'\x00' * 14
+        fname = encode_win_str_w(self.alternamefilename) + b'\x00' * 14
         fname = fname[:14]
         s += fname
         return s
