@@ -272,7 +272,7 @@ class mdl(object):
 
 def kernel32_HeapAlloc(jitter):
     ret_ad, args = jitter.func_args_stdcall(["heap", "flags", "size"])
-    alloc_addr = winobjs.heap.alloc(jitter, args.size)
+    alloc_addr = winobjs.heap.alloc(jitter, args.size, cmt=hex(ret_ad))
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
