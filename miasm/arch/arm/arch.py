@@ -1660,6 +1660,33 @@ bs_mr_name = bs_name(l=1, name=mr_name)
 bs_addi = bs(l=1, fname="add_imm")
 bs_rw = bs_mod_name(l=1, fname='rw', mn_mod=['W', ''])
 
+class armt_barrier_option(reg_noarg, arm_arg):
+    reg_info = barrier_info
+    parser = reg_info.parser
+
+    def decode(self, v):
+        v = v & self.lmask
+        if v not in self.reg_info.dct_expr:
+            return False
+        self.expr = self.reg_info.dct_expr[v]
+        return True
+
+    def encode(self):
+        if not self.expr in self.reg_info.dct_expr_inv:
+            log.debug("cannot encode reg %r", self.expr)
+            return False
+        self.value = self.reg_info.dct_expr_inv[self.expr]
+        if self.value > self.lmask:
+            log.debug("cannot encode field value %x %x",
+                      self.value, self.lmask)
+            return False
+        return True
+
+    def check_fbits(self, v):
+        return v & self.fmask == self.fbits
+
+barrier_option = bs(l=4, cls=(armt_barrier_option,))
+
 armop("mul", [bs('000000'), bs('0'), scc, rd, bs('0000'), rs, bs('1001'), rm], [rd, rm, rs])
 armop("umull", [bs('000010'), bs('0'), scc, rd, rdl, rs, bs('1001'), rm], [rdl, rd, rm, rs])
 armop("umlal", [bs('000010'), bs('1'), scc, rd, rdl, rs, bs('1001'), rm], [rdl, rd, rm, rs])
@@ -1709,7 +1736,8 @@ armop("rev16", [bs('01101011'), bs('1111'), rd, bs('1111'), bs('1011'), rm])
 
 armop("pld", [bs8(0xF5), bs_addi, bs_rw, bs('01'), mem_rn_imm, bs('1111'), imm12_off])
 
-armop("isb", [bs8(0xF5), bs8(0x7F), bs8(0xF0), bs8(0x6F)])
+armop("dsb", [bs('111101010111'), bs('1111'), bs('1111'), bs('0000'), bs('0100'), barrier_option])
+armop("isb", [bs('111101010111'), bs('1111'), bs('1111'), bs('0000'), bs('0110'), barrier_option])
 armop("nop", [bs8(0xE3), bs8(0x20), bs8(0xF0), bs8(0)])
 
 class arm_widthm1(arm_imm, m_arg):
@@ -2325,7 +2353,6 @@ class arm_sppc(arm_reg):
 class arm_sp(arm_reg):
     reg_info = gpregs_sp
     parser = reg_info.parser
-
 
 off5 = bs(l=5, cls=(arm_imm,), fname="off")
 off3 = bs(l=3, cls=(arm_imm,), fname="off")
@@ -3229,33 +3256,6 @@ rm_deref_reg = bs(l=4, cls=(armt_deref_reg,))
 bs_deref_reg_reg = bs(l=4, cls=(armt_deref_reg_reg,))
 bs_deref_reg_reg_lsl_1 = bs(l=4, cls=(armt_deref_reg_reg_lsl_1,))
 
-
-class armt_barrier_option(reg_noarg, arm_arg):
-    reg_info = barrier_info
-    parser = reg_info.parser
-
-    def decode(self, v):
-        v = v & self.lmask
-        if v not in self.reg_info.dct_expr:
-            return False
-        self.expr = self.reg_info.dct_expr[v]
-        return True
-
-    def encode(self):
-        if not self.expr in self.reg_info.dct_expr_inv:
-            log.debug("cannot encode reg %r", self.expr)
-            return False
-        self.value = self.reg_info.dct_expr_inv[self.expr]
-        if self.value > self.lmask:
-            log.debug("cannot encode field value %x %x",
-                      self.value, self.lmask)
-            return False
-        return True
-
-    def check_fbits(self, v):
-        return v & self.fmask == self.fbits
-
-barrier_option = bs(l=4, cls=(armt_barrier_option,))
 
 armtop("adc", [bs('11110'),  imm12_1, bs('0'), bs('1010'), scc, rn_nosppc, bs('0'), imm12_3, rd_nosppc, imm12_8])
 armtop("adc", [bs('11101'),  bs('01'), bs('1010'), scc, rn_nosppc, bs('0'), imm5_3, rd_nosppc, imm5_2, imm_stype, rm_sh])
