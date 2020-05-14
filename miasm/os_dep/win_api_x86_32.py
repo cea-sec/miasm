@@ -606,7 +606,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                         h = open(sb_fname, 'r+b')
                         ret = winobjs.handle_pool.add(sb_fname, h)
                 else:
-                    log.warning("FILE %r DOES NOT EXIST!", fname)
+                    log.warning("FILE %r (%s) DOES NOT EXIST!", fname, sb_fname)
             elif args.dwcreationdisposition == 1:
                 # create new
                 if os.access(sb_fname, os.R_OK):
@@ -1114,6 +1114,8 @@ def kernel32_GetCommandLineW(jitter):
 def shell32_CommandLineToArgvW(jitter):
     ret_ad, args = jitter.func_args_stdcall(["pcmd", "pnumargs"])
     cmd = get_win_str_w(jitter, args.pcmd)
+    if cmd.startswith('"') and cmd.endswith('"'):
+        cmd = cmd[1:-1]
     log.info("CommandLineToArgv %r", cmd)
     tks = cmd.split(' ')
     addr = winobjs.heap.alloc(jitter, len(cmd) * 2 + 4 * len(tks))
@@ -1127,7 +1129,6 @@ def shell32_CommandLineToArgvW(jitter):
     jitter.vm.set_u32(addr_ret + 4 * (i+1), 0)
     jitter.vm.set_u32(args.pnumargs, len(tks))
     jitter.func_ret_stdcall(ret_ad, addr_ret)
-
 
 def cryptdll_MD5Init(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ad_ctx"])
