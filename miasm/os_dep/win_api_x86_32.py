@@ -1124,7 +1124,7 @@ def shell32_CommandLineToArgvW(jitter):
         jitter.vm.set_u32(addr_ret + 4 * i, addr + o)
         o += len(t)*2 + 2
 
-    jitter.vm.set_u32(addr_ret + 4 * i, 0)
+    jitter.vm.set_u32(addr_ret + 4 * (i+1), 0)
     jitter.vm.set_u32(args.pnumargs, len(tks))
     jitter.func_ret_stdcall(ret_ad, addr_ret)
 
