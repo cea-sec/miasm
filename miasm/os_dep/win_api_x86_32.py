@@ -2879,7 +2879,7 @@ class win32_find_data(object):
         for k, v in viewitems(kargs):
             setattr(self, k, v)
 
-    def toStruct(self):
+    def toStruct(self, encode_str=encode_win_str_w):
         s = struct.pack('=IQQQIIII',
                         self.fileattrib,
                         self.creationtime,
@@ -2889,10 +2889,10 @@ class win32_find_data(object):
                         self.filesizelow,
                         self.dwreserved0,
                         self.dwreserved1)
-        fname = encode_win_str_w(self.cfilename) + b'\x00' * MAX_PATH
+        fname = encode_str(self.cfilename) + b'\x00' * MAX_PATH
         fname = fname[:MAX_PATH]
         s += fname
-        fname = encode_win_str_w(self.alternamefilename) + b'\x00' * 14
+        fname = encode_str(self.alternamefilename) + b'\x00' * 14
         fname = fname[:14]
         s += fname
         return s
@@ -2929,33 +2929,66 @@ class find_data_mngr(object):
 
         return fname
 
-
-def kernel32_FindFirstFileA(jitter):
-    ret_ad, args = jitter.func_args_stdcall(["pfilepattern", "pfindfiledata"])
-
-    filepattern = get_win_str_a(jitter, args.pfilepattern)
+def my_FindFirstFile(jitter, pfilepattern, pfindfiledata, get_win_str, encode_str):
+    filepattern = get_win_str(jitter, pfilepattern)
     h = winobjs.find_data.findfirst(filepattern)
 
     fname = winobjs.find_data.findnext(h)
     fdata = win32_find_data(cfilename=fname)
 
-    jitter.vm.set_mem(args.pfindfiledata, fdata.toStruct())
+    jitter.vm.set_mem(pfindfiledata, fdata.toStruct(encode_str=encode_str))
+    return h
+
+def kernel32_FindFirstFileA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(["pfilepattern", "pfindfiledata"])
+    h = my_FindFirstFile(jitter, args.pfilepattern, args.pfindfiledata,
+                           get_win_str_a, encode_win_str_a)
     jitter.func_ret_stdcall(ret_ad, h)
 
+def kernel32_FindFirstFileW(jitter):
+    ret_ad, args = jitter.func_args_stdcall(["pfilepattern", "pfindfiledata"])
+    h = my_FindFirstFile(jitter, args.pfilepattern, args.pfindfiledata,
+                           get_win_str_w, encode_win_str_w)
+    jitter.func_ret_stdcall(ret_ad, h)
 
-def kernel32_FindNextFileA(jitter):
+def kernel32_FindFirstFileExA(jitter):
+    ret_ad, args = jitter.func_args_stdcall([
+        "lpFileName",
+        "fInfoLevelId",
+        "lpFindFileData",
+        "fSearchOp",
+        "lpSearchFilter",
+        "dwAdditionalFlags"])
+    h = my_FindFirstFile(jitter, args.lpFileName, args.lpFindFileData,
+                         get_win_str_a, encode_win_str_a)
+    jitter.func_ret_stdcall(ret_ad, h)
+
+def kernel32_FindFirstFileExW(jitter):
+    ret_ad, args = jitter.func_args_stdcall([
+        "lpFileName",
+        "fInfoLevelId",
+        "lpFindFileData",
+        "fSearchOp",
+        "lpSearchFilter",
+        "dwAdditionalFlags"])
+    h = my_FindFirstFile(jitter, args.lpFileName, args.lpFindFileData,
+                         get_win_str_w, encode_win_str_w)
+    jitter.func_ret_stdcall(ret_ad, h)
+
+def my_FindNextFile(jitter, encode_str):
     ret_ad, args = jitter.func_args_stdcall(["handle", "pfindfiledata"])
-
     fname = winobjs.find_data.findnext(args.handle)
     if fname is None:
+        winobjs.lastwin32error = 0x12 # ERROR_NO_MORE_FILES
         ret = 0
     else:
         ret = 1
         fdata = win32_find_data(cfilename=fname)
-        jitter.vm.set_mem(args.pfindfiledata, fdata.toStruct())
-
+        jitter.vm.set_mem(args.pfindfiledata, fdata.toStruct(encode_str=encode_str))
     jitter.func_ret_stdcall(ret_ad, ret)
 
+kernel32_FindNextFileA = lambda jitter: my_FindNextFile(jitter, encode_win_str_a)
+kernel32_FindNextFileW = lambda jitter: my_FindNextFile(jitter, encode_win_str_w)
 
 def kernel32_GetNativeSystemInfo(jitter):
     ret_ad, args = jitter.func_args_stdcall(["sys_ptr"])
