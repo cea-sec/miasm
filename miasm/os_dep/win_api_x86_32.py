@@ -505,7 +505,7 @@ def advapi32_CryptHashData(jitter):
 
     data = jitter.vm.get_mem(args.pbdata, args.dwdatalen)
     log.debug('will hash %X', args.dwdatalen)
-    log.debug(repr(data[:10]) + "...")
+    log.debug(repr(data[:0x10]) + "...")
     winobjs.cryptcontext[args.hhash].h.update(data)
     jitter.func_ret_stdcall(ret_ad, 1)
 
@@ -518,12 +518,18 @@ def advapi32_CryptGetHashParam(jitter):
         raise ValueError("unknown crypt context")
 
     if args.param == 2:
+        # HP_HASHVAL
         # XXX todo: save h state?
         h = winobjs.cryptcontext[args.hhash].h.digest()
+        jitter.vm.set_mem(args.pbdata, h)
+        jitter.vm.set_u32(args.dwdatalen, len(h))
+    elif args.param == 4:
+        # HP_HASHSIZE
+        ret = winobjs.cryptcontext[args.hhash].h.digest_size
+        jitter.vm.set_u32(args.pbdata, ret)
+        jitter.vm.set_u32(args.dwdatalen, 4)
     else:
         raise ValueError('not impl', args.param)
-    jitter.vm.set_mem(args.pbdata, h)
-    jitter.vm.set_u32(args.dwdatalen, len(h))
 
     jitter.func_ret_stdcall(ret_ad, 1)
 
