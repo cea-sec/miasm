@@ -157,6 +157,9 @@ class c_winobjs(object):
         self.cryptcontext_num = 0
         self.cryptcontext = {}
         self.phhash_crypt_md5 = 0x55555
+        # key used by EncodePointer and DecodePointer
+        # (kernel32)
+        self.ptr_encode_key = 0xabababab
         self.files_hwnd = {}
         self.windowlong_dw = 0x77700
         self.module_cur_hwnd = 0x88800
@@ -420,6 +423,36 @@ def kernel32_CloseHandle(jitter):
     ret_ad, _ = jitter.func_args_stdcall(["hwnd"])
     jitter.func_ret_stdcall(ret_ad, 1)
 
+def kernel32_EncodePointer(jitter):
+    """
+        PVOID EncodePointer(
+            _In_ PVOID Ptr
+        );
+
+        Encoding globally available pointers helps protect them from being
+        exploited. The EncodePointer function obfuscates the pointer value
+        with a secret so that it cannot be predicted by an external agent.
+        The secret used by EncodePointer is different for each process.
+
+        A pointer must be decoded before it can be used.
+
+    """
+    ret, args = jitter.func_args_stdcall(1)
+    jitter.func_ret_stdcall(ret, args[0] ^ winobjs.ptr_encode_key)
+    return True
+
+def kernel32_DecodePointer(jitter):
+    """
+        PVOID DecodePointer(
+           PVOID Ptr
+        );
+
+        The function returns the decoded pointer.
+
+    """
+    ret, args = jitter.func_args_stdcall(1)
+    jitter.func_ret_stdcall(ret, args[0] ^ winobjs.ptr_encode_key)
+    return True
 
 def user32_GetForegroundWindow(jitter):
     ret_ad, _ = jitter.func_args_stdcall(0)
