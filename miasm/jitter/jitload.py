@@ -422,6 +422,17 @@ class Jitter(object):
         self.init_run(addr)
         return self.continue_run()
 
+    def run_until(self, addr):
+        """PRE: init_run.
+        Continue the run of the current session until iterator returns, run is
+        set to False or addr is reached.
+        Return the iterator value"""
+
+        def stop_exec(jitter):
+            jitter.remove_breakpoints_by_callback(stop_exec)
+            return False
+        self.add_breakpoint(addr, stop_exec)
+        return self.continue_run()
 
     def init_stack(self):
         self.vm.add_memory_page(
