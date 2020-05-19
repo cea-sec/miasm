@@ -1677,7 +1677,8 @@ def kernel32_MultiByteToWideChar(jitter):
                                              "cchwidechar"])
     src = get_win_str_a(jitter, args.lpmultibytestr)
     l = len(src) + 1
-    set_win_str_w(jitter, args.lpwidecharstr, src)
+    if args.cchwidechar != 0:
+        set_win_str_w(jitter, args.lpwidecharstr, src)
     jitter.func_ret_stdcall(ret_ad, l)
 
 
