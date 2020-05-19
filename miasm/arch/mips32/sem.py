@@ -522,52 +522,10 @@ def mthi(arg1):
 def mtlo(arg1):
     R_LOW = arg1
 
-@sbuild.parse
-def clz(rs, rd):
-
-    # Rd <- LeadingZeroDetect(Rs)
-
-    # Invert the value
-    reversed_rs = ~rs
-
-    # Test bits individually
-    b31 = (reversed_rs & i32(2**31)) >> i32(31) if reversed_rs else i32(0)
-    b30 = (reversed_rs & i32(2**30)) >> i32(30) if b31 else i32(0)
-    b29 = (reversed_rs & i32(2**29)) >> i32(29) if b30 else i32(0)
-    b28 = (reversed_rs & i32(2**28)) >> i32(28) if b29 else i32(0)
-    b27 = (reversed_rs & i32(2**27)) >> i32(27) if b28 else i32(0)
-    b26 = (reversed_rs & i32(2**26)) >> i32(26) if b27 else i32(0)
-    b25 = (reversed_rs & i32(2**25)) >> i32(25) if b26 else i32(0)
-    b24 = (reversed_rs & i32(2**24)) >> i32(24) if b25 else i32(0)
-    b23 = (reversed_rs & i32(2**23)) >> i32(23) if b24 else i32(0)
-    b22 = (reversed_rs & i32(2**22)) >> i32(22) if b23 else i32(0)
-    b21 = (reversed_rs & i32(2**21)) >> i32(21) if b22 else i32(0)
-    b20 = (reversed_rs & i32(2**20)) >> i32(20) if b21 else i32(0)
-    b19 = (reversed_rs & i32(2**19)) >> i32(19) if b20 else i32(0)
-    b18 = (reversed_rs & i32(2**18)) >> i32(18) if b19 else i32(0)
-    b17 = (reversed_rs & i32(2**17)) >> i32(17) if b18 else i32(0)
-    b16 = (reversed_rs & i32(2**16)) >> i32(16) if b17 else i32(0)
-    b15 = (reversed_rs & i32(2**15)) >> i32(15) if b16 else i32(0)
-    b14 = (reversed_rs & i32(2**14)) >> i32(14) if b15 else i32(0)
-    b13 = (reversed_rs & i32(2**13)) >> i32(13) if b14 else i32(0)
-    b12 = (reversed_rs & i32(2**12)) >> i32(12) if b13 else i32(0)
-    b11 = (reversed_rs & i32(2**11)) >> i32(11) if b12 else i32(0)
-    b10 = (reversed_rs & i32(2**10)) >> i32(10) if b11 else i32(0)
-    b09 = (reversed_rs & i32(2 ** 9)) >> i32(9) if b10 else i32(0)
-    b08 = (reversed_rs & i32(2 ** 8)) >> i32(8) if b09 else i32(0)
-    b07 = (reversed_rs & i32(2 ** 7)) >> i32(7) if b08 else i32(0)
-    b06 = (reversed_rs & i32(2 ** 6)) >> i32(6) if b07 else i32(0)
-    b05 = (reversed_rs & i32(2 ** 5)) >> i32(5) if b06 else i32(0)
-    b04 = (reversed_rs & i32(2 ** 4)) >> i32(4) if b05 else i32(0)
-    b03 = (reversed_rs & i32(2 ** 3)) >> i32(3) if b04 else i32(0)
-    b02 = (reversed_rs & i32(2 ** 2)) >> i32(2) if b03 else i32(0)
-    b01 = (reversed_rs & i32(2 ** 1)) >> i32(1) if b02 else i32(0)
-    b00 = (reversed_rs & i32(2 ** 0)) >> i32(0) if b01 else i32(0)
-
-    # Sum all partial results
-    rd = b31 + b30 + b29 + b28 + b27 + b26 + b25 + b24 + b23 + b22 + b21 + b20 \
-        + b19 + b18 + b17 + b16 + b15 + b14 + b13 + b12 + b11 + b10 + b09 + b08 \
-        + b07 + b06 + b05 + b04 + b03 + b02 + b01 + b00
+def clz(ir, instr, rs, rd):
+    e = []
+    e.append(ExprAssign(rd, ExprOp('cntleadzeros', rs)))
+    return e, []
 
 def teq(ir, instr, arg1, arg2):
     e = []
@@ -639,6 +597,7 @@ mnemo_func.update({
         'subu': l_sub,
         'xor': l_xor,
         'xori': l_xor,
+        'clz': clz,
         'teq': teq,
         'tne': tne
         })
