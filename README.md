@@ -616,10 +616,3 @@ Books
 
 * [Practical Reverse Engineering: X86, X64, Arm, Windows Kernel, Reversing Tools, and Obfuscation](http://eu.wiley.com/WileyCDA/WileyTitle/productCd-1118787315,subjectCd-CSJ0.html): Introduction to Miasm (Chapter 5 "Obfuscation")
 * [BlackHat Python - Appendix](https://github.com/oreilly-japan/black-hat-python-jp-support/tree/master/appendix-A): Japan security book's samples
-
-
-Misc
-====
-
-* Man, does miasm has a link with rr0d?
-* Yes! crappy code and uggly documentation.

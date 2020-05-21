@@ -2014,7 +2014,7 @@ class ir_arml(IntermediateRepresentation):
             index += 1
             instr = block.lines[index]
 
-            # Add conditionnal jump to current irblock
+            # Add conditional jump to current irblock
             loc_do = self.loc_db.add_location()
             loc_next = self.get_next_loc_key(instr)
 

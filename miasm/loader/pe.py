@@ -1326,7 +1326,7 @@ class DirRes(CStruct):
                     # data dir
                     off = entry.offsettodata
                     if not 0 <= off < len(raw):
-                        log.warn('bad resrouce entry')
+                        log.warn('bad resource entry')
                         continue
                     data = ResDataEntry.unpack(raw,
                                                off,
@@ -1340,7 +1340,7 @@ class DirRes(CStruct):
                     log.warn('warning recusif subdir')
                     continue
                 if not 0 <= off < len(self.parent_head.img_rva):
-                    log.warn('bad resrouce entry')
+                    log.warn('bad resource entry')
                     continue
                 subdir, length = ResDesc_e.unpack_l(raw,
                                                     off,
@@ -1352,7 +1352,7 @@ class DirRes(CStruct):
                                                      ResEntry,
                                                      nbr)
                 except RuntimeError:
-                    log.warn('bad resrouce entry')
+                    log.warn('bad resource entry')
                     continue
 
                 entry.subdir = subdir

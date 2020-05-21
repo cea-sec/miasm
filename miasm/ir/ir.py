@@ -885,7 +885,7 @@ class IntermediateRepresentation(object):
         return irblock
 
     def is_pc_written(self, block):
-        """Return the first Assignblk of the @blockin which PC is written
+        """Return the first Assignblk of the @block in which PC is written
         @block: IRBlock instance"""
         all_pc = viewvalues(self.arch.pc)
         for assignblk in block:

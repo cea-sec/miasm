@@ -251,8 +251,8 @@ class GdbServer(object):
                     else:
                         raise NotImplementedError("Unknown Except")
                 elif isinstance(ret, debugging.DebugBreakpointTerminate):
-                    # Connexion should close, but keep it running as a TRAP
-                    # The connexion will be close on instance destruction
+                    # Connection should close, but keep it running as a TRAP
+                    # The connection will be close on instance destruction
                     print(ret)
                     self.status = b"S05"
                     self.send_queue.append(b"S05")

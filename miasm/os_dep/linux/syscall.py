@@ -681,7 +681,7 @@ def sys_x86_64_connect(jitter, linux_env):
     log.debug("sys_connect(%x, %r, %x)", fd, raddr, addrlen)
 
     # Stub
-    # Always refuse the connexion
+    # Always refuse the connection
     jitter.cpu.RAX = -1
 
 

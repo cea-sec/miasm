@@ -727,8 +727,8 @@ class Expr(object):
 
     def visit(self, callback):
         """
-        Apply callbak to all sub expression of @self
-        This function keeps a cache to avoid rerunning @callbak on common sub
+        Apply callback to all sub expression of @self
+        This function keeps a cache to avoid rerunning @callback on common sub
         expressions.
 
         @callback: fn(Expr) -> Expr
