@@ -26,17 +26,17 @@ sr_dict = {
 }
 
 float_dict = {
-    0: FPR0, 1: FPR1, 2: FPR2, 3: FPR3, 4: FPR4, 5: FPR5, 6: FPR6, 7: FPR7, 8: FPR8, 
-    9: FPR9, 10: FPR10, 11: FPR11, 12: FPR12, 13: FPR13, 14: FPR14, 15: FPR15, 16: FPR16, 
-    17: FPR17, 18: FPR18, 19: FPR19, 20: FPR20, 21: FPR21, 22: FPR22, 23: FPR23, 24: FPR24, 
+    0: FPR0, 1: FPR1, 2: FPR2, 3: FPR3, 4: FPR4, 5: FPR5, 6: FPR6, 7: FPR7, 8: FPR8,
+    9: FPR9, 10: FPR10, 11: FPR11, 12: FPR12, 13: FPR13, 14: FPR14, 15: FPR15, 16: FPR16,
+    17: FPR17, 18: FPR18, 19: FPR19, 20: FPR20, 21: FPR21, 22: FPR22, 23: FPR23, 24: FPR24,
     25: FPR25, 26: FPR26, 27: FPR27, 28: FPR28, 29: FPR29, 30: FPR30, 31: FPR31
 }
 
 vex_dict = {
-    0: VR0, 1: VR1, 2: VR2, 3: VR3, 4: VR4, 5: VR5, 6: VR6, 7: VR7, 8: VR8, 
-    9: VR9, 10: VR10, 11: VR11, 12: VR12, 13: VR13, 14: VR14, 15: VR15, 16: VR16, 
-    17: VR17, 18: VR18, 19: VR19, 20: VR20, 21: VR21, 22: VR22, 23: VR23, 24: VR24, 
-    25: VR25, 26: VR26, 27: VR27, 28: VR28, 29: VR29, 30: VR30, 31: VR31,    
+    0: VR0, 1: VR1, 2: VR2, 3: VR3, 4: VR4, 5: VR5, 6: VR6, 7: VR7, 8: VR8,
+    9: VR9, 10: VR10, 11: VR11, 12: VR12, 13: VR13, 14: VR14, 15: VR15, 16: VR16,
+    17: VR17, 18: VR18, 19: VR19, 20: VR20, 21: VR21, 22: VR22, 23: VR23, 24: VR24,
+    25: VR25, 26: VR26, 27: VR27, 28: VR28, 29: VR29, 30: VR30, 31: VR31,
 }
 
 crf_dict = dict((ExprId("CR%d" % i, 4),
@@ -265,7 +265,7 @@ def mn_do_load(ir, instr, arg1, arg2, arg3=None):
         return  [], []
     elif instr.name[1] == 'V':
         print("Warning, instruction %s implemented as NOP" % instr)
-        return [], []    
+        return [], []
 
     size = {'B': 8, 'H': 16, 'W': 32}[instr.name[1]]
 
@@ -527,7 +527,7 @@ def mn_do_rfi(ir, instr):
     ret = [ ExprAssign(MSR, (MSR &
                           ~ExprInt(0b1111111101110011, 32) |
                           ExprCompose(SRR1[0:2], ExprInt(0, 2),
-                                      SRR1[4:7], ExprInt(0, 1), 
+                                      SRR1[4:7], ExprInt(0, 1),
                                       SRR1[8:16], ExprInt(0, 16)))),
             ExprAssign(PC, dest),
             ExprAssign(ir.IRDst, dest) ]
