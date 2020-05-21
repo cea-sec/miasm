@@ -8,6 +8,219 @@ from miasm.arch.arm.regs import *
 
 from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_INT_XX
 
+coproc_reg_dict = {
+        ("p15", "c0", 0, "c0", 0): MIDR,
+        ("p15", "c0", 0, "c0", 1): CTR,
+        ("p15", "c0", 0, "c0", 2): TCMTR,
+        ("p15", "c0", 0, "c0", 3): TLBTR,
+        ("p15", "c0", 0, "c0", 4): MIDR,
+        ("p15", "c0", 0, "c0", 5): MPIDR,
+        ("p15", "c0", 0, "c0", 6): REVIDR,
+        ("p15", "c0", 0, "c0", 7): MIDR,
+
+        ("p15", "c0", 0, "c1", 0): ID_PFR0,
+        ("p15", "c0", 0, "c1", 1): ID_PFR1,
+        ("p15", "c0", 0, "c1", 2): ID_DFR0,
+        ("p15", "c0", 0, "c1", 3): ID_AFR0,
+        ("p15", "c0", 0, "c1", 4): ID_MMFR0,
+        ("p15", "c0", 0, "c1", 5): ID_MMFR1,
+        ("p15", "c0", 0, "c1", 6): ID_MMFR2,
+        ("p15", "c0", 0, "c1", 7): ID_MMFR3,
+
+        ("p15", "c0", 0, "c2", 0): ID_ISAR0,
+        ("p15", "c0", 0, "c2", 1): ID_ISAR1,
+        ("p15", "c0", 0, "c2", 2): ID_ISAR2,
+        ("p15", "c0", 0, "c2", 3): ID_ISAR3,
+        ("p15", "c0", 0, "c2", 4): ID_ISAR4,
+        ("p15", "c0", 0, "c2", 5): ID_ISAR5,
+
+        ("p15", "c0", 1, "c0", 0): CCSIDR,
+        ("p15", "c0", 1, "c0", 1): CLIDR,
+        ("p15", "c0", 1, "c0", 7): AIDR,
+
+        ("p15", "c0", 2, "c0", 0): CSSELR,
+        
+        ("p15", "c0", 4, "c0", 0): VPIDR,
+        ("p15", "c0", 4, "c0", 5): VMPIDR,
+
+        ("p15", "c1", 0, "c0", 0): SCTLR,
+        ("p15", "c1", 0, "c0", 1): ACTLR,
+        ("p15", "c1", 0, "c0", 2): CPACR,
+        
+        ("p15", "c1", 0, "c1", 0): SCR,
+        ("p15", "c1", 0, "c1", 1): SDER,
+        ("p15", "c1", 0, "c1", 2): NSACR,
+        
+        ("p15", "c1", 4, "c0", 0): HSCTLR,
+        ("p15", "c1", 4, "c0", 1): HACTLR,
+
+        ("p15", "c1", 4, "c1", 0): HCR,
+        ("p15", "c1", 4, "c1", 1): HDCR,
+        ("p15", "c1", 4, "c1", 2): HCPTR,
+        ("p15", "c1", 4, "c1", 3): HSTR,
+        ("p15", "c1", 4, "c1", 7): HACR,
+        
+        # TODO: TTBRO/TTBR1 64-bit
+        ("p15", "c2", 0, "c0", 0): TTBR0, 
+        ("p15", "c2", 0, "c0", 1): TTBR1,
+        ("p15", "c2", 0, "c0", 2): TTBCR,
+
+        ("p15", "c2", 4, "c0", 2): HTCR,
+        
+        ("p15", "c2", 4, "c1", 2): VTCR,
+        
+        # TODO: HTTBR, VTTBR
+
+        ("p15", "c3", 0, "c0", 0): DACR,
+
+        ("p15", "c5", 0, "c0", 0): DFSR,
+        ("p15", "c5", 0, "c0", 1): IFSR,
+
+        ("p15", "c5", 0, "c1", 0): ADFSR,
+        ("p15", "c5", 0, "c1", 1): AIFSR,
+
+        ("p15", "c5", 4, "c1", 0): HADFSR,
+        ("p15", "c5", 4, "c1", 1): HAIFSR,
+        
+        ("p15", "c5", 4, "c2", 0): HSR,
+
+        ("p15", "c6", 0, "c1", 0): DFAR,
+        ("p15", "c6", 0, "c1", 2): IFAR,
+
+        ("p15", "c6", 4, "c0", 0): HDFAR,
+        ("p15", "c6", 4, "c0", 2): HIFAR,
+        ("p15", "c6", 4, "c0", 4): HPFAR,
+        
+        ("p15", "c7", 0, "c1", 0): ICIALLUIS,
+        ("p15", "c7", 0, "c1", 6): BPIALLIS,
+        
+        ("p15", "c7", 0, "c4", 0): PAR,
+        
+        # TODO: PAR 64-bit
+
+        ("p15", "c7", 0, "c5", 0): ICIALLU,
+        ("p15", "c7", 0, "c5", 1): ICIMVAU,
+        ("p15", "c7", 0, "c5", 4): CP15ISB,
+        ("p15", "c7", 0, "c5", 6): BPIALL,
+        ("p15", "c7", 0, "c5", 7): BPIMVA,
+        
+        ("p15", "c7", 0, "c6", 1): DCIMVAC,
+        ("p15", "c7", 0, "c6", 2): DCISW,
+        
+        ("p15", "c7", 0, "c8", 0): ATS1CPR,
+        ("p15", "c7", 0, "c8", 1): ATS1CPW,
+        ("p15", "c7", 0, "c8", 2): ATS1CUR,
+        ("p15", "c7", 0, "c8", 3): ATS1CUW,
+        ("p15", "c7", 0, "c8", 4): ATS12NSOPR,
+        ("p15", "c7", 0, "c8", 5): ATS12NSOPW,
+        ("p15", "c7", 0, "c8", 6): ATS12NSOUR,
+        ("p15", "c7", 0, "c8", 7): ATS12NSOUW,
+        
+        ("p15", "c7", 0, "c10", 1): DCCMVAC,
+        ("p15", "c7", 0, "c10", 2): DCCSW,
+        ("p15", "c7", 0, "c10", 4): CP15DSB,
+        ("p15", "c7", 0, "c10", 5): CP15DMB,
+        
+        ("p15", "c7", 0, "c11", 1): DCCMVAU,
+        
+        ("p15", "c7", 0, "c14", 1): DCCIMVAC,
+        ("p15", "c7", 0, "c14", 2): DCCISW,
+        
+        ("p15", "c7", 4, "c8", 0): ATS1HR,
+        ("p15", "c7", 4, "c8", 1): ATS1HW,
+        
+        ("p15", "c8", 0, "c3", 0): TLBIALLIS,
+        ("p15", "c8", 0, "c3", 1): TLBIMVAIS,
+        ("p15", "c8", 0, "c3", 2): TLBIASIDIS,
+        ("p15", "c8", 0, "c3", 3): TLBIMVAAIS,
+        
+        ("p15", "c8", 0, "c5", 0): ITLBIALL,
+        ("p15", "c8", 0, "c5", 1): ITLBIMVA,
+        ("p15", "c8", 0, "c5", 2): ITLBIASID,
+        
+        ("p15", "c8", 0, "c6", 0): DTLBIALL,
+        ("p15", "c8", 0, "c6", 1): DTLBIMVA,
+        ("p15", "c8", 0, "c6", 2): DTLBIASID,
+        
+        ("p15", "c8", 0, "c7", 0): TLBIALL,
+        ("p15", "c8", 0, "c7", 1): TLBIMVA,
+        ("p15", "c8", 0, "c7", 2): TLBIASID,
+        ("p15", "c8", 0, "c7", 3): TLBIMVAA,
+
+        ("p15", "c8", 4, "c3", 0): TLBIALLHIS,
+        ("p15", "c8", 4, "c3", 1): TLBIMVAHIS,
+        ("p15", "c8", 4, "c3", 4): TLBIALLNSNHIS,
+        
+        ("p15", "c8", 4, "c7", 0): TLBIALLH,
+        ("p15", "c8", 4, "c7", 1): TLBIMVAH,
+        ("p15", "c8", 4, "c7", 2): TLBIALLNSNH,
+        
+        ("p15", "c9", 0, "c12", 0): PMCR,
+        ("p15", "c9", 0, "c12", 1): PMCNTENSET,
+        ("p15", "c9", 0, "c12", 2): PMCNTENCLR,
+        ("p15", "c9", 0, "c12", 3): PMOVSR,
+        ("p15", "c9", 0, "c12", 4): PMSWINC,
+        ("p15", "c9", 0, "c12", 5): PMSELR,
+        ("p15", "c9", 0, "c12", 6): PMCEID0,
+        ("p15", "c9", 0, "c12", 7): PMCEID1,
+        
+        ("p15", "c9", 0, "c13", 0): PMCCNTR,
+        ("p15", "c9", 0, "c13", 1): PMXEVTYPER,
+        ("p15", "c9", 0, "c13", 2): PMXEVCNTR,
+        
+        ("p15", "c9", 0, "c14", 0): PMUSERENR,
+        ("p15", "c9", 0, "c14", 1): PMINTENSET,
+        ("p15", "c9", 0, "c14", 2): PMINTENCLR,
+        ("p15", "c9", 0, "c14", 3): PMOVSSET,
+        
+        ("p15", "c10", 0, "c2", 0): PRRR,   # ALIAS MAIR0
+        ("p15", "c10", 0, "c2", 1): NMRR,   # ALIAS MAIR1
+
+        ("p15", "c10", 0, "c3", 0): AMAIR0,
+        ("p15", "c10", 0, "c3", 1): AMAIR1,
+
+        ("p15", "c10", 4, "c2", 0): HMAIR0,
+        ("p15", "c10", 4, "c2", 1): HMAIR1,
+
+        ("p15", "c10", 4, "c3", 0): HAMAIR0,
+        ("p15", "c10", 4, "c3", 1): HAMAIR1,
+
+        ("p15", "c12", 0, "c0", 0): VBAR,
+        ("p15", "c12", 0, "c0", 1): MVBAR,
+
+        ("p15", "c12", 0, "c1", 0): ISR,
+
+        ("p15", "c12", 4, "c0", 0): HVBAR,
+        
+        ("p15", "c13", 0, "c0", 0): FCSEIDR,
+        ("p15", "c13", 0, "c0", 1): CONTEXTIDR,
+        ("p15", "c13", 0, "c0", 2): TPIDRURW,
+        ("p15", "c13", 0, "c0", 3): TPIDRURO,
+        ("p15", "c13", 0, "c0", 4): TPIDRPRW,
+        
+        ("p15", "c13", 4, "c0", 2): HTPIDR,
+        
+        ("p15", "c14", 0, "c0", 0): CNTFRQ,
+        # TODO: CNTPCT 64-bit
+        
+        ("p15", "c14", 0, "c1", 0): CNTKCTL,
+        
+        ("p15", "c14", 0, "c2", 0): CNTP_TVAL,
+        ("p15", "c14", 0, "c2", 1): CNTP_CTL,
+        
+        ("p15", "c14", 0, "c3", 0): CNTV_TVAL,
+        ("p15", "c14", 0, "c3", 1): CNTV_CTL,
+        
+        # TODO: CNTVCT, CNTP_CVAL, CNTV_CVAL, CNTVOFF 64-bit
+        
+        ("p15", "c14", 4, "c1", 0): CNTHCTL,
+
+        ("p15", "c14", 4, "c2", 0): CNTHP_TVAL,
+        ("p15", "c14", 4, "c2", 0): CNTHP_CTL
+        
+        # TODO: CNTHP_CVAL 64-bit
+        }
+
 # liris.cnrs.fr/~mmrissa/lib/exe/fetch.php?media=armv7-a-r-manual.pdf
 EXCEPT_SOFT_BP = (1 << 1)
 
@@ -1319,6 +1532,10 @@ def dsb(ir, instr, a):
     e = []
     return e, []
 
+def isb(ir, instr, a):
+    # XXX TODO
+    e = []
+    return e, []
 
 def cpsie(ir, instr, a):
     # XXX TODO
@@ -1376,6 +1593,25 @@ def pkhtb(ir, instr, arg1, arg2, arg3):
     )
     return e, []
 
+def mrc(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
+    e = []
+    sreg = (str(arg1), str(arg4), int(arg2), str(arg5), int(arg6))
+    if sreg in coproc_reg_dict:
+        e.append(ExprAssign(arg3, coproc_reg_dict[sreg]))
+    else:
+        raise NotImplementedError("Unknown coprocessor register: %s %s %d %s %d" % (str(arg1), str(arg4), int(arg2), str(arg5), int(arg6)))
+
+    return e, []
+
+def mcr(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
+    e = []
+    sreg = (str(arg1), str(arg4), int(arg2), str(arg5), int(arg6))
+    if sreg in coproc_reg_dict:
+        e.append(ExprAssign(coproc_reg_dict[sreg], arg3))
+    else:
+        raise NotImplementedError("Unknown coprocessor register: %s %s %d %s %d" % (str(arg1), str(arg4), int(arg2), str(arg5), int(arg6)))
+
+    return e, []
 
 COND_EQ = 0
 COND_NE = 1
@@ -1574,6 +1810,9 @@ mnemo_condm1 = {'adds': add,
                 'bics': bics,
                 'mvns': mvns,
 
+                'mrc': mrc,
+                'mcr': mcr,
+
                 'mrs': mrs,
                 'msr': msr,
 
@@ -1629,6 +1868,7 @@ mnemo_nocond = {'lsr': lsr,
                 'tbh': tbh,
                 'nop': nop,
                 'dsb': dsb,
+                'isb': isb,
                 'cpsie': cpsie,
                 'cpsid': cpsid,
                 'wfe': wfe,

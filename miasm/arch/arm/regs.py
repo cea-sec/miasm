@@ -2,7 +2,7 @@
 
 from builtins import range
 from miasm.expression.expression import *
-
+from miasm.core.cpu import gen_reg, gen_regs
 
 # GP
 
@@ -110,5 +110,68 @@ all_regs_ids_init = [R0_init, R1_init, R2_init, R3_init,
 regs_init = {}
 for i, r in enumerate(all_regs_ids):
     regs_init[r] = all_regs_ids_init[i]
+
+coproc_reg_str = [
+                    "MIDR", "CTR", "TCMTR", "TLBTR", "MIDR", "MPIDR", "REVIDR",
+                    "ID_PFR0", "ID_PFR1", "ID_DFR0", "ID_AFR0", "ID_MMFR0", "ID_MMFR1", "ID_MMFR2", "ID_MMFR3",
+                    "ID_ISAR0", "ID_ISAR1", "ID_ISAR2", "ID_ISAR3", "ID_ISAR4", "ID_ISAR5",
+                    "CCSIDR", "CLIDR", "AIDR",
+                    "CSSELR",
+                    "VPIDR", "VMPIDR",
+                    "SCTLR", "ACTLR", "CPACR",
+                    "SCR", "SDER", "NSACR",
+                    "HSCTLR", "HACTLR",
+                    "HCR", "HDCR", "HCPTR", "HSTR", "HACR",
+                    "TTBR0", "TTBR1", "TTBCR",
+                    "HTCR", "VTCR",
+                    "DACR",
+                    "DFSR", "IFSR",
+                    "ADFSR", "AIFSR",
+                    "HADFSR", "HAIFSR",
+                    "HSR",
+                    "DFAR", "IFAR",
+                    "HDFAR", "HIFAR", "HPFAR",
+                    "ICIALLUIS", "BPIALLIS",
+                    "PAR",
+                    "ICIALLU", "ICIMVAU", "CP15ISB", "BPIALL", "BPIMVA",
+                    "DCIMVAC", "DCISW",
+                    "ATS1CPR", "ATS1CPW", "ATS1CUR", "ATS1CUW", "ATS12NSOPR", "ATS12NSOPW", "ATS12NSOUR", "ATS12NSOUW",
+                    "DCCMVAC", "DCCSW", "CP15DSB", "CP15DMB",
+                    "DCCMVAU",
+                    "DCCIMVAC", "DCCISW",
+                    "ATS1HR", "ATS1HW",
+                    "TLBIALLIS", "TLBIMVAIS", "TLBIASIDIS", "TLBIMVAAIS",
+                    "ITLBIALL", "ITLBIMVA", "ITLBIASID",
+                    "DTLBIALL", "DTLBIMVA", "DTLBIASID",
+                    "TLBIALL", "TLBIMVA", "TLBIASID", "TLBIMVAA",
+                    "TLBIALLHIS", "TLBIMVAHIS", "TLBIALLNSNHIS",
+                    "TLBIALLH", "TLBIMVAH", "TLBIALLNSNH",
+                    "PMCR", "PMCNTENSET", "PMCNTENCLR", "PMOVSR", "PMSWINC", "PMSELR", "PMCEID0", "PMCEID1",
+                    "PMCCNTR", "PMXEVTYPER", "PMXEVCNTR",
+                    "PMUSERENR", "PMINTENSET", "PMINTENCLR", "PMOVSSET", 
+                    "PRRR", "NMRR",
+                    "AMAIR0", "AMAIR1",
+                    "HMAIR0", "HMAIR1",
+                    "HAMAIR0", "HAMAIR1",
+                    "VBAR", "MVBAR",
+                    "ISR",
+                    "HVBAR",
+                    "FCSEIDR", "CONTEXTIDR", "TPIDRURW", "TPIDRURO", "TPIDRPRW",
+                    "HTPIDR",
+                    "CNTFRQ",
+                    "CNTKCTL",
+                    "CNTP_TVAL", "CNTP_CTL",
+                    "CNTV_TVAL", "CNTV_CTL",
+                    "CNTHCTL",
+                    "CNTHP_TVAL", "CNTHP_CTL"
+                ]
+coproc_reg_expr, coproc_reg_init, coproc_reg_info = gen_regs(coproc_reg_str, globals(), 32)
+
+all_regs_ids = all_regs_ids + coproc_reg_expr
+all_regs_ids_byname.update(dict([(x.name, x) for x in coproc_reg_expr]))
+all_regs_ids_init = all_regs_ids_init + coproc_reg_init
+
+for i, r in enumerate(coproc_reg_expr):
+    regs_init[r] = coproc_reg_init[i]
 
 regs_flt_expr = []
