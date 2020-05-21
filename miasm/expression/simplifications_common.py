@@ -1081,6 +1081,13 @@ def simp_cmp_bijective_op(expr_simp, expr):
             args_a.remove(value)
             args_b.remove(value)
 
+    # a + b == a + b + c
+    if not args_a:
+        return ExprOp(TOK_EQUAL, ExprOp(op, *args_b), ExprInt(0, args_b[0].size))
+    # a + b + c == a + b
+    if not args_b:
+        return ExprOp(TOK_EQUAL, ExprOp(op, *args_a), ExprInt(0, args_a[0].size))
+    
     arg_a = ExprOp(op, *args_a)
     arg_b = ExprOp(op, *args_b)
     return ExprOp(TOK_EQUAL, arg_a, arg_b)
