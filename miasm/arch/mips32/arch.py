@@ -795,26 +795,26 @@ mips32op("tne",     [cpu.bs('000000'), rs, rt, bs_code, cpu.bs('110110')],
          [rs, rt])
 
 mips32op("clz",     [cpu.bs('011100'), rs, rt, rd, cpu.bs('00000'), cpu.bs('100000')],
-        [rs, rd])
+        [rd, rs])
 mips32op("clz",     [cpu.bs('000000'), rs, cpu.bs('00000'), rd, cpu.bs('00001010000')],
-        [rs, rd])
+        [rd, rs])
 
-mips32op("ll",      [cpu.bs('110000'), base, rt, s16imm_noarg], [base, rt])
-mips32op("ll",      [cpu.bs('011111'), base, rt, s09imm_noarg, cpu.bs('0110110')], [base, rt])
+mips32op("ll",      [cpu.bs('110000'), base, rt, s16imm_noarg], [rt, base])
+mips32op("ll",      [cpu.bs('011111'), base, rt, s09imm_noarg, cpu.bs('0110110')], [rt, base])
 
-mips32op("sc",      [cpu.bs('111000'), base, rt, s16imm_noarg], [base, rt])
-mips32op("sc",      [cpu.bs('011111'), base, rt, s09imm_noarg, cpu.bs('0'), cpu.bs('100110')], [base, rt])
+mips32op("sc",      [cpu.bs('111000'), base, rt, s16imm_noarg], [rt, base])
+mips32op("sc",      [cpu.bs('011111'), base, rt, s09imm_noarg, cpu.bs('0'), cpu.bs('100110')], [rt, base])
 
 mips32op("sync",    [cpu.bs('000000000000000000000'), stype, cpu.bs('001111')], [stype])
 
-mips32op("pref",    [cpu.bs('110011'), base, hint_pref, s16imm_noarg], [base, hint_pref])
-mips32op("pref",    [cpu.bs('011111'), base, hint_pref, s09imm_noarg, cpu.bs('0110101')], [base, hint_pref])
+mips32op("pref",    [cpu.bs('110011'), base, hint_pref, s16imm_noarg], [hint_pref, base])
+mips32op("pref",    [cpu.bs('011111'), base, hint_pref, s09imm_noarg, cpu.bs('0110101')], [hint_pref, base])
 
 mips32op("tlbwr",   [cpu.bs('01000010000000000000000000000110')], [])
 mips32op("tlbr",    [cpu.bs('01000010000000000000000000000001')], [])
 
-mips32op("cache",   [cpu.bs('101111'), base, oper, s16imm_noarg], [base, oper])
-mips32op("cache",   [cpu.bs('011111'), base, oper, s09imm_noarg, cpu.bs('0100101')], [base, oper])
+mips32op("cache",   [cpu.bs('101111'), base, oper, s16imm_noarg], [oper, base])
+mips32op("cache",   [cpu.bs('011111'), base, oper, s09imm_noarg, cpu.bs('0100101')], [oper, base])
 
 mips32op("eret",    [cpu.bs('01000010000000000000000000011000')], [])
 

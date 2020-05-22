@@ -511,8 +511,8 @@ def ehb(arg1):
 
 @sbuild.parse
 def sc(arg1, arg2):
-    arg1 = arg2;
-    arg2 = ExprInt(0x1, 32)
+    arg2 = arg1;
+    arg1 = ExprInt(0x1, 32)
 
 @sbuild.parse
 def mthi(arg1):
