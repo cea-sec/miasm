@@ -1752,6 +1752,9 @@ mnemo_condm0 = {'add': add,
                 'sdiv': sdiv,
                 'udiv': udiv,
 
+                'mrc': mrc,
+                'mcr': mcr,
+
                 'mul': mul,
                 'umull': umull,
                 'umlal': umlal,
@@ -1809,9 +1812,6 @@ mnemo_condm1 = {'adds': add,
                 'movs': movs,
                 'bics': bics,
                 'mvns': mvns,
-
-                'mrc': mrc,
-                'mcr': mcr,
 
                 'mrs': mrs,
                 'msr': msr,
