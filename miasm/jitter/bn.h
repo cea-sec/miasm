@@ -35,7 +35,7 @@ Code slightly modified to support ast generation calculus style from Expr.
 #include <assert.h>
 
 
-/* This macro defines the word size in bytes of the array that constitues the big-number data structure. */
+/* This macro defines the word size in bytes of the array that constitutes the big-number data structure. */
 #ifndef WORD_SIZE
   #define WORD_SIZE 4
 #endif

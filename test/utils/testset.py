@@ -203,7 +203,7 @@ class TestSet(object):
             try:
                 os.remove(product)
             except OSError:
-                print("Cleanning error: Unable to remove %s" % product)
+                print("Cleaning error: Unable to remove %s" % product)
 
     def add_additional_args(self, args):
         """Add arguments to used on the test command line

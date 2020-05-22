@@ -15,7 +15,7 @@ log.addHandler(console_handler)
 log.setLevel(logging.WARNING)
 
 class Z3Mem(object):
-    """Memory abstration for TranslatorZ3. Memory elements are only accessed,
+    """Memory abstraction for TranslatorZ3. Memory elements are only accessed,
     never written. To give a concrete value for a given memory cell in a solver,
     add "mem32.get(address, size) == <value>" constraints to your equation.
     The endianness of memory accesses is handled accordingly to the "endianness"

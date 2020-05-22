@@ -547,7 +547,7 @@ class instruction_x86(instruction):
 
     def __str__(self):
         return self.to_string()
-      
+
     def to_string(self, loc_db=None):
         o = super(instruction_x86, self).to_string(loc_db)
         if self.additional_info.g1.value & 1:

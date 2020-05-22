@@ -68,7 +68,7 @@ def lbu(arg1, arg2):
 
 @sbuild.parse
 def lh(arg1, arg2):
-    """A word is loaded into a register @arg1 from the 
+    """A word is loaded into a register @arg1 from the
     specified address @arg2."""
     arg1 = mem16[arg2.ptr].signExtend(32)
 

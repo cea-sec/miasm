@@ -334,7 +334,7 @@ if False:
 def sltu3(r0, rn, rm_or_imm5):
     """SLTU3 - Set on less than (unsigned)."""
 
-    # if (Rn<Rm) R0<-1 else R0<-0 (Unigned)
+    # if (Rn<Rm) R0<-1 else R0<-0 (Unsigned)
     # if (Rn<ZeroExt(imm5)) R0<-1 else R0<-0(Unsigned)
     r0 = i32(1) if compute_u_inf(rn, rm_or_imm5) else i32(0)
 
