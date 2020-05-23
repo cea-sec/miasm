@@ -146,7 +146,7 @@ def nop():
 
 @sbuild.parse
 def sync(arg1):
-    """Syncronize Shared Memory"""
+    """Synchronize Shared Memory"""
 
 @sbuild.parse
 def pref(arg1, arg2):
