@@ -231,6 +231,27 @@ reg_tests_mips32 = [
      "45020008"),
     ("XXXXXXXX    BC1TL      FCC0, 0xB8",
      "4503002D"),
+
+    ("XXXXXXXX    CLZ        K0, K1",
+     "737AD020"),
+
+    ("XXXXXXXX    LL         A0, 0x123(A1)",
+     "C0A40123"),
+    ("XXXXXXXX    SC         A1, 0x123(A0)",
+     "E0850123"),
+
+    ("XXXXXXXX    SYNC       0x19",
+     "0000064F"),
+    ("XXXXXXXX    TLBR       ",
+     "42000001"),
+
+    ("XXXXXXXX    ERET       ",
+     "42000018"),
+
+    ("XXXXXXXX    MTHI       A0",
+     "00800011"),
+    ("XXXXXXXX    MTLO       A1",
+     "00A00013")
 ]
 
 

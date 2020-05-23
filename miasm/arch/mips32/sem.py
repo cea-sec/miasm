@@ -84,6 +84,11 @@ def lb(arg1, arg2):
     arg1 = mem8[arg2.ptr].signExtend(32)
 
 @sbuild.parse
+def ll(arg1, arg2):
+    "To load a word from memory for an atomic read-modify-write"
+    arg1 = arg2
+
+@sbuild.parse
 def beq(arg1, arg2, arg3):
     "Branches on @arg3 if the quantities of two registers @arg1, @arg2 are eq"
     dst = arg3 if ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
@@ -138,6 +143,14 @@ def lui(arg1, arg2):
 @sbuild.parse
 def nop():
     """Do nothing"""
+
+@sbuild.parse
+def sync(arg1):
+    """Syncronize Shared Memory"""
+
+@sbuild.parse
+def pref(arg1, arg2):
+    """To move data between memory and cache"""
 
 @sbuild.parse
 def j(arg1):
@@ -372,6 +385,14 @@ def tlbwi():
 def tlbp():
     "TODO XXX"
 
+@sbuild.parse
+def tlbwr():
+    "TODO XXX"
+
+@sbuild.parse
+def tlbr():
+    "TODO XXX"
+
 def ins(ir, instr, a, b, c, d):
     e = []
     pos = int(c)
@@ -488,6 +509,24 @@ def ei(arg1):
 def ehb(arg1):
     "NOP"
 
+@sbuild.parse
+def sc(arg1, arg2):
+    arg2 = arg1;
+    arg1 = ExprInt(0x1, 32)
+
+@sbuild.parse
+def mthi(arg1):
+    R_HI = arg1
+
+@sbuild.parse
+def mtlo(arg1):
+    R_LOW = arg1
+
+def clz(ir, instr, rs, rd):
+    e = []
+    e.append(ExprAssign(rd, ExprOp('cntleadzeros', rs)))
+    return e, []
+
 def teq(ir, instr, arg1, arg2):
     e = []
 
@@ -499,9 +538,31 @@ def teq(ir, instr, arg1, arg2):
     do_except.append(m2_expr.ExprAssign(exception_flags, m2_expr.ExprInt(
         EXCEPT_DIV_BY_ZERO, exception_flags.size)))
     do_except.append(m2_expr.ExprAssign(ir.IRDst, loc_next_expr))
-    blk_except = IRBlock(loc_except.index, [AssignBlock(do_except, instr)])
+    blk_except = IRBlock(loc_except, [AssignBlock(do_except, instr)])
 
     cond = arg1 - arg2
+
+
+    e = []
+    e.append(m2_expr.ExprAssign(ir.IRDst,
+                             m2_expr.ExprCond(cond, loc_next_expr, loc_except_expr)))
+
+    return e, [blk_except]
+
+def tne(ir, instr, arg1, arg2):
+    e = []
+
+    loc_except, loc_except_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = m2_expr.ExprLoc(loc_next, ir.IRDst.size)
+
+    do_except = []
+    do_except.append(m2_expr.ExprAssign(exception_flags, m2_expr.ExprInt(
+        EXCEPT_DIV_BY_ZERO, exception_flags.size)))
+    do_except.append(m2_expr.ExprAssign(ir.IRDst, loc_next_expr))
+    blk_except = IRBlock(loc_except, [AssignBlock(do_except, instr)])
+
+    cond = arg1 ^ arg2
 
 
     e = []
@@ -536,8 +597,10 @@ mnemo_func.update({
         'subu': l_sub,
         'xor': l_xor,
         'xori': l_xor,
-        'teq': teq
-})
+        'clz': clz,
+        'teq': teq,
+        'tne': tne
+        })
 
 def get_mnemo_expr(ir, instr, *args):
     instr, extra_ir = mnemo_func[instr.name.lower()](ir, instr, *args)

@@ -321,6 +321,26 @@ class mips32_s16imm_noarg(mips32_imm):
         self.value = v
         return True
 
+
+class mips32_s09imm_noarg(mips32_imm):
+    def decode(self, v):
+        v = v & self.lmask
+        v = cpu.sign_ext(v, 9, 32)
+        self.expr = ExprInt(v, 32)
+        return True
+
+    def encode(self):
+        if not isinstance(self.expr, ExprInt):
+            return False
+        v = int(self.expr)
+        if v & 0x80000000:
+            nv = v & ((1 << 9) - 1)
+            assert( v == cpu.sign_ext(nv, 9, 32))
+            v = nv
+        self.value = v
+        return True
+
+
 class mips32_soff_noarg(mips32_imm):
     def decode(self, v):
         v = v & self.lmask
@@ -344,6 +364,9 @@ class mips32_soff_noarg(mips32_imm):
 
 
 class mips32_s16imm(mips32_s16imm_noarg, mips32_arg):
+    pass
+
+class mips32_s09imm(mips32_s09imm_noarg, mips32_arg):
     pass
 
 class mips32_soff(mips32_soff_noarg, mips32_arg):
@@ -471,15 +494,21 @@ fd = cpu.bs(l=5, cls=(mips32_fltpreg,))
 
 s16imm = cpu.bs(l=16, cls=(mips32_s16imm,))
 u16imm = cpu.bs(l=16, cls=(mips32_u16imm,))
+s09imm = cpu.bs(l=9, cls=(mips32_s09imm,))
 sa = cpu.bs(l=5, cls=(mips32_u16imm,))
 base = cpu.bs(l=5, cls=(mips32_dreg_imm,))
 soff = cpu.bs(l=16, cls=(mips32_soff,))
+oper = cpu.bs(l=5, cls=(mips32_u16imm,))
 
 cpr0 = cpu.bs(l=5, cls=(mips32_imm,), fname="cpr0")
 cpr =  cpu.bs(l=3, cls=(mips32_cpr,))
 
+stype = cpu.bs(l=5, cls=(mips32_u16imm,))
+hint_pref = cpu.bs(l=5, cls=(mips32_u16imm,))
 
 s16imm_noarg = cpu.bs(l=16, cls=(mips32_s16imm_noarg,), fname="imm",
+                  order=-1)
+s09imm_noarg = cpu.bs(l=9, cls=(mips32_s09imm_noarg,), fname="imm",
                   order=-1)
 
 hint = cpu.bs(l=5, default_val="00000")
@@ -703,7 +732,6 @@ mips32op("mtc0",    [cpu.bs('010000'), cpu.bs('00100'), rt, cpr0,
                      cpu.bs('00000000'), cpr])
 mips32op("mtc1",    [cpu.bs('010001'), cpu.bs('00100'), rt, fs,
                      cpu.bs('00000000000')])
-
 # XXXX TODO CFC1
 mips32op("cfc1",    [cpu.bs('010001'), cpu.bs('00010'), rt, fs,
                      cpu.bs('00000000000')])
@@ -763,3 +791,33 @@ mips32op("tlbwi",   [cpu.bs('010000'), cpu.bs('1'), cpu.bs('0'*19),
 
 mips32op("teq",     [cpu.bs('000000'), rs, rt, bs_code, cpu.bs('110100')],
          [rs, rt])
+mips32op("tne",     [cpu.bs('000000'), rs, rt, bs_code, cpu.bs('110110')],         
+         [rs, rt])
+
+mips32op("clz",     [cpu.bs('011100'), rs, rt, rd, cpu.bs('00000'), cpu.bs('100000')],
+        [rd, rs])
+mips32op("clz",     [cpu.bs('000000'), rs, cpu.bs('00000'), rd, cpu.bs('00001010000')],
+        [rd, rs])
+
+mips32op("ll",      [cpu.bs('110000'), base, rt, s16imm_noarg], [rt, base])
+mips32op("ll",      [cpu.bs('011111'), base, rt, s09imm_noarg, cpu.bs('0110110')], [rt, base])
+
+mips32op("sc",      [cpu.bs('111000'), base, rt, s16imm_noarg], [rt, base])
+mips32op("sc",      [cpu.bs('011111'), base, rt, s09imm_noarg, cpu.bs('0'), cpu.bs('100110')], [rt, base])
+
+mips32op("sync",    [cpu.bs('000000000000000000000'), stype, cpu.bs('001111')], [stype])
+
+mips32op("pref",    [cpu.bs('110011'), base, hint_pref, s16imm_noarg], [hint_pref, base])
+mips32op("pref",    [cpu.bs('011111'), base, hint_pref, s09imm_noarg, cpu.bs('0110101')], [hint_pref, base])
+
+mips32op("tlbwr",   [cpu.bs('01000010000000000000000000000110')], [])
+mips32op("tlbr",    [cpu.bs('01000010000000000000000000000001')], [])
+
+mips32op("cache",   [cpu.bs('101111'), base, oper, s16imm_noarg], [oper, base])
+mips32op("cache",   [cpu.bs('011111'), base, oper, s09imm_noarg, cpu.bs('0100101')], [oper, base])
+
+mips32op("eret",    [cpu.bs('01000010000000000000000000011000')], [])
+
+mips32op("mtlo",    [cpu.bs('000000'), rs, cpu.bs('000000000000000'), cpu.bs('010011')], [rs])
+mips32op("mthi",    [cpu.bs('000000'), rs, cpu.bs('000000000000000'), cpu.bs('010001')], [rs])
+
