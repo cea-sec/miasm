@@ -17,6 +17,7 @@ from utils import cosmetics, multithread
 from multiprocessing import Queue
 
 is_win = platform.system() == "Windows"
+is_64bit = platform.architecture()[0] == "64bit"
 
 testset = TestSet("../")
 TAGS = {"regression": "REGRESSION", # Regression tests
@@ -112,7 +113,7 @@ for script in ["x86/sem.py",
         if jitter in blacklist.get(script, []):
             continue
         tags = [TAGS[jitter]] if jitter in TAGS else []
-        if is_win and script.endswith("mn_div.py"):
+        if (not is_64bit) and script.endswith("mn_div.py"):
             continue
         testset += ArchUnitTest(script, jitter, base_dir="arch", tags=tags)
 
