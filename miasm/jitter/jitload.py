@@ -393,13 +393,16 @@ class Jitter(object):
         self.pc = pc
         self.run = True
 
-    def continue_run(self, step=False):
+    def continue_run(self, step=False, trace=False):
         """PRE: init_run.
         Continue the run of the current session until iterator returns or run is
         set to False.
         If step is True, run only one time.
+        If trace is True, activate trace log option until execution stops
         Return the iterator value"""
 
+        if trace:
+            self.set_trace_log()
         while self.run:
             try:
                 return next(self.run_iterator)
@@ -409,8 +412,9 @@ class Jitter(object):
             self.run_iterator = self.runiter_once(self.pc)
 
             if step is True:
-                return None
-
+                break
+        if trace:
+            self.set_trace_log(False, False, False)
         return None
 
 
@@ -422,17 +426,18 @@ class Jitter(object):
         self.init_run(addr)
         return self.continue_run()
 
-    def run_until(self, addr):
+    def run_until(self, addr, trace=False):
         """PRE: init_run.
         Continue the run of the current session until iterator returns, run is
         set to False or addr is reached.
+        If trace is True, activate trace log option until execution stops
         Return the iterator value"""
 
         def stop_exec(jitter):
             jitter.remove_breakpoints_by_callback(stop_exec)
             return False
         self.add_breakpoint(addr, stop_exec)
-        return self.continue_run()
+        return self.continue_run(trace=trace)
 
     def init_stack(self):
         self.vm.add_memory_page(
