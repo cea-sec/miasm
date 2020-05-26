@@ -2384,10 +2384,38 @@ def user32_GetKeyboardType(jitter):
 
 
 def kernel32_GetStartupInfo(jitter, funcname, set_str):
+    """
+        void GetStartupInfo(
+          LPSTARTUPINFOW lpStartupInfo
+        );
+
+        Retrieves the contents of the STARTUPINFO structure that was specified
+        when the calling process was created.
+
+        typedef struct _STARTUPINFOA {
+          /* 00000000 */ DWORD  cb;
+          /* 00000004 */ LPSTR  lpReserved;
+          /* 00000008 */ LPSTR  lpDesktop;
+          /* 0000000C */ LPSTR  lpTitle;
+          /* 00000010 */ DWORD  dwX;
+          /* 00000014 */ DWORD  dwY;
+          /* 00000018 */ DWORD  dwXSize;
+          /* 0000001C */ DWORD  dwYSize;
+          /* 00000020 */ DWORD  dwXCountChars;
+          /* 00000024 */ DWORD  dwYCountChars;
+          /* 00000028 */ DWORD  dwFillAttribute;
+          /* 0000002C */ DWORD  dwFlags;
+          /* 00000030 */ WORD   wShowWindow;
+          /* 00000032 */ WORD   cbReserved2;
+          /* 00000034 */ LPBYTE lpReserved2;
+          /* 00000038 */ HANDLE hStdInput;
+          /* 0000003C */ HANDLE hStdOutput;
+          /* 00000040 */ HANDLE hStdError;
+        } STARTUPINFOA, *LPSTARTUPINFOA;
+
+    """
     ret_ad, args = jitter.func_args_stdcall(["ptr"])
-
-    s = b"\x00" * 0x2c + b"\x81\x00\x00\x00" + b"\x0a"
-
+    s = b"\x00" * 0x2c + b"\x81\x00\x00\x00" + b"\x0a" + b"\x00" * 0x13
     jitter.vm.set_mem(args.ptr, s)
     jitter.func_ret_stdcall(ret_ad, args.ptr)
 
