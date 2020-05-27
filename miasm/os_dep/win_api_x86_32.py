@@ -1913,6 +1913,7 @@ def ntdll_LdrLoadDll(jitter):
     libname = s.lower()
 
     ad = winobjs.runtime_dll.lib_get_add_base(libname)
+    log.info("Loading %r ret 0x%x", s, ad)
     jitter.vm.set_u32(args.modhandle, ad)
 
     jitter.func_ret_stdcall(ret_ad, 0)
