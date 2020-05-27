@@ -2382,13 +2382,88 @@ def user32_GetKeyboardType(jitter):
 
     jitter.func_ret_stdcall(ret_ad, ret)
 
+    
+class startupinfo(object):
+    """
+        typedef struct _STARTUPINFOA {
+          /* 00000000 */ DWORD  cb;
+          /* 00000004 */ LPSTR  lpReserved;
+          /* 00000008 */ LPSTR  lpDesktop;
+          /* 0000000C */ LPSTR  lpTitle;
+          /* 00000010 */ DWORD  dwX;
+          /* 00000014 */ DWORD  dwY;
+          /* 00000018 */ DWORD  dwXSize;
+          /* 0000001C */ DWORD  dwYSize;
+          /* 00000020 */ DWORD  dwXCountChars;
+          /* 00000024 */ DWORD  dwYCountChars;
+          /* 00000028 */ DWORD  dwFillAttribute;
+          /* 0000002C */ DWORD  dwFlags;
+          /* 00000030 */ WORD   wShowWindow;
+          /* 00000032 */ WORD   cbReserved2;
+          /* 00000034 */ LPBYTE lpReserved2;
+          /* 00000038 */ HANDLE hStdInput;
+          /* 0000003C */ HANDLE hStdOutput;
+          /* 00000040 */ HANDLE hStdError;
+        } STARTUPINFOA, *LPSTARTUPINFOA;
+
+    """
+    # TODO: fill with relevant values
+    # for now, struct is just a placeholder
+    cb = 0x0
+    lpReserved = 0x0
+    lpDesktop = 0x0
+    lpTitle = 0x0
+    dwX = 0x0
+    dwY = 0x0
+    dwXSize = 0x0
+    dwYSize = 0x0
+    dwXCountChars = 0x0
+    dwYCountChars = 0x0
+    dwFillAttribute = 0x0
+    dwFlags = 0x0
+    wShowWindow = 0x0
+    cbReserved2 = 0x0
+    lpReserved2 = 0x0
+    hStdInput = 0x0
+    hStdOutput = 0x0
+    hStdError = 0x0
+
+    def pack(self):
+        return struct.pack('IIIIIIIIIIIIHHIIII',
+                self.cb,
+                self.lpReserved,
+                self.lpDesktop,
+                self.lpTitle,
+                self.dwX,
+                self.dwY,
+                self.dwXSize,
+                self.dwYSize,
+                self.dwXCountChars,
+                self.dwYCountChars,
+                self.dwFillAttribute,
+                self.dwFlags,
+                self.wShowWindow,
+                self.cbReserved2,
+                self.lpReserved2,
+                self.hStdInput,
+                self.hStdOutput,
+                self.hStdError)
+
 
 def kernel32_GetStartupInfo(jitter, funcname, set_str):
+    """
+        void GetStartupInfo(
+          LPSTARTUPINFOW lpStartupInfo
+        );
+
+        Retrieves the contents of the STARTUPINFO structure that was specified
+        when the calling process was created.
+        
+        https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getstartupinfow
+
+    """
     ret_ad, args = jitter.func_args_stdcall(["ptr"])
-
-    s = b"\x00" * 0x2c + b"\x81\x00\x00\x00" + b"\x0a"
-
-    jitter.vm.set_mem(args.ptr, s)
+    jitter.vm.set_mem(args.ptr, startupinfo().pack())
     jitter.func_ret_stdcall(ret_ad, args.ptr)
 
 
