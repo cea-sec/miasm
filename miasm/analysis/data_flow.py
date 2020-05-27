@@ -9,7 +9,7 @@ from miasm.ir.ir import AssignBlock, IRBlock
 from miasm.expression.expression import ExprLoc, ExprMem, ExprId, ExprInt,\
     ExprAssign, ExprOp, ExprWalk, ExprSlice, \
     is_function_call, ExprVisitorCallbackBottomToTop
-from miasm.expression.simplifications import expr_simp
+from miasm.expression.simplifications import expr_simp, expr_simp_explicit
 from miasm.core.interval import interval
 from miasm.expression.expression_helper import possible_values
 from miasm.analysis.ssa import get_phi_sources_parent_block, \
@@ -133,7 +133,7 @@ class DiGraphDefUse(DiGraph):
 
 
     def __init__(self, reaching_defs,
-                 deref_mem=False, *args, **kwargs):
+                 deref_mem=False, apply_simp=False, *args, **kwargs):
         """Instantiate a DiGraph
         @blocks: IR blocks
         """
@@ -146,7 +146,8 @@ class DiGraphDefUse(DiGraph):
 
         super(DiGraphDefUse, self).__init__(*args, **kwargs)
         self._compute_def_use(reaching_defs,
-                              deref_mem=deref_mem)
+                              deref_mem=deref_mem,
+                              apply_simp=apply_simp)
 
     def edge_attr(self, src, dst):
         """
@@ -157,18 +158,20 @@ class DiGraphDefUse(DiGraph):
         return self._edge_attr[(src, dst)]
 
     def _compute_def_use(self, reaching_defs,
-                         deref_mem=False):
+                         deref_mem=False, apply_simp=False):
         for block in viewvalues(self._blocks):
             self._compute_def_use_block(block,
                                         reaching_defs,
-                                        deref_mem=deref_mem)
+                                        deref_mem=deref_mem,
+                                        apply_simp=apply_simp)
 
-    def _compute_def_use_block(self, block, reaching_defs, deref_mem=False):
+    def _compute_def_use_block(self, block, reaching_defs, deref_mem=False, apply_simp=False):
         for index, assignblk in enumerate(block):
             assignblk_reaching_defs = reaching_defs.get_definitions(block.loc_key, index)
             for lval, expr in viewitems(assignblk):
                 self.add_node(AssignblkNode(block.loc_key, index, lval))
 
+                expr = expr_simp_explicit(expr) if apply_simp else expr
                 read_vars = expr.get_r(mem_read=deref_mem)
                 if deref_mem and lval.is_mem():
                     read_vars.update(lval.ptr.get_r(mem_read=deref_mem))
