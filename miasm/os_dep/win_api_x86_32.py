@@ -1670,16 +1670,69 @@ def kernel32_GetVolumeInformationW(jitter):
 
 
 def kernel32_MultiByteToWideChar(jitter):
+    MB_ERR_INVALID_CHARS = 0x8
+    CP_ACP  = 0x000
+    CP_1252 = 0x4e4
+
     ret_ad, args = jitter.func_args_stdcall(["codepage", "dwflags",
                                              "lpmultibytestr",
                                              "cbmultibyte",
                                              "lpwidecharstr",
                                              "cchwidechar"])
-    src = get_win_str_a(jitter, args.lpmultibytestr)
-    l = len(src) + 1
-    if args.cchwidechar != 0:
-        set_win_str_w(jitter, args.lpwidecharstr, src)
-    jitter.func_ret_stdcall(ret_ad, l)
+    if args.codepage != CP_ACP and args.codepage != CP_1252:
+        raise NotImplementedError
+    src = jitter.vm.get_mem(args.lpmultibytestr, args.cbmultibyte)
+    if args.dwflags & MB_ERR_INVALID_CHARS:
+        # will raise an exception if decoding fails
+        s = src.decode("cp1252", errors="replace").encode("utf-16le")
+    else:
+        # silently replace undecodable chars with U+FFFD
+        s = src.decode("cp1252", errors="replace").encode("utf-16le")
+    if args.cchwidechar > 0:
+        # return value is number of bytes written
+        retval = min(args.cchwidechar, len(s))
+        jitter.vm.set_mem(args.lpwidecharstr, s[:retval])
+    else:
+        # return value is number of bytes to write
+        # i.e., size of dest. buffer to allocate
+        retval = len(s)
+    jitter.func_ret_stdcall(ret_ad, retval)
+
+
+def kernel32_WideCharToMultiByte(jitter):
+    """
+        int WideCharToMultiByte(
+          UINT                               CodePage,
+          DWORD                              dwFlags,
+          _In_NLS_string_(cchWideChar)LPCWCH lpWideCharStr,
+          int                                cchWideChar,
+          LPSTR                              lpMultiByteStr,
+          int                                cbMultiByte,
+          LPCCH                              lpDefaultChar,
+          LPBOOL                             lpUsedDefaultChar
+        );
+
+    """
+    CP_ACP  = 0x000
+    CP_1252 = 0x4e4
+
+    ret, args = jitter.func_args_stdcall([
+        'CodePage', 'dwFlags', 'lpWideCharStr', 'cchWideChar',
+        'lpMultiByteStr', 'cbMultiByte', 'lpDefaultChar', 'lpUsedDefaultChar',
+      ])
+    if args.CodePage != CP_ACP and args.CodePage != CP_1252:
+        raise NotImplementedError
+    src = jitter.vm.get_mem(args.lpWideCharStr, args.cchWideChar)
+    dst = src.decode("utf-16le").encode("cp1252", errors="replace")
+    if args.cbMultiByte > 0:
+        # return value is the number of bytes written
+        retval = min(args.cbMultiByte, len(dst))
+        jitter.vm.set_mem(args.lpMultiByteStr, dst[:retval])
+    else:
+        # return value is the size of the buffer to allocate
+        # to get the multibyte string
+        retval = len(dst)
+    jitter.func_ret_stdcall(ret, retval)
 
 
 def my_GetEnvironmentVariable(jitter, funcname, get_str, set_str, mylen):
