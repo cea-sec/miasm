@@ -237,6 +237,11 @@ reg_tests_arm = [
      '110f11ee'),
     ('XXXXXXXX    MCR        p15, 0x0, R8, c2, c0, 0x0',
      '108f02ee'),
+    ('XXXXXXXX    MRCNE      p15, 0x0, R0, c1, c1, 0x0',
+     '110f111e'),
+    ('XXXXXXXX    MCRCC      p15, 0x0, R8, c2, c0, 0x1',
+     '308f023e'),
+
 
 ]
 ts = time.time()
