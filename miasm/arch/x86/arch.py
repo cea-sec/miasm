@@ -481,7 +481,7 @@ class instruction_x86(instruction):
         expr = self.args[0]
         if not expr.is_int():
             return
-        addr = expr.arg + int(self.offset)
+        addr = (int(expr) + int(self.offset)) & int(expr.mask)
         loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[0] = ExprLoc(loc_key, expr.size)
 
@@ -1913,7 +1913,10 @@ def modrm2expr(modrm, parent, w8, sx=0, xmm=0, mm=0, bnd=0):
         if parent.disp.value is None:
             return None
         o.append(ExprInt(int(parent.disp.expr), admode))
-    expr = ExprOp('+', *o)
+    if len(o) == 1:
+        expr = o[0]
+    else:
+        expr = ExprOp('+', *o)
     if w8 == 0:
         opmode = 8
     elif sx == 1:
