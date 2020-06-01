@@ -1589,6 +1589,9 @@ class imm_noarg(object):
 
         assert(m2_expr.is_expr(e))
         self.expr = e
+        if self.expr is None:
+            log.debug('cannot fromstring int %r', text)
+            return None, None
         return start, stop
 
     def decodeval(self, v):
