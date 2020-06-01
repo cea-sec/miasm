@@ -71,26 +71,28 @@ def simp_cst_propagation(e_s, expr):
                 shifter = int(int2) % int2.size
                 out = (int(int1) << shifter) | (int(int1) >> (int2.size - shifter))
             elif op_name == '/':
+                assert int(int2), "division by 0"
                 out = int(int1) // int(int2)
             elif op_name == '%':
+                assert int(int2), "division by 0"
                 out = int(int1) % int(int2)
             elif op_name == 'sdiv':
-                assert int(int2)
+                assert int(int2), "division by 0"
                 tmp1 = mod_size2int[int1.size](int(int1))
                 tmp2 = mod_size2int[int2.size](int(int2))
                 out = mod_size2uint[int1.size](tmp1 // tmp2)
             elif op_name == 'smod':
-                assert int(int2)
+                assert int(int2), "division by 0"
                 tmp1 = mod_size2int[int1.size](int(int1))
                 tmp2 = mod_size2int[int2.size](int(int2))
                 out = mod_size2uint[int1.size](tmp1 % tmp2)
             elif op_name == 'umod':
-                assert int(int2)
+                assert int(int2), "division by 0"
                 tmp1 = mod_size2uint[int1.size](int(int1))
                 tmp2 = mod_size2uint[int2.size](int(int2))
                 out = mod_size2uint[int1.size](tmp1 % tmp2)
             elif op_name == 'udiv':
-                assert int(int2)
+                assert int(int2), "division by 0"
                 tmp1 = mod_size2uint[int1.size](int(int1))
                 tmp2 = mod_size2uint[int2.size](int(int2))
                 out = mod_size2uint[int1.size](tmp1 // tmp2)
