@@ -1911,7 +1911,7 @@ def msvcrt_memset(jitter):
 def msvcrt_strrchr(jitter):
     ret_ad, args = jitter.func_args_cdecl(['pstr','c'])
     s = get_win_str_a(jitter, args.pstr)
-    c = int_to_byte(args.c)
+    c = int_to_byte(args.c).decode()
     ret = args.pstr + s.rfind(c)
     log.info("strrchr(%x '%s','%s') = %x" % (args.pstr,s,c,ret))
     jitter.func_ret_cdecl(ret_ad, ret)
@@ -1919,7 +1919,7 @@ def msvcrt_strrchr(jitter):
 def msvcrt_wcsrchr(jitter):
     ret_ad, args = jitter.func_args_cdecl(['pstr','c'])
     s = get_win_str_w(jitter, args.pstr)
-    c = int_to_byte(args.c)
+    c = int_to_byte(args.c).decode()
     ret = args.pstr + (s.rfind(c)*2)
     log.info("wcsrchr(%x '%s',%s) = %x" % (args.pstr,s,c,ret))
     jitter.func_ret_cdecl(ret_ad, ret)
