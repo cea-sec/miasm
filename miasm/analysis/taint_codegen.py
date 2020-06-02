@@ -1,4 +1,4 @@
-from miasm.expression.expression import ExprMem
+from miasm.expression.expression import ExprMem, ExprWalk
 
 def makeTaintGen(C_Gen, ir_arch):
   class TaintGen(C_Gen):
@@ -200,8 +200,8 @@ def makeTaintGen(C_Gen, ir_arch):
           read_elements["composition"] = list()
           read_elements["start"] = 0
 
-          src.visit(lambda x: visit_get_read_elements(x, read_elements["elements"]),
-                    lambda x: test_cond_op_compose_slice_not_addr(x, read_elements))
+          visitor = ExprWalk(test_cond_op_compose_slice_not_addr, True)
+          visitor.visit(src, read_elements)
 
           return read_elements
 
@@ -369,55 +369,46 @@ def makeTaintGen(C_Gen, ir_arch):
 def get_read_elements_in_addr_with_real_size(dst, src):
   mem_elements = set()
   addr_elements = set()
-  src.visit(lambda x: visit_get_mem_elements(x, mem_elements))
+  visitor = ExprWalk(visit_get_mem_elements, True)
+  visitor.visit(src, mem_elements)
   if dst and dst.is_mem():
       # If dst is an ExprMem, Expr composing its address can spread taint
       # to the ExprMem
       mem_elements.add(dst.ptr)
 
   for element in mem_elements:
-      element.visit(lambda x: visit_get_read_elements_with_real_size(x,
-                                                                     addr_elements),
-                    lambda x: test_id_slice(x, addr_elements))
+      visitor = ExprWalk(test_taintable_elements, True)
+      visitor.visit(element, addr_elements)
 
   return addr_elements
 
 def visit_get_mem_elements(expr, mem):
     if expr.is_mem():
         mem.add(expr.ptr)
-    return expr
+        return expr
 
-def visit_get_read_elements(expr, read):
-    if expr.is_id():
-        read.add(expr)
-    elif expr.is_mem():
-        read.add(expr)
-    return expr
-
-def visit_get_read_elements_with_real_size(expr, read):
-    if expr.is_id():
-        read.add(expr)
-    elif expr.is_mem():
-        read.add(expr)
-    return expr
-
-def test_id_slice(expr, read):
+def test_taintable_elements(expr, read):
     if expr.is_slice():
         if expr.arg.is_id():
             read.add(expr)
-            return False
-    return True
+            return expr
+    elif expr.is_id():
+        read.add(expr)
+        return expr
+    elif expr.is_mem():
+        read.add(expr)
+        return expr
 
 def test_cond_op_compose_slice_not_addr(expr, read):
     if expr.is_cond():
-        expr.cond.visit(lambda x: visit_get_read_elements_with_real_size(x, read["full"]),
-                        lambda x: test_id_slice(x, read["full"]))
-        return False
+        visitor = ExprWalk(test_taintable_elements, True)
+        visitor.visit(expr.cond, read["full"])
+        return expr
     elif expr.is_op():
         for element in expr.args:
-            element.visit(lambda x: visit_get_read_elements_with_real_size(x, read["full"]),
-                          lambda x: test_id_slice(x, read["full"]))
-        return False
+            visitor = ExprWalk(test_taintable_elements, True)
+            visitor.visit(element, read["full"])
+        return expr
     elif expr.is_compose():
         old_start = read["start"]
         new_last = old_start
@@ -430,21 +421,24 @@ def test_cond_op_compose_slice_not_addr(expr, read):
             new_composition["elements"] = set()
             new_composition["composition"] = list()
             read["composition"].append(new_composition)
-            element.visit(lambda x: visit_get_read_elements(x, new_composition["elements"]),
-                          lambda x: test_cond_op_compose_slice_not_addr(x, new_composition))
+
+            visitor = ExprWalk(test_cond_op_compose_slice_not_addr, True)
+            visitor.visit(element, new_composition)
             new_last += 1
 
-        return False
+        return expr
     elif expr.is_slice():
         if expr.arg.is_id():
             read["elements"].add(expr)
-            return False
+            return expr
     elif expr.is_mem():
         read["elements"].add(expr)
-        return False
+        return expr
+    elif expr.is_id():
+        read["elements"].add(expr)
+        return expr
     #else:
     #    only ExprInt left
-    return True
 
 def bits2bytes(nb_bits):
     return nb_bits//8 + (1 if nb_bits%8 else 0)
