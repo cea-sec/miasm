@@ -1681,7 +1681,20 @@ def kernel32_MultiByteToWideChar(jitter):
                                              "cchwidechar"])
     if args.codepage != CP_ACP and args.codepage != CP_1252:
         raise NotImplementedError
-    src = jitter.vm.get_mem(args.lpmultibytestr, args.cbmultibyte)
+    # according to MSDN:
+    # "Note that, if cbMultiByte is 0, the function fails."
+    if args.cbmultibyte == 0:
+        raise ValueError
+    # according to MSDN:
+    # "Alternatively, this parameter can be set to -1 if the string is
+    #  null-terminated."
+    if args.cbmultibyte == 0xffffffff:
+        src_len = 0
+        while jitter.vm.get_mem(args.lpmultibytestr + src_len, 1) != b'\0':
+            src_len += 1
+        src = jitter.vm.get_mem(args.lpmultibytestr, src_len)
+    else:
+        src = jitter.vm.get_mem(args.lpmultibytestr, args.cbmultibyte)
     if args.dwflags & MB_ERR_INVALID_CHARS:
         # will raise an exception if decoding fails
         s = src.decode("cp1252", errors="replace").encode("utf-16le")
