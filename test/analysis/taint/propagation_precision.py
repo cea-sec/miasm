@@ -122,6 +122,26 @@ def test_propagation_precision():
         assert not mems
         return True
 
+    def test_full_in_compose(jitter):
+        print("\t[+] Test ADD    EAX, 0x1")
+
+        # Every should be the same as in test_multislice except for the flags
+        regs, mems = jitter.taint.get_all_taint(red)
+        assert len(regs) == 8
+        check_reg(regs[0], jitter, "RAX", interval([(0, 3)]))
+        check_reg(regs[1], jitter, "RCX", interval([(0, 0), (2, 3)]))
+        check_reg(regs[2], jitter, "af", interval([(0, 0)]))
+        check_reg(regs[3], jitter, "cf", interval([(0, 0)]))
+        check_reg(regs[4], jitter, "nf", interval([(0, 0)]))
+        check_reg(regs[5], jitter, "of", interval([(0, 0)]))
+        check_reg(regs[6], jitter, "pf", interval([(0, 0)]))
+        check_reg(regs[7], jitter, "zf", interval([(0, 0)]))
+        check_mem(interval(mems), interval([(data_addr, data_addr), (data_addr+2, data_addr+3)]))
+        regs, mems = jitter.taint.get_all_taint(blue)
+        assert not regs
+        assert not mems
+        return True
+
     code_str = '''
     main:
        MOV    EBX, 0x80000000
@@ -133,6 +153,7 @@ def test_propagation_precision():
        MOV    WORD PTR [EBX], CX                    ; should untaint @16[EBX]
        MOV    BYTE PTR [EBX], AL                    ; should taint @8[EBX]
        MOV    ECX, DWORD PTR [EBX]                  ; should taint EBX[0,2]+EBX[5,6]
+       ADD    EAX, 0x1                              ; should taint EAX (not RAX)
        PUSH   0x1337BEEF                            ; clean exit value
        RET
     '''
@@ -154,6 +175,7 @@ def test_propagation_precision():
     jitter.add_breakpoint(code_addr+0x13, taint_EAX)
     jitter.add_breakpoint(code_addr+0x15, test_ah)
     jitter.add_breakpoint(code_addr+0x17, test_multislice)
+    jitter.add_breakpoint(code_addr+0x1a, test_full_in_compose)
 
     jitter.init_run(code_addr)
     jitter.continue_run()

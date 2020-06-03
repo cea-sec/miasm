@@ -87,8 +87,7 @@ void taint_remove_all_registers(struct taint_t *colors);
 void taint_color_remove_all_registers(struct taint_t *colors,
                       uint64_t color_index
                       );
-_MIASM_EXPORT void taint_register(uint64_t fully_tainted,
-                                  uint64_t current_reg_index,
+_MIASM_EXPORT void taint_register(uint64_t current_reg_index,
                                   uint64_t current_reg_size,
                                   uint64_t current_color,
                                   struct taint_t* taint_analysis,
@@ -107,8 +106,7 @@ _MIASM_EXPORT struct rb_root taint_get_memory(struct taint_t *colors,
 void taint_remove_all_memory(struct taint_t *colors);
 void taint_color_remove_all_memory(struct taint_t *colors, uint64_t color_index);
 void taint_color_init_memory(struct taint_color_t *color);
-_MIASM_EXPORT void taint_memory(uint64_t fully_tainted,
-                                uint64_t current_mem_addr,
+_MIASM_EXPORT void taint_memory(uint64_t current_mem_addr,
                                 uint64_t current_mem_size,
                                 uint64_t current_color,
                                 struct taint_t* taint_analysis,

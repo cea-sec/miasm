@@ -6,7 +6,8 @@ def makeTaintGen(C_Gen, ir_arch):
       CODE_INIT_TAINT = r"""
       struct taint_t* taint_analysis = jitcpu->taint->taint;
       uint64_t current_color, current_mem_addr, current_mem_size,
-      current_reg_size, current_reg_index, current_compose_start;
+      current_reg_size, current_reg_index, current_compose_start,
+      current_compose_end;
       struct rb_root taint_interval_tree_tmp, taint_interval_tree_new,
       taint_interval_tree_before;
       struct interval_tree_node *node;
@@ -53,12 +54,14 @@ def makeTaintGen(C_Gen, ir_arch):
       if (rb_first(&taint_interval_tree_tmp) != NULL)
       {
           fully_tainted = 1;
+          taint_interval.start = current_compose_start;
+          taint_interval.last = current_compose_end;
+          interval_tree_add(&taint_interval_tree_new, taint_interval);
       }
       """
 
       CODE_TAINT_REG = r"""
-      taint_register(fully_tainted,
-                     current_reg_index,
+      taint_register(current_reg_index,
                      current_reg_size,
                      current_color,
                      taint_analysis,
@@ -82,8 +85,7 @@ def makeTaintGen(C_Gen, ir_arch):
       """
 
       CODE_TAINT_MEM = r"""
-      taint_memory(fully_tainted,
-                   current_mem_addr,
+      taint_memory(current_mem_addr,
                    current_mem_size,
                    current_color,
                    taint_analysis,
@@ -155,6 +157,7 @@ def makeTaintGen(C_Gen, ir_arch):
             full: []
             elements:
             start:
+            end:
             composition:
             {
               [
@@ -162,6 +165,7 @@ def makeTaintGen(C_Gen, ir_arch):
                   full: []
                   elements:
                   start:
+                  end:
                   composition: ...
                 },
 
@@ -171,6 +175,7 @@ def makeTaintGen(C_Gen, ir_arch):
                   full: []
                   elements:
                   start:
+                  end:
                   composition: ...
                 }
               ]
@@ -199,6 +204,7 @@ def makeTaintGen(C_Gen, ir_arch):
           read_elements["elements"] = set()
           read_elements["composition"] = list()
           read_elements["start"] = 0
+          read_elements["end"] = bits2bytes(src.size) - 1
 
           visitor = ExprWalk(test_cond_op_compose_slice_not_addr, True)
           visitor.visit(src, read_elements)
@@ -256,16 +262,20 @@ def makeTaintGen(C_Gen, ir_arch):
           c_code = []
 
           for composant in read_elements:
+              c_code.append("current_compose_start = %d;" % composant["start"])
+              c_code.append("current_compose_end = %d;" % composant["end"])
+
               c_code += self.gen_taint_calculation_from_read_elements(composant["full"],
                                                                       prefetchers,
                                                                       full=True)
 
               c_code.append("if (!fully_tainted) {")
-              c_code.append("current_compose_start = %d;" % composant["start"])
               c_code += self.gen_taint_calculation_from_read_elements(composant["elements"],
                                                                       prefetchers,
                                                                       full=False)
               c_code.append("}")
+              # TODO: else ajout de [current_compose_start,
+              # current_compose_end] à l'interval qu'on rajoutera à la fin
 
               if "composition" in composant:
                   c_code += self.gen_taint_calculation_from_all_read_elements(composant["composition"],
@@ -417,6 +427,7 @@ def test_cond_op_compose_slice_not_addr(expr, read):
             new_last = new_start + (bits2bytes(element.size) - 1)
             new_composition = dict()
             new_composition["start"]  = new_start
+            new_composition["end"]  = new_last
             new_composition["full"] = get_read_elements_in_addr_with_real_size(None, element)
             new_composition["elements"] = set()
             new_composition["composition"] = list()
