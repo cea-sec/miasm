@@ -3493,3 +3493,97 @@ def kernel32_GetCPInfo(jitter):
     jitter.vm.set_mem(args.lpCPInfo, struct.pack('<I', 0x1) + b'??' + b'\x00' * 12)
     jitter.func_ret_stdcall(ret_ad, 1)
 
+
+def kernel32_GetStringTypeW(jitter):
+    """
+        BOOL GetStringTypeW(
+          DWORD                         dwInfoType,
+          _In_NLS_string_(cchSrc)LPCWCH lpSrcStr,
+          int                           cchSrc,
+          LPWORD                        lpCharType
+        );
+
+        Retrieves character type information for the characters in the specified
+        Unicode source string. For each character in the string, the function
+        sets one or more bits in the corresponding 16-bit element of the output
+        array. Each bit identifies a given character type, for example, letter,
+        digit, or neither.
+
+    """
+    # These types support ANSI C and POSIX (LC_CTYPE) character typing
+    # functions.A bitwise-OR of these values is retrieved in the array in the
+    # output buffer when dwInfoType is set to CT_CTYPE1. For DBCS locales, the
+    # type attributes apply to both narrow characters and wide characters. The
+    # Japanese hiragana and katakana characters, and the kanji ideograph
+    # characters all have the C1_ALPHA attribute.
+    CT_TYPE1 = 0x01
+    # TODO handle other types of information
+    # (CT_TYPE2, CT_TYPE3)
+    # for now, they raise NotImplemented
+    CT_TYPE2 = 0x02
+    CT_TYPE3 = 0x03
+
+    C1_UPPER   = 0x0001  # Uppercase
+    C1_LOWER   = 0x0002  # Lowercase
+    C1_DIGIT   = 0x0004  # Decimal digits
+    C1_SPACE   = 0x0008  # Space characters
+    C1_PUNCT   = 0x0010  # Punctuation
+    C1_CNTRL   = 0x0020  # Control characters
+    C1_BLANK   = 0x0040  # Blank characters
+    C1_XDIGIT  = 0x0080  # Hexadecimal digits
+    C1_ALPHA   = 0x0100  # Any linguistic character: alphabetical, syllabary, or ideographic
+    C1_DEFINED = 0x0200  # A defined character, but not one of the other C1_* types
+
+    # the following sets have been generated from the Linux python library curses
+    # e.g., C1_PUNCT_SET = [chr(i) for i in range(256) if curses.ascii.ispunct(chr(i))]
+    C1_PUNCT_SET = ['!', '"', '#', '$', '%', '&', "'", '(', ')', '*', '+', ',',
+            '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']',
+            '^', '_', '`', '{', '|', '}', '~']
+    C1_CNTRL_SET = ['\x00', '\x01', '\x02', '\x03', '\x04', '\x05', '\x06',
+            '\x07', '\x08', '\t', '\n', '\x0b', '\x0c', '\r', '\x0e', '\x0f',
+            '\x10', '\x11', '\x12', '\x13', '\x14', '\x15', '\x16', '\x17',
+            '\x18', '\x19', '\x1a', '\x1b', '\x1c', '\x1d', '\x1e', '\x1f',
+            '\x7f']
+    C1_BLANK_SET = ['\t', ' ']
+    C1_XDIGIT_SET = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A',
+            'B', 'C', 'D', 'E', 'F', 'a', 'b', 'c', 'd', 'e', 'f']
+
+    ret, args = jitter.func_args_stdcall(['dwInfoType', 'lpSrcStr', 'cchSrc',
+        'lpCharType'])
+    s = jitter.vm.get_mem(args.lpSrcStr, args.cchSrc).decode("utf-16")
+    if args.dwInfoType == CT_TYPE1:
+        # iterate over characters from the decoded W string
+        for i, c in enumerate(s):
+            # TODO handle non-ascii characters
+            if not c.isascii():
+                continue
+            val = 0
+            if c.isupper():
+                val |= C1_UPPER
+            if c.islower():
+                val |= C1_LOWER
+            if c.isdigit():
+                val |= C1_DIGIT
+            if c.isspace():
+                val |= C1_SPACE
+            if c in C1_PUNCT_SET:
+                val |= C1_PUNCT
+            if c in C1_CNTRL_SET:
+                val |= C1_CNTRL
+            if c in C1_BLANK_SET:
+                val |= C1_BLANK
+            if c in C1_XDIGIT_SET:
+                val |= C1_XDIGIT
+            if c.isalpha():
+                val |= C1_ALPHA
+            if val == 0:
+                val = C1_DEFINED
+            jitter.vm.set_u16(args.lpCharType + i * 2, val)
+    elif args.dwInfoType == CT_TYPE2:
+        raise NotImplemented
+    elif args.dwInfoType == CT_TYPE3:
+        raise NotImplemented
+    else:
+        raise ValueError("CT_TYPE unknown: %i" % args.dwInfoType)
+    jitter.func_ret_stdcall(ret, 1)
+    return True
