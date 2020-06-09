@@ -1,5 +1,7 @@
 from commons import *
 from miasm.core.interval import interval
+from miasm.analysis.taint_helpers import taint
+from miasm.expression.expression import ExprId
 
 def test_callbacks():
     """Test callback management
@@ -209,7 +211,7 @@ def test_callbacks():
         jitter.exceptions_handler.remove_callback(on_untaint_register_handler)
         jitter.add_exception_handler(csts.EXCEPT_TAINT_REG, on_taint_register_handler_2)
         jitter.add_exception_handler(csts.EXCEPT_UNTAINT_REG, on_untaint_register_handler_2)
-        jitter.taint.taint_register(red, jitter.jit.codegen.regs_index["of"], 0, 0)
+        taint(jitter, ExprId("of", 1), red)
 
         jitter.taint.enable_taint_reg_cb(red)
         jitter.taint.enable_taint_reg_cb(blue)
@@ -222,7 +224,7 @@ def test_callbacks():
         jitter.add_exception_handler(csts.EXCEPT_TAINT_MEM, on_taint_memory_handler_3)
         jitter.taint.enable_taint_mem_cb(red)
         jitter.taint.enable_taint_mem_cb(blue)
-        jitter.taint.taint_register(blue, jitter.jit.codegen.regs_index["RBX"])
+        taint(jitter, ExprId("RBX", 64), blue)
         return True
 
     def LODSD_handlers(jitter):
@@ -258,8 +260,8 @@ def test_callbacks():
 
         jitter.taint.untaint_all()
         taint_AX(jitter)
-        taint_register(jitter, red, "RBX", 0, 0)
-        taint_register(jitter, red, "RBX", 2, 3)
+        taint(jitter, ExprId("BL", 8), red)
+        taint(jitter, ExprId("RBX", 64)[16:32], red)
 
         return True
 

@@ -1,5 +1,7 @@
 from commons import *
 from miasm.core.interval import interval
+from miasm.analysis.taint_helpers import taint, untaint
+from miasm.expression.expression import ExprId, ExprMem, ExprInt
 
 def test_api():
     """Test API
@@ -15,8 +17,8 @@ def test_api():
 
         print("\t[+] Test jitter.taint.taint_register")
 
-        taint_register(jitter, blue, "RAX")
-        taint_register(jitter, blue, "RBX")
+        taint(jitter, ExprId("RAX", 64), blue)
+        taint(jitter, ExprId("RBX", 64), blue)
         regs, mems = jitter.taint.get_all_taint(blue)
         assert len(regs) == 2
         check_reg(regs[0], jitter, "RAX", interval([(0, 7)]))
@@ -31,7 +33,7 @@ def test_api():
 
         print("\t[+] Test jitter.taint.untaint_register")
 
-        jitter.taint.untaint_register(blue, jitter.jit.codegen.regs_index["RCX"])
+        untaint(jitter, ExprId("RCX", 64), blue)
         regs, mems = jitter.taint.get_all_taint(blue)
         assert len(regs) == 2
         check_reg(regs[0], jitter, "RAX", interval([(0, 7)]))
@@ -40,7 +42,7 @@ def test_api():
         regs, mems = jitter.taint.get_all_taint(red)
         assert not regs
         assert not mems
-        jitter.taint.untaint_register(blue, jitter.jit.codegen.regs_index["RBX"])
+        untaint(jitter, ExprId("RBX", 64), blue)
         regs, mems = jitter.taint.get_all_taint(blue)
         assert len(regs) == 1
         check_reg(regs[0], jitter, "RAX", interval([(0, 7)]))
@@ -54,16 +56,16 @@ def test_api():
 
         print("\t[+] Test jitter.taint.untaint_all_registers_of_color")
 
-        jitter.taint.taint_register(blue, jitter.jit.codegen.regs_index["RAX"])
-        jitter.taint.taint_register(blue, jitter.jit.codegen.regs_index["RBX"])
-        jitter.taint.taint_register(red, jitter.jit.codegen.regs_index["RAX"])
+        taint(jitter, ExprId("RAX", 64), blue)
+        taint(jitter, ExprId("RBX", 64), blue)
+        taint(jitter, ExprId("RAX", 64), red)
         jitter.taint.untaint_all_registers_of_color(blue)
         regs, mems = jitter.taint.get_all_taint(blue)
         assert not regs
         assert not mems
         regs, mems = jitter.taint.get_all_taint(red)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RAX", interval([(0, 0xF)]))
+        check_reg(regs[0], jitter, "RAX", interval([(0, 7)]))
         assert not mems
         jitter.taint.untaint_all_registers_of_color(red)
         no_more_taint(jitter)
@@ -73,9 +75,9 @@ def test_api():
 
         print("\t[+] Test jitter.taint.untaint_all_registers")
 
-        jitter.taint.taint_register(blue, jitter.jit.codegen.regs_index["RAX"])
-        jitter.taint.taint_register(blue, jitter.jit.codegen.regs_index["RBX"])
-        jitter.taint.taint_register(red, jitter.jit.codegen.regs_index["RAX"])
+        taint(jitter, ExprId("RAX", 64), blue)
+        taint(jitter, ExprId("RBX", 64), blue)
+        taint(jitter, ExprId("RAX", 64), red)
         jitter.taint.untaint_all_registers()
         no_more_taint(jitter)
 
@@ -84,9 +86,9 @@ def test_api():
 
         print("\t[+] Test jitter.taint.taint_memory")
 
-        jitter.taint.taint_memory(data_addr,4,red)
-        jitter.taint.taint_memory(data_addr+0x6,7,red)
-        jitter.taint.taint_memory(data_addr+0x6,7,blue)
+        taint(jitter, ExprMem(ExprInt(data_addr, 32), 32), red)
+        taint(jitter, ExprMem(ExprInt(data_addr+0x6, 32), 56), red)
+        taint(jitter, ExprMem(ExprInt(data_addr+0x6, 32), 56), blue)
         regs, mems = jitter.taint.get_all_taint(blue)
         assert not regs
         check_mem(interval(mems), interval([(data_addr+0x6, data_addr+0x6+6)]))
@@ -100,7 +102,7 @@ def test_api():
 
         print("\t[+] Test jitter.taint.untaint_memory")
 
-        jitter.taint.untaint_memory(data_addr+0x7,3,red)
+        untaint(jitter, ExprMem(ExprInt(data_addr+0x7, 32), 24), red)
         regs, mems = jitter.taint.get_all_taint(blue)
         assert not regs
         check_mem(interval(mems), interval([(data_addr+0x6, data_addr+0x6+6)]))
@@ -128,9 +130,9 @@ def test_api():
 
         print("\t[+] Test jitter.taint.untaint_all_memory")
 
-        jitter.taint.taint_memory(data_addr,4,red)
-        jitter.taint.taint_memory(data_addr+0x6,7,red)
-        jitter.taint.taint_memory(data_addr+0x6,7,blue)
+        taint(jitter, ExprMem(ExprInt(data_addr, 32), 32), red)
+        taint(jitter, ExprMem(ExprInt(data_addr+0x6, 32), 64), red)
+        taint(jitter, ExprMem(ExprInt(data_addr+0x6, 32), 64), blue)
         jitter.taint.untaint_all_memory()
         no_more_taint(jitter)
 
@@ -139,18 +141,18 @@ def test_api():
 
         print("\t[+] Test jitter.taint.untaint_all_of_color")
 
-        jitter.taint.taint_memory(data_addr,4,red)
-        jitter.taint.taint_memory(data_addr+0x6,7,blue)
-        jitter.taint.taint_register(red, jitter.jit.codegen.regs_index["RAX"])
-        jitter.taint.taint_register(blue, jitter.jit.codegen.regs_index["RBX"])
+        taint(jitter, ExprMem(ExprInt(data_addr, 32), 32), red)
+        taint(jitter, ExprMem(ExprInt(data_addr+0x6, 32), 64), blue)
+        taint(jitter, ExprId("RAX", 64), red)
+        taint(jitter, ExprId("RBX", 64), blue)
         jitter.taint.untaint_all_of_color(red)
         regs, mems = jitter.taint.get_all_taint(red)
         assert not regs
         assert not mems
         regs, mems = jitter.taint.get_all_taint(blue)
         assert len(regs) == 1
-        check_reg(regs[0], jitter, "RBX", interval([(0, 0xF)]))
-        check_mem(interval(mems), interval([(data_addr+0x6, data_addr+0x6+6)]))
+        check_reg(regs[0], jitter, "RBX", interval([(0, 0x7)]))
+        check_mem(interval(mems), interval([(data_addr+0x6, data_addr+0x6+7)]))
         jitter.taint.untaint_all_of_color(blue)
         no_more_taint(jitter)
 
@@ -159,8 +161,8 @@ def test_api():
 
         print("\t[+] Test jitter.taint.untaint_all")
 
-        jitter.taint.taint_memory(data_addr,4,red)
-        jitter.taint.taint_register(blue, jitter.jit.codegen.regs_index["RAX"])
+        taint(jitter, ExprMem(ExprInt(data_addr, 32), 32), red)
+        taint(jitter, ExprId("RAX", 64), blue)
         jitter.taint.untaint_all()
         no_more_taint(jitter)
 

@@ -7,7 +7,8 @@ from miasm.analysis.sandbox import Sandbox_Win_x86_32
 
 from miasm.os_dep.common import get_win_str_a
 
-from miasm.analysis.taint_helpers import enable_taint_analysis, display_all_taint
+from miasm.analysis.taint_helpers import enable_taint_analysis, display_all_taint, taint
+from miasm.expression.expression import ExprId
 from miasm.jitter.csts import EXCEPT_TAINT_MEM
 
 
@@ -59,7 +60,7 @@ def start_analysis(jitter, libs, libbase, fname):
 
     # Add taint origin
     color_index = 0
-    jitter.taint.taint_register(color_index, jitter.jit.codegen.regs_index["RAX"])
+    taint(jitter, ExprId("EAX",32), color_index)
 
     jitter.jit.log_mn = True
 

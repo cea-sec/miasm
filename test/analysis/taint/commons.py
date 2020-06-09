@@ -4,8 +4,9 @@ from miasm.core import parse_asm
 from miasm.core.asmblock import asm_resolve_final
 from miasm.analysis.machine import Machine
 import miasm.jitter.csts as csts
-from miasm.analysis.taint_helpers import enable_taint_analysis
+from miasm.analysis.taint_helpers import enable_taint_analysis, taint
 from miasm.core.interval import interval
+from miasm.expression.expression import ExprId, ExprMem, ExprInt
 
 ## CSTS
 # Color csts
@@ -82,43 +83,40 @@ def check_reg(reg, jitter, register, taint_interval):
 def check_mem(mem, taint_interval):
     assert mem == taint_interval
 
-def taint_register(jitter, color, register, start=0, end=7):
-    jitter.taint.taint_register(color, jitter.jit.codegen.regs_index[register], start, end)
-    return True
 
 def taint_EAX(jitter):
-    taint_register(jitter, red, "RAX", 0, 3)
+    taint(jitter, ExprId("EAX", 32), red)
     return True
 
 def taint_AX(jitter):
-    taint_register(jitter, red, "RAX", 0, 1)
+    taint(jitter, ExprId("AX", 16), red)
     return True
 
 def taint_EBX(jitter):
-    taint_register(jitter, red, "RBX", 0, 3)
+    taint(jitter, ExprId("EBX", 32), red)
     return True
 
 def taint_ECX(jitter):
-    taint_register(jitter, red, "RCX", 0, 3)
+    taint(jitter, ExprId("ECX", 32), red)
     return True
 
 def taint_ECX_blue(jitter):
-    taint_register(jitter, blue, "RCX", 0, 3)
+    taint(jitter, ExprId("ECX", 32), blue)
     return True
 
 def taint_EDX_blue(jitter):
-    taint_register(jitter, blue, "RDX", 0, 3)
+    taint(jitter, ExprId("EDX", 32), blue)
     return True
 
 def taint_mem_0x123FFE8(jitter):
-    jitter.taint.taint_memory(0x123FFe8,4,red)
+    taint(jitter, ExprMem(ExprInt(0x123FFE8, 32), 32), red)
     return True
 
 def taint_mem_RAX(jitter):
-    jitter.taint.taint_memory(jitter.cpu.RAX,4,red)
+    taint(jitter, ExprMem(ExprInt(jitter.cpu.RAX, 32), 32), red)
     return True
 
 def taint_mem_RBX(jitter):
-    jitter.taint.taint_memory(jitter.cpu.RBX,4,red)
+    taint(jitter, ExprMem(ExprInt(jitter.cpu.RBX, 32), 32), red)
     return True
 
