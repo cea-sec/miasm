@@ -1162,7 +1162,9 @@ def setalc(_, instr):
 def bswap(_, instr, dst):
     e = []
     if dst.size == 16:
-        result = m2_expr.ExprCompose(dst[8:16], dst[:8])
+        # BSWAP referencing a 16-bit register is undefined
+        # Seems to return 0 actually
+        result = m2_expr.ExprInt(0, 16)
     elif dst.size == 32:
         result = m2_expr.ExprCompose(
             dst[24:32], dst[16:24], dst[8:16], dst[:8])
