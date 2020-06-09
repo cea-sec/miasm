@@ -5,9 +5,9 @@ from miasm.arch.x86.arch import mn_x86
 cb_x86_funcs = []
 
 
-def cb_x86_disasm(*args, **kwargs):
+def cb_x86_disasm(mdis, cur_block, offset_to_dis):
     for func in cb_x86_funcs:
-        func(*args, **kwargs)
+        func(mdis, cur_block, offset_to_dis)
 
 
 class dis_x86(disasmEngine):

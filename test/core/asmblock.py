@@ -274,7 +274,7 @@ assert asmcfg.successors(tob.loc_key) == [tob.loc_key]
 # Check split_block
 ## Without condition for a split, no change
 asmcfg_bef = asmcfg.copy()
-asmcfg.apply_splitting(mdis.loc_db)
+mdis.apply_splitting(asmcfg)
 assert asmcfg_bef == asmcfg
 open("graph5.dot", "w").write(asmcfg.dot())
 ## Create conditions for a block split
@@ -283,7 +283,7 @@ tob.bto.add(AsmConstraintTo(inside_firstbbl))
 asmcfg.rebuild_edges()
 assert len(asmcfg.pendings) == 1
 assert inside_firstbbl in asmcfg.pendings
-asmcfg.apply_splitting(mdis.loc_db)
+mdis.apply_splitting(asmcfg)
 ## Check result
 assert len(asmcfg) == 6
 assert len(asmcfg.pendings) == 0
