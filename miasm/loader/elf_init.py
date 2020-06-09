@@ -92,6 +92,8 @@ class WRel32(StructWrapper):
     wrapped._fields.append(("type", "u08"))
 
     def get_sym(self):
+        if isinstance(self.parent.linksection, NullSection):
+            return None
         return self.parent.linksection.symtab[self.cstr.info >> 8].name
 
     def get_type(self):
