@@ -1692,3 +1692,54 @@ def simp_compose_and_mask(_, expr):
         else:
             out.append(arg)
     return expr
+
+def simp_bcdadd_cf(_, expr):
+    """bcdadd(const, const) => decimal"""
+    if not(expr.is_op('bcdadd_cf')):
+        return expr
+    arg1 = expr.args[0]
+    arg2 = expr.args[1]
+    if not(arg1.is_int() and arg2.is_int()):
+        return expr
+
+    carry = 0
+    res = 0
+    nib_1, nib_2 = 0, 0
+    for i in range(0,16,4):
+        nib_1 = (arg1.arg >> i) & (0xF)
+        nib_2 = (arg2.arg >> i) & (0xF)
+        
+        j = (carry + nib_1 + nib_2)
+        if (j >= 10):
+            carry = 1
+            j -= 10
+            j &= 0xF
+        else:
+            carry = 0
+    return ExprInt(carry, 1)
+
+def simp_bcdadd(_, expr):
+    """bcdadd(const, const) => decimal"""
+    if not(expr.is_op('bcdadd')):
+        return expr
+    arg1 = expr.args[0]
+    arg2 = expr.args[1]
+    if not(arg1.is_int() and arg2.is_int()):
+        return expr
+
+    carry = 0
+    res = 0
+    nib_1, nib_2 = 0, 0
+    for i in range(0,16,4):
+        nib_1 = (arg1.arg >> i) & (0xF)
+        nib_2 = (arg2.arg >> i) & (0xF)
+        
+        j = (carry + nib_1 + nib_2)
+        if (j >= 10):
+            carry = 1
+            j -= 10
+            j &= 0xF
+        else:
+            carry = 0
+        res += j << i
+    return ExprInt(res, arg1.size)
