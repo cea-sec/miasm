@@ -3,7 +3,11 @@ import sys
 from builtins import range
 import struct
 import inspect
-from collections import MutableMapping as DictMixin
+
+try:
+    from collections.abc import MutableMapping as DictMixin
+except ImportError:
+    from collections import MutableMapping as DictMixin
 
 from operator import itemgetter
 import codecs

@@ -1,7 +1,11 @@
 import logging
 import warnings
 from functools import wraps
-from collections import Sequence, namedtuple
+from collections import namedtuple
+try:
+    from collections.abc import Sequence
+except ImportError:
+    from collections import Sequence
 
 from future.utils import viewitems
 
