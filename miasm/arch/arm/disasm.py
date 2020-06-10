@@ -4,7 +4,7 @@ from miasm.core.asmblock import AsmConstraint, disasmEngine
 from miasm.arch.arm.arch import mn_arm, mn_armt
 
 
-def cb_arm_fix_call(mn, cur_bloc, loc_db, offsets_to_dis, *args, **kwargs):
+def cb_arm_fix_call(mdis, cur_block, offsets_to_dis):
     """
     for arm:
     MOV        LR, PC
@@ -12,22 +12,22 @@ def cb_arm_fix_call(mn, cur_bloc, loc_db, offsets_to_dis, *args, **kwargs):
     * is a subcall *
 
     """
-    if len(cur_bloc.lines) < 2:
+    if len(cur_block.lines) < 2:
         return
-    l1 = cur_bloc.lines[-1]
-    l2 = cur_bloc.lines[-2]
+    l1 = cur_block.lines[-1]
+    l2 = cur_block.lines[-2]
     if l1.name != "LDR":
         return
     if l2.name != "MOV":
         return
 
-    values = viewvalues(mn.pc)
+    values = viewvalues(mdis.mn.pc)
     if not l1.args[0] in values:
         return
     if not l2.args[1] in values:
         return
-    loc_key_cst = loc_db.get_or_create_offset_location(l1.offset + 4)
-    cur_bloc.add_cst(loc_key_cst, AsmConstraint.c_next)
+    loc_key_cst = mdis.loc_db.get_or_create_offset_location(l1.offset + 4)
+    cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
     offsets_to_dis.add(l1.offset + 4)
 
 cb_arm_funcs = [cb_arm_fix_call]

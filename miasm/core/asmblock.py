@@ -679,73 +679,8 @@ class AsmCFG(DiGraph):
             log_asmblock.info("size: %d max: %d", block.size, block.max_size)
 
     def apply_splitting(self, loc_db, dis_block_callback=None, **kwargs):
-        """Consider @self' bto destinations and split block in @self if one of
-        these destinations jumps in the middle of this block.
-        In order to work, they must be only one block in @self per loc_key in
-        @loc_db (which is true if @self come from the same disasmEngine).
-
-        @loc_db: LocationDB instance associated with @self'loc_keys
-        @dis_block_callback: (optional) if set, this callback will be called on
-        new block destinations
-        @kwargs: (optional) named arguments to pass to dis_block_callback
-        """
-        # Get all possible destinations not yet resolved, with a resolved
-        # offset
-        block_dst = []
-        for loc_key in self.pendings:
-            offset = loc_db.get_location_offset(loc_key)
-            if offset is not None:
-                block_dst.append(offset)
-
-        todo = set(self.blocks)
-        rebuild_needed = False
-
-        while todo:
-            # Find a block with a destination inside another one
-            cur_block = todo.pop()
-            range_start, range_stop = cur_block.get_range()
-
-            for off in block_dst:
-                if not (off > range_start and off < range_stop):
-                    continue
-
-                # `cur_block` must be split at offset `off`from miasm.core.locationdb import LocationDB
-
-                new_b = cur_block.split(loc_db, off)
-                log_asmblock.debug("Split block %x", off)
-                if new_b is None:
-                    log_asmblock.error("Cannot split %x!!", off)
-                    continue
-
-                # Remove pending from cur_block
-                # Links from new_b will be generated in rebuild_edges
-                for dst in new_b.bto:
-                    if dst.loc_key not in self.pendings:
-                        continue
-                    self.pendings[dst.loc_key] = set(pending for pending in self.pendings[dst.loc_key]
-                                                     if pending.waiter != cur_block)
-
-                # The new block destinations may need to be disassembled
-                if dis_block_callback:
-                    offsets_to_dis = set(
-                        self.loc_db.get_location_offset(constraint.loc_key)
-                        for constraint in new_b.bto
-                    )
-                    dis_block_callback(cur_bloc=new_b,
-                                       offsets_to_dis=offsets_to_dis,
-                                       loc_db=loc_db, **kwargs)
-
-                # Update structure
-                rebuild_needed = True
-                self.add_block(new_b)
-
-                # The new block must be considered
-                todo.add(new_b)
-                range_start, range_stop = cur_block.get_range()
-
-        # Rebuild edges to match new blocks'bto
-        if rebuild_needed:
-            self.rebuild_edges()
+        warnings.warn('DEPRECATION WARNING: apply_splitting is member of disasm_engine')
+        raise RuntimeError("Moved api")
 
     def __str__(self):
         out = []
@@ -1261,8 +1196,7 @@ class disasmEngine(object):
      - lines_wd: maximum block's size (in number of instruction)
      - blocs_wd: maximum number of distinct disassembled block
 
-    + callback(arch, attrib, pool_bin, cur_bloc, offsets_to_dis,
-               loc_db)
+    + callback(mdis, cur_block, offsets_to_dis)
      - dis_block_callback: callback after each new disassembled block
     """
 
@@ -1426,10 +1360,7 @@ class disasmEngine(object):
         cur_block.fix_constraints()
 
         if self.dis_block_callback is not None:
-            self.dis_block_callback(mn=self.arch, attrib=self.attrib,
-                                    pool_bin=self.bin_stream, cur_bloc=cur_block,
-                                    offsets_to_dis=offsets_to_dis,
-                                    loc_db=self.loc_db)
+            self.dis_block_callback(self, cur_block, offsets_to_dis)
         return cur_block, offsets_to_dis
 
     def dis_block(self, offset):
@@ -1470,11 +1401,71 @@ class disasmEngine(object):
             todo += nexts
             blocks.add_block(cur_block)
 
-        blocks.apply_splitting(self.loc_db,
-                               dis_block_callback=self.dis_block_callback,
-                               mn=self.arch, attrib=self.attrib,
-                               pool_bin=self.bin_stream)
+        self.apply_splitting(blocks)
         return blocks
+
+    def apply_splitting(self, blocks):
+        """Consider @blocks' bto destinations and split block in @blocks if one
+        of these destinations jumps in the middle of this block.  In order to
+        work, they must be only one block in @self per loc_key in
+
+        @blocks: Asmcfg
+        """
+        # Get all possible destinations not yet resolved, with a resolved
+        # offset
+        block_dst = []
+        for loc_key in blocks.pendings:
+            offset = self.loc_db.get_location_offset(loc_key)
+            if offset is not None:
+                block_dst.append(offset)
+
+        todo = set(blocks.blocks)
+        rebuild_needed = False
+
+        while todo:
+            # Find a block with a destination inside another one
+            cur_block = todo.pop()
+            range_start, range_stop = cur_block.get_range()
+
+            for off in block_dst:
+                if not (off > range_start and off < range_stop):
+                    continue
+
+                # `cur_block` must be split at offset `off`from miasm.core.locationdb import LocationDB
+
+                new_b = cur_block.split(self.loc_db, off)
+                log_asmblock.debug("Split block %x", off)
+                if new_b is None:
+                    log_asmblock.error("Cannot split %x!!", off)
+                    continue
+
+                # Remove pending from cur_block
+                # Links from new_b will be generated in rebuild_edges
+                for dst in new_b.bto:
+                    if dst.loc_key not in blocks.pendings:
+                        continue
+                    blocks.pendings[dst.loc_key] = set(pending for pending in blocks.pendings[dst.loc_key]
+                                                     if pending.waiter != cur_block)
+
+                # The new block destinations may need to be disassembled
+                if self.dis_block_callback:
+                    offsets_to_dis = set(
+                        self.loc_db.get_location_offset(constraint.loc_key)
+                        for constraint in new_b.bto
+                    )
+                    self.dis_block_callback(self, new_b, offsets_to_dis)
+
+                # Update structure
+                rebuild_needed = True
+                blocks.add_block(new_b)
+
+                # The new block must be considered
+                todo.add(new_b)
+                range_start, range_stop = cur_block.get_range()
+
+        # Rebuild edges to match new blocks'bto
+        if rebuild_needed:
+            blocks.rebuild_edges()
 
     def dis_instr(self, offset):
         """Disassemble one instruction at offset @offset and return the
