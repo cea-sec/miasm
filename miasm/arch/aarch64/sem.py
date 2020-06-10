@@ -631,7 +631,7 @@ system_regs = {
     (3, 4, 14, 5, 1): CNTHPS_CTL_EL2,
     (3, 4, 14, 5, 2): CNTHPS_CVAL_EL2,
 
-    # Aliasses for *_EL02 *_EL12
+    # Aliases for *_EL02 *_EL12
     # see page 2864 of "Arm Architecture Reference Manual Armv8,
     # for Armv8-A architecture profile" Release 31 March 2020
     (3, 5, 1, 0, 0): SCTLR_EL1,
@@ -673,7 +673,7 @@ system_regs = {
     (3, 5, 14, 3, 0): CNTV_TVAL_EL0,
     (3, 5, 14, 3, 1): CNTV_CTL_EL0,
     (3, 5, 14, 3, 2): CNTV_CVAL_EL0,
-    # End of aliasses
+    # End of aliases
 
     (3, 6, 1, 0, 0): SCTLR_EL3,
     (3, 6, 1, 0, 1): ACTLR_EL3,
