@@ -1,5 +1,5 @@
 from builtins import range
-from idc import Byte, SegEnd
+from idc import get_wide_byte, get_segm_end
 from idautils import Segments
 from idaapi import is_mapped
 
@@ -20,7 +20,7 @@ class bin_stream_ida(bin_stream_str):
             offset = ad + start + self.base_address
             if not is_mapped(offset):
                 raise IOError("not enough bytes")
-            out.append(int_to_byte(Byte(offset)))
+            out.append(int_to_byte(get_wide_byte(offset)))
         return b''.join(out)
 
     def readbs(self, l=1):
@@ -40,6 +40,6 @@ class bin_stream_ida(bin_stream_str):
         # Lazy version
         if hasattr(self, "_getlen"):
             return self._getlen
-        max_addr = SegEnd(list(Segments())[-1]  - (self.offset - self.base_address))
+        max_addr = get_segm_end(list(Segments())[-1]  - (self.offset - self.base_address))
         self._getlen = max_addr
         return max_addr

@@ -124,7 +124,7 @@ def get_focused_view():
 
 
 class Hooks(idaapi.UI_Hooks):
-    def finish_populating_tform_popup(self, form, popup):
+    def finish_populating_widget_popup(self, form, popup):
         idaapi.attach_action_to_popup(form, popup, 'my:expand', None)
         idaapi.attach_action_to_popup(form, popup, 'my:translate', None)
 
@@ -135,7 +135,7 @@ def symbolic_exec():
 
     from utils import guess_machine
 
-    start, end = idc.SelStart(), idc.SelEnd()
+    start, end = idc.read_selection_start(), idc.read_selection_end()
 
     bs = bin_stream_ida()
     machine = guess_machine(addr=start)
@@ -143,7 +143,7 @@ def symbolic_exec():
     mdis = machine.dis_engine(bs)
 
     if start == idc.BADADDR and end == idc.BADADDR:
-        start = idc.ScreenEA()
+        start = idc.get_screen_ea()
         end = idc.next_head(start) # Get next instruction address
 
     mdis.dont_dis = [end]
@@ -197,7 +197,7 @@ idaapi.register_action(action_translate)
 
 if __name__ == '__main__':
     idaapi.CompileLine('static key_F3() { RunPythonStatement("symbolic_exec()"); }')
-    idc.AddHotkey("F3", "key_F3")
+    idc.add_idc_hotkey("F3", "key_F3")
 
     print("=" * 50)
     print("""Available commands:

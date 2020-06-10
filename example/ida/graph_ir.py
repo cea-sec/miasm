@@ -196,7 +196,7 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
     if verbose:
         print("Arch", dis_engine)
 
-    fname = idc.GetInputFile()
+    fname = idc.get_root_filename()
     if verbose:
         print(fname)
 
@@ -330,8 +330,8 @@ def function_graph_ir():
     if not ret:
         return
 
-    func = ida_funcs.get_func(idc.ScreenEA())
-    func_addr = func.startEA
+    func = ida_funcs.get_func(idc.get_screen_ea())
+    func_addr = func.start_ea
 
     build_graph(
         func_addr,
