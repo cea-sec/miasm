@@ -351,6 +351,31 @@ assert bit.flags.f2_5 == 0b01110
 assert bit.flags.f3_8 == 0b01010101
 assert bit.flags.f4_1 == 1
 
+try:
+    class BitStruct(MemUnion):
+        fields = [
+            ("ValueB", BitField(Num("<Q"), [
+                ("field_00", 32),
+                ("field_01", 32),
+            ])),
+            ("Value", Num("<Q")),
+        ]
+except ValueError:
+    assert False, "Should not raise"
+
+try:
+    class BitStruct(MemUnion):
+        fields = [
+            ("ValueB", BitField(Num("<Q"), [
+                ("field_00", 32),
+                ("field_01", 32),
+                ("field_02", 1),
+            ])),
+            ("Value", Num("<Q")),
+        ]
+    assert False, "Should raise"
+except ValueError:
+    pass
 
 # Unhealthy ideas
 class UnhealthyIdeas(MemStruct):
