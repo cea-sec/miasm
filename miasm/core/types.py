@@ -994,7 +994,7 @@ class BitField(Union):
         for name, bits in bit_list:
             fields.append((name, Bits(self._num, bits, offset)))
             offset += bits
-        if offset > self._num.size == 8:
+        if offset > self._num.size * 8:
             raise ValueError("sum of bit lengths is > to the backing num size")
         super(BitField, self).__init__(fields)
 
