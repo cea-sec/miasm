@@ -25,7 +25,7 @@ gpregsz64_str = ["X%d" % i for i in range(0x1e)] + ["LR", "XZR"]
 gpregsz64_expr, gpregsz64_init, gpregsz64_info = gen_regs(
     gpregsz64_str, globals(), 64)
 
-cr_str = ["c%d" % i for i in range(0xf)]
+cr_str = ["c%d" % i for i in range(0x10)]
 cr_expr, cr_init, cr_info = gen_regs(cr_str, globals(), 32)
 
 
