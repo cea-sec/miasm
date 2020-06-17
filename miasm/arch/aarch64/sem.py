@@ -179,7 +179,8 @@ system_regs = {
 
     (3, 0, 2, 3, 0): APGAKeyLo_EL1,
     (3, 0, 2, 3, 1): APGAKeyHi_EL1,
-
+    
+    (3, 0, 4, 1, 0): SP_EL0,
     (3, 0, 4, 6, 0): ICC_PMR_EL1, # Alias ICV_PMR_EL1
 
     (3, 0, 5, 1, 0): AFSR0_EL1,
@@ -284,6 +285,22 @@ system_regs = {
     (3, 0, 0, 0, 1): CTR_EL0,
 
     (3, 3, 0, 0, 7): DCZID_EL0,
+    
+    (3, 3, 4, 4, 0): FPCR,
+    (3, 3, 4, 4, 1): FPSR,
+
+    (3, 3, 4, 5, 0): DSPSR_EL0,
+    (3, 3, 4, 5, 1): DLR_EL0,
+
+    (3, 4, 4, 0, 0): SPSR_EL2,
+    (3, 4 ,4, 0, 1): ELR_EL2,
+
+    (3, 4, 4, 1, 0): SP_EL1,
+
+    (3, 4, 4, 3, 0): SPSR_irq,
+    (3, 4, 4, 3, 1): SPSR_abt,
+    (3, 4, 4, 3, 2): SPSR_und,
+    (3, 4, 4, 3, 3): SPSR_fiq,
 
     (3, 3, 9, 12, 0): PMCR_EL0,
     (3, 3, 9, 12, 1): PMCNTENSET_EL0,
@@ -689,6 +706,11 @@ system_regs = {
     (3, 6, 2, 0, 0): TTBR0_EL3,
     (3, 6, 2, 0, 2): TCR_EL3,
 
+    (3, 6, 4, 0, 0): SPSR_EL3,
+    (3, 6, 4, 0, 1): ELR_EL3,
+
+    (3, 6, 4, 1, 0): SP_EL2,
+
     (3, 6, 5, 1, 0): AFSR0_EL3,
     (3, 6, 5, 1, 1): AFSR1_EL3,
 
@@ -712,7 +734,7 @@ system_regs = {
 
     (3, 7, 14, 2, 0): CNTPS_TVAL_EL1,
     (3, 7, 14, 2, 1): CNTPS_CTL_EL1,
-    (3, 7, 14, 2, 2): CNTPS_CVAL_EL1
+    (3, 7, 14, 2, 2): CNTPS_CVAL_EL1,
 }
 
 # CPSR: N Z C V
@@ -1453,7 +1475,6 @@ def bfm(ir, instr, arg1, arg2, arg3, arg4):
 
 def mrs(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
     e = []
-    # TODO XXX: missing cases DAIF, CurrentEL, SPSel, PAN, UAO, DIT, SSBS
     if arg2.is_int(3) and arg3.is_int(3) and arg4.is_id("c4") and arg5.is_id("c2") and arg6.is_int(0):
         out = []
         out.append(ExprInt(0x0, 28))
@@ -1462,6 +1483,58 @@ def mrs(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
         out.append(zf)
         out.append(nf)
         e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(7):
+        out = []
+        out.append(ExprInt(0x0, 38))
+        out.append(tco)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
+        out = []
+        out.append(ExprInt(0x0, 39))
+        out.append(dit)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(4):
+        out = []
+        out.append(ExprInt(0x0, 40))
+        out.append(uao)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(3):
+        out = []
+        out.append(ExprInt(0x0, 41))
+        out.append(pan)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(6):
+        out = []
+        out.append(ExprInt(0x0, 51))
+        out.append(ssbs)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(1):
+        out = []
+        out.append(ExprInt(0x0, 54))
+        out.append(df)
+        out.append(af)
+        out.append(iff)
+        out.append(ff)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(2):
+        out = []
+        out.append(ExprInt(0x0, 60))
+        out.append(cur_el)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
+        out = []
+        out.append(ExprInt(0x0, 63))
+        out.append(spsel)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
     else:
         sreg = (int(arg2), int(arg3), int(str(arg4)[1:]), int(str(arg5)[1:]), int(arg6))
         if sreg in system_regs:
@@ -1474,12 +1547,39 @@ def mrs(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
 def msr(ir, instr, arg1, arg2, arg3, arg4, arg5, arg6):
 
     e = []
-    # TODO XXX: missing cases DAIF, CurrentEL, SPSel, PAN, UAO, DIT, SSBS
     if arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
         e.append(ExprAssign(nf, arg6[31:32]))
         e.append(ExprAssign(zf, arg6[30:31]))
         e.append(ExprAssign(cf, arg6[29:30]))
         e.append(ExprAssign(of, arg6[28:29]))
+    
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(7):
+        e.append(ExprAssign(tco, arg6[25:26]))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
+        e.append(ExprAssign(dit, arg6[24:25]))
+    
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(4):
+        e.append(ExprAssign(uao, arg6[23:24]))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(3):
+        e.append(ExprAssign(pan, arg6[22:23]))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(6):
+        e.append(ExprAssign(ssbs, arg6[12:13]))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(1):
+        e.append(ExprAssign(df, arg6[9:10]))
+        e.append(ExprAssign(af, arg6[8:9]))
+        e.append(ExprAssign(iff, arg6[7:8]))
+        e.append(ExprAssign(ff, arg6[6:7]))
+    
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(2):
+        e.append(ExprAssign(cur_el, arg6[2:4]))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
+        e.append(ExprAssign(spsel, arg6[0:1]))
+
     else:
         sreg = (int(arg1), int(arg2), int(str(arg3)[1:]), int(str(arg4)[1:]), int(arg5))
         if sreg in system_regs:

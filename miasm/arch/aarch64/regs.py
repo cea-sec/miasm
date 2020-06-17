@@ -127,7 +127,11 @@ sysregs_str = ['ACTLR_EL1', 'ACTLR_EL2', 'ACTLR_EL3', 'AFSR0_EL1',
     'VBAR_EL2', 'VBAR_EL3', 'VDISR_EL2', 'VMPIDR_EL2',
     'VNCR_EL2', 'VPIDR_EL2', 'VSESR_EL2', 'VSTCR_EL2',
     'VSTTBR_EL2', 'VTCR_EL2', 'VTTBR_EL2', 'ZCR_EL1',
-    'ZCR_EL2', 'ZCR_EL3']
+    'ZCR_EL2', 'ZCR_EL3', 'ELR_EL2', 'ELR_EL3', 
+    'FPCR', 'FPSR', 'SP_EL0', 'SP_EL1', 
+    'SP_EL2', 'SPSR_abt', 'SPSR_EL2',
+    'SPSR_EL3', 'SPSR_fiq', 'SPSR_irq', 'SPSR_und',
+    'DLR_EL0', 'DSPSR_EL0']
 sysregs_expr, sysregs_init, sysregs_info = gen_regs(sysregs_str, globals(), 64)
 
 PC, _ = gen_reg("PC", 64)
@@ -143,15 +147,53 @@ reg_nf = 'nf'
 reg_of = 'of'
 reg_cf = 'cf'
 
+reg_df = 'df'
+reg_af = 'af'
+reg_iff = 'if'
+reg_ff = 'ff'
+
+reg_cur_el = 'cur_el'
+reg_dit = 'dit'
+reg_pan = 'pan'
+reg_spsel = 'spsel'
+reg_ssbs = 'ssbs'
+reg_tco = 'tco'
+reg_uao = 'uao'
+
 zf = ExprId(reg_zf, size=1)
 nf = ExprId(reg_nf, size=1)
 of = ExprId(reg_of, size=1)
 cf = ExprId(reg_cf, size=1)
 
+df = ExprId(reg_df, size=1)
+af = ExprId(reg_af, size=1)
+iff = ExprId(reg_iff, size=1)
+ff = ExprId(reg_ff, size=1)
+
+cur_el = ExprId(reg_cur_el, size=2)
+dit = ExprId(reg_dit, size=1)
+pan = ExprId(reg_pan, size=1)
+spsel = ExprId(reg_spsel, size=1)
+ssbs = ExprId(reg_ssbs, size=1)
+tco = ExprId(reg_tco, size=1)
+uao = ExprId(reg_uao, size=1)
+
+
 zf_init = ExprId("zf_init", size=1)
 nf_init = ExprId("nf_init", size=1)
 of_init = ExprId("of_init", size=1)
 cf_init = ExprId("cf_init", size=1)
+df_init = ExprId("df_init", size=1)
+af_init = ExprId("af_init", size=1)
+iff_init = ExprId("if_init", size=1)
+ff_init = ExprId("ff_init", size=1)
+cur_el_init = ExprId("cur_el_init", size=2)
+dit_init = ExprId("dit_init", size=1)
+pan_init = ExprId("pan_init", size=1)
+spsel_init = ExprId("spsel_init", size=1)
+ssbs_init = ExprId("ssbs_init", size=1)
+tco_init = ExprId("tco_init", size=1)
+uao_init = ExprId("uao_init", size=1)
 
 
 all_regs_ids = [
@@ -182,6 +224,8 @@ all_regs_ids = [
     WZR,
     XZR,
     zf, nf, of, cf,
+    df, af, iff, ff,
+    cur_el, dit, pan, spsel, ssbs, tco, uao,
 ] + sysregs_expr 
 
 
