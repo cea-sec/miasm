@@ -1743,6 +1743,31 @@ uimm7 = bs(l=7, cls=(aarch64_uint64_noarg,), fname="imm", order=-1)
 
 uimm8 = bs(l=8, cls=(aarch64_uint64,), fname="imm", order=-1)
 
+class op0_value(aarch64_uint64):
+    def decode(self, v):
+        v = v & self.lmask
+        v = self.decodeval(v)
+        v += 2
+        e = self.int2expr(v)
+        if not e:
+            return False
+        self.expr = e
+        return True
+
+    def encode(self):
+        v = self.expr2int(self.expr)
+        if v is None:
+            return False
+        v -= 2
+        v = self.encodeval(v)
+        if v is False:
+            return False
+        if v > self.lmask:
+            return False
+        self.value = v
+        return True
+
+op0 = bs(l=1, cls=(op0_value, aarch64_arg), fname="op0")
 op1 = bs(l=3, cls=(aarch64_uint64, aarch64_arg), fname="op1")
 op2 = bs(l=3, cls=(aarch64_uint64, aarch64_arg), fname="op2")
 
@@ -2133,8 +2158,9 @@ aarch64op("smc", [bs('11010100'), bs('000'), uimm16, bs('000'), bs('11')], [uimm
 # msr p.631
 msr_name = {'MSR': 0b0, 'MRS': 0b1}
 bs_msr_name = bs_name(l=1, name=msr_name)
-aarch64op("mrs", [bs('1101010100'), bs('1'), bs('1'), bs('1'), op1, crn, crm, op2, rt64], [rt64, op1, crn, crm, op2])
-aarch64op("msr", [bs('1101010100'), bs('0'), bs('1'), bs('1'), op1, crn, crm, op2, rt64], [op1, crn, crm, op2, rt64])
+aarch64op("mrs", [bs('1101010100'), bs('1'), bs('1'), op0, op1, crn, crm, op2, rt64], [rt64, op0, op1, crn, crm, op2])
+aarch64op("msr", [bs('1101010100'), bs('0'), bs('1'), op0, op1, crn, crm, op2, rt64], [op0, op1, crn, crm, op2, rt64])
+
 
 # load/store exclusive p.140
 aarch64op("stxr", [bs('1'), sf, bs('001000'), bs('0'), bs('0'), bs('0'), rs32, bs('0'), bs('11111'), rn64_deref_nooff, rt], [rs32, rt, rn64_deref_nooff])

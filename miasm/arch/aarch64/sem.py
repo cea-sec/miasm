@@ -9,6 +9,733 @@ from miasm.arch.aarch64.regs import *
 from miasm.core.sembuilder import SemBuilder
 from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_INT_XX
 
+# System register for ARM64-A 8.6
+system_regs = {
+    # op0 op1 crn crm op2
+    (2, 0, 0, 0, 2): OSDTRRX_EL1,
+
+    (2, 0, 0, 2, 0): MDCCINT_EL1,
+    (2, 0, 0, 2, 2): MDSCR_EL1,
+
+    (2, 0, 0, 3, 2): OSDTRTX_EL1,
+
+    (2, 0, 0, 6, 2): OSECCR_EL1,
+
+    (2, 0, 0, 0, 4): DBGBVR0_EL1,
+    (2, 0, 0, 1, 4): DBGBVR1_EL1,
+    (2, 0, 0, 2, 4): DBGBVR2_EL1,
+    (2, 0, 0, 3, 4): DBGBVR3_EL1,
+    (2, 0, 0, 4, 4): DBGBVR4_EL1,
+    (2, 0, 0, 5, 4): DBGBVR5_EL1,
+    (2, 0, 0, 6, 4): DBGBVR6_EL1,
+    (2, 0, 0, 7, 4): DBGBVR7_EL1,
+    (2, 0, 0, 8, 4): DBGBVR8_EL1,
+    (2, 0, 0, 9, 4): DBGBVR9_EL1,
+    (2, 0, 0, 10, 4): DBGBVR10_EL1,
+    (2, 0, 0, 11, 4): DBGBVR11_EL1,
+    (2, 0, 0, 12, 4): DBGBVR12_EL1,
+    (2, 0, 0, 13, 4): DBGBVR13_EL1,
+    (2, 0, 0, 14, 4): DBGBVR14_EL1,
+    (2, 0, 0, 15, 4): DBGBVR15_EL1,
+
+    (2, 0, 0, 0, 5): DBGBCR0_EL1,
+    (2, 0, 0, 1, 5): DBGBCR1_EL1,
+    (2, 0, 0, 2, 5): DBGBCR2_EL1,
+    (2, 0, 0, 3, 5): DBGBCR3_EL1,
+    (2, 0, 0, 4, 5): DBGBCR4_EL1,
+    (2, 0, 0, 5, 5): DBGBCR5_EL1,
+    (2, 0, 0, 6, 5): DBGBCR6_EL1,
+    (2, 0, 0, 7, 5): DBGBCR7_EL1,
+    (2, 0, 0, 8, 5): DBGBCR8_EL1,
+    (2, 0, 0, 9, 5): DBGBCR9_EL1,
+    (2, 0, 0, 10, 5): DBGBCR10_EL1,
+    (2, 0, 0, 11, 5): DBGBCR11_EL1,
+    (2, 0, 0, 12, 5): DBGBCR12_EL1,
+    (2, 0, 0, 13, 5): DBGBCR13_EL1,
+    (2, 0, 0, 14, 5): DBGBCR14_EL1,
+    (2, 0, 0, 15, 5): DBGBCR15_EL1,
+
+    (2, 0, 0, 0, 6): DBGWVR0_EL1,
+    (2, 0, 0, 1, 6): DBGWVR1_EL1,
+    (2, 0, 0, 2, 6): DBGWVR2_EL1,
+    (2, 0, 0, 3, 6): DBGWVR3_EL1,
+    (2, 0, 0, 4, 6): DBGWVR4_EL1,
+    (2, 0, 0, 5, 6): DBGWVR5_EL1,
+    (2, 0, 0, 6, 6): DBGWVR6_EL1,
+    (2, 0, 0, 7, 6): DBGWVR7_EL1,
+    (2, 0, 0, 8, 6): DBGWVR8_EL1,
+    (2, 0, 0, 9, 6): DBGWVR9_EL1,
+    (2, 0, 0, 10, 6): DBGWVR10_EL1,
+    (2, 0, 0, 11, 6): DBGWVR11_EL1,
+    (2, 0, 0, 12, 6): DBGWVR12_EL1,
+    (2, 0, 0, 13, 6): DBGWVR13_EL1,
+    (2, 0, 0, 14, 6): DBGWVR14_EL1,
+    (2, 0, 0, 15, 6): DBGWVR15_EL1,
+
+    (2, 0, 0, 0, 7): DBGWCR0_EL1,
+    (2, 0, 0, 1, 7): DBGWCR1_EL1,
+    (2, 0, 0, 2, 7): DBGWCR2_EL1,
+    (2, 0, 0, 3, 7): DBGWCR3_EL1,
+    (2, 0, 0, 4, 7): DBGWCR4_EL1,
+    (2, 0, 0, 5, 7): DBGWCR5_EL1,
+    (2, 0, 0, 6, 7): DBGWCR6_EL1,
+    (2, 0, 0, 7, 7): DBGWCR7_EL1,
+    (2, 0, 0, 8, 7): DBGWCR8_EL1,
+    (2, 0, 0, 9, 7): DBGWCR9_EL1,
+    (2, 0, 0, 10, 7): DBGWCR10_EL1,
+    (2, 0, 0, 11, 7): DBGWCR11_EL1,
+    (2, 0, 0, 12, 7): DBGWCR12_EL1,
+    (2, 0, 0, 13, 7): DBGWCR13_EL1,
+    (2, 0, 0, 14, 7): DBGWCR14_EL1,
+    (2, 0, 0, 15, 7): DBGWCR15_EL1,
+
+    (2, 0, 1, 0, 0): MDRAR_EL1,
+    (2, 0, 1, 0, 4): OSLAR_EL1,
+
+    (2, 0, 1, 1, 4): OSLSR_EL1,
+
+    (2, 0, 1, 3, 4): OSDLR_EL1,
+
+    (2, 0, 1, 4, 4): DBGPRCR_EL1,
+
+    (2, 0, 7, 8, 6): DBGCLAIMSET_EL1,
+
+    (2, 0, 7, 9, 6): DBGCLAIMCLR_EL1,
+
+    (2, 0, 7, 14, 6): DBGAUTHSTATUS_EL1,
+
+    (2, 3, 0, 1, 0): MDCCSR_EL0,
+
+    (2, 3, 0, 4, 0): DBGDTR_EL0,
+
+    (2, 3, 0, 5, 0): DBGDTRRX_EL0,
+    (2, 3, 0, 5, 1): DBGDTRTX_EL0,
+
+    (2, 4, 0, 7, 0): DBGVCR32_EL2,
+
+    (3, 0, 0, 0, 0): MIDR_EL1,
+    (3, 0, 0, 0, 5): MPIDR_EL1,
+    (3, 0, 0, 0, 6): REVIDR_EL1,
+
+    (3, 0, 0, 1, 0): ID_PFR0_EL1,
+    (3, 0, 0, 1, 1): ID_PFR1_EL1,
+    (3, 0, 0, 1, 2): ID_DFR0_EL1,
+    (3, 0, 0, 1, 3): ID_AFR0_EL1,
+    (3, 0, 0, 1, 4): ID_MMFR0_EL1,
+    (3, 0, 0, 1, 5): ID_MMFR1_EL1,
+    (3, 0, 0, 1, 6): ID_MMFR2_EL1,
+    (3, 0, 0, 1, 7): ID_MMFR3_EL1,
+
+    (3, 0, 0, 2, 0): ID_ISAR0_EL1,
+    (3, 0, 0, 2, 1): ID_ISAR1_EL1,
+    (3, 0, 0, 2, 2): ID_ISAR2_EL1,
+    (3, 0, 0, 2, 3): ID_ISAR3_EL1,
+    (3, 0, 0, 2, 4): ID_ISAR4_EL1,
+    (3, 0, 0, 2, 5): ID_ISAR5_EL1,
+    (3, 0, 0, 2, 6): ID_MMFR4_EL1,
+
+    (3, 0, 0, 3, 0): MVFR0_EL1,
+    (3, 0, 0, 3, 1): MVFR1_EL1,
+    (3, 0, 0, 3, 2): MVFR2_EL1,
+    (3, 0, 0, 3, 4): ID_PFR2_EL1,
+    (3, 0, 0, 3, 6): ID_MMFR5_EL1,
+
+    (3, 0, 0, 4, 0): ID_AA64PFR0_EL1,
+    (3, 0, 0, 4, 1): ID_AA64PFR1_EL1,
+    (3, 0, 0, 4, 4): ID_AA64ZFR0_EL1,
+
+    (3, 0, 0, 5, 0): ID_AA64DFR0_EL1,
+    (3, 0, 0, 5, 1): ID_AA64DFR1_EL1,
+    (3, 0, 0, 5, 4): ID_AA64AFR0_EL1,
+    (3, 0, 0, 5, 5): ID_AA64AFR1_EL1,
+
+    (3, 0, 0, 6, 0): ID_AA64ISAR0_EL1,
+    (3, 0, 0, 6, 1): ID_AA64ISAR1_EL1,
+
+    (3, 0, 0, 7, 0): ID_AA64MMFR0_EL1,
+    (3, 0, 0, 7, 1): ID_AA64MMFR1_EL1,
+    (3, 0, 0, 7, 2): ID_AA64MMFR2_EL1,
+
+    (3, 0, 1, 0, 0): SCRLR_EL1,
+    (3, 0, 1, 0, 1): ACTLR_EL1,
+    (3, 0, 1, 0, 2): CPACR_EL1,
+
+    (3, 0, 1, 2, 0): ZCR_EL1,
+    (3, 0, 1, 2, 1): TRFCR_EL1,
+
+    (3, 0, 2, 0, 0): TTBR0_EL1,
+    (3, 0, 2, 0, 1): TTBR1_EL1,
+    (3, 0, 2, 0, 2): TCR_EL1,
+
+    (3, 0, 2, 1, 0): APIAKeyLo_EL1,
+    (3, 0, 2, 1, 1): APIAKeyHi_EL1,
+    (3, 0, 2, 1, 2): APIBKeyLo_EL1,
+    (3, 0, 2, 1, 3): APIBKeyHi_EL1,
+
+    (3, 0, 2, 2, 0): APDAKeyLo_EL1,
+    (3, 0, 2, 2, 1): APDAKeyHi_EL1,
+    (3, 0, 2, 2, 2): APDBKeyLo_EL1,
+    (3, 0, 2, 2, 3): APDBKeyHi_EL1,
+
+    (3, 0, 2, 3, 0): APGAKeyLo_EL1,
+    (3, 0, 2, 3, 1): APGAKeyHi_EL1,
+    
+    (3, 0, 4, 1, 0): SP_EL0,
+    (3, 0, 4, 6, 0): ICC_PMR_EL1, # Alias ICV_PMR_EL1
+
+    (3, 0, 5, 1, 0): AFSR0_EL1,
+    (3, 0, 5, 1, 1): AFSR1_EL1,
+
+    (3, 0, 5, 2, 0): ESR_EL1,
+
+    (3, 0, 5, 3, 0): ERRIDR_EL1,
+    (3, 0, 5, 3, 1): ERRSELR_EL1,
+
+    (3, 0, 5, 4, 0): ERXFR_EL1,
+    (3, 0, 5, 4, 1): ERXCTLR_EL1,
+    (3, 0, 5, 4, 2): ERXSTATUS_EL1,
+    (3, 0, 5, 4, 3): ERXADDR_EL1,
+    (3, 0, 5, 4, 4): ERXPFGF_EL1,
+    (3, 0, 5, 4, 5): ERXPFGCTL_EL1,
+    (3, 0, 5, 4, 6): ERXPFGCDN_EL1,
+
+    (3, 0, 5, 5, 0): ERXMISC0_EL1,
+    (3, 0, 5, 5, 1): ERXMISC1_EL1,
+    (3, 0, 5, 5, 2): ERXMISC2_EL1,
+    (3, 0, 5, 5, 3): ERXMISC3_EL1,
+
+    (3, 0, 6, 0, 0): FAR_EL1,
+
+    (3, 0, 7, 4, 0): PAR_EL1,
+
+    (3, 0, 9, 9, 0): PMSCR_EL1,
+    (3, 0, 9, 9, 2): PMSICR_EL1,
+    (3, 0, 9, 9, 3): PMSIRR_EL1,
+    (3, 0, 9, 9, 4): PMSFCR_EL1,
+    (3, 0, 9, 9, 5): PMSEVFR_EL1,
+    (3, 0, 9, 9, 6): PMSLATFR_EL1,
+    (3, 0, 9, 9, 7): PMSIDR_EL1,
+
+    (3, 0, 9, 10, 0): PMBLIMITR_EL1,
+    (3, 0, 9, 10, 1): PMBPTR_EL1,
+    (3, 0, 9, 10, 3): PMBSR_EL1,
+    (3, 0, 9, 10, 7): PMBIDR_EL1,
+
+    (3, 0, 9, 14, 1): PMINTENSET_EL1,
+    (3, 0, 9, 14, 2): PMINTENCLR_EL1,
+    (3, 0, 9, 14, 6): PMMIR_EL1,
+
+    (3, 0, 10, 2, 0): MAIR_EL1,
+
+    (3, 0, 10, 3, 0): AMAIR_EL1,
+
+    (3, 0, 10, 4, 0): LORSA_EL1,
+    (3, 0, 10, 4, 1): LOREA_EL1,
+    (3, 0, 10, 4, 2): LORN_EL1,
+    (3, 0, 10, 4, 3): LORC_EL1,
+    (3, 0, 10, 4, 7): LORID_EL1,
+
+    (3, 0, 12, 0, 0): VBAR_EL1,
+    (3, 0, 12, 0, 1): RVBAR_EL1,
+    (3, 0, 12, 0, 2): RMR_EL1,
+
+    (3, 0, 12, 1, 0): ISR_EL1,
+    (3, 0, 12, 1, 1): DISR_EL1,
+
+    (3, 0, 12, 8, 0): ICC_IAR0_EL1,   # Alias ICV_IAR0_EL1
+    (3, 0, 12, 8, 1): ICC_EOIR0_EL1,  # Alias ICV_EOIR0_EL1
+    (3, 0, 12, 8, 2): ICC_HPPIR0_EL1, # Alias ICV_HPPIR0_EL1
+    (3, 0, 12, 8, 3): ICC_BPR0_EL1,   # Alias ICV_BPR0_EL1
+    (3, 0, 12, 8, 4): ICC_AP0R0_EL1,  # Alias ICV_AP0R0_EL1
+    (3, 0, 12, 8, 5): ICC_AP0R1_EL1,  # Alias ICV_AP0R1_EL1
+    (3, 0, 12, 8, 6): ICC_AP0R2_EL1,  # Alias ICV_AP0R2_EL1
+    (3, 0, 12, 8, 7): ICC_AP0R3_EL1,  # Alias ICV_AP0R3_EL1
+
+    (3, 0, 12, 9, 0): ICC_AP1R0_EL1,  # Alias ICV_AP1R0_EL1
+    (3, 0, 12, 9, 1): ICC_AP1R1_EL1,  # Alias ICV_AP1R1_EL1
+    (3, 0, 12, 9, 2): ICC_AP1R2_EL1,  # Alias ICV_AP1R2_EL1
+    (3, 0, 12, 9, 3): ICC_AP1R3_EL1,  # Alias ICV_AP1R3_EL1
+
+    (3, 0, 12, 11, 1): ICC_DIR_EL1,  # Alias ICV_DIR_EL1
+    (3, 0, 12, 11, 3): ICC_RPR_EL1,  # Alias ICV_RPR_EL1
+    (3, 0, 12, 11, 5): ICC_SGI1R_EL1,
+    (3, 0, 12, 11, 6): ICC_ASGI1R_EL1,
+    (3, 0, 12, 11, 7): ICC_SGI0R_EL1,
+
+    (3, 0, 12, 12, 0): ICC_IAR1_EL1,   # Alias ICV_IAR1_EL1
+    (3, 0, 12, 12, 1): ICC_EOIR1_EL1,  # Alias ICV_EOIR1_EL1
+    (3, 0, 12, 12, 2): ICC_HPPIR1_EL1, # Alias ICV_HPPIR1_EL1
+    (3, 0, 12, 12, 3): ICC_BPR1_EL1,   # Alias ICV_BPR1_EL1
+    (3, 0, 12, 12, 4): ICC_CTLR_EL1,   # Alias ICV_CTLR_EL1
+    (3, 0, 12, 12, 5): ICC_SRE_EL1,
+    (3, 0, 12, 12, 6): ICC_IGRPEN0_EL1,  # Alias ICV_IGRPEN0_EL1
+    (3, 0, 12, 12, 7): ICC_IGRPEN1_EL1,  # Alias ICV_IGRPEN1_EL1
+
+    (3, 0, 13, 0, 1): CONTEXTIDR_EL1,
+    (3, 0, 13, 0, 4): TPIDR_EL1,
+
+    (3, 0, 14, 1, 0): CNTKCTL_EL1,
+
+    (3, 1, 0, 0, 0): CCSIDR_EL1,
+    (3, 1, 0, 0, 1): CLIDR_EL1,
+    (3, 1, 0, 0, 2): CCSIDR2_EL1,
+    (3, 1, 0, 0, 7): AIDR_EL1,
+
+    (3, 2, 0, 0, 0): CSSELR_EL1,
+    (3, 0, 0, 0, 1): CTR_EL0,
+
+    (3, 3, 0, 0, 7): DCZID_EL0,
+    
+    (3, 3, 4, 4, 0): FPCR,
+    (3, 3, 4, 4, 1): FPSR,
+
+    (3, 3, 4, 5, 0): DSPSR_EL0,
+    (3, 3, 4, 5, 1): DLR_EL0,
+
+    (3, 4, 4, 0, 0): SPSR_EL2,
+    (3, 4 ,4, 0, 1): ELR_EL2,
+
+    (3, 4, 4, 1, 0): SP_EL1,
+
+    (3, 4, 4, 3, 0): SPSR_irq,
+    (3, 4, 4, 3, 1): SPSR_abt,
+    (3, 4, 4, 3, 2): SPSR_und,
+    (3, 4, 4, 3, 3): SPSR_fiq,
+
+    (3, 3, 9, 12, 0): PMCR_EL0,
+    (3, 3, 9, 12, 1): PMCNTENSET_EL0,
+    (3, 3, 9, 12, 2): PMCNTENCLR_EL0,
+    (3, 3, 9, 12, 3): PMOVSCLR_EL0,
+    (3, 3, 9, 12, 4): PMSWINC_EL0,
+    (3, 3, 9, 12, 5): PMSELR_EL0,
+    (3, 3, 9, 12, 6): PMCEID0_EL0,
+    (3, 3, 9, 12, 7): PMCEID1_EL0,
+
+    (3, 3, 9, 13, 0): PMCCNTR_EL0,
+    (3, 3, 9, 13, 1): PMXEVTYPER_EL0,
+    (3, 3, 9, 13, 2): PMXEVCNTR_EL0,
+
+    (3, 3, 9, 14, 0): PMUSERENR_EL0,
+    (3, 3, 9, 14, 3): PMOVSSET_EL0,
+
+    (3, 3, 13, 0, 2): TPIDR_EL0,
+    (3, 3, 13, 0, 3): TPIDRRO_EL0,
+
+    (3, 3, 13, 2, 0): AMCR_EL0,
+    (3, 3, 13, 2, 1): AMCFGR_EL0,
+    (3, 3, 13, 2, 2): AMCGCR_EL0,
+    (3, 3, 13, 2, 3): AMUSERENR_EL0,
+    (3, 3, 13, 2, 4): AMCNTENCLR0_EL0,
+    (3, 3, 13, 2, 5): AMCNTENSET0_EL0,
+    (3, 3, 13, 2, 6): AMCG1IDR_EL0,
+
+    (3, 3, 13, 3, 0): AMCNTENCLR1_EL0,
+    (3, 3, 13, 3, 1): AMCNTENSET1_EL0,
+
+    (3, 3, 13, 4, 0): AMEVCNTR00_EL0,
+    (3, 3, 13, 4, 1): AMEVCNTR01_EL0,
+    (3, 3, 13, 4, 2): AMEVCNTR02_EL0,
+    (3, 3, 13, 4, 3): AMEVCNTR03_EL0,
+    (3, 3, 13, 4, 4): AMEVCNTR04_EL0,
+    (3, 3, 13, 4, 5): AMEVCNTR05_EL0,
+    (3, 3, 13, 4, 6): AMEVCNTR06_EL0,
+    (3, 3, 13, 4, 7): AMEVCNTR07_EL0,
+
+    (3, 3, 13, 5, 0): AMEVCNTR08_EL0,
+    (3, 3, 13, 5, 1): AMEVCNTR09_EL0,
+    (3, 3, 13, 5, 2): AMEVCNTR010_EL0,
+    (3, 3, 13, 5, 3): AMEVCNTR011_EL0,
+    (3, 3, 13, 5, 4): AMEVCNTR012_EL0,
+    (3, 3, 13, 5, 5): AMEVCNTR013_EL0,
+    (3, 3, 13, 5, 6): AMEVCNTR014_EL0,
+    (3, 3, 13, 5, 7): AMEVCNTR015_EL0,
+
+    (3, 3, 13, 6, 0): AMEVTYPER00_EL0,
+    (3, 3, 13, 6, 1): AMEVTYPER01_EL0,
+    (3, 3, 13, 6, 2): AMEVTYPER02_EL0,
+    (3, 3, 13, 6, 3): AMEVTYPER03_EL0,
+    (3, 3, 13, 6, 4): AMEVTYPER04_EL0,
+    (3, 3, 13, 6, 5): AMEVTYPER05_EL0,
+    (3, 3, 13, 6, 6): AMEVTYPER06_EL0,
+    (3, 3, 13, 6, 7): AMEVTYPER07_EL0,
+
+    (3, 3, 13, 7, 0): AMEVTYPER08_EL0,
+    (3, 3, 13, 7, 1): AMEVTYPER09_EL0,
+    (3, 3, 13, 7, 2): AMEVTYPER010_EL0,
+    (3, 3, 13, 7, 3): AMEVTYPER011_EL0,
+    (3, 3, 13, 7, 4): AMEVTYPER012_EL0,
+    (3, 3, 13, 7, 5): AMEVTYPER013_EL0,
+    (3, 3, 13, 7, 6): AMEVTYPER014_EL0,
+    (3, 3, 13, 7, 7): AMEVTYPER015_EL0,
+
+    (3, 3, 13, 12, 0): AMEVCNTR10_EL0,
+    (3, 3, 13, 12, 1): AMEVCNTR11_EL0,
+    (3, 3, 13, 12, 2): AMEVCNTR12_EL0,
+    (3, 3, 13, 12, 3): AMEVCNTR13_EL0,
+    (3, 3, 13, 12, 4): AMEVCNTR14_EL0,
+    (3, 3, 13, 12, 5): AMEVCNTR15_EL0,
+    (3, 3, 13, 12, 6): AMEVCNTR16_EL0,
+    (3, 3, 13, 12, 7): AMEVCNTR17_EL0,
+
+    (3, 3, 13, 13, 0): AMEVCNTR18_EL0,
+    (3, 3, 13, 13, 1): AMEVCNTR19_EL0,
+    (3, 3, 13, 13, 2): AMEVCNTR110_EL0,
+    (3, 3, 13, 13, 3): AMEVCNTR111_EL0,
+    (3, 3, 13, 13, 4): AMEVCNTR112_EL0,
+    (3, 3, 13, 13, 5): AMEVCNTR113_EL0,
+    (3, 3, 13, 13, 6): AMEVCNTR114_EL0,
+    (3, 3, 13, 13, 7): AMEVCNTR115_EL0,
+
+    (3, 3, 13, 14, 0): AMEVTYPER10_EL0,
+    (3, 3, 13, 14, 1): AMEVTYPER11_EL0,
+    (3, 3, 13, 14, 2): AMEVTYPER12_EL0,
+    (3, 3, 13, 14, 3): AMEVTYPER13_EL0,
+    (3, 3, 13, 14, 4): AMEVTYPER14_EL0,
+    (3, 3, 13, 14, 5): AMEVTYPER15_EL0,
+    (3, 3, 13, 14, 6): AMEVTYPER16_EL0,
+    (3, 3, 13, 14, 7): AMEVTYPER17_EL0,
+
+    (3, 3, 13, 15, 0): AMEVTYPER18_EL0,
+    (3, 3, 13, 15, 1): AMEVTYPER19_EL0,
+    (3, 3, 13, 15, 2): AMEVTYPER110_EL0,
+    (3, 3, 13, 15, 3): AMEVTYPER111_EL0,
+    (3, 3, 13, 15, 4): AMEVTYPER112_EL0,
+    (3, 3, 13, 15, 5): AMEVTYPER113_EL0,
+    (3, 3, 13, 15, 6): AMEVTYPER114_EL0,
+    (3, 3, 13, 15, 7): AMEVTYPER115_EL0,
+
+    (3, 3, 14, 0, 0): CNTFRQ_EL0,
+    (3, 3, 14, 0, 1): CNTPCT_EL0,
+    (3, 3, 14, 0, 2): CNTVCT_EL0,
+    (3, 3, 14, 0, 5): CNTPCTSS_EL0,
+    (3, 3, 14, 0, 6): CNTVCTSS_EL0,
+
+    (3, 3, 14, 2, 0): CNTP_TVAL_EL0,
+    (3, 3, 14, 2, 1): CNTP_CTL_EL0,
+    (3, 3, 14, 2, 2): CNTP_CVAL_EL0,
+
+    (3, 3, 14, 3, 0): CNTV_TVAL_EL0,
+    (3, 3, 14, 3, 1): CNTV_CTL_EL0,
+    (3, 3, 14, 3, 2): CNTV_CVAL_EL0,
+
+    (3, 3, 14, 8, 0): PMEVCNTR0_EL0,
+    (3, 3, 14, 8, 1): PMEVCNTR1_EL0,
+    (3, 3, 14, 8, 2): PMEVCNTR2_EL0,
+    (3, 3, 14, 8, 3): PMEVCNTR3_EL0,
+    (3, 3, 14, 8, 4): PMEVCNTR4_EL0,
+    (3, 3, 14, 8, 5): PMEVCNTR5_EL0,
+    (3, 3, 14, 8, 6): PMEVCNTR6_EL0,
+    (3, 3, 14, 8, 7): PMEVCNTR7_EL0,
+
+    (3, 3, 14, 9, 0): PMEVCNTR8_EL0,
+    (3, 3, 14, 9, 1): PMEVCNTR9_EL0,
+    (3, 3, 14, 9, 2): PMEVCNTR10_EL0,
+    (3, 3, 14, 9, 3): PMEVCNTR11_EL0,
+    (3, 3, 14, 9, 4): PMEVCNTR12_EL0,
+    (3, 3, 14, 9, 5): PMEVCNTR13_EL0,
+    (3, 3, 14, 9, 6): PMEVCNTR14_EL0,
+    (3, 3, 14, 9, 7): PMEVCNTR15_EL0,
+
+    (3, 3, 14, 10, 0): PMEVCNTR16_EL0,
+    (3, 3, 14, 10, 1): PMEVCNTR17_EL0,
+    (3, 3, 14, 10, 2): PMEVCNTR18_EL0,
+    (3, 3, 14, 10, 3): PMEVCNTR19_EL0,
+    (3, 3, 14, 10, 4): PMEVCNTR20_EL0,
+    (3, 3, 14, 10, 5): PMEVCNTR21_EL0,
+    (3, 3, 14, 10, 6): PMEVCNTR22_EL0,
+    (3, 3, 14, 10, 7): PMEVCNTR23_EL0,
+
+    (3, 3, 14, 11, 0): PMEVCNTR24_EL0,
+    (3, 3, 14, 11, 1): PMEVCNTR25_EL0,
+    (3, 3, 14, 11, 2): PMEVCNTR26_EL0,
+    (3, 3, 14, 11, 3): PMEVCNTR27_EL0,
+    (3, 3, 14, 11, 4): PMEVCNTR28_EL0,
+    (3, 3, 14, 11, 5): PMEVCNTR29_EL0,
+    (3, 3, 14, 11, 6): PMEVCNTR30_EL0,
+
+    (3, 3, 14, 12, 0): PMEVTYPER0_EL0,
+    (3, 3, 14, 12, 1): PMEVTYPER1_EL0,
+    (3, 3, 14, 12, 2): PMEVTYPER2_EL0,
+    (3, 3, 14, 12, 3): PMEVTYPER3_EL0,
+    (3, 3, 14, 12, 4): PMEVTYPER4_EL0,
+    (3, 3, 14, 12, 5): PMEVTYPER5_EL0,
+    (3, 3, 14, 12, 6): PMEVTYPER6_EL0,
+    (3, 3, 14, 12, 7): PMEVTYPER7_EL0,
+
+    (3, 3, 14, 13, 0): PMEVTYPER8_EL0,
+    (3, 3, 14, 13, 1): PMEVTYPER9_EL0,
+    (3, 3, 14, 13, 2): PMEVTYPER10_EL0,
+    (3, 3, 14, 13, 3): PMEVTYPER11_EL0,
+    (3, 3, 14, 13, 4): PMEVTYPER12_EL0,
+    (3, 3, 14, 13, 5): PMEVTYPER13_EL0,
+    (3, 3, 14, 13, 6): PMEVTYPER14_EL0,
+    (3, 3, 14, 13, 7): PMEVTYPER15_EL0,
+
+    (3, 3, 14, 14, 0): PMEVTYPER16_EL0,
+    (3, 3, 14, 14, 1): PMEVTYPER17_EL0,
+    (3, 3, 14, 14, 2): PMEVTYPER18_EL0,
+    (3, 3, 14, 14, 3): PMEVTYPER19_EL0,
+    (3, 3, 14, 14, 4): PMEVTYPER20_EL0,
+    (3, 3, 14, 14, 5): PMEVTYPER21_EL0,
+    (3, 3, 14, 14, 6): PMEVTYPER22_EL0,
+    (3, 3, 14, 14, 7): PMEVTYPER23_EL0,
+
+    (3, 3, 14, 15, 0): PMEVTYPER24_EL0,
+    (3, 3, 14, 15, 1): PMEVTYPER25_EL0,
+    (3, 3, 14, 15, 2): PMEVTYPER26_EL0,
+    (3, 3, 14, 15, 3): PMEVTYPER27_EL0,
+    (3, 3, 14, 15, 4): PMEVTYPER28_EL0,
+    (3, 3, 14, 15, 5): PMEVTYPER29_EL0,
+    (3, 3, 14, 15, 6): PMEVTYPER30_EL0,
+    (3, 3, 14, 15, 7): PMCCFILTR_EL0,
+
+    (3, 4, 0, 0, 0): VPIDR_EL2,
+    (3, 4, 0, 0, 5): VMPIDR_EL2,
+
+    (3, 4, 1, 0, 0): SCTLR_EL2,
+    (3, 4, 1, 0, 5): ACTLR_EL2,
+
+    (3, 4, 1, 1, 0): HCR_EL2,
+    (3, 4, 1, 1, 1): MDCR_EL2,
+    (3, 4, 1, 1, 2): CPTR_EL2,
+    (3, 4, 1, 1, 3): HSTR_EL2,
+    (3, 4, 1, 1, 4): HFGRTR_EL2,
+    (3, 4, 1, 1, 5): HFGWTR_EL2,
+    (3, 4, 1, 1, 6): HFGITR_EL2,
+    (3, 4, 1, 1, 7): HACR_EL2,
+
+    (3, 4, 1, 2, 0): ZCR_EL2,
+
+    (3, 4, 1, 2, 1): TRFCR_EL2,
+
+    (3, 4, 1, 3, 1): SDER32_EL2,
+
+    (3, 4, 2, 0, 0): TTBR0_EL2,
+    (3, 4, 2, 0, 2): TCR_EL2,
+
+    (3, 4, 2, 1, 0): VTTBR_EL2,
+    (3, 4, 2, 1, 2): VTCR_EL2,
+
+    (3, 4, 2, 2, 0): VNCR_EL2,
+
+    (3, 4, 2, 6, 0): VSTTBR_EL2,
+    (3, 4, 2, 6, 2): VSTCR_EL2,
+
+    (3, 4, 3, 0, 0): DACR32_EL2,
+
+    (3, 4, 3, 1, 4): HDFGRTR_EL2,
+    (3, 4, 3, 1, 5): HDFGWTR_EL2,
+    (3, 4, 3, 1, 6): HAFGRTR_EL2,
+
+    (3, 4, 5, 0, 1): IFSR32_EL2,
+
+    (3, 4, 5, 1, 0): AFSR0_EL2,
+    (3, 4, 5, 1, 1): AFSR1_EL2,
+
+    (3, 4, 5, 2, 0): ESR_EL2,
+    (3, 4, 5, 2, 3): VSESR_EL2,
+
+    (3, 4, 5, 3, 0): FPEXC32_EL2,
+
+    (3, 4, 6, 0, 0): FAR_EL2,
+    (3, 4, 6, 0, 4): HPFAR_EL2,
+
+    (3, 4, 9, 9, 0): PMSCR_EL2,
+
+    (3, 4, 10, 2, 0): MAIR_EL2,
+
+    (3, 4, 10, 3, 0): AMAIR_EL2,
+
+    (3, 4, 12, 0, 0): VBAR_EL2,
+    (3, 4, 12, 0, 1): RVBAR_EL2,
+    (3, 4, 12, 0, 2): RMR_EL2,
+
+    (3, 4, 12, 1, 1): VDISR_EL2,
+
+    (3, 4, 12, 8, 0): ICH_AP0R0_EL2,
+    (3, 4, 12, 8, 1): ICH_AP0R1_EL2,
+    (3, 4, 12, 8, 2): ICH_AP0R2_EL2,
+    (3, 4, 12, 8, 3): ICH_AP0R3_EL2,
+
+    (3, 4, 12, 9, 0): ICH_AP1R0_EL2,
+    (3, 4, 12, 9, 1): ICH_AP1R1_EL2,
+    (3, 4, 12, 9, 2): ICH_AP1R2_EL2,
+    (3, 4, 12, 9, 3): ICH_AP1R3_EL2,
+    (3, 4, 12, 9, 5): ICC_SRE_EL2,
+
+    (3, 4, 12, 11, 0): ICH_HCR_EL2,
+    (3, 4, 12, 11, 1): ICH_VTR_EL2,
+    (3, 4, 12, 11, 2): ICH_MISR_EL2,
+    (3, 4, 12, 11, 3): ICH_EISR_EL2,
+    (3, 4, 12, 11, 5): ICH_ELRSR_EL2,
+    (3, 4, 12, 11, 7): ICH_VMCR_EL2,
+
+    (3, 4, 12, 12, 0): ICH_LR0_EL2,
+    (3, 4, 12, 12, 1): ICH_LR1_EL2,
+    (3, 4, 12, 12, 2): ICH_LR2_EL2,
+    (3, 4, 12, 12, 3): ICH_LR3_EL2,
+    (3, 4, 12, 12, 4): ICH_LR4_EL2,
+    (3, 4, 12, 12, 5): ICH_LR5_EL2,
+    (3, 4, 12, 12, 6): ICH_LR6_EL2,
+    (3, 4, 12, 12, 7): ICH_LR7_EL2,
+
+    (3, 4, 12, 13, 0): ICH_LR8_EL2,
+    (3, 4, 12, 13, 1): ICH_LR9_EL2,
+    (3, 4, 12, 13, 2): ICH_LR10_EL2,
+    (3, 4, 12, 13, 3): ICH_LR11_EL2,
+    (3, 4, 12, 13, 4): ICH_LR12_EL2,
+    (3, 4, 12, 13, 5): ICH_LR13_EL2,
+    (3, 4, 12, 13, 6): ICH_LR14_EL2,
+    (3, 4, 12, 13, 7): ICH_LR15_EL2,
+
+    (3, 4, 13, 0, 1): CONTEXTIDR_EL2,
+    (3, 4, 13, 0, 2): TPIDR_EL2,
+
+    (3, 4, 13, 8, 0): AMEVCNTVOFF00_EL2,
+    (3, 4, 13, 8, 1): AMEVCNTVOFF01_EL2,
+    (3, 4, 13, 8, 2): AMEVCNTVOFF02_EL2,
+    (3, 4, 13, 8, 3): AMEVCNTVOFF03_EL2,
+    (3, 4, 13, 8, 4): AMEVCNTVOFF04_EL2,
+    (3, 4, 13, 8, 5): AMEVCNTVOFF05_EL2,
+    (3, 4, 13, 8, 6): AMEVCNTVOFF06_EL2,
+    (3, 4, 13, 8, 7): AMEVCNTVOFF07_EL2,
+
+    (3, 4, 13, 9, 0): AMEVCNTVOFF08_EL2,
+    (3, 4, 13, 9, 1): AMEVCNTVOFF09_EL2,
+    (3, 4, 13, 9, 2): AMEVCNTVOFF010_EL2,
+    (3, 4, 13, 9, 3): AMEVCNTVOFF011_EL2,
+    (3, 4, 13, 9, 4): AMEVCNTVOFF012_EL2,
+    (3, 4, 13, 9, 5): AMEVCNTVOFF013_EL2,
+    (3, 4, 13, 9, 6): AMEVCNTVOFF014_EL2,
+    (3, 4, 13, 9, 7): AMEVCNTVOFF015_EL2,
+
+    (3, 4, 13, 10, 0): AMEVCNTVOFF10_EL2,
+    (3, 4, 13, 10, 1): AMEVCNTVOFF11_EL2,
+    (3, 4, 13, 10, 2): AMEVCNTVOFF12_EL2,
+    (3, 4, 13, 10, 3): AMEVCNTVOFF13_EL2,
+    (3, 4, 13, 10, 4): AMEVCNTVOFF14_EL2,
+    (3, 4, 13, 10, 5): AMEVCNTVOFF15_EL2,
+    (3, 4, 13, 10, 6): AMEVCNTVOFF16_EL2,
+    (3, 4, 13, 10, 7): AMEVCNTVOFF17_EL2,
+
+    (3, 4, 13, 11, 0): AMEVCNTVOFF18_EL2,
+    (3, 4, 13, 11, 1): AMEVCNTVOFF19_EL2,
+    (3, 4, 13, 11, 2): AMEVCNTVOFF110_EL2,
+    (3, 4, 13, 11, 3): AMEVCNTVOFF111_EL2,
+    (3, 4, 13, 11, 4): AMEVCNTVOFF112_EL2,
+    (3, 4, 13, 11, 5): AMEVCNTVOFF113_EL2,
+    (3, 4, 13, 11, 6): AMEVCNTVOFF114_EL2,
+    (3, 4, 13, 11, 7): AMEVCNTVOFF115_EL2,
+
+    (3, 4, 14, 0, 3): CNTVOFF_EL2,
+    (3, 4, 14, 0, 6): CNTPOFF_EL2,
+
+    (3, 4, 14, 1, 0): CNTHCTL_EL2,
+
+    (3, 4, 14, 2, 0): CNTHP_TVAL_EL2,
+    (3, 4, 14, 2, 1): CNTHP_CTL_EL2,
+    (3, 4, 14, 2, 2): CNTHP_CVAL_EL2,
+
+    (3, 4, 14, 3, 0): CNTHV_TVAL_EL2,
+    (3, 4, 14, 3, 1): CNTHV_CTL_EL2,
+    (3, 4, 14, 3, 2): CNTHV_CVAL_EL2,
+
+    (3, 4, 14, 4, 0): CNTHVS_TVAL_EL2,
+    (3, 4, 14, 4, 1): CNTHVS_CTL_EL2,
+    (3, 4, 14, 4, 2): CNTHVS_CVAL_EL2,
+
+    (3, 4, 14, 5, 0): CNTHPS_TVAL_EL2,
+    (3, 4, 14, 5, 1): CNTHPS_CTL_EL2,
+    (3, 4, 14, 5, 2): CNTHPS_CVAL_EL2,
+
+    # Aliases for *_EL02 *_EL12
+    # see page 2864 of "Arm Architecture Reference Manual Armv8,
+    # for Armv8-A architecture profile" Release 31 March 2020
+    (3, 5, 1, 0, 0): SCTLR_EL1,
+    (3, 5, 1, 0, 2): CPACR_EL1,
+
+    (3, 5, 1, 2, 0): ZCR_EL1,
+    (3, 5, 1, 2, 1): TRFCR_EL1,
+
+    (3, 5, 2, 0, 0): TTBR0_EL1,
+    (3, 5, 2, 0, 1): TTBR1_EL1,
+    (3, 5, 2, 0, 2): TCR_EL1,
+
+    (3, 5, 4, 0, 0): SPSR_EL1,
+    (3, 5, 4, 0, 1): ELR_EL1,
+
+    (3, 5, 5, 1, 0): AFSR0_EL1,
+    (3, 5, 5, 1, 1): AFSR1_EL1,
+
+    (3, 5, 5, 2, 0): ESR_EL1,
+
+    (3, 5, 6, 0, 0): FAR_EL1,
+
+    (3, 5, 9, 9, 0): PMSCR_EL1,
+
+    (3, 5, 10, 2, 0): MAIR_EL1,
+
+    (3, 5, 10, 3, 0): AMAIR_EL1,
+
+    (3, 5, 12, 0, 0): VBAR_EL1,
+
+    (3, 5, 13, 0, 0): CONTEXTIDR_EL1,
+
+    (3, 5, 14, 1, 0): CNTKCTL_EL1,
+
+    (3, 5, 14, 2, 0): CNTP_TVAL_EL0,
+    (3, 5, 14, 2, 1): CNTP_CTL_EL0,
+    (3, 5, 14, 2, 2): CNTP_CVAL_EL0,
+
+    (3, 5, 14, 3, 0): CNTV_TVAL_EL0,
+    (3, 5, 14, 3, 1): CNTV_CTL_EL0,
+    (3, 5, 14, 3, 2): CNTV_CVAL_EL0,
+    # End of aliases
+
+    (3, 6, 1, 0, 0): SCTLR_EL3,
+    (3, 6, 1, 0, 1): ACTLR_EL3,
+
+    (3, 6, 1, 1, 0): SCR_EL3,
+    (3, 6, 1, 1, 1): SDER32_EL3,
+    (3, 6, 1, 1, 2): CPTR_EL3,
+
+    (3, 6, 1, 2, 0): ZCR_EL3,
+
+    (3, 6, 1, 3, 1): MDCR_EL3,
+
+    (3, 6, 2, 0, 0): TTBR0_EL3,
+    (3, 6, 2, 0, 2): TCR_EL3,
+
+    (3, 6, 4, 0, 0): SPSR_EL3,
+    (3, 6, 4, 0, 1): ELR_EL3,
+
+    (3, 6, 4, 1, 0): SP_EL2,
+
+    (3, 6, 5, 1, 0): AFSR0_EL3,
+    (3, 6, 5, 1, 1): AFSR1_EL3,
+
+    (3, 6, 5, 2, 0): ESR_EL3,
+
+    (3, 6, 6, 0, 0): FAR_EL3,
+
+    (3, 6, 10, 2, 0): MAIR_EL3,
+
+    (3, 6, 10, 3, 0): AMAIR_EL3,
+
+    (3, 6, 12, 0, 0): VBAR_EL3,
+    (3, 6, 12, 0, 1): RVBAR_EL3,
+    (3, 6, 12, 0, 2): RMR_EL3,
+
+    (3, 6, 12, 12, 4): ICC_CTLR_EL3,
+    (3, 6, 12, 12, 5): ICC_SRE_EL3,
+    (3, 6, 12, 12, 7): ICC_IGRPEN1_EL3,
+
+    (3, 6, 13, 0, 2): TPIDR_EL3,
+
+    (3, 7, 14, 2, 0): CNTPS_TVAL_EL1,
+    (3, 7, 14, 2, 1): CNTPS_CTL_EL1,
+    (3, 7, 14, 2, 2): CNTPS_CVAL_EL1,
+}
 
 # CPSR: N Z C V
 
@@ -746,9 +1473,9 @@ def bfm(ir, instr, arg1, arg2, arg3, arg4):
 
 
 
-def mrs(ir, insr, arg1, arg2, arg3, arg4, arg5):
+def mrs(ir, insr, arg1, arg2, arg3, arg4, arg5, arg6):
     e = []
-    if arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
+    if arg2.is_int(3) and arg3.is_int(3) and arg4.is_id("c4") and arg5.is_id("c2") and arg6.is_int(0):
         out = []
         out.append(ExprInt(0x0, 28))
         out.append(of)
@@ -756,20 +1483,110 @@ def mrs(ir, insr, arg1, arg2, arg3, arg4, arg5):
         out.append(zf)
         out.append(nf)
         e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(7):
+        out = []
+        out.append(ExprInt(0x0, 38))
+        out.append(tco)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
+        out = []
+        out.append(ExprInt(0x0, 39))
+        out.append(dit)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(4):
+        out = []
+        out.append(ExprInt(0x0, 40))
+        out.append(uao)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(3):
+        out = []
+        out.append(ExprInt(0x0, 41))
+        out.append(pan)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(6):
+        out = []
+        out.append(ExprInt(0x0, 51))
+        out.append(ssbs)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(1):
+        out = []
+        out.append(ExprInt(0x0, 54))
+        out.append(df)
+        out.append(af)
+        out.append(iff)
+        out.append(ff)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(2):
+        out = []
+        out.append(ExprInt(0x0, 60))
+        out.append(cur_el)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
+        out = []
+        out.append(ExprInt(0x0, 63))
+        out.append(spsel)
+        e.append(ExprAssign(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+
     else:
-        raise NotImplementedError("MRS not implemented")
+        sreg = (int(arg2), int(arg3), int(str(arg4)[1:]), int(str(arg5)[1:]), int(arg6))
+        if sreg in system_regs:
+            e.append(ExprAssign(arg1, system_regs[sreg]))
+        else:
+            raise NotImplementedError("Unknown system register: %d %d %s %s %d" % (int(arg2), int(arg3), str(arg4), str(arg5), int(arg6)))
+
     return e, []
 
-def msr(ir, instr, arg1, arg2, arg3, arg4, arg5):
+def msr(ir, instr, arg1, arg2, arg3, arg4, arg5, arg6):
 
     e = []
-    if arg1.is_int(3) and arg2.is_id("c4") and arg3.is_id("c2") and arg4.is_int(0):
-        e.append(ExprAssign(nf, arg5[31:32]))
-        e.append(ExprAssign(zf, arg5[30:31]))
-        e.append(ExprAssign(cf, arg5[29:30]))
-        e.append(ExprAssign(of, arg5[28:29]))
+    if arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
+        e.append(ExprAssign(nf, arg6[31:32]))
+        e.append(ExprAssign(zf, arg6[30:31]))
+        e.append(ExprAssign(cf, arg6[29:30]))
+        e.append(ExprAssign(of, arg6[28:29]))
+    
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(7):
+        e.append(ExprAssign(tco, arg6[25:26]))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
+        e.append(ExprAssign(dit, arg6[24:25]))
+    
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(4):
+        e.append(ExprAssign(uao, arg6[23:24]))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(3):
+        e.append(ExprAssign(pan, arg6[22:23]))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(6):
+        e.append(ExprAssign(ssbs, arg6[12:13]))
+
+    elif arg1.is_int(3) and arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(1):
+        e.append(ExprAssign(df, arg6[9:10]))
+        e.append(ExprAssign(af, arg6[8:9]))
+        e.append(ExprAssign(iff, arg6[7:8]))
+        e.append(ExprAssign(ff, arg6[6:7]))
+    
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(2):
+        e.append(ExprAssign(cur_el, arg6[2:4]))
+
+    elif arg1.is_int(3) and arg2.is_int(0) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
+        e.append(ExprAssign(spsel, arg6[0:1]))
+
     else:
-        raise NotImplementedError("MSR not implemented")
+        sreg = (int(arg1), int(arg2), int(str(arg3)[1:]), int(str(arg4)[1:]), int(arg5))
+        if sreg in system_regs:
+            e.append(ExprAssign(system_regs[sreg], arg6))
+        else:
+            raise NotImplementedError("Unknown system register: %d %d %s %s %d" % (int(arg1), int(arg2), str(arg3), str(arg4), int(arg5)))
+
     return e, []
 
 
