@@ -86,6 +86,7 @@ class ExpressionSimplifier(ExprVisitorCallbackBottomToTop):
             simplifications_common.simp_cond_logic_ext,
             simplifications_common.simp_cond_sign_bit,
             simplifications_common.simp_cond_eq_1_0,
+            simplifications_common.simp_cond_cc_flag,
         ],
         m2_expr.ExprMem: [simplifications_common.simp_mem],
 

@@ -784,6 +784,31 @@ to_test = [
         ExprOp(TOK_EQUAL, a, i0)
     ),
 
+
+    (
+        ExprCond(
+            ExprOp("CC_U<", a[0:1]),
+            b, c
+        ),
+        ExprCond(
+            a[0:1],
+            b, c
+        ),
+    ),
+
+    (
+        ExprCond(
+            ExprOp("CC_U>=", a[0:1]),
+            b, c
+        ),
+        ExprCond(
+            a[0:1],
+            c, b
+        ),
+    ),
+
+
+
 ]
 
 for e_input, e_check in to_test:
