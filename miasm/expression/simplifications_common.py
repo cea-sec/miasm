@@ -919,6 +919,26 @@ def simp_sub_cf_zero(_, expr):
         return expr
     return ExprCond(expr.args[1], ExprInt(1, 1), ExprInt(0, 1))
 
+def simp_cond_cc_flag(expr_simp, expr):
+    """
+    ExprCond(CC_><(bit), X, Y) => ExprCond(bit, X, Y)
+    ExprCond(CC_U>=(bit), X, Y) => ExprCond(bit, Y, X)
+    """
+    if not expr.is_cond():
+        return expr
+    if not expr.cond.is_op():
+        return expr
+    expr_op = expr.cond
+    if expr_op.op not in ["CC_U<", "CC_U>="]:
+        return expr
+    arg = expr_op.args[0]
+    if arg.size != 1:
+        return expr
+    if expr_op.op == "CC_U<":
+        return ExprCond(arg, expr.src1, expr.src2)
+    if expr_op.op == "CC_U>=":
+        return ExprCond(arg, expr.src2, expr.src1)
+    return expr
 
 def simp_cmp_int(expr_simp, expr):
     """
