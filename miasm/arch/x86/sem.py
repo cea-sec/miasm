@@ -407,6 +407,7 @@ def gen_cmov(ir, instr, cond, dst, src, mov_if):
     e_do, extra_irs = mov(ir, instr, dst, src)
     e_do.append(m2_expr.ExprAssign(ir.IRDst, loc_skip_expr))
     e.append(m2_expr.ExprAssign(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
+    e += set_float_cs_eip(instr)
     return e, [IRBlock(loc_do, [AssignBlock(e_do, instr)])]
 
 
