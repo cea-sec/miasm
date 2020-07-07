@@ -258,11 +258,12 @@ class DSEEngine(object):
 
         # lambda cannot contain statement
         def default_func(dse):
-            fname = b"%s_symb" % force_bytes(libimp.fad2cname[dse.jitter.pc])
+            fname = libimp.fad2cname[dse.jitter.pc]
+            fname = b"%s_symb" % force_bytes(str(fname))
             raise RuntimeError("Symbolic stub '%s' not found" % fname)
 
         for addr, fname in viewitems(libimp.fad2cname):
-            fname = force_bytes(fname)
+            fname = force_bytes(str(fname))
             fname = b"%s_symb" % fname
             func = namespace.get(fname, None)
             if func is not None:
