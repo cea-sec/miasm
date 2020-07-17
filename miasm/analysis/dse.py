@@ -250,7 +250,7 @@ class DSEEngine(object):
     def add_lib_handler(self, libimp, namespace):
         """Add search for handler based on a @libimp libimp instance
 
-        Known functions will be looked by {name}_symb in the @namespace
+        Known functions will be looked by {name}_symb or {name}_{ord}_symb in the @namespace
         """
         namespace = dict(
             (force_bytes(name), func) for name, func in viewitems(namespace)
@@ -258,12 +258,18 @@ class DSEEngine(object):
 
         # lambda cannot contain statement
         def default_func(dse):
-            fname = b"%s_symb" % force_bytes(libimp.fad2cname[dse.jitter.pc])
+            fname = libimp.fad2cname[dse.jitter.pc]
+            if isinstance(fname, tuple):
+                fname = b"%s_%d_symb" % (force_bytes(fname[0]), fname[1])
+            else:
+                fname = b"%s_symb" % force_bytes(fname)
             raise RuntimeError("Symbolic stub '%s' not found" % fname)
 
         for addr, fname in viewitems(libimp.fad2cname):
-            fname = force_bytes(fname)
-            fname = b"%s_symb" % fname
+            if isinstance(fname, tuple):
+                fname = b"%s_%d_symb" % (force_bytes(fname[0]), fname[1])
+            else:
+                fname = b"%s_symb" % force_bytes(fname)
             func = namespace.get(fname, None)
             if func is not None:
                 self.add_handler(addr, func)
