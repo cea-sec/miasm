@@ -187,6 +187,13 @@ gpreg = (
 )
 
 
+def is_op_segm(expr):
+    """Returns True if is ExprOp and op == 'segm'"""
+    return expr.is_op('segm')
+
+def is_mem_segm(expr):
+    """Returns True if is ExprMem and ptr is_op_segm"""
+    return expr.is_mem() and is_op_segm(expr.ptr)
 
 
 def cb_deref_segmoff(tokens):
@@ -588,7 +595,7 @@ class instruction_x86(instruction):
                 prefix = ""
             sz = SIZE2MEMPREFIX[expr.size]
             segm = ""
-            if expr.is_mem_segm():
+            if is_mem_segm(expr):
                 segm = "%s:" % expr.ptr.args[0]
                 expr = expr.ptr.args[1]
             else:
@@ -1718,10 +1725,10 @@ SIZE2BNDREG = {64:gpregs_mm,
 def parse_mem(expr, parent, w8, sx=0, xmm=0, mm=0, bnd=0):
     dct_expr = {}
     opmode = parent.v_opmode()
-    if expr.is_mem_segm() and expr.ptr.args[0].is_int():
+    if is_mem_segm(expr) and expr.ptr.args[0].is_int():
         return None, None, False
 
-    if expr.is_mem_segm():
+    if is_mem_segm(expr):
         segm = expr.ptr.args[0]
         ptr = expr.ptr.args[1]
     else:
