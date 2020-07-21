@@ -305,7 +305,8 @@ testset += SemanticTestExec("x86_32", "PE", 0x401000, ["bsr_bsf"],
                             depends=[test_x86_32_bsr_bsf])
 
 ## Core
-for script in ["interval.py",
+for script in ["modint.py",
+               "interval.py",
                "graph.py",
                "parse_asm.py",
                "utils.py",
@@ -318,8 +319,7 @@ testset += RegressionTest(["asmblock.py"], base_dir="core",
                           products=["graph.dot", "graph2.dot",
                                     "graph3.dot", "graph4.dot"])
 ## Expression
-for script in ["modint.py",
-               "expression.py",
+for script in ["expression.py",
                "stp.py",
                "simplifications.py",
                "expression_helper.py",

@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from miasm.expression.modint import *
+from miasm.core.modint import *
 
 a = uint8(0x42)
 b = uint8(0xFF)

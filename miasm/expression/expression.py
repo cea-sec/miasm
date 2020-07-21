@@ -38,8 +38,6 @@ from functools import cmp_to_key, total_ordering
 from future.utils import viewitems
 
 from miasm.core.utils import force_bytes, cmp_elts
-from miasm.expression.modint import mod_size2uint, is_modint, size2mask, \
-    define_uint
 from miasm.core.graph import DiGraph
 from functools import reduce
 
@@ -755,8 +753,8 @@ class ExprInt(Expr):
 
 
     def __init__(self, arg, size):
-        """Create an ExprInt from a modint or num/size
-        @arg: 'intable' number
+        """Create an ExprInt from num/size
+        @arg: int/long number
         @size: int size"""
         super(ExprInt, self).__init__(size)
         # Work for ._arg is done in __new__
@@ -768,8 +766,8 @@ class ExprInt(Expr):
         return self.__class__, state
 
     def __new__(cls, arg, size):
-        """Create an ExprInt from a modint or num/size
-        @arg: 'intable' number
+        """Create an ExprInt from num/size
+        @arg: int/long number
         @size: int size"""
 
         assert isinstance(arg, int_types)

@@ -1,5 +1,5 @@
 from miasm.ir.translators.translator import Translator
-from miasm.expression.modint import size2mask
+from miasm.core.utils import size2mask
 from miasm.expression.expression import ExprInt, ExprCond, ExprCompose, \
     TOK_EQUAL, \
     TOK_INF_SIGNED, TOK_INF_UNSIGNED, \

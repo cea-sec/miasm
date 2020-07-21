@@ -28,6 +28,7 @@ from miasm.expression.expression import ExprId, ExprInt, ExprMem, ExprSlice, \
 
 import miasm.jitter.csts as m2_csts
 import miasm.core.asmblock as m2_asmblock
+from miasm.core.utils import size2mask
 from miasm.jitter.codegen import CGen, Attributes
 from miasm.expression.expression_helper import possible_values
 

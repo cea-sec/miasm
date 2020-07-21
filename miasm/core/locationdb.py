@@ -6,11 +6,6 @@ from future.utils import viewitems, viewvalues
 
 from miasm.core.utils import printable, force_bytes
 from miasm.expression.expression import LocKey, ExprLoc
-from miasm.expression.modint import moduint, modint
-
-
-def is_int(a):
-    return isinstance(a, (int_types, moduint, modint))
 
 
 class LocationDB(object):
@@ -246,7 +241,7 @@ class LocationDB(object):
 
         name = force_bytes(name)
         # Deprecation handling
-        if is_int(name):
+        if isinstance(name, int_types):
             assert offset is None or offset == name
             warnings.warn("Deprecated API: use 'add_location(offset=)' instead."
                           " An additional 'name=' can be provided to also "

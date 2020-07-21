@@ -129,6 +129,9 @@ def decode_hex(value):
 def encode_hex(value):
     return _ENCODE_HEX(value)[0]
 
+def size2mask(size):
+    """Return the bit mask of size @size"""
+    return (1 << size) - 1
 
 def hexdump(src, length=16):
     lines = []

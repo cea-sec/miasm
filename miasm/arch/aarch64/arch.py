@@ -12,7 +12,7 @@ from miasm.core.bin_stream import bin_stream
 from miasm.arch.aarch64 import regs as regs_module
 from miasm.arch.aarch64.regs import *
 from miasm.core.cpu import log as log_cpu
-from miasm.expression.modint import uint32, uint64, mod_size2int
+from miasm.core.modint import mod_size2int
 from miasm.core.asm_ast import AstInt, AstId, AstMem, AstOp
 
 log = logging.getLogger("aarch64dis")

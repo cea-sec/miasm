@@ -4,7 +4,7 @@
 
 from future.utils import viewitems
 
-from miasm.expression.modint import mod_size2int, mod_size2uint
+from miasm.core.modint import mod_size2int, mod_size2uint
 from miasm.expression.expression import ExprInt, ExprSlice, ExprMem, \
     ExprCond, ExprOp, ExprCompose, TOK_INF_SIGNED, TOK_INF_UNSIGNED, \
     TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED, TOK_EQUAL

@@ -1,4 +1,4 @@
-from miasm.expression.modint import size2mask
+from miasm.core.utils import size2mask
 from miasm.expression.expression import ExprInt, ExprCond, ExprCompose, \
     TOK_EQUAL
 

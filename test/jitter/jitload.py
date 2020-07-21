@@ -47,4 +47,4 @@ assert myjit.eval_expr(eax) == imm4
 ## Changes must be passed on myjit.cpu instance
 assert myjit.cpu.EAX == 4
 ## Memory
-assert myjit.eval_expr(memdata).arg.arg == int(encode_hex(data[::-1]), 16)
+assert int(myjit.eval_expr(memdata)) == int(encode_hex(data[::-1]), 16)
