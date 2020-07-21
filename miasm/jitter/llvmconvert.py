@@ -28,6 +28,7 @@ from miasm.expression.expression import ExprId, ExprInt, ExprMem, ExprSlice, \
 
 import miasm.jitter.csts as m2_csts
 import miasm.core.asmblock as m2_asmblock
+from miasm.core.utils import size2mask
 from miasm.jitter.codegen import CGen, Attributes
 from miasm.expression.expression_helper import possible_values
 
@@ -768,7 +769,7 @@ class LLVMFunction(object):
         builder = self.builder
 
         if isinstance(expr, ExprInt):
-            ret = llvm_ir.Constant(LLVMType.IntType(expr.size), int(expr.arg))
+            ret = llvm_ir.Constant(LLVMType.IntType(expr.size), int(expr))
             self.update_cache(expr, ret)
             return ret
 

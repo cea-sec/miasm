@@ -12,7 +12,6 @@ from future.utils import viewitems, viewvalues
 from miasm.expression.expression import ExprId, ExprInt, get_expr_locs
 from miasm.expression.expression import LocKey
 from miasm.expression.simplifications import expr_simp
-from miasm.expression.modint import moduint, modint
 from miasm.core.utils import Disasm_Exception, pck
 from miasm.core.graph import DiGraph, DiGraphSimplifier, MatchGraphJoker
 from miasm.core.interval import interval
@@ -24,10 +23,6 @@ console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log_asmblock.addHandler(console_handler)
 log_asmblock.setLevel(logging.WARNING)
-
-
-def is_int(a):
-    return isinstance(a, (modint, moduint, int_types))
 
 
 class AsmRaw(object):

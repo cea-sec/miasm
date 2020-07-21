@@ -11,7 +11,6 @@ import idc
 import ida_funcs
 import idautils
 
-from miasm.core.asmblock import is_int
 from miasm.core.bin_stream_ida import bin_stream_ida
 from miasm.expression.simplifications import expr_simp
 from miasm.ir.ir import IRBlock, AssignBlock
@@ -83,7 +82,7 @@ Options:
 
 def label_init(self, name="", offset=None):
     self.fixedblocs = False
-    if is_int(name):
+    if isinstance(name, int_types):
         name = "loc_%X" % (int(name) & 0xFFFFFFFFFFFFFFFF)
     self.name = name
     self.attrib = None

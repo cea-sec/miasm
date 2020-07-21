@@ -5,6 +5,7 @@ from builtins import int as int_types
 from itertools import product
 
 from miasm.core.interval import interval
+from miasm.core.utils import size2mask
 
 class ModularIntervals(object):
     """Intervals with a maximum size, supporting modular arithmetic"""
@@ -31,12 +32,6 @@ class ModularIntervals(object):
             assert end <= self.mask
 
     # Helpers
-
-    @staticmethod
-    def size2mask(size):
-        """Return the bit mask of size @size"""
-        return (1 << size) - 1
-
     def _range2interval(func):
         """Convert a function taking 2 ranges to a function taking a ModularIntervals
         and applying to the current instance"""
@@ -472,7 +467,7 @@ class ModularIntervals(object):
     @property
     def mask(self):
         """Return the mask corresponding to the instance size"""
-        return ModularIntervals.size2mask(self.size)
+        return size2mask(self.size)
 
     def __iter__(self):
         return iter(self.intervals)
@@ -496,7 +491,7 @@ class ModularIntervals(object):
         # Increasing size is always safe
         if new_size < self.size:
             # Check that current values are indeed included in the new range
-            assert self.intervals.hull()[1] <= ModularIntervals.size2mask(new_size)
+            assert self.intervals.hull()[1] <= size2mask(new_size)
 
         self.size = new_size
 

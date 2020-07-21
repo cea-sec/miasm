@@ -215,9 +215,6 @@ def is_modint(a):
     return isinstance(a, moduint)
 
 
-def size2mask(size):
-    return (1 << size) - 1
-
 mod_size2uint = {}
 mod_size2int = {}
 

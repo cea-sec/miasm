@@ -133,7 +133,7 @@ class TranslatorSMT2(Translator):
         self.loc_db = loc_db
 
     def from_ExprInt(self, expr):
-        return bit_vec_val(expr.arg.arg, expr.size)
+        return bit_vec_val(int(expr), expr.size)
 
     def from_ExprId(self, expr):
         if str(expr) not in self._bitvectors:
