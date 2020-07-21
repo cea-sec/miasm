@@ -772,17 +772,8 @@ class ExprInt(Expr):
         @arg: 'intable' number
         @size: int size"""
 
-        if is_modint(arg):
-            assert size == arg.size
-        # Avoid a common blunder
-        assert not isinstance(arg, ExprInt)
-
-        # Ensure arg is always a moduint
-        arg = int(arg)
-        if size not in mod_size2uint:
-            define_uint(size)
-        arg = mod_size2uint[size](arg)
-
+        assert isinstance(arg, int_types)
+        arg  = arg & ((1 << size) - 1)
         # Get the Singleton instance
         expr = Expr.get_object(cls, (arg, size))
 
@@ -790,15 +781,8 @@ class ExprInt(Expr):
         expr._arg = arg
         return expr
 
-    def _get_int(self):
-        "Return self integer representation"
-        return int(self._arg & size2mask(self._size))
-
     def __str__(self):
-        if self._arg < 0:
-            return str("-0x%X" % (- self._get_int()))
-        else:
-            return str("0x%X" % self._get_int())
+        return str("0x%X" % self.arg)
 
     def get_w(self):
         return set()
@@ -807,7 +791,7 @@ class ExprInt(Expr):
         return hash((EXPRINT, self._arg, self._size))
 
     def _exprrepr(self):
-        return "%s(0x%X, %d)" % (self.__class__.__name__, self._get_int(),
+        return "%s(0x%X, %d)" % (self.__class__.__name__, self.arg,
                                  self._size)
 
     def copy(self):

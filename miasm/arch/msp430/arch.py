@@ -136,9 +136,9 @@ class instruction_msp430(instruction):
         if not isinstance(expr, ExprInt):
             return
         if self.name == "call":
-            addr = expr.arg
+            addr = int(expr)
         else:
-            addr = expr.arg + int(self.offset)
+            addr = (int(expr) + int(self.offset))  & int(expr.mask)
 
         loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[0] = ExprLoc(loc_key, expr.size)

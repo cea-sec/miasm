@@ -768,7 +768,7 @@ class LLVMFunction(object):
         builder = self.builder
 
         if isinstance(expr, ExprInt):
-            ret = llvm_ir.Constant(LLVMType.IntType(expr.size), int(expr.arg))
+            ret = llvm_ir.Constant(LLVMType.IntType(expr.size), int(expr))
             self.update_cache(expr, ret)
             return ret
 
