@@ -158,14 +158,6 @@ def is_commutative(expr):
     "Return True iff current operation is commutative"
     return (expr.op in ['+', '*', '^', '&', '|'])
 
-def is_op_segm(expr):
-    """Returns True if is ExprOp and op == 'segm'"""
-    return expr.is_op('segm')
-
-def is_mem_segm(expr):
-    """Returns True if is ExprMem and ptr is_op_segm"""
-    return expr.is_mem() and is_op_segm(expr.ptr)
-
 def canonize_to_exprloc(locdb, expr):
     """
     If expr is ExprInt, return ExprLoc with corresponding loc_key
@@ -715,11 +707,13 @@ class Expr(object):
 
     def is_op_segm(self):
         """Returns True if is ExprOp and op == 'segm'"""
-        return False
+        warnings.warn('DEPRECATION WARNING: use is_op_segm(expr)')
+        raise RuntimeError("Moved api")
 
     def is_mem_segm(self):
         """Returns True if is ExprMem and ptr is_op_segm"""
-        return False
+        warnings.warn('DEPRECATION WARNING: use is_mem_segm(expr)')
+        raise RuntimeError("Moved api")
 
     def __contains__(self, expr):
         ret = contains_visitor.contains(self, expr)
@@ -1196,7 +1190,8 @@ class ExprMem(Expr):
 
     def is_mem_segm(self):
         """Returns True if is ExprMem and ptr is_op_segm"""
-        return self._ptr.is_op_segm()
+        warnings.warn('DEPRECATION WARNING: use is_mem_segm(expr)')
+        raise RuntimeError("Moved api")
 
     def depth(self):
         return self._ptr.depth() + 1
@@ -1373,7 +1368,8 @@ class ExprOp(Expr):
 
     def is_op_segm(self):
         """Returns True if is ExprOp and op == 'segm'"""
-        return self.is_op('segm')
+        warnings.warn('DEPRECATION WARNING: use is_op_segm(expr)')
+        raise RuntimeError("Moved api")
 
 class ExprSlice(Expr):
 

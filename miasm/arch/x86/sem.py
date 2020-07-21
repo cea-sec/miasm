@@ -24,7 +24,7 @@ import logging
 import miasm.expression.expression as m2_expr
 from miasm.expression.simplifications import expr_simp
 from miasm.arch.x86.regs import *
-from miasm.arch.x86.arch import mn_x86, repeat_mn, replace_regs
+from miasm.arch.x86.arch import mn_x86, repeat_mn, replace_regs, is_mem_segm
 from miasm.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm.core.sembuilder import SemBuilder
 from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_ILLEGAL_INSN, \
@@ -446,7 +446,7 @@ def movsx(_, instr, dst, src):
 
 def lea(_, instr, dst, src):
     ptr = src.ptr
-    if src.is_mem_segm():
+    if is_mem_segm(src):
         # Do not use segmentation here
         ptr = ptr.args[1]
 
@@ -3469,7 +3469,7 @@ def bittest_get(ir, instr, src, index):
         b_mask = {16: 4, 32: 5, 64: 6}
         b_decal = {16: 1, 32: 3, 64: 7}
         ptr = src.ptr
-        segm = src.is_mem_segm()
+        segm = is_mem_segm(src)
         if segm:
             ptr = ptr.args[1]
 
@@ -5780,7 +5780,7 @@ class ir_x86_16(IntermediateRepresentation):
                 instr.additional_info.g2.value]
         if my_ss is not None:
             for i, a in enumerate(args):
-                if a.is_mem() and not a.is_mem_segm():
+                if a.is_mem() and not is_mem_segm(a):
                     args[i] = self.ExprMem(m2_expr.ExprOp('segm', my_ss,
                                                           a.ptr), a.size)
 

@@ -14,8 +14,8 @@ from functools import total_ordering
 
 from miasm.core.utils import cmp_elts
 from miasm.expression.expression_reduce import ExprReducer
-from miasm.expression.expression import ExprInt, ExprId, ExprOp, ExprMem, \
-    is_op_segm
+from miasm.expression.expression import ExprInt, ExprId, ExprOp, ExprMem
+from miasm.arch.x86.arch import is_op_segm
 
 from miasm.core.ctypesmngr import CTypeUnion, CTypeStruct, CTypeId, CTypePtr,\
     CTypeArray, CTypeOp, CTypeSizeof, CTypeEnum, CTypeFunc, CTypeEllipsis
