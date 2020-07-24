@@ -1163,6 +1163,7 @@ def asm_resolve_final(mnemo, asmcfg, loc_db, dst_interval=None):
             instruction_interval = interval([(offset, offset + instr.l - 1)])
             if not (instruction_interval & output_interval).empty:
                 raise RuntimeError("overlapping bytes %X" % int(offset))
+            output_interval = output_interval.union(instruction_interval)
             instr.offset = offset
             offset += instr.l
     return patches
