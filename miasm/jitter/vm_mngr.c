@@ -661,7 +661,7 @@ int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, size_t size)
        return 1;
 }
 
-struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size, unsigned int access, const char *name)
+struct memory_page_node * create_memory_page_node(uint64_t ad, size_t size, unsigned int access, const char *name)
 {
 	struct memory_page_node * mpn;
 	void* ad_hp;
@@ -674,7 +674,7 @@ struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size
 	ad_hp = malloc(size);
 	if (!ad_hp){
 		free(mpn);
-		fprintf(stderr, "Error: cannot alloc %d\n", size);
+		fprintf(stderr, "Error: cannot alloc %zu\n", size);
 		return NULL;
 	}
 	mpn->name = malloc(strlen(name) + 1);
