@@ -148,6 +148,9 @@ def get_export_name_addr_list(e):
         assert exports[0] == ('AcquireSRWLockExclusive', 0x6b89b22a)
     """
     out = []
+    if e.DirExport.expdesc is None:
+        return out
+
     # add func name
     for i, n in enumerate(e.DirExport.f_names):
         addr = e.DirExport.f_address[e.DirExport.f_nameordinals[i].ordinal]
