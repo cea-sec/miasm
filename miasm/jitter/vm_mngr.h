@@ -245,8 +245,6 @@ void reset_memory_breakpoint(vm_mngr_t* vm_mngr);
 void add_memory_breakpoint(vm_mngr_t* vm_mngr, uint64_t ad, uint64_t size, unsigned int access);
 void remove_memory_breakpoint(vm_mngr_t* vm_mngr, uint64_t ad, unsigned int access);
 
-void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn);
-
 void add_mem_read(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
 void add_mem_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
 _MIASM_EXPORT void check_invalid_code_blocs(vm_mngr_t* vm_mngr);

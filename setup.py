@@ -117,6 +117,21 @@ def buil_all():
             ]
         ),
         Extension(
+            "miasm.analysis.TaintMngr",
+            [
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/interval_tree/rbtree.c",
+                "miasm/jitter/interval_tree/interval.c",
+                "miasm/jitter/interval_tree/interval_tree.c",
+                "miasm/analysis/taint.c",
+                "miasm/analysis/taint_py.c",
+            ]
+        ),
+        Extension(
             "miasm.jitter.arch.JitCore_x86",
             [
                 "miasm/jitter/JitCore.c",
@@ -239,6 +254,8 @@ def buil_all():
                     "miasm": [
                         "jitter/*.h",
                         "jitter/arch/*.h",
+                        "analysis/*.h",
+                        "jitter/interval_tree/*.h",
                         "VERSION"
                     ]
                 },

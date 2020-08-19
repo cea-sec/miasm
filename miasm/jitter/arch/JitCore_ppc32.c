@@ -166,13 +166,8 @@ static PyMemberDef JitCpu_members[] = {
 };
 
 static PyMethodDef JitCpu_methods[] = {
-    {"init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS, "X"},
-    {"dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS, "X"},
+    DEFAULT_METHODS
     {"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS, "X"},
-    {"get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS, "X"},
-    {"set_gpreg", (PyCFunction)cpu_set_gpreg, METH_VARARGS, "X"},
-    {"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS, "X"},
-    {"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS, "X"},
     {"get_spr_access", (PyCFunction)cpu_get_spr_access, METH_VARARGS, "X"},
     {NULL}  /* Sentinel */
 };
@@ -207,16 +202,7 @@ get_gpreg_offset_all(void) {
 }
 
 static PyGetSetDef JitCpu_getseters[] = {
-    {"vmmngr",
-     (getter)JitCpu_get_vmmngr, (setter)JitCpu_set_vmmngr,
-     "vmmngr",
-     NULL},
-
-    {"jitter",
-     (getter)JitCpu_get_jitter, (setter)JitCpu_set_jitter,
-     "jitter",
-     NULL},
-
+    DEFAULT_GETSETERS
 #define JITCORE_PPC_REG_EXPAND(_name, _size)				\
     { #_name, (getter) JitCpu_get_ ## _name ,				\
 	(setter) JitCpu_set_ ## _name , #_name , NULL},

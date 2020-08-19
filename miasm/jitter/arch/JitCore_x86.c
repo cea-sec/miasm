@@ -465,23 +465,12 @@ static PyMemberDef JitCpu_members[] = {
 };
 
 static PyMethodDef JitCpu_methods[] = {
-	{"init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS,
-	 "X"},
-	{"dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS,
-	 "X"},
+	DEFAULT_METHODS
 	{"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS,
-	 "X"},
-	{"get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS,
-	 "X"},
-	{"set_gpreg", (PyCFunction)cpu_set_gpreg, METH_VARARGS,
 	 "X"},
 	{"get_segm_base", (PyCFunction)cpu_get_segm_base, METH_VARARGS,
 	 "X"},
 	{"set_segm_base", (PyCFunction)cpu_set_segm_base, METH_VARARGS,
-	 "X"},
-	{"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS,
-	 "X"},
-	{"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS,
 	 "X"},
 	{"get_interrupt_num", (PyCFunction)cpu_get_interrupt_num, METH_VARARGS,
 	 "X"},
@@ -725,22 +714,7 @@ PyObject* get_gpreg_offset_all(void)
 
 
 static PyGetSetDef JitCpu_getseters[] = {
-    {"vmmngr",
-     (getter)JitCpu_get_vmmngr, (setter)JitCpu_set_vmmngr,
-     "vmmngr",
-     NULL},
-
-    {"vmcpu",
-     (getter)JitCpu_get_vmcpu, (setter)JitCpu_set_vmcpu,
-     "vmcpu",
-     NULL},
-
-    {"jitter",
-     (getter)JitCpu_get_jitter, (setter)JitCpu_set_jitter,
-     "jitter",
-     NULL},
-
-
+    DEFAULT_GETSETERS
     {"RAX", (getter)JitCpu_get_RAX, (setter)JitCpu_set_RAX, "RAX", NULL},
     {"RBX", (getter)JitCpu_get_RBX, (setter)JitCpu_set_RBX, "RBX", NULL},
     {"RCX", (getter)JitCpu_get_RCX, (setter)JitCpu_set_RCX, "RCX", NULL},

@@ -234,18 +234,7 @@ static PyMemberDef JitCpu_members[] = {
 };
 
 static PyMethodDef JitCpu_methods[] = {
-	{"init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS,
-	 "X"},
-	{"dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS,
-	 "X"},
-	{"get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS,
-	 "X"},
-	{"set_gpreg", (PyCFunction)cpu_set_gpreg, METH_VARARGS,
-	 "X"},
-	{"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS,
-	 "X"},
-	{"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS,
-	 "X"},
+	DEFAULT_METHODS
 	{NULL}  /* Sentinel */
 };
 
@@ -349,16 +338,7 @@ PyObject* get_gpreg_offset_all(void)
 
 
 static PyGetSetDef JitCpu_getseters[] = {
-    {"vmmngr",
-     (getter)JitCpu_get_vmmngr, (setter)JitCpu_set_vmmngr,
-     "vmmngr",
-     NULL},
-
-    {"jitter",
-     (getter)JitCpu_get_jitter, (setter)JitCpu_set_jitter,
-     "jitter",
-     NULL},
-
+    DEFAULT_GETSETERS
     {"ZERO" , (getter)JitCpu_get_ZERO , (setter)JitCpu_set_ZERO , "ZERO" , NULL},
     {"AT" , (getter)JitCpu_get_AT , (setter)JitCpu_set_AT , "AT" , NULL},
     {"V0" , (getter)JitCpu_get_V0 , (setter)JitCpu_set_V0 , "V0" , NULL},

@@ -17,8 +17,8 @@ is_win = platform.system() == "Windows"
 class JitCore_Gcc(JitCore_Cc_Base):
     "JiT management, using a C compiler as backend"
 
-    def __init__(self, ir_arch, bin_stream):
-        super(JitCore_Gcc, self).__init__(ir_arch, bin_stream)
+    def __init__(self, ir_arch, bin_stream, taint=False):
+        super(JitCore_Gcc, self).__init__(ir_arch, bin_stream, taint)
         self.exec_wrapper = Jitgcc.gcc_exec_block
 
     def deleteCB(self, offset):
@@ -127,16 +127,16 @@ class JitCore_Gcc(JitCore_Cc_Base):
                 # [Error 183] Cannot create a file when that file already exists
                 if e.winerror != 183:
                     raise
-                os.remove(fname_tmp)
-            os.remove(fname_in)
+                #os.remove(fname_tmp)
+            #os.remove(fname_in)
 
         self.load_code(block.loc_key, fname_out)
 
     @staticmethod
-    def gen_C_source(ir_arch, func_code):
+    def gen_C_source(ir_arch, func_code, taint):
         c_source = ""
         c_source += "\n".join(func_code)
 
-        c_source = gen_core(ir_arch.arch, ir_arch.attrib) + c_source
+        c_source = gen_core(ir_arch.arch, ir_arch.attrib, taint) + c_source
         c_source = "#define PARITY_IMPORT\n#include <Python.h>\n" + c_source
         return c_source

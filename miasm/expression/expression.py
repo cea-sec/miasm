@@ -211,10 +211,16 @@ class ExprWalkBase(object):
     If @callback returns a non None value, stop walk and return this value
     """
 
-    def __init__(self, callback):
+    def __init__(self, callback, reverse=False):
         self.callback = callback
+        self.reverse = reverse
 
     def visit(self, expr, *args, **kwargs):
+        if self.reverse:
+            ret = self.callback(expr, *args, **kwargs)
+            if ret:
+                return ret
+
         if expr.is_int() or expr.is_id() or expr.is_loc():
             pass
         elif expr.is_assign():
@@ -255,7 +261,9 @@ class ExprWalkBase(object):
         else:
             raise TypeError("Visitor can only take Expr")
 
-        ret = self.callback(expr, *args, **kwargs)
+        if not self.reverse:
+            ret = self.callback(expr, *args, **kwargs)
+
         return ret
 
 
@@ -265,9 +273,10 @@ class ExprWalk(ExprWalkBase):
     If @callback returns a non None value, stop walk and return this value
     Use cache mechanism.
     """
-    def __init__(self, callback):
+    def __init__(self, callback, reverse=False):
         self.cache = set()
         self.callback = callback
+        self.reverse = reverse
 
     def visit(self, expr, *args, **kwargs):
         if expr in self.cache:

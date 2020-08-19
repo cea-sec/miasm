@@ -12,7 +12,7 @@ from miasm.core.utils import keydefaultdict
 
 is_win = platform.system() == "Windows"
 
-def gen_core(arch, attrib):
+def gen_core(arch, attrib, taint):
     lib_dir = os.path.dirname(os.path.realpath(__file__))
 
     txt = ""
@@ -22,6 +22,9 @@ def gen_core(arch, attrib):
     txt += '#include "%s/bn.h"\n' % lib_dir
     txt += '#include "%s/vm_mngr_py.h"\n' % lib_dir
     txt += '#include "%s/JitCore.h"\n' % lib_dir
+    if taint:
+        txt += '#include "%s/analysis/taint.h"\n' % os.path.dirname(lib_dir)
+        txt += '#include "%s/interval_tree/interval_tree.h"\n' % lib_dir
     txt += '#include "%s/arch/JitCore_%s.h"\n' % (lib_dir, arch.name)
 
     txt += r'''
@@ -51,13 +54,17 @@ class resolver(object):
 class JitCore_Cc_Base(JitCore):
     "JiT management, abstract class using a C compiler as backend"
 
-    def __init__(self, ir_arch, bin_stream):
+    def __init__(self, ir_arch, bin_stream, taint=False):
         self.jitted_block_delete_cb = self.deleteCB
         super(JitCore_Cc_Base, self).__init__(ir_arch, bin_stream)
         self.resolver = resolver()
         self.ir_arch = ir_arch
         self.states = {}
-        self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache")
+        self.taint = taint
+        if self.taint:
+            self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache_taint")
+        else:
+            self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache")
         try:
             os.mkdir(self.tempdir, 0o755)
         except OSError:
@@ -90,7 +97,8 @@ class JitCore_Cc_Base(JitCore):
                 lib_dir,
                 "arch",
                 "JitCore_%s%s" % (self.ir_arch.arch.name, ext)
-            )
+            ),
+            os.path.join(lib_dir, "../analysis/TaintMngr" + ext),
         ]
 
         include_files = [
@@ -121,8 +129,8 @@ class JitCore_Cc_Base(JitCore):
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out
 
-        return self.gen_C_source(self.ir_arch, c_code)
+        return self.gen_C_source(self.ir_arch, c_code, self.taint)
 
     @staticmethod
-    def gen_C_source(ir_arch, func_code):
+    def gen_C_source(ir_arch, func_code, taint):
         raise NotImplementedError()

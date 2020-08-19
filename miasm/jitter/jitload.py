@@ -179,7 +179,7 @@ class Jitter(object):
 
     C_Gen = CGen
 
-    def __init__(self, ir_arch, jit_type="gcc"):
+    def __init__(self, ir_arch, jit_type="gcc", taint=False):
         """Init an instance of jitter.
         @ir_arch: ir instance for this architecture
         @jit_type: JiT backend to use. Available options are:
@@ -238,7 +238,14 @@ class Jitter(object):
         except ImportError:
             raise RuntimeError('Unsupported jitter: %s' % jit_type)
 
-        self.jit = JitCore(self.ir_arch, self.bs)
+        if taint:
+            if jit_type == "gcc":
+                self.jit = JitCore(self.ir_arch, self.bs, taint)
+            else:
+                raise NotImplementedError('Jitter %s does not support taint analysis' % jit_type)
+        else:
+            self.jit = JitCore(self.ir_arch, self.bs)
+
         if isinstance(self.jit, JitCore_Cc_Base):
             self.jit.init_codegen(self.C_Gen(self.ir_arch))
         elif jit_type == "python":
@@ -252,6 +259,10 @@ class Jitter(object):
         self.jit.load()
         self.cpu.vmmngr = self.vm
         self.cpu.jitter = self.jit
+        if taint:
+            from miasm.analysis import TaintMngr
+            self.taint = TaintMngr.Taint()
+            self.cpu.taint = self.taint
         self.stack_size = 0x10000
         self.stack_base = 0x1230000
 

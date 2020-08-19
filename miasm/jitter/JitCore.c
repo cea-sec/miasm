@@ -8,6 +8,7 @@
 #include "vm_mngr.h"
 #include "bn.h"
 #include "vm_mngr_py.h"
+#include "../analysis/taint.h"
 #include "JitCore.h"
 
 
@@ -73,6 +74,22 @@ PyObject * JitCpu_get_jitter(JitCpu *self, void *closure)
 PyObject * JitCpu_set_jitter(JitCpu *self, PyObject *value, void *closure)
 {
 	self->jitter = value;
+	return 0;
+}
+
+PyObject * JitCpu_get_taint(JitCpu *self, void *closure)
+{
+	if (self->taint) {
+		Py_INCREF(self->taint);
+		return (PyObject*)self->taint;
+	}
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+PyObject * JitCpu_set_taint(JitCpu *self, PyObject *value, void *closure)
+{
+	self->taint = (PyTaint*)value;
 	return 0;
 }
 
