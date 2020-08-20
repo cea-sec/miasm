@@ -117,6 +117,15 @@ class AsmBlock(object):
     def addline(self, l):
         self.lines.append(l)
 
+    def offset(self):
+        """
+        returns the offset (as int) of the first line in the block
+        """
+        try:
+            return min(line.offset for line in block.lines)
+        except ValueError:
+            return None
+
     def addto(self, c):
         assert isinstance(self.bto, set)
         self.bto.add(c)
