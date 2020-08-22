@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from pdb import pm
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE, EXCEPT_SYSCALL
 from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
 
 
 # Some syscalls often used by shellcodes
@@ -76,8 +77,9 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Verbose mode")
     args = parser.parse_args()
+    loc_db = LocationDB()
 
-    myjit = Machine("x86_64").jitter(args.jitter)
+    myjit = Machine("x86_64").jitter(loc_db, args.jitter)
     myjit.init_stack()
 
     with open(args.filename, 'rb') as f:

@@ -3,6 +3,7 @@ import os
 import logging
 from miasm.analysis.sandbox import Sandbox_Win_x86_32
 from miasm.jitter.loader.pe import vm2pe
+from miasm.core.locationdb import LocationDB
 
 from miasm.os_dep.common import get_win_str_a
 
@@ -41,8 +42,11 @@ parser.add_argument("--graph",
 options = parser.parse_args()
 options.load_hdr = True
 
-sb = Sandbox_Win_x86_32(options.filename, options, globals(),
-                        parse_reloc=False)
+loc_db = LocationDB()
+sb = Sandbox_Win_x86_32(
+    loc_db, options.filename, options, globals(),
+    parse_reloc=False
+)
 
 
 if options.verbose is True:
@@ -54,7 +58,7 @@ if options.verbose is True:
     print(sb.jitter.vm)
 
 # Ensure there is one and only one leave (for OEP discovering)
-mdis = sb.machine.dis_engine(sb.jitter.bs)
+mdis = sb.machine.dis_engine(sb.jitter.bs, loc_db=loc_db)
 mdis.dont_dis_nulstart_bloc = True
 asmcfg = mdis.dis_multiblock(sb.entry_point)
 

@@ -13,9 +13,8 @@ log.setLevel(logging.CRITICAL)
 
 class jitter_msp430(Jitter):
 
-    def __init__(self, *args, **kwargs):
-        sp = LocationDB()
-        Jitter.__init__(self, ir_msp430(sp), *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, ir_msp430(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
 
     def push_uint16_t(self, value):

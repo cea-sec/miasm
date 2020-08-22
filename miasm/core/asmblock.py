@@ -15,7 +15,6 @@ from miasm.expression.simplifications import expr_simp
 from miasm.core.utils import Disasm_Exception, pck
 from miasm.core.graph import DiGraph, DiGraphSimplifier, MatchGraphJoker
 from miasm.core.interval import interval
-from miasm.core.locationdb import LocationDB
 
 
 log_asmblock = logging.getLogger("asmblock")
@@ -81,11 +80,12 @@ class AsmConstraintTo(AsmConstraint):
 
 class AsmBlock(object):
 
-    def __init__(self, loc_key, alignment=1):
+    def __init__(self, loc_db, loc_key, alignment=1):
         assert isinstance(loc_key, LocKey)
 
         self.bto = set()
         self.lines = []
+        self.loc_db = loc_db
         self._loc_key = loc_key
         self.alignment = alignment
 
@@ -132,7 +132,7 @@ class AsmBlock(object):
                 'middle instruction? default middle')
             offsets.sort()
             return None
-        new_block = AsmBlock(loc_key)
+        new_block = AsmBlock(loc_db, loc_key)
         i = offsets.index(offset)
 
         self.lines, new_block.lines = self.lines[:i], self.lines[i:]
@@ -263,12 +263,12 @@ class AsmBlockBad(AsmBlock):
         ERROR_IO: "IOError",
     }
 
-    def __init__(self, loc_key=None, alignment=1, errno=ERROR_UNKNOWN, *args, **kwargs):
+    def __init__(self, loc_db, loc_key=None, alignment=1, errno=ERROR_UNKNOWN, *args, **kwargs):
         """Instantiate an AsmBlock_bad.
         @loc_key, @alignment: same as AsmBlock.__init__
         @errno: (optional) specify a error type associated with the block
         """
-        super(AsmBlockBad, self).__init__(loc_key, alignment, *args, **kwargs)
+        super(AsmBlockBad, self).__init__(loc_db, loc_key, alignment, *args, **kwargs)
         self._errno = errno
 
     errno = property(lambda self: self._errno)
@@ -307,7 +307,7 @@ class AsmCFG(DiGraph):
     AsmCFGPending = namedtuple("AsmCFGPending",
                                ["waiter", "constraint"])
 
-    def __init__(self, loc_db=None, *args, **kwargs):
+    def __init__(self, loc_db, *args, **kwargs):
         super(AsmCFG, self).__init__(*args, **kwargs)
         # Edges -> constraint
         self.edges2constraint = {}
@@ -1196,7 +1196,7 @@ class disasmEngine(object):
      - dis_block_callback: callback after each new disassembled block
     """
 
-    def __init__(self, arch, attrib, bin_stream, **kwargs):
+    def __init__(self, arch, attrib, bin_stream, loc_db, **kwargs):
         """Instantiate a new disassembly engine
         @arch: targeted architecture
         @attrib: architecture attribute
@@ -1206,7 +1206,7 @@ class disasmEngine(object):
         self.arch = arch
         self.attrib = attrib
         self.bin_stream = bin_stream
-        self.loc_db = LocationDB()
+        self.loc_db = loc_db
 
         # Setup options
         self.dont_dis = []
@@ -1236,7 +1236,7 @@ class disasmEngine(object):
         offsets_to_dis = set()
         add_next_offset = False
         loc_key = self.loc_db.get_or_create_offset_location(offset)
-        cur_block = AsmBlock(loc_key)
+        cur_block = AsmBlock(self.loc_db, loc_key)
         log_asmblock.debug("dis at %X", int(offset))
         while not in_delayslot or delayslot_count > 0:
             if in_delayslot:
@@ -1246,7 +1246,7 @@ class disasmEngine(object):
                 if not cur_block.lines:
                     job_done.add(offset)
                     # Block is empty -> bad block
-                    cur_block = AsmBlockBad(loc_key, errno=AsmBlockBad.ERROR_FORBIDDEN)
+                    cur_block = AsmBlockBad(self.loc_db, loc_key, errno=AsmBlockBad.ERROR_FORBIDDEN)
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
@@ -1289,7 +1289,7 @@ class disasmEngine(object):
                 if not cur_block.lines:
                     job_done.add(offset)
                     # Block is empty -> bad block
-                    cur_block = AsmBlockBad(loc_key, errno=error)
+                    cur_block = AsmBlockBad(self.loc_db, loc_key, errno=error)
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
@@ -1303,7 +1303,7 @@ class disasmEngine(object):
                 instr.b.count(b'\x00') == instr.l):
                 log_asmblock.warning("reach nul instr at %X", int(off_i))
                 # Block is empty -> bad block
-                cur_block = AsmBlockBad(loc_key, errno=AsmBlockBad.ERROR_NULL_STARTING_BLOCK)
+                cur_block = AsmBlockBad(self.loc_db, loc_key, errno=AsmBlockBad.ERROR_NULL_STARTING_BLOCK)
                 break
 
             # special case: flow graph modificator in delayslot

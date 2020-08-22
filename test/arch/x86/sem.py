@@ -56,7 +56,8 @@ def compute(ir, mode, asm, inputstate={}, debug=False):
 
 
 def compute_txt(ir, mode, txt, inputstate={}, debug=False):
-    asmcfg, loc_db = parse_asm.parse_txt(mn, mode, txt)
+    loc_db = LocationDB()
+    asmcfg = parse_asm.parse_txt(mn, mode, txt, loc_db)
     loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
     patches = asmblock.asm_resolve_final(mn, asmcfg, loc_db)
     ir_arch = ir(loc_db)

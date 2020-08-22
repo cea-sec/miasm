@@ -55,6 +55,8 @@ from miasm.arch.x86.ctype import CTypeAMD64_unk
 from miasm.core.objc import ExprToAccessC, CHandler
 from miasm.core.objc import CTypesManagerNotPacked
 from miasm.core.ctypesmngr import CAstTypes, CTypePtr, CTypeStruct
+from miasm.core.locationdb import LocationDB
+
 
 def find_call(ircfg):
     """Returns (irb, index) which call"""
@@ -116,6 +118,7 @@ class MyCHandler(CHandler):
 
 
 
+loc_db = LocationDB()
 data = open(sys.argv[1], 'rb').read()
 # Digest C information
 text = """
@@ -143,12 +146,12 @@ cont = Container.fallback_container(data, None, addr=0)
 machine = Machine("x86_64")
 dis_engine, ira = machine.dis_engine, machine.ira
 
-mdis = dis_engine(cont.bin_stream, loc_db=cont.loc_db)
+mdis = dis_engine(cont.bin_stream, loc_db=loc_db)
 addr_head = 0
 asmcfg = mdis.dis_multiblock(addr_head)
-lbl_head = mdis.loc_db.get_offset_location(addr_head)
+lbl_head = loc_db.get_offset_location(addr_head)
 
-ir_arch_a = ira(mdis.loc_db)
+ir_arch_a = ira(loc_db)
 ircfg = ir_arch_a.new_ircfg_from_asmcfg(asmcfg)
 
 open('graph_irflow.dot', 'w').write(ircfg.dot())

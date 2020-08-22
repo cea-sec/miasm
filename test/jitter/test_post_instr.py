@@ -5,9 +5,11 @@ from miasm.core.utils import decode_hex
 from miasm.analysis.machine import Machine
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE, \
     EXCEPT_BREAKPOINT_MEMORY, EXCEPT_ACCESS_VIOL
+from miasm.core.locationdb import LocationDB
 
 machine = Machine("x86_32")
-jitter = machine.jitter(sys.argv[1])
+loc_db = LocationDB()
+jitter = machine.jitter(loc_db, sys.argv[1])
 
 # Prepare stack and reset memory accesses to avoid an exception
 jitter.vm.add_memory_page(0x10000, PAGE_READ|PAGE_WRITE, b"\x00"*0x1000, "stack")

@@ -1,6 +1,7 @@
 import os
 from pdb import pm
 from miasm.analysis.sandbox import Sandbox_Win_x86_32
+from miasm.core.locationdb import LocationDB
 from miasm.os_dep import win_api_x86_32_seh
 from miasm.jitter.csts import *
 
@@ -42,7 +43,8 @@ options.usesegm = True
 options.use_windows_structs = True
 
 # Create sandbox
-sb = Sandbox_Win_x86_32(options.filename, options, globals())
+loc_db = LocationDB()
+sb = Sandbox_Win_x86_32(loc_db, options.filename, options, globals())
 
 # Install Windows SEH callbacks
 sb.jitter.add_exception_handler(EXCEPT_ACCESS_VIOL, deal_exception_access_violation)

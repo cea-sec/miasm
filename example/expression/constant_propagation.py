@@ -12,6 +12,8 @@ from miasm.analysis.cst_propag import propagate_cst_expr
 from miasm.analysis.data_flow import DeadRemoval, \
     merge_blocks, remove_empty_assignblks
 from miasm.expression.simplifications import expr_simp
+from miasm.core.locationdb import LocationDB
+
 
 
 parser = ArgumentParser("Constant expression propagation")
@@ -25,8 +27,9 @@ args = parser.parse_args()
 
 machine = Machine("x86_32")
 
-cont = Container.from_stream(open(args.filename, 'rb'))
-mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
+loc_db = LocationDB()
+cont = Container.from_stream(open(args.filename, 'rb'), loc_db)
+mdis = machine.dis_engine(cont.bin_stream, loc_db=loc_db)
 ir_arch = machine.ira(mdis.loc_db)
 addr = int(args.address, 0)
 deadrm = DeadRemoval(ir_arch)

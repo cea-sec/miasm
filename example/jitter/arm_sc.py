@@ -4,6 +4,7 @@ from miasm.core.utils import int_to_byte
 from miasm.analysis.sandbox import Sandbox_Linux_armb_str
 from miasm.analysis.sandbox import Sandbox_Linux_arml_str
 from miasm.loader.strpatchwork import StrPatchwork
+from miasm.core.locationdb import LocationDB
 
 from pdb import pm
 
@@ -23,7 +24,8 @@ elif options.endianness == 'l':
 else:
     raise ValueError("Bad endianness!")
 
-sb = sandbox(options.filename, options, globals())
+loc_db = LocationDB()
+sb = sandbox(loc_db, options.filename, options, globals())
 
 if options.address is None:
     raise ValueError('invalid address')

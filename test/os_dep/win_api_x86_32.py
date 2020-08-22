@@ -9,10 +9,12 @@ import miasm.os_dep.win_api_x86_32 as winapi
 from miasm.os_dep.win_api_x86_32 import get_win_str_a, get_win_str_w
 from miasm.core.utils import pck32
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.core.locationdb import LocationDB
 
 machine = Machine("x86_32")
 
-jit = machine.jitter()
+loc_db = LocationDB()
+jit = machine.jitter(loc_db)
 jit.init_stack()
 
 heap = winapi.winobjs.heap

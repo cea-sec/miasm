@@ -189,7 +189,8 @@ class PE(object):
                  parse_resources=True,
                  parse_delay=True,
                  parse_reloc=True,
-                 wsize=32):
+                 wsize=32,
+                 **kwargs):
         self._rva = ContectRva(self)
         self._virt = ContentVirtual(self)
         self.img_rva = StrPatchwork()

@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
 
 from pdb import pm
 
@@ -16,8 +17,9 @@ def code_sentinelle(jitter):
     jitter.pc = 0
     return True
 
+loc_db = LocationDB()
 
-myjit = Machine("x86_32").jitter(args.jitter)
+myjit = Machine("x86_32").jitter(loc_db, args.jitter)
 myjit.init_stack()
 
 data = open(args.filename, 'rb').read()

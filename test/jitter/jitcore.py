@@ -1,8 +1,10 @@
 import sys
+from miasm.core.locationdb import LocationDB
 
 from miasm.analysis.machine import Machine
 machine = Machine("x86_64")
-jitter = machine.jitter(sys.argv[1])
+loc_db = LocationDB()
+jitter = machine.jitter(loc_db, sys.argv[1])
 
 jitter.cpu.RAX = 16565615892967251934
 assert jitter.cpu.RAX == 16565615892967251934

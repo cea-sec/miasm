@@ -8,10 +8,12 @@ from miasm.analysis.machine import Machine
 import miasm.os_dep.common as commonapi
 from miasm.core.utils import pck32
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.core.locationdb import LocationDB
 
 machine = Machine("x86_32")
 
-jit = machine.jitter()
+loc_db = LocationDB()
+jit = machine.jitter(loc_db)
 jit.init_stack()
 
 class TestCommonAPI(unittest.TestCase):

@@ -5,16 +5,18 @@ from miasm.analysis.sandbox import Sandbox_Linux_arml
 from miasm.analysis.binary import Container
 from miasm.os_dep.linux_stdlib import linobjs
 from miasm.core.utils import hexdump
+from miasm.core.locationdb import LocationDB
 
 # Parse arguments
 parser = Sandbox_Linux_arml.parser(description="ELF sandboxer")
 parser.add_argument("filename", help="ELF Filename")
 options = parser.parse_args()
 
-sb = Sandbox_Linux_arml(options.filename, options, globals())
+loc_db = LocationDB()
+sb = Sandbox_Linux_arml(loc_db, options.filename, options, globals())
 
 with open(options.filename, "rb") as fdesc:
-    cont = Container.from_stream(fdesc)
+    cont = Container.from_stream(fdesc, loc_db)
     loc_key = cont.loc_db.get_name_location("md5_starts")
     addr_to_call = cont.loc_db.get_location_offset(loc_key)
 

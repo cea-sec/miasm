@@ -21,7 +21,7 @@ class Test_PUSHAD_32(Asm_Test_32):
     MYSTRING = "test pushad 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         init_regs(self)
@@ -48,7 +48,7 @@ class Test_PUSHA_32(Asm_Test_32):
     MYSTRING = "test pusha 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         init_regs(self)
@@ -75,7 +75,7 @@ class Test_PUSHA_16(Asm_Test_16):
     MYSTRING = "test pusha 16"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         init_regs(self)
@@ -102,7 +102,7 @@ class Test_PUSHAD_16(Asm_Test_16):
     MYSTRING = "test pushad 16"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         init_regs(self)
@@ -129,7 +129,7 @@ class Test_PUSH_mode32_32(Asm_Test_32):
     MYSTRING = "test push mode32 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         init_regs(self)
@@ -152,7 +152,7 @@ class Test_PUSH_mode32_16(Asm_Test_32):
     MYSTRING = "test push mode32 16"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         init_regs(self)
@@ -175,7 +175,7 @@ class Test_PUSH_mode16_16(Asm_Test_16):
     MYSTRING = "test push mode16 16"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         init_regs(self)
@@ -198,7 +198,7 @@ class Test_PUSH_mode16_32(Asm_Test_16):
     MYSTRING = "test push mode16 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         init_regs(self)
@@ -221,7 +221,7 @@ class Test_POP_mode32_32(Asm_Test_32):
     MYSTRING = "test pop mode32 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.value = 0x11223344
@@ -243,7 +243,7 @@ class Test_POP_mode32_16(Asm_Test_32):
     MYSTRING = "test pop mode32 16"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.value = 0x1122
@@ -265,7 +265,7 @@ class Test_POP_mode16_16(Asm_Test_16):
     MYSTRING = "test pop mode16 16"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.value = 0x1122
@@ -287,7 +287,7 @@ class Test_POP_mode16_32(Asm_Test_16):
     MYSTRING = "test pop mode16 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.value = 0x11223344

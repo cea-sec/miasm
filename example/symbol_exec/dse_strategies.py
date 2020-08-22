@@ -26,6 +26,7 @@ from miasm.analysis.machine import Machine
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm.analysis.dse import DSEPathConstraint
 from miasm.expression.expression import ExprMem, ExprId, ExprInt, ExprAssign
+from miasm.core.locationdb import LocationDB
 
 # Argument handling
 parser = ArgumentParser("DSE Example")
@@ -41,10 +42,12 @@ strategy = {
     "path-cov": DSEPathConstraint.PRODUCE_SOLUTION_PATH_COV,
 }[args.strategy]
 
+loc_db = LocationDB()
+
 # Map the shellcode
 run_addr = 0x40000
 machine = Machine("x86_32")
-jitter = machine.jitter("python")
+jitter = machine.jitter(loc_db, "python")
 with open(args.filename, "rb") as fdesc:
     jitter.vm.add_memory_page(
         run_addr,
@@ -72,7 +75,7 @@ jitter.push_uint32_t(ret_addr)
 jitter.init_run(run_addr)
 
 # Init a DSE instance with a given strategy
-dse = DSEPathConstraint(machine, produce_solution=strategy)
+dse = DSEPathConstraint(machine, loc_db, produce_solution=strategy)
 dse.attach(jitter)
 # Concretize everything except the argument
 dse.update_state_from_concrete()

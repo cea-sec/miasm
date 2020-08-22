@@ -5,6 +5,7 @@ from __future__ import print_function
 
 from miasm.analysis.machine import Machine
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.core.locationdb import LocationDB
 
 
 def jit_instructions(mn_str):
@@ -13,6 +14,7 @@ def jit_instructions(mn_str):
     # Get the miasm Machine
     machine = Machine("mepb")
     mn_mep = machine.mn()
+    loc_db = LocationDB()
 
     # Assemble the instructions
     asm = b""
@@ -22,7 +24,7 @@ def jit_instructions(mn_str):
         asm += mn_mep.asm(instr)[0]
 
     # Init the jitter and add the assembled instructions to memory
-    jitter = machine.jitter(jit_type="gcc")
+    jitter = machine.jitter(loc_db, jit_type="gcc")
     jitter.vm.add_memory_page(0, PAGE_READ | PAGE_WRITE, asm)
 
     # Set the breakpoint

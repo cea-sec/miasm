@@ -88,20 +88,15 @@ def asm_ast_to_expr_with_size(arg, loc_db, size):
         return ExprInt(arg.value, size)
     return None
 
-def parse_txt(mnemo, attrib, txt, loc_db=None):
-    """Parse an assembly listing. Returns a couple (asmcfg, loc_db), where
-    asmcfg is an AsmCfg instance and loc_db the associated LocationDB
+def parse_txt(mnemo, attrib, txt, loc_db):
+    """Parse an assembly listing. Returns an AsmCfg instance
 
     @mnemo: architecture used
     @attrib: architecture attribute
     @txt: assembly listing
-    @loc_db: (optional) the LocationDB instance used to handle labels
-    of the listing
+    @loc_db: the LocationDB instance used to handle labels of the listing
 
     """
-
-    if loc_db is None:
-        loc_db = asmblock.LocationDB()
 
     C_NEXT = asmblock.AsmConstraint.c_next
     C_TO = asmblock.AsmConstraint.c_to
@@ -233,9 +228,9 @@ def parse_txt(mnemo, attrib, txt, loc_db=None):
                 # First line must be a label. If it's not the case, generate
                 # it.
                 loc = guess_next_new_label(loc_db)
-                cur_block = asmblock.AsmBlock(loc, alignment=mnemo.alignment)
+                cur_block = asmblock.AsmBlock(loc_db, loc, alignment=mnemo.alignment)
             else:
-                cur_block = asmblock.AsmBlock(line, alignment=mnemo.alignment)
+                cur_block = asmblock.AsmBlock(loc_db, line, alignment=mnemo.alignment)
                 i += 1
             # Generate the current block
             asmcfg.add_block(cur_block)
@@ -302,4 +297,4 @@ def parse_txt(mnemo, attrib, txt, loc_db=None):
 
         # Log block
         asmblock.log_asmblock.info(block)
-    return asmcfg, loc_db
+    return asmcfg

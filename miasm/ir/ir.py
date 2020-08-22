@@ -773,7 +773,7 @@ class IntermediateRepresentation(object):
         if loc_key is None:
             offset = getattr(instr, "offset", None)
             loc_key = self.loc_db.get_or_create_offset_location(offset)
-        block = AsmBlock(loc_key)
+        block = AsmBlock(self.loc_db, loc_key)
         block.lines = [instr]
         self.add_asmblock_to_ircfg(block, ircfg, gen_pc_updt)
         return loc_key

@@ -10,6 +10,7 @@ from miasm.analysis.data_analysis import intra_block_flow_raw, inter_block_flow
 from miasm.core.graph import DiGraph
 from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.analysis.data_flow import DeadRemoval
+from miasm.core.locationdb import LocationDB
 
 
 parser = ArgumentParser("Simple expression use for generating dataflow graph")
@@ -126,19 +127,19 @@ def gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb):
 
 
 ad = int(args.addr, 16)
-
+loc_db = LocationDB()
 print('disasm...')
-cont = Container.from_stream(open(args.filename, 'rb'))
+cont = Container.from_stream(open(args.filename, 'rb'), loc_db)
 machine = Machine("x86_32")
 
-mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
+mdis = machine.dis_engine(cont.bin_stream, loc_db=loc_db)
 mdis.follow_call = True
 asmcfg = mdis.dis_multiblock(ad)
 print('ok')
 
 
 print('generating dataflow graph for:')
-ir_arch_analysis = machine.ira(mdis.loc_db)
+ir_arch_analysis = machine.ira(loc_db)
 ircfg = ir_arch_analysis.new_ircfg_from_asmcfg(asmcfg)
 deadrm = DeadRemoval(ir_arch_analysis)
 

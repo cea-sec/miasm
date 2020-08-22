@@ -1,8 +1,10 @@
 import sys
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
 
-myjit = Machine("x86_32").jitter(sys.argv[1])
+loc_db = LocationDB()
+myjit = Machine("x86_32").jitter(loc_db, sys.argv[1])
 
 base_addr = 0x13371337
 page_size = 0x1000

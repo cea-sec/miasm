@@ -15,6 +15,7 @@ from miasm.ir.symbexec import SymbolicExecutionEngine, get_block
 from miasm.expression.simplifications import expr_simp
 from miasm.core import parse_asm
 from miasm.ir.translators.translator  import Translator
+from miasm.core.locationdb import LocationDB
 
 machine = Machine("x86_32")
 
@@ -79,24 +80,26 @@ def emul_symb(ir_arch, ircfg, mdis, states_todo, states_done):
 
 
 if __name__ == '__main__':
-
+    loc_db = LocationDB()
     translator_smt2 = Translator.to_language("smt2")
 
     addr = int(options.address, 16)
 
-    cont = Container.from_stream(open(args[0], 'rb'))
-    mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
+    cont = Container.from_stream(open(args[0], 'rb'), loc_db)
+    mdis = machine.dis_engine(cont.bin_stream, loc_db=loc_db)
     ir_arch = machine.ir(mdis.loc_db)
     ircfg = ir_arch.new_ircfg()
     symbexec = SymbolicExecutionEngine(ir_arch)
 
-    asmcfg, loc_db = parse_asm.parse_txt(machine.mn, 32, '''
+    asmcfg = parse_asm.parse_txt(
+        machine.mn, 32, '''
     init:
     PUSH argv
     PUSH argc
     PUSH ret_addr
     ''',
-    loc_db=mdis.loc_db)
+        loc_db
+    )
 
 
     argc_lbl = loc_db.get_name_location('argc')

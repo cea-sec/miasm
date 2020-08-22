@@ -172,7 +172,7 @@ Import the shellcode thanks to the `Container` abstraction:
 
 ```pycon
 >>> from miasm.analysis.binary import Container
->>> c = Container.from_string(s)
+>>> c = Container.from_string(s, loc_db)
 >>> c
 <miasm.analysis.binary.ContainerUnknown object at 0x7f34cefe6090>
 ```
@@ -182,7 +182,7 @@ Disassembling the shellcode at address `0`:
 ```pycon
 >>> from miasm.analysis.machine import Machine
 >>> machine = Machine('x86_32')
->>> mdis = machine.dis_engine(c.bin_stream)
+>>> mdis = machine.dis_engine(c.bin_stream, loc_db=loc_db)
 >>> asmcfg = mdis.dis_multiblock(0)
 >>> for block in asmcfg.blocks:
 ...  print(block.to_string(asmcfg.loc_db))
@@ -208,7 +208,7 @@ RET
 Initializing the Jit engine with a stack:
 
 ```pycon
->>> jitter = machine.jitter(jit_type='python')
+>>> jitter = machine.jitter(loc_db, jit_type='python')
 >>> jitter.init_stack()
 ```
 

@@ -3,7 +3,6 @@ import warnings
 
 from miasm.core.bin_stream import bin_stream_str, bin_stream_elf, bin_stream_pe
 from miasm.jitter.csts import PAGE_READ
-from miasm.core.locationdb import LocationDB
 
 
 log = logging.getLogger("binary")
@@ -35,15 +34,16 @@ class Container(object):
     fallback_container = None # Fallback container format
 
     @classmethod
-    def from_string(cls, data, *args, **kwargs):
+    def from_string(cls, data, loc_db, *args, **kwargs):
         """Instantiate a container and parse the binary
         @data: str containing the binary
+        @loc_db: LocationDB instance
         """
         log.info('Load binary')
         # Try each available format
         for container_type in cls.available_container:
             try:
-                return container_type(data, *args, **kwargs)
+                return container_type(data, loc_db, *args, **kwargs)
             except ContainerSignatureException:
                 continue
             except ContainerParsingException as error:
@@ -51,7 +51,7 @@ class Container(object):
 
         # Fallback mode
         log.warning('Fallback to string input')
-        return cls.fallback_container(data, *args, **kwargs)
+        return cls.fallback_container(data, loc_db, *args, **kwargs)
 
     @classmethod
     def register_container(cls, container):
@@ -79,17 +79,14 @@ class Container(object):
         """
         raise NotImplementedError("Abstract method")
 
-    def __init__(self, data, loc_db=None, **kwargs):
+    def __init__(self, data, loc_db, **kwargs):
         "Alias for 'parse'"
         # Init attributes
         self._executable = None
         self._bin_stream = None
         self._entry_point = None
         self._arch = None
-        if loc_db is None:
-            self._loc_db = LocationDB()
-        else:
-            self._loc_db = loc_db
+        self._loc_db = loc_db
 
         # Launch parsing
         self.parse(data, **kwargs)

@@ -5,6 +5,7 @@ from pdb import pm
 from miasm.analysis.binary import Container
 from miasm.analysis.sandbox import Sandbox_Linux_x86_32, Sandbox_Linux_x86_64,\
     Sandbox_Linux_arml, Sandbox_Linux_aarch64l
+from miasm.core.locationdb import LocationDB
 
 if len(sys.argv) < 2:
     print("Usage: %s <arch> ..." % sys.argv[0])
@@ -29,7 +30,8 @@ parser.add_argument("filename", help="ELF Filename")
 options = parser.parse_args(sys.argv[2:])
 
 # Create sandbox
-sb = sandbox(options.filename, options, globals())
+loc_db = LocationDB()
+sb = sandbox(loc_db, options.filename, options, globals())
 
 # Run
 sb.run()
