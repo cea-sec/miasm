@@ -69,7 +69,7 @@ class TestParseAsm(unittest.TestCase):
         '''
 
         asmcfg = parse_txt(mn_x86, 32, ASM0, loc_db)
-        patches = asm_resolve_final(mn_x86, asmcfg, loc_db)
+        patches = asm_resolve_final(mn_x86, asmcfg)
         lbls = []
         for i in range(6):
             lbls.append(loc_db.get_name_location('lbl%d' % i))

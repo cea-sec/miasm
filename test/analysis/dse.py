@@ -73,7 +73,7 @@ class DSETest(object):
 
     def asm(self):
         mn_x86 = self.machine.mn
-        blocks = parse_asm.parse_txt(
+        asmcfg = parse_asm.parse_txt(
             mn_x86,
             self.arch_attrib,
             self.TXT,
@@ -83,7 +83,7 @@ class DSETest(object):
         # fix shellcode addr
         self.loc_db.set_location_offset(self.loc_db.get_name_location("main"), 0x0)
         output = StrPatchwork()
-        patches = asm_resolve_final(mn_x86, blocks, self.loc_db)
+        patches = asm_resolve_final(mn_x86, asmcfg)
         for offset, raw in viewitems(patches):
             output[offset] = raw
 
@@ -117,7 +117,7 @@ class DSEAttachInBreakpoint(DSETest):
         super(DSEAttachInBreakpoint, self).__init__(*args, **kwargs)
         self._dse = None
         ircls = self.machine.ir
-        self._regs = ircls().arch.regs
+        self._regs = ircls(self.loc_db).arch.regs
         self._testid = ExprId("TEST", self._regs.EBX.size)
 
     def bp_attach(self, jitter):

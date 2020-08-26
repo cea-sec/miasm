@@ -7,7 +7,7 @@ from miasm.expression.expression import *
 
 class ir_a_msp430_base(ir_msp430, ira):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_msp430.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R15
 
@@ -23,7 +23,7 @@ class ir_a_msp430_base(ir_msp430, ira):
 
 class ir_a_msp430(ir_a_msp430_base):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_a_msp430_base.__init__(self, loc_db)
 
     def get_out_regs(self, _):

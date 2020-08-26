@@ -5733,7 +5733,7 @@ mnemo_func = {'mov': mov,
 
 class ir_x86_16(IntermediateRepresentation):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_x86, 16, loc_db)
         self.do_stk_segm = False
         self.do_ds_segm = False
@@ -5876,7 +5876,7 @@ class ir_x86_16(IntermediateRepresentation):
 
 class ir_x86_32(ir_x86_16):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_x86, 32, loc_db)
         self.do_stk_segm = False
         self.do_ds_segm = False
@@ -5890,7 +5890,7 @@ class ir_x86_32(ir_x86_16):
 
 class ir_x86_64(ir_x86_16):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_x86, 64, loc_db)
         self.do_stk_segm = False
         self.do_ds_segm = False

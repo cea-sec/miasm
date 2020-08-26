@@ -30,7 +30,7 @@ loop:
 loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
 
 # Spread information and resolve instructions offset
-patches = asmblock.asm_resolve_final(mn_x86, asmcfg, loc_db)
+patches = asmblock.asm_resolve_final(mn_x86, asmcfg)
 
 # Show resolved asmcfg
 for block in asmcfg.blocks:

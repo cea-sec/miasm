@@ -72,7 +72,7 @@ class IRATest(ira):
 
     """Fake IRA class for tests"""
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         arch = Arch()
         super(IRATest, self).__init__(arch, 32, loc_db)
         self.IRDst = IRDst

@@ -6,7 +6,7 @@ from miasm.ir.analysis import ira
 from miasm.arch.mips32.sem import ir_mips32l, ir_mips32b
 
 class ir_a_mips32l(ir_mips32l, ira):
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_mips32l.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.V0
 
@@ -99,6 +99,6 @@ class ir_a_mips32l(ir_mips32l, ira):
 
 
 class ir_a_mips32b(ir_mips32b, ir_a_mips32l):
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_mips32b.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.V0

@@ -2228,7 +2228,7 @@ class aarch64info(object):
 
 class ir_aarch64l(IntermediateRepresentation):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_aarch64, "l", loc_db)
         self.pc = PC
         self.sp = SP
@@ -2314,7 +2314,7 @@ class ir_aarch64l(IntermediateRepresentation):
 
 class ir_aarch64b(ir_aarch64l):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_aarch64, "b", loc_db)
         self.pc = PC
         self.sp = SP

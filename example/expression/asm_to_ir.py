@@ -40,7 +40,7 @@ for block in asmcfg.blocks:
 
 print("symbols:")
 print(loc_db)
-patches = asmblock.asm_resolve_final(mn_x86, asmcfg, loc_db)
+patches = asmblock.asm_resolve_final(mn_x86, asmcfg)
 
 # Translate to IR
 ir_arch = ir_a_x86_32(loc_db)

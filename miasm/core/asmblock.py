@@ -91,22 +91,19 @@ class AsmBlock(object):
 
     loc_key = property(lambda self:self._loc_key)
 
-    def to_string(self, loc_db=None):
+    def to_string(self):
         out = []
-        if loc_db is None:
-            out.append(str(self.loc_key))
-        else:
-            out.append(loc_db.pretty_str(self.loc_key))
+        out.append(self.loc_db.pretty_str(self.loc_key))
 
         for instr in self.lines:
-            out.append(instr.to_string(loc_db))
+            out.append(instr.to_string(self.loc_db))
         if self.bto:
             lbls = ["->"]
             for dst in self.bto:
                 if dst is None:
                     lbls.append("Unknown? ")
                 else:
-                    lbls.append(dst.to_string(loc_db) + " ")
+                    lbls.append(dst.to_string(self.loc_db) + " ")
             lbls = '\t'.join(sorted(lbls))
             out.append(lbls)
         return '\n'.join(out)
@@ -121,18 +118,18 @@ class AsmBlock(object):
         assert isinstance(self.bto, set)
         self.bto.add(c)
 
-    def split(self, loc_db, offset):
-        loc_key = loc_db.get_or_create_offset_location(offset)
+    def split(self, offset):
+        loc_key = self.loc_db.get_or_create_offset_location(offset)
         log_asmblock.debug('split at %x', offset)
         offsets = [x.offset for x in self.lines]
-        offset = loc_db.get_location_offset(loc_key)
+        offset = self.loc_db.get_location_offset(loc_key)
         if offset not in offsets:
             log_asmblock.warning(
                 'cannot split block at %X ' % offset +
                 'middle instruction? default middle')
             offsets.sort()
             return None
-        new_block = AsmBlock(loc_db, loc_key)
+        new_block = AsmBlock(self.loc_db, loc_key)
         i = offsets.index(offset)
 
         self.lines, new_block.lines = self.lines[:i], self.lines[i:]
@@ -444,10 +441,7 @@ class AsmCFG(DiGraph):
 
 
     def node2lines(self, node):
-        if self.loc_db is None:
-            loc_key_name = node
-        else:
-            loc_key_name = self.loc_db.pretty_str(node)
+        loc_key_name = self.loc_db.pretty_str(node)
         yield self.DotCellDescription(text=loc_key_name,
                                       attr={'align': 'center',
                                             'colspan': 2,
@@ -903,7 +897,7 @@ class BlockChainWedge(object):
         return [self, chain]
 
 
-def group_constrained_blocks(loc_db, asmcfg):
+def group_constrained_blocks(asmcfg):
     """
     Return the BlockChains list built from grouped blocks in asmcfg linked by
     asm_constraint_next
@@ -942,7 +936,7 @@ def group_constrained_blocks(loc_db, asmcfg):
 
     out_block_chains = []
     for loc_key in known_block_chains:
-        chain = BlockChain(loc_db, known_block_chains[loc_key])
+        chain = BlockChain(asmcfg.loc_db, known_block_chains[loc_key])
         out_block_chains.append(chain)
     return out_block_chains
 
@@ -1023,8 +1017,8 @@ def get_block_loc_keys(block):
     return symbols
 
 
-def assemble_block(mnemo, block, loc_db, conservative=False):
-    """Assemble a @block using @loc_db
+def assemble_block(mnemo, block, conservative=False):
+    """Assemble a @block
     @conservative: (optional) use original bytes when possible
     """
     offset_i = 0
@@ -1035,7 +1029,7 @@ def assemble_block(mnemo, block, loc_db, conservative=False):
                 # Fix special AsmRaw
                 data = b""
                 for expr in instr.raw:
-                    expr_int = fix_expr_val(expr, loc_db)
+                    expr_int = fix_expr_val(expr, block.loc_db)
                     data += pck[expr_int.size](int(expr_int))
                 instr.data = data
 
@@ -1045,17 +1039,17 @@ def assemble_block(mnemo, block, loc_db, conservative=False):
 
         # Assemble an instruction
         saved_args = list(instr.args)
-        instr.offset = loc_db.get_location_offset(block.loc_key) + offset_i
+        instr.offset = block.loc_db.get_location_offset(block.loc_key) + offset_i
 
         # Replace instruction's arguments by resolved ones
-        instr.args = instr.resolve_args_with_symbols(loc_db)
+        instr.args = instr.resolve_args_with_symbols(block.loc_db)
 
         if instr.dstflow():
             instr.fixDstOffset()
 
         old_l = instr.l
         cached_candidate, _ = conservative_asm(
-            mnemo, instr, loc_db,
+            mnemo, instr, block.loc_db,
             conservative
         )
         if len(cached_candidate) != instr.l:
@@ -1063,11 +1057,11 @@ def assemble_block(mnemo, block, loc_db, conservative=False):
             # Retry assembly with updated length
             instr.l = len(cached_candidate)
             instr.args = saved_args
-            instr.args = instr.resolve_args_with_symbols(loc_db)
+            instr.args = instr.resolve_args_with_symbols(block.loc_db)
             if instr.dstflow():
                 instr.fixDstOffset()
             cached_candidate, _ = conservative_asm(
-                mnemo, instr, loc_db,
+                mnemo, instr, block.loc_db,
                 conservative
             )
             assert len(cached_candidate) == instr.l
@@ -1083,8 +1077,8 @@ def assemble_block(mnemo, block, loc_db, conservative=False):
         offset_i += instr.l
 
 
-def asmblock_final(mnemo, asmcfg, blockChains, loc_db, conservative=False):
-    """Resolve and assemble @blockChains using @loc_db until fixed point is
+def asmblock_final(mnemo, asmcfg, blockChains, conservative=False):
+    """Resolve and assemble @blockChains until fixed point is
     reached"""
 
     log_asmblock.debug("asmbloc_final")
@@ -1131,29 +1125,24 @@ def asmblock_final(mnemo, asmcfg, blockChains, loc_db, conservative=False):
 
         while blocks_to_rework:
             block = blocks_to_rework.pop()
-            assemble_block(mnemo, block, loc_db, conservative)
+            assemble_block(mnemo, block, conservative)
 
 
-def asm_resolve_final(mnemo, asmcfg, loc_db, dst_interval=None):
-    """Resolve and assemble @asmcfg using @loc_db into interval
+def asm_resolve_final(mnemo, asmcfg, dst_interval=None):
+    """Resolve and assemble @asmcfg into interval
     @dst_interval"""
 
     asmcfg.sanity_check()
 
     asmcfg.guess_blocks_size(mnemo)
-    blockChains = group_constrained_blocks(loc_db, asmcfg)
-    resolved_blockChains = resolve_symbol(
-        blockChains,
-        loc_db,
-        dst_interval
-    )
-
-    asmblock_final(mnemo, asmcfg, resolved_blockChains, loc_db)
+    blockChains = group_constrained_blocks(asmcfg)
+    resolved_blockChains = resolve_symbol(blockChains, asmcfg.loc_db, dst_interval)
+    asmblock_final(mnemo, asmcfg, resolved_blockChains)
     patches = {}
     output_interval = interval()
 
     for block in asmcfg.blocks:
-        offset = loc_db.get_location_offset(block.loc_key)
+        offset = asmcfg.loc_db.get_location_offset(block.loc_key)
         for instr in block.lines:
             if not instr.data:
                 # Empty line
@@ -1429,7 +1418,7 @@ class disasmEngine(object):
 
                 # `cur_block` must be split at offset `off`from miasm.core.locationdb import LocationDB
 
-                new_b = cur_block.split(self.loc_db, off)
+                new_b = cur_block.split(off)
                 log_asmblock.debug("Split block %x", off)
                 if new_b is None:
                     log_asmblock.error("Cannot split %x!!", off)

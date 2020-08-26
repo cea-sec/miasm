@@ -426,15 +426,21 @@ class IRBlock(object):
             self.cache_dst()
         return self._dst_linenb
 
-    def __str__(self):
+    def to_string(self):
         out = []
-        out.append(str(self.loc_key))
-        for assignblk in self:
-            for dst, src in viewitems(assignblk):
-                out.append('\t%s = %s' % (dst, src))
-            out.append("")
-        return "\n".join(out)
+        names = self.loc_db.get_location_names(self.loc_key)
+        if not names:
+            node_name = "%s:" % self.loc_db.pretty_str(self.loc_key)
+        else:
+            node_name = "".join("%s:\n" % name for name in names)
+        out.append(node_name)
 
+        for assignblk in self:
+            out.append(assignblk.to_string(self.loc_db))
+        return '\n'.join(out)
+
+    def __str__(self):
+        return self.to_string()
 
     def modify_exprs(self, mod_dst=None, mod_src=None):
         """
@@ -456,23 +462,6 @@ class IRBlock(object):
                 new_assignblk[mod_dst(dst)] = mod_src(src)
             assignblks.append(AssignBlock(new_assignblk, assignblk.instr))
         return IRBlock(self.loc_db, self.loc_key, assignblks)
-
-    def to_string(self, loc_db=None):
-        out = []
-        if loc_db is None:
-            node_name = "%s:" % self.loc_key
-        else:
-            names = loc_db.get_location_names(self.loc_key)
-            if not names:
-                node_name = "%s:" % loc_db.pretty_str(self.loc_key)
-            else:
-                node_name = "".join("%s:\n" % name for name in names)
-        out.append(node_name)
-
-        for assignblk in self:
-            out.append(assignblk.to_string(loc_db))
-        return '\n'.join(out)
-
 
     def simplify(self, simplifier):
         """
@@ -540,10 +529,7 @@ class IRCFG(DiGraph):
                 self.add_uniq_edge(irblock.loc_key, dst.loc_key)
 
     def node2lines(self, node):
-        if self.loc_db is None:
-            node_name = str(node)
-        else:
-            node_name = self.loc_db.pretty_str(node)
+        node_name = self.loc_db.pretty_str(node)
         yield self.DotCellDescription(
             text="%s" % node_name,
             attr={

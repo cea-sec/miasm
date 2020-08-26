@@ -1933,7 +1933,7 @@ class arminfo(object):
 
 
 class ir_arml(IntermediateRepresentation):
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_arm, "l", loc_db)
         self.pc = PC
         self.sp = SP
@@ -2130,7 +2130,7 @@ class ir_arml(IntermediateRepresentation):
 
 
 class ir_armb(ir_arml):
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_arm, "b", loc_db)
         self.pc = PC
         self.sp = SP
@@ -2139,7 +2139,7 @@ class ir_armb(ir_arml):
 
 
 class ir_armtl(ir_arml):
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_armt, "l", loc_db)
         self.pc = PC
         self.sp = SP
@@ -2165,7 +2165,7 @@ class ir_armtl(ir_arml):
 
 
 class ir_armtb(ir_armtl):
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_armt, "b", loc_db)
         self.pc = PC
         self.sp = SP

@@ -899,7 +899,7 @@ sem_dir = {
 
 class ir_ppc32b(IntermediateRepresentation):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         super(ir_ppc32b, self).__init__(mn_ppc, 'b', loc_db)
         self.pc = mn_ppc.getpc()
         self.sp = mn_ppc.getsp()

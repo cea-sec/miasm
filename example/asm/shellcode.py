@@ -106,7 +106,6 @@ open("graph.dot", "w").write(asmcfg.dot())
 patches = asmblock.asm_resolve_final(
     machine.mn,
     asmcfg,
-    loc_db,
     dst_interval
 )
 if args.encrypt:

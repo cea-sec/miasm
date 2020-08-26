@@ -15,7 +15,8 @@ from miasm.expression.expression import *
 from miasm.core.locationdb import LocationDB
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
-EXCLUDE_REGS = set([res, ir_arch().IRDst])
+loc_db = LocationDB()
+EXCLUDE_REGS = set([res, ir_arch(loc_db).IRDst])
 
 
 def M(addr):

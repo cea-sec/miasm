@@ -29,6 +29,5 @@ dst_interval = interval([(0x100001000, 0x100002000)])
 patches = asmblock.asm_resolve_final(
     my_mn,
     asmcfg,
-    loc_db,
     dst_interval
 )

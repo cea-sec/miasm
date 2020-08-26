@@ -1062,10 +1062,10 @@ class DiGraphLiveness(DiGraph):
     DiGraph representing variable liveness
     """
 
-    def __init__(self, ircfg, loc_db=None):
+    def __init__(self, ircfg):
         super(DiGraphLiveness, self).__init__()
         self.ircfg = ircfg
-        self.loc_db = loc_db
+        self.loc_db = ircfg.loc_db
         self._blocks = {}
         # Add irblocks gen/kill
         for node in ircfg.nodes():
@@ -1092,14 +1092,11 @@ class DiGraphLiveness(DiGraph):
         """
         Output liveness information in dot format
         """
-        if self.loc_db is None:
-            node_name = str(node)
+        names = self.loc_db.get_location_names(node)
+        if not names:
+            node_name = self.loc_db.pretty_str(node)
         else:
-            names = self.loc_db.get_location_names(node)
-            if not names:
-                node_name = self.loc_db.pretty_str(node)
-            else:
-                node_name = "".join("%s:\n" % name for name in names)
+            node_name = "".join("%s:\n" % name for name in names)
         yield self.DotCellDescription(
             text="%s" % node_name,
             attr={
