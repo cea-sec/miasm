@@ -95,7 +95,7 @@ def gen_irblock(label, exprs_list):
         else:
             irs.append(AssignBlock(exprs))
 
-    irbl = IRBlock(label, irs)
+    irbl = IRBlock(loc_db, label, irs)
     return irbl
 
 

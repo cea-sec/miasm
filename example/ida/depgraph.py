@@ -254,7 +254,7 @@ def launch_depgraph():
                 dst, src = expr_simp(dst), expr_simp(src)
                 new_assignblk[dst] = src
             irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
-        ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_key, irs)
+        ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_db, irb.loc_key, irs)
 
     # Get dependency graphs
     dg = settings.depgraph

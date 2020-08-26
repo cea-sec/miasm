@@ -28,7 +28,7 @@ def sanitize_graph_head(ircfg, head):
         lambda expr:expr.replace_expr(replaced_expr)
     )
     # Duplicate head block
-    ircfg.add_irblock(IRBlock(sub_head, list(ircfg.blocks[head])))
+    ircfg.add_irblock(IRBlock(ircfg.loc_db, sub_head, list(ircfg.blocks[head])))
 
     # Remove original head block
     ircfg.del_node(head)
@@ -38,7 +38,7 @@ def sanitize_graph_head(ircfg, head):
 
     # Create new head, jumping to sub_head
     assignblk = AssignBlock({ircfg.IRDst:ExprLoc(sub_head, ircfg.IRDst.size)})
-    new_irblock = IRBlock(head, [assignblk])
+    new_irblock = IRBlock(ircfg.loc_db, head, [assignblk])
     ircfg.add_irblock(new_irblock)
 
 
@@ -246,7 +246,7 @@ class SSA(object):
                 instructions.append(next(ssa_iter))
             # replace instructions of assignblock in IRBlock
             new_irs.append(AssignBlock(instructions, assignblk.instr))
-        return IRBlock(irblock.loc_key, new_irs)
+        return IRBlock(irblock.loc_db, irblock.loc_key, new_irs)
 
     def _rename_expressions(self, loc_key):
         """
@@ -614,10 +614,10 @@ class SSADiGraph(SSA):
                 out = dict(assignblks[0])
                 out.update(dict(assignblk))
                 assignblks[0] = AssignBlock(out, assignblk.instr)
-                new_irblock = IRBlock(loc_key, assignblks)
+                new_irblock = IRBlock(self.ircfg.loc_db, loc_key, assignblks)
             else:
                 # insert at the beginning
-                new_irblock = IRBlock(loc_key, [assignblk] + list(irblock.assignblks))
+                new_irblock = IRBlock(self.ircfg.loc_db, loc_key, [assignblk] + list(irblock.assignblks))
             self.ircfg.blocks[loc_key] = new_irblock
 
     def _fix_no_def_var(self, head):
@@ -646,7 +646,7 @@ class SSADiGraph(SSA):
             irblock = self.ircfg.blocks[head]
             assignblks = list(irblock)
             assignblks[0:0] = [AssignBlock(newname_to_var, assignblks[0].instr)]
-            self.ircfg.blocks[head] = IRBlock(head, assignblks)
+            self.ircfg.blocks[head] = IRBlock(self.ircfg.loc_db, head, assignblks)
 
         # Updt structure
         for loc_key in self._phinodes:

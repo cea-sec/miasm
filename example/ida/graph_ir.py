@@ -239,7 +239,7 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
                 for dst, src in viewitems(assignblk)
             }
             irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
-        ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_key, irs)
+        ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_db, irb.loc_key, irs)
 
     if verbose:
         out = ircfg.dot()
@@ -286,7 +286,7 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
         assignblks = list(irblock)
         new_assiblk = AssignBlock(regs, assignblks[-1].instr)
         assignblks.append(new_assiblk)
-        new_irblock = IRBlock(irblock.loc_key, assignblks)
+        new_irblock = IRBlock(irblock.loc_db, irblock.loc_key, assignblks)
         ircfg.blocks[loc] = new_irblock
 
 

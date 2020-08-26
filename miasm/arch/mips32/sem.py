@@ -538,7 +538,7 @@ def teq(ir, instr, arg1, arg2):
     do_except.append(m2_expr.ExprAssign(exception_flags, m2_expr.ExprInt(
         EXCEPT_DIV_BY_ZERO, exception_flags.size)))
     do_except.append(m2_expr.ExprAssign(ir.IRDst, loc_next_expr))
-    blk_except = IRBlock(loc_except, [AssignBlock(do_except, instr)])
+    blk_except = IRBlock(ir.loc_db, loc_except, [AssignBlock(do_except, instr)])
 
     cond = arg1 - arg2
 
@@ -560,7 +560,7 @@ def tne(ir, instr, arg1, arg2):
     do_except.append(m2_expr.ExprAssign(exception_flags, m2_expr.ExprInt(
         EXCEPT_DIV_BY_ZERO, exception_flags.size)))
     do_except.append(m2_expr.ExprAssign(ir.IRDst, loc_next_expr))
-    blk_except = IRBlock(loc_except, [AssignBlock(do_except, instr)])
+    blk_except = IRBlock(ir.loc_db, loc_except, [AssignBlock(do_except, instr)])
 
     cond = arg1 ^ arg2
 

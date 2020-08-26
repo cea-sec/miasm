@@ -280,7 +280,7 @@ class DependencyResult(DependencyState):
                     assignmnts[element] = irb[line_nb][element]
             assignblks.append(AssignBlock(assignmnts))
 
-        return IRBlock(irb.loc_key, assignblks)
+        return IRBlock(irb.loc_db, irb.loc_key, assignblks)
 
     def emul(self, ir_arch, ctx=None, step=False):
         """Symbolic execution of relevant nodes according to the history
@@ -311,7 +311,7 @@ class DependencyResult(DependencyState):
         loc_db = ir_arch.loc_db
         temp_loc = loc_db.get_or_create_name_location("Temp")
         symb_exec = SymbolicExecutionEngine(ir_arch, ctx_init)
-        symb_exec.eval_updt_irblock(IRBlock(temp_loc, assignblks), step=step)
+        symb_exec.eval_updt_irblock(IRBlock(loc_db, temp_loc, assignblks), step=step)
 
         # Return only inputs values (others could be wrongs)
         return {element: symb_exec.symbols[element]

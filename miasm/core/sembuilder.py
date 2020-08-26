@@ -242,6 +242,9 @@ class SemBuilder(object):
                 IRDst = ast.Attribute(value=ast.Name(id='ir',
                                                      ctx=ast.Load()),
                                       attr='IRDst', ctx=ast.Load())
+                loc_db = ast.Attribute(value=ast.Name(id='ir',
+                                                     ctx=ast.Load()),
+                                      attr='loc_db', ctx=ast.Load())
                 blocks[-1][-1].append(ast.Call(func=ast.Name(id='ExprAssign',
                                                              ctx=ast.Load()),
                                                args=[IRDst, dst],
@@ -288,8 +291,11 @@ class SemBuilder(object):
 
                     sub_blocks[-1] = ast.Call(func=ast.Name(id='IRBlock',
                                                             ctx=ast.Load()),
-                                              args=[loc_if_name,
-                                                    assignblks],
+                                              args=[
+                                                  loc_db,
+                                                  loc_if_name,
+                                                  assignblks
+                                              ],
                                               keywords=[],
                                               starargs=None,
                                               kwargs=None)

@@ -51,7 +51,7 @@ def gen_irblock(label, exprs_list):
             irs.append(AssignBlock(exprs))
 
     irs.append(AssignBlock({IRDst:dummy}))
-    irbl = IRBlock(label, irs)
+    irbl = IRBlock(loc_db, label, irs)
     return irbl
 
 

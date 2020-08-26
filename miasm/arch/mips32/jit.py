@@ -61,7 +61,7 @@ class mipsCGen(CGen):
                     dst_loc_key = self.ir_arch.get_next_instr(assignblock.instr)
                     assignments[self.ir_arch.IRDst] = m2_expr.ExprLoc(dst_loc_key, 32)
                     irs.append(AssignBlock(assignments, assignblock.instr))
-                irblocks[blk_idx] = IRBlock(irblock.loc_key, irs)
+                irblocks[blk_idx] = IRBlock(irblock.loc_db, irblock.loc_key, irs)
 
         return irblocks_list
 
