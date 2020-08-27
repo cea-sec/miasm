@@ -106,7 +106,7 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	} else {
 		PyGetStr(name_ptr, name);
 	}
-	mpn = create_memory_page_node(page_addr, (unsigned int)buf_size, (unsigned int)page_access, name_ptr);
+	mpn = create_memory_page_node(page_addr, (size_t)buf_size, (unsigned int)page_access, name_ptr);
 	if (mpn == NULL)
 		RAISE(PyExc_TypeError,"cannot create page");
 	if (is_mpn_in_tab(&self->vm_mngr, mpn)) {

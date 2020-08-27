@@ -230,7 +230,7 @@ void hexdump(char* m, unsigned int l);
 struct code_bloc_node * create_code_bloc_node(uint64_t ad_start, uint64_t ad_stop);
 void add_code_bloc(vm_mngr_t* vm_mngr, struct code_bloc_node* cbp);
 
-struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size, unsigned int access, const char *name);//memory_page* mp);
+struct memory_page_node * create_memory_page_node(uint64_t ad, size_t size, unsigned int access, const char *name);//memory_page* mp);
 void init_memory_page_pool(vm_mngr_t* vm_mngr);
 void init_code_bloc_pool(vm_mngr_t* vm_mngr);
 void reset_memory_page_pool(vm_mngr_t* vm_mngr);
