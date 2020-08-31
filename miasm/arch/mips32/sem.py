@@ -393,6 +393,10 @@ def tlbwr():
 def tlbr():
     "TODO XXX"
 
+@sbuild.parse
+def break_(arg1):
+    "NOP"
+
 def ins(ir, instr, a, b, c, d):
     e = []
     pos = int(c)
@@ -599,7 +603,8 @@ mnemo_func.update({
         'xori': l_xor,
         'clz': clz,
         'teq': teq,
-        'tne': tne
+        'tne': tne,
+        'break': break_
         })
 
 def get_mnemo_expr(ir, instr, *args):
