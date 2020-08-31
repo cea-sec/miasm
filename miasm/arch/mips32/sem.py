@@ -524,7 +524,7 @@ def mtlo(arg1):
 
 def clz(ir, instr, rs, rd):
     e = []
-    e.append(ExprAssign(rd, ExprOp('cntleadzeros', rs)))
+    e.append(m2_expr.ExprAssign(rd, m2_expr.ExprOp('cntleadzeros', rs)))
     return e, []
 
 def teq(ir, instr, arg1, arg2):
