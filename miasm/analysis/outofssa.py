@@ -73,7 +73,7 @@ class UnSSADiGraph(object):
 
             assignblks = list(irblock)
             assignblks[0] = AssignBlock(parallel_copies, irblock[0].instr)
-            new_irblock = IRBlock(irblock.loc_key, assignblks)
+            new_irblock = IRBlock(irblock.loc_db, irblock.loc_key, assignblks)
             ircfg.blocks[irblock.loc_key] = new_irblock
 
             # Insert new_var = src in each Phi's parent, at the end of the block
@@ -88,7 +88,7 @@ class UnSSADiGraph(object):
                 parent = ircfg.blocks[parent]
                 assignblks = list(parent)
                 assignblks.append(AssignBlock(parallel_copies, parent[-1].instr))
-                new_irblock = IRBlock(parent.loc_key, assignblks)
+                new_irblock = IRBlock(parent.loc_db, parent.loc_key, assignblks)
                 ircfg.blocks[parent.loc_key] = new_irblock
 
     def create_copy_var(self, var):
@@ -397,7 +397,7 @@ class UnSSADiGraph(object):
                     continue
                 out[dst] = src
             assignblks[0] = AssignBlock(out, assignblks[0].instr)
-            self.ssa.graph.blocks[irblock.loc_key] = IRBlock(irblock.loc_key, assignblks)
+            self.ssa.graph.blocks[irblock.loc_key] = IRBlock(irblock.loc_db, irblock.loc_key, assignblks)
 
     def remove_assign_eq(self):
         """
@@ -412,4 +412,4 @@ class UnSSADiGraph(object):
                         continue
                     out[dst] = src
                 assignblks[i] = AssignBlock(out, assignblk.instr)
-            self.ssa.graph.blocks[irblock.loc_key] = IRBlock(irblock.loc_key, assignblks)
+            self.ssa.graph.blocks[irblock.loc_key] = IRBlock(irblock.loc_db, irblock.loc_key, assignblks)

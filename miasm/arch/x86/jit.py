@@ -4,7 +4,6 @@ import logging
 from miasm.jitter.jitload import Jitter, named_arguments
 from miasm.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 from miasm.jitter.codegen import CGen
-from miasm.core.locationdb import LocationDB
 from miasm.ir.translators.C import TranslatorC
 
 log = logging.getLogger('jit_x86')
@@ -42,9 +41,8 @@ class jitter_x86_16(Jitter):
 
     C_Gen = x86_32_CGen
 
-    def __init__(self, *args, **kwargs):
-        sp = LocationDB()
-        Jitter.__init__(self, ir_x86_16(sp), *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, ir_x86_16(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
         self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode
@@ -74,9 +72,8 @@ class jitter_x86_32(Jitter):
 
     C_Gen = x86_32_CGen
 
-    def __init__(self, *args, **kwargs):
-        sp = LocationDB()
-        Jitter.__init__(self, ir_x86_32(sp), *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, ir_x86_32(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
 
@@ -201,9 +198,8 @@ class jitter_x86_64(Jitter):
     args_regs_systemv = ['RDI', 'RSI', 'RDX', 'RCX', 'R8', 'R9']
     args_regs_stdcall = ['RCX', 'RDX', 'R8', 'R9']
 
-    def __init__(self, *args, **kwargs):
-        sp = LocationDB()
-        Jitter.__init__(self, ir_x86_64(sp), *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, ir_x86_64(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
 

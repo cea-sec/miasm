@@ -83,7 +83,7 @@ with open(args.source) as fstream:
 
 loc_db = LocationDB()
 
-asmcfg, loc_db = parse_asm.parse_txt(machine.mn, attrib, source, loc_db)
+asmcfg = parse_asm.parse_txt(machine.mn, attrib, source, loc_db)
 
 # Fix shellcode addrs
 loc_db.set_location_offset(loc_db.get_name_location("main"), addr_main)
@@ -106,7 +106,6 @@ open("graph.dot", "w").write(asmcfg.dot())
 patches = asmblock.asm_resolve_final(
     machine.mn,
     asmcfg,
-    loc_db,
     dst_interval
 )
 if args.encrypt:

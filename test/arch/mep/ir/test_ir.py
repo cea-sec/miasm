@@ -27,13 +27,14 @@ class TestMisc(object):
             mn = mn_mep.dis(decode_hex(hex_asm), "b")
             print("Dis:", mn)
 
+            loc_db = LocationDB()
+
             # Get the IR
-            im = ir_mepb()
+            im = ir_mepb(loc_db)
             iir, eiir, = im.get_ir(mn)
             print("\nInternal representation:", iir)
 
             # Symbolic execution
-            loc_db = LocationDB()
             sb = SymbolicExecutionEngine(ir_a_mepb(loc_db), regs_init)
 
             # Assign register values before symbolic evaluation

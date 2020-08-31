@@ -387,7 +387,7 @@ class DeadRemoval(object):
                         del new_assignblk[lval]
                         modified = True
                 irs.append(AssignBlock(new_assignblk, assignblk.instr))
-            ircfg.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
+            ircfg.blocks[block.loc_key] = IRBlock(block.loc_db, block.loc_key, irs)
         return modified
 
     def __call__(self, ircfg):
@@ -438,7 +438,7 @@ def _do_merge_blocks(ircfg, loc_key, son_loc_key):
             assignblks.append(AssignBlock(affs, assignblk.instr))
 
     assignblks += ircfg.blocks[son_loc_key].assignblks
-    new_block = IRBlock(loc_key, assignblks)
+    new_block = IRBlock(ircfg.loc_db, loc_key, assignblks)
 
     ircfg.discard_edge(loc_key, son_loc_key)
 
@@ -564,7 +564,7 @@ def _remove_to_parent(ircfg, loc_key, son_loc_key):
     ircfg.del_edge(loc_key, son_loc_key)
 
     old_irblock = ircfg.blocks[son_loc_key]
-    new_irblock = IRBlock(loc_key, old_irblock.assignblks)
+    new_irblock = IRBlock(ircfg.loc_db, loc_key, old_irblock.assignblks)
 
     ircfg.blocks[son_loc_key] = new_irblock
 
@@ -657,7 +657,7 @@ def remove_empty_assignblks(ircfg):
             else:
                 block_modified = True
         if block_modified:
-            new_irblock = IRBlock(loc_key, irs)
+            new_irblock = IRBlock(ircfg.loc_db, loc_key, irs)
             ircfg.blocks[loc_key] = new_irblock
             modified = True
     return modified
@@ -909,7 +909,7 @@ def replace_stack_vars(ir_arch_a, ircfg):
 
             out = AssignBlock(out, assignblk.instr)
             assignblks.append(out)
-        new_block = IRBlock(block.loc_key, assignblks)
+        new_block = IRBlock(block.loc_db, block.loc_key, assignblks)
         ircfg.blocks[block.loc_key] = new_block
     return modified
 
@@ -987,7 +987,7 @@ def load_from_int(ir_arch, bs, is_addr_ro_variable):
                 out[dst] = src_new
             out = AssignBlock(out, assignblk.instr)
             assignblks.append(out)
-        block = IRBlock(block.loc_key, assignblks)
+        block = IRBlock(block.loc_db, block.loc_key, assignblks)
         ir_arch.blocks[block.loc_key] = block
     return modified
 
@@ -1062,10 +1062,10 @@ class DiGraphLiveness(DiGraph):
     DiGraph representing variable liveness
     """
 
-    def __init__(self, ircfg, loc_db=None):
+    def __init__(self, ircfg):
         super(DiGraphLiveness, self).__init__()
         self.ircfg = ircfg
-        self.loc_db = loc_db
+        self.loc_db = ircfg.loc_db
         self._blocks = {}
         # Add irblocks gen/kill
         for node in ircfg.nodes():
@@ -1092,14 +1092,11 @@ class DiGraphLiveness(DiGraph):
         """
         Output liveness information in dot format
         """
-        if self.loc_db is None:
-            node_name = str(node)
+        names = self.loc_db.get_location_names(node)
+        if not names:
+            node_name = self.loc_db.pretty_str(node)
         else:
-            names = self.loc_db.get_location_names(node)
-            if not names:
-                node_name = self.loc_db.pretty_str(node)
-            else:
-                node_name = "".join("%s:\n" % name for name in names)
+            node_name = "".join("%s:\n" % name for name in names)
         yield self.DotCellDescription(
             text="%s" % node_name,
             attr={
@@ -1233,7 +1230,7 @@ def discard_phi_sources(ircfg, deleted_vars):
         assignblk.update(todo)
         assignblk = AssignBlock(assignblk, assignblks[0].instr)
         assignblks[0] = assignblk
-        new_irblock = IRBlock(block.loc_key, assignblks)
+        new_irblock = IRBlock(block.loc_db, block.loc_key, assignblks)
         ircfg.blocks[block.loc_key] = new_irblock
     return True
 
@@ -1312,7 +1309,7 @@ def update_phi_with_deleted_edges(ircfg, edges_to_del):
                 out[dst] = ExprOp('Phi', *to_keep)
         assignblk = AssignBlock(out, assignblks[0].instr)
         assignblks[0] = assignblk
-        new_irblock = IRBlock(loc_dst, assignblks)
+        new_irblock = IRBlock(block.loc_db, loc_dst, assignblks)
         blocks[block.loc_key] = new_irblock
 
     for loc_key, block in viewitems(blocks):
@@ -1490,7 +1487,7 @@ class DelDummyPhi(object):
                 assignblks = list(block)
                 assignblks[0] = AssignBlock(fixed_phis, assignblk.instr)
                 assignblks[1:1] = [AssignBlock({dst: true_value}, assignblk.instr)]
-                new_irblock = IRBlock(block.loc_key, assignblks)
+                new_irblock = IRBlock(block.loc_db, block.loc_key, assignblks)
                 ssa.graph.blocks[block.loc_key] = new_irblock
 
         return modified
@@ -2152,7 +2149,7 @@ class PropagateExpressions(object):
             if new_assignblk != assignblock:
                 modified = True
 
-        new_irblock = IRBlock(irblock.loc_key, new_assignblocks)
+        new_irblock = IRBlock(irblock.loc_db, irblock.loc_key, new_assignblocks)
 
         return new_irblock, modified
 

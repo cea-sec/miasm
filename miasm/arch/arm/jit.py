@@ -2,7 +2,6 @@ from builtins import range
 import logging
 
 from miasm.jitter.jitload import Jitter, named_arguments
-from miasm.core.locationdb import LocationDB
 from miasm.core.utils import pck32, upck32
 from miasm.arch.arm.sem import ir_armb, ir_arml, ir_armtl, ir_armtb, cond_dct_inv, tab_cond
 from miasm.jitter.codegen import CGen
@@ -65,9 +64,8 @@ class arm_CGen(CGen):
 class jitter_arml(Jitter):
     C_Gen = arm_CGen
 
-    def __init__(self, *args, **kwargs):
-        sp = LocationDB()
-        Jitter.__init__(self, ir_arml(sp), *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, ir_arml(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
 
     def push_uint32_t(self, value):
@@ -133,16 +131,14 @@ class jitter_arml(Jitter):
 class jitter_armb(jitter_arml):
     C_Gen = arm_CGen
 
-    def __init__(self, *args, **kwargs):
-        sp = LocationDB()
-        Jitter.__init__(self, ir_armb(sp), *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, ir_armb(loc_db), *args, **kwargs)
         self.vm.set_big_endian()
 
 
 class jitter_armtl(jitter_arml):
     C_Gen = arm_CGen
 
-    def __init__(self, *args, **kwargs):
-        sp = LocationDB()
-        Jitter.__init__(self, ir_armtl(sp), *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, ir_armtl(loc_db), *args, **kwargs)
         self.vm.set_little_endian()

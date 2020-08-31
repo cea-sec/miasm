@@ -156,7 +156,7 @@ class CGen(object):
             dst = ExprLoc(loc_key, self.ir_arch.IRDst.size)
             new_assignblk[self.ir_arch.IRDst] = dst
         irs = [AssignBlock(new_assignblk, instr)]
-        return IRBlock(self.ir_arch.get_loc_key_for_instr(instr), irs)
+        return IRBlock(self.ir_arch.loc_db, self.ir_arch.get_loc_key_for_instr(instr), irs)
 
     def block2assignblks(self, block):
         """

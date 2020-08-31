@@ -56,7 +56,7 @@ def gen_irblock(label, exprs_list):
         else:
             irs.append(AssignBlock(exprs))
 
-    irbl = IRBlock(label, irs)
+    irbl = IRBlock(loc_db, label, irs)
     return irbl
 
 
@@ -587,7 +587,7 @@ def add_out_reg_end(ir_arch_a, ircfg_a):
         assignblks = list(irblock)
         new_assiblk = AssignBlock(regs, assignblks[-1].instr)
         assignblks.append(new_assiblk)
-        new_irblock = IRBlock(irblock.loc_key, assignblks)
+        new_irblock = IRBlock(loc_db, irblock.loc_key, assignblks)
         ircfg_a.blocks[loc] = new_irblock
 
 

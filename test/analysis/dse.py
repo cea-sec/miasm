@@ -10,6 +10,7 @@ from miasm.core.asmblock import asm_resolve_final
 from miasm.analysis.machine import Machine
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm.analysis.dse import DSEEngine
+from miasm.core.locationdb import LocationDB
 
 
 class DSETest(object):
@@ -31,9 +32,10 @@ class DSETest(object):
     run_addr = 0x0
 
     def __init__(self, jitter_engine):
+        self.loc_db = LocationDB()
         self.machine = Machine(self.arch_name)
         jitter = self.machine.jitter
-        self.myjit = jitter(jitter_engine)
+        self.myjit = jitter(self.loc_db, jitter_engine)
         self.myjit.init_stack()
 
         self.myjit.set_trace_log()
@@ -52,7 +54,7 @@ class DSETest(object):
         self.myjit.cpu.ECX = 4
         self.myjit.cpu.EDX = 5
 
-        self.dse = DSEEngine(self.machine)
+        self.dse = DSEEngine(self.machine, self.loc_db)
         self.dse.attach(self.myjit)
 
     def __call__(self):
@@ -71,17 +73,17 @@ class DSETest(object):
 
     def asm(self):
         mn_x86 = self.machine.mn
-        blocks, loc_db = parse_asm.parse_txt(
+        asmcfg = parse_asm.parse_txt(
             mn_x86,
             self.arch_attrib,
             self.TXT,
-            loc_db=self.myjit.ir_arch.loc_db
+            self.loc_db
         )
 
         # fix shellcode addr
-        loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
+        self.loc_db.set_location_offset(self.loc_db.get_name_location("main"), 0x0)
         output = StrPatchwork()
-        patches = asm_resolve_final(mn_x86, blocks, loc_db)
+        patches = asm_resolve_final(mn_x86, asmcfg)
         for offset, raw in viewitems(patches):
             output[offset] = raw
 
@@ -115,12 +117,12 @@ class DSEAttachInBreakpoint(DSETest):
         super(DSEAttachInBreakpoint, self).__init__(*args, **kwargs)
         self._dse = None
         ircls = self.machine.ir
-        self._regs = ircls().arch.regs
+        self._regs = ircls(self.loc_db).arch.regs
         self._testid = ExprId("TEST", self._regs.EBX.size)
 
     def bp_attach(self, jitter):
         """Attach a DSE in the current jitter"""
-        self.dse = DSEEngine(self.machine)
+        self.dse = DSEEngine(self.machine, self.loc_db)
         self.dse.attach(self.myjit)
         self.dse.update_state_from_concrete()
         self.dse.update_state({

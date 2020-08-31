@@ -113,7 +113,7 @@ class SymbExecStateFix(SymbolicExecutionEngine):
 
             self.eval_updt_assignblk(assignblk)
             assignblks.append(AssignBlock(new_assignblk, assignblk.instr))
-        self.ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_key, assignblks)
+        self.ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_db, irb.loc_key, assignblks)
 
 
 def compute_cst_propagation_states(ir_arch, ircfg, init_addr, init_infos):

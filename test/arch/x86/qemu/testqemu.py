@@ -13,6 +13,7 @@ except AttributeError:
 from miasm.analysis.sandbox import Sandbox_Linux_x86_32
 from miasm.jitter.jitload import log_func
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.core.locationdb import LocationDB
 
 # Utils
 def parse_fmt(s):
@@ -122,7 +123,8 @@ options = parser.parse_args()
 expected = open(options.expected)
 
 # Create sandbox
-sb = Sandbox_Linux_x86_32(options.filename, options, globals())
+loc_db = LocationDB()
+sb = Sandbox_Linux_x86_32(loc_db, options.filename, options, globals())
 try:
     addr = sb.elf.getsectionbyname(".symtab")[options.funcname].value
 except AttributeError:

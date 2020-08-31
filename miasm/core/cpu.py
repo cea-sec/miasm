@@ -16,7 +16,6 @@ import miasm.expression.expression as m2_expr
 from miasm.core.bin_stream import bin_stream, bin_stream_str
 from miasm.core.utils import Disasm_Exception
 from miasm.expression.simplifications import expr_simp
-from miasm.core.locationdb import LocationDB
 
 
 from miasm.core.asm_ast import AstNode, AstInt, AstId, AstOp
@@ -1016,17 +1015,15 @@ class instruction(object):
     def get_asm_next_offset(self, expr):
         return m2_expr.ExprInt(self.offset+self.l, expr.size)
 
-    def resolve_args_with_symbols(self, symbols=None):
-        if symbols is None:
-            symbols = LocationDB()
+    def resolve_args_with_symbols(self, loc_db):
         args_out = []
         for expr in self.args:
-            # try to resolve symbols using symbols (0 for default value)
+            # try to resolve symbols using loc_db (0 for default value)
             loc_keys = m2_expr.get_expr_locs(expr)
             fixed_expr = {}
             for exprloc in loc_keys:
                 loc_key = exprloc.loc_key
-                names = symbols.get_location_names(loc_key)
+                names = loc_db.get_location_names(loc_key)
                 # special symbols
                 if b'$' in names:
                     fixed_expr[exprloc] = self.get_asm_offset(exprloc)
@@ -1034,14 +1031,14 @@ class instruction(object):
                 if b'_' in names:
                     fixed_expr[exprloc] = self.get_asm_next_offset(exprloc)
                     continue
-                arg_int = symbols.get_location_offset(loc_key)
+                arg_int = loc_db.get_location_offset(loc_key)
                 if arg_int is not None:
                     fixed_expr[exprloc] = m2_expr.ExprInt(arg_int, exprloc.size)
                     continue
                 if not names:
                     raise ValueError('Unresolved symbol: %r' % exprloc)
 
-                offset = symbols.get_location_offset(loc_key)
+                offset = loc_db.get_location_offset(loc_key)
                 if offset is None:
                     raise ValueError(
                         'The offset of loc_key "%s" cannot be determined' % names
@@ -1050,7 +1047,7 @@ class instruction(object):
                     # Fix symbol with its offset
                     size = exprloc.size
                     if size is None:
-                        default_size = self.get_symbol_size(exprloc, symbols)
+                        default_size = self.get_symbol_size(exprloc, loc_db)
                         size = default_size
                     value = m2_expr.ExprInt(offset, size)
                 fixed_expr[exprloc] = value
@@ -1383,7 +1380,7 @@ class cls_mn(with_metaclass(metamn, object)):
         yield c
 
     @classmethod
-    def asm(cls, instr, symbols=None):
+    def asm(cls, instr, loc_db=None):
         """
         Re asm instruction by searching mnemo using name and args. We then
         can modify args and get the hex of a modified instruction
@@ -1392,7 +1389,7 @@ class cls_mn(with_metaclass(metamn, object)):
         clist = [x for x in clist]
         vals = []
         candidates = []
-        args = instr.resolve_args_with_symbols(symbols)
+        args = instr.resolve_args_with_symbols(loc_db)
 
         for cc in clist:
 

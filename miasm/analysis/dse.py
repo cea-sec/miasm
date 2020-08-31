@@ -66,7 +66,6 @@ from miasm.expression.expression_helper import possible_values
 from miasm.ir.translators import Translator
 from miasm.analysis.expression_range import expr_range
 from miasm.analysis.modularintervals import ModularIntervals
-from miasm.core.locationdb import LocationDB
 
 DriftInfo = namedtuple("DriftInfo", ["symbol", "computed", "expected"])
 
@@ -162,9 +161,9 @@ class DSEEngine(object):
     """
     SYMB_ENGINE = ESETrackModif
 
-    def __init__(self, machine):
+    def __init__(self, machine, loc_db):
         self.machine = machine
-        self.loc_db = LocationDB()
+        self.loc_db = loc_db
         self.handler = {} # addr -> callback(DSEEngine instance)
         self.instrumentation = {} # addr -> callback(DSEEngine instance)
         self.addr_to_cacheblocks = {} # addr -> {label -> IRBlock}
@@ -527,13 +526,13 @@ class DSEPathConstraint(DSEEngine):
     PRODUCE_SOLUTION_BRANCH_COV = 2
     PRODUCE_SOLUTION_PATH_COV = 3
 
-    def __init__(self, machine, produce_solution=PRODUCE_SOLUTION_CODE_COV,
+    def __init__(self, machine, loc_db, produce_solution=PRODUCE_SOLUTION_CODE_COV,
                  known_solutions=None,
                  **kwargs):
         """Init a DSEPathConstraint
         @machine: Machine of the targeted architecture instance
         @produce_solution: (optional) if set, new solutions will be computed"""
-        super(DSEPathConstraint, self).__init__(machine, **kwargs)
+        super(DSEPathConstraint, self).__init__(machine, loc_db, **kwargs)
 
         # Dependency check
         assert z3 is not None

@@ -12,7 +12,7 @@ class ir_a_mepb(ir_mepb, ira):
         - it is mandatory for symbolic execution.
     """
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_mepb.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
@@ -41,5 +41,5 @@ class ir_a_mepb(ir_mepb, ira):
 class ir_a_mepl(ir_mepl, ir_a_mepb):
     """MeP high level IR manipulations - Little Endian"""
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_a_mepb.__init__(self, loc_db)

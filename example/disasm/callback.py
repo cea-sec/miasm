@@ -2,6 +2,7 @@ from __future__ import print_function
 from miasm.analysis.binary import Container
 from miasm.analysis.machine import Machine
 from miasm.core.asmblock import AsmConstraint
+from miasm.core.locationdb import LocationDB
 
 
 def cb_x86_callpop(mdis, cur_bloc, offset_to_dis):
@@ -50,8 +51,9 @@ shellcode = (
 
 # Instantiate a x86 32 bit architecture
 machine = Machine("x86_32")
-cont = Container.from_string(shellcode)
-mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
+loc_db = LocationDB()
+cont = Container.from_string(shellcode, loc_db)
+mdis = machine.dis_engine(cont.bin_stream, loc_db=loc_db)
 
 print("Without callback:\n")
 asmcfg = mdis.dis_multiblock(0)

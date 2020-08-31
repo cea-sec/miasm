@@ -42,7 +42,7 @@ class Sandbox(object):
 
     classes = property(lambda x: x.__class__._classes_())
 
-    def __init__(self, fname, options, custom_methods=None, **kwargs):
+    def __init__(self, loc_db, fname, options, custom_methods=None, **kwargs):
         """
         Initialize a sandbox
         @fname: str file name
@@ -54,8 +54,10 @@ class Sandbox(object):
         assert isinstance(fname, basestring)
         self.fname = fname
         self.options = options
+        self.loc_db = loc_db
         if custom_methods is None:
             custom_methods = {}
+        kwargs["loc_db"] = loc_db
         for cls in self.classes:
             if cls == Sandbox:
                 continue
@@ -171,9 +173,9 @@ class Arch(object):
     # Architecture name
     _ARCH_ = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, loc_db, **kwargs):
         self.machine = Machine(self._ARCH_)
-        self.jitter = self.machine.jitter(self.options.jitter)
+        self.jitter = self.machine.jitter(loc_db, self.options.jitter)
 
     @classmethod
     def update_parser(cls, parser):
@@ -384,8 +386,8 @@ class Arch_x86(Arch):
     STACK_SIZE = 0x10000
     STACK_BASE = 0x130000
 
-    def __init__(self, **kwargs):
-        super(Arch_x86, self).__init__(**kwargs)
+    def __init__(self, loc_db, **kwargs):
+        super(Arch_x86, self).__init__(loc_db, **kwargs)
 
         if self.options.usesegm:
             self.jitter.ir_arch.do_stk_segm = True
@@ -417,8 +419,8 @@ class Arch_arml(Arch):
     STACK_SIZE = 0x100000
     STACK_BASE = 0x100000
 
-    def __init__(self, **kwargs):
-        super(Arch_arml, self).__init__(**kwargs)
+    def __init__(self, loc_db, **kwargs):
+        super(Arch_arml, self).__init__(loc_db, **kwargs)
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
@@ -431,8 +433,8 @@ class Arch_armb(Arch):
     STACK_SIZE = 0x100000
     STACK_BASE = 0x100000
 
-    def __init__(self, **kwargs):
-        super(Arch_armb, self).__init__(**kwargs)
+    def __init__(self, loc_db, **kwargs):
+        super(Arch_armb, self).__init__(loc_db, **kwargs)
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
@@ -445,8 +447,8 @@ class Arch_armtl(Arch):
     STACK_SIZE = 0x100000
     STACK_BASE = 0x100000
 
-    def __init__(self, **kwargs):
-        super(Arch_armtl, self).__init__(**kwargs)
+    def __init__(self, loc_db, **kwargs):
+        super(Arch_armtl, self).__init__(loc_db, **kwargs)
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
@@ -459,8 +461,8 @@ class Arch_mips32b(Arch):
     STACK_SIZE = 0x100000
     STACK_BASE = 0x100000
 
-    def __init__(self, **kwargs):
-        super(Arch_mips32b, self).__init__(**kwargs)
+    def __init__(self, loc_db, **kwargs):
+        super(Arch_mips32b, self).__init__(loc_db, **kwargs)
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
@@ -473,8 +475,8 @@ class Arch_aarch64l(Arch):
     STACK_SIZE = 0x100000
     STACK_BASE = 0x100000
 
-    def __init__(self, **kwargs):
-        super(Arch_aarch64l, self).__init__(**kwargs)
+    def __init__(self, loc_db, **kwargs):
+        super(Arch_aarch64l, self).__init__(loc_db, **kwargs)
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
@@ -487,8 +489,8 @@ class Arch_aarch64b(Arch):
     STACK_SIZE = 0x100000
     STACK_BASE = 0x100000
 
-    def __init__(self, **kwargs):
-        super(Arch_aarch64b, self).__init__(**kwargs)
+    def __init__(self, loc_db, **kwargs):
+        super(Arch_aarch64b, self).__init__(loc_db, **kwargs)
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
@@ -506,8 +508,8 @@ class Arch_ppc32b(Arch_ppc32):
 
 class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
 
-    def __init__(self, *args, **kwargs):
-        Sandbox.__init__(self, *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Sandbox.__init__(self, loc_db, *args, **kwargs)
 
         # Pre-stack some arguments
         self.jitter.push_uint32_t(2)
@@ -538,8 +540,8 @@ class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
 
 class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
 
-    def __init__(self, *args, **kwargs):
-        Sandbox.__init__(self, *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Sandbox.__init__(self, loc_db, *args, **kwargs)
 
         # reserve stack for local reg
         for _ in range(0x4):
@@ -574,8 +576,8 @@ class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
 
 class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
 
-    def __init__(self, *args, **kwargs):
-        Sandbox.__init__(self, *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Sandbox.__init__(self, loc_db, *args, **kwargs)
 
         # Pre-stack some arguments
         if self.options.mimic_env:
@@ -634,8 +636,8 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
 
 class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
 
-    def __init__(self, *args, **kwargs):
-        Sandbox.__init__(self, *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Sandbox.__init__(self, loc_db, *args, **kwargs)
 
         # Pre-stack some arguments
         if self.options.mimic_env:
@@ -693,8 +695,8 @@ class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
 
 class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
 
-    def __init__(self, *args, **kwargs):
-        Sandbox.__init__(self, *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Sandbox.__init__(self, loc_db, *args, **kwargs)
 
         # Pre-stack some arguments
         if self.options.mimic_env:
@@ -751,8 +753,8 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
 
 class Sandbox_Linux_armtl(Sandbox, Arch_armtl, OS_Linux):
 
-    def __init__(self, *args, **kwargs):
-        Sandbox.__init__(self, *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Sandbox.__init__(self, loc_db, *args, **kwargs)
 
         # Pre-stack some arguments
         if self.options.mimic_env:
@@ -810,8 +812,8 @@ class Sandbox_Linux_armtl(Sandbox, Arch_armtl, OS_Linux):
 
 class Sandbox_Linux_mips32b(Sandbox, Arch_mips32b, OS_Linux):
 
-    def __init__(self, *args, **kwargs):
-        Sandbox.__init__(self, *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Sandbox.__init__(self, loc_db, *args, **kwargs)
 
         # Pre-stack some arguments
         if self.options.mimic_env:
@@ -865,8 +867,8 @@ class Sandbox_Linux_mips32b(Sandbox, Arch_mips32b, OS_Linux):
 
 class Sandbox_Linux_armb_str(Sandbox, Arch_armb, OS_Linux_str):
 
-    def __init__(self, *args, **kwargs):
-        Sandbox.__init__(self, *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Sandbox.__init__(self, loc_db, *args, **kwargs)
 
         self.jitter.cpu.LR = self.CALL_FINISH_ADDR
 
@@ -881,8 +883,8 @@ class Sandbox_Linux_armb_str(Sandbox, Arch_armb, OS_Linux_str):
 
 class Sandbox_Linux_arml_str(Sandbox, Arch_arml, OS_Linux_str):
 
-    def __init__(self, *args, **kwargs):
-        Sandbox.__init__(self, *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Sandbox.__init__(self, loc_db, *args, **kwargs)
 
         self.jitter.cpu.LR = self.CALL_FINISH_ADDR
 
@@ -897,8 +899,8 @@ class Sandbox_Linux_arml_str(Sandbox, Arch_arml, OS_Linux_str):
 
 class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
 
-    def __init__(self, *args, **kwargs):
-        Sandbox.__init__(self, *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Sandbox.__init__(self, loc_db, *args, **kwargs)
 
         # Pre-stack some arguments
         if self.options.mimic_env:
@@ -957,8 +959,8 @@ class Sandbox_Linux_ppc32b(Sandbox, Arch_ppc32b, OS_Linux):
     # The glue between the kernel and the ELF ABI on Linux/PowerPC is
     # implemented in glibc/sysdeps/powerpc/powerpc32/dl-start.S, so we
     # have to play the role of ld.so here.
-    def __init__(self, *args, **kwargs):
-        super(Sandbox_Linux_ppc32b, self).__init__(*args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        super(Sandbox_Linux_ppc32b, self).__init__(loc_db, *args, **kwargs)
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE

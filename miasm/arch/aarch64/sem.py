@@ -2065,13 +2065,13 @@ def casp(ir, instr, arg1, arg2, arg3):
     e_store = []
     e_store.append(ExprAssign(data, new_value))
     e_store.append(ExprAssign(ir.IRDst, loc_do))
-    blk_store = IRBlock(loc_store.loc_key, [AssignBlock(e_store, instr)])
+    blk_store = IRBlock(ir.loc_db, loc_store.loc_key, [AssignBlock(e_store, instr)])
 
     e_do = []
     e_do.append(ExprAssign(regs[index1], data[:data.size // 2]))
     e_do.append(ExprAssign(regs[index1 + 1], data[data.size // 2:]))
     e_do.append(ExprAssign(ir.IRDst, loc_next))
-    blk_do = IRBlock(loc_do.loc_key, [AssignBlock(e_do, instr)])
+    blk_do = IRBlock(ir.loc_db, loc_do.loc_key, [AssignBlock(e_do, instr)])
 
     return e, [blk_store, blk_do]
 
@@ -2228,7 +2228,7 @@ class aarch64info(object):
 
 class ir_aarch64l(IntermediateRepresentation):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_aarch64, "l", loc_db)
         self.pc = PC
         self.sp = SP
@@ -2274,7 +2274,7 @@ class ir_aarch64l(IntermediateRepresentation):
                 src = self.expr_fix_regs_for_mode(src)
                 new_assignblk[dst] = src
             irs.append(AssignBlock(new_assignblk, assignblk.instr))
-        return IRBlock(irblock.loc_key, irs)
+        return IRBlock(self.loc_db, irblock.loc_key, irs)
 
     def mod_pc(self, instr, instr_ir, extra_ir):
         "Replace PC by the instruction's offset"
@@ -2307,14 +2307,14 @@ class ir_aarch64l(IntermediateRepresentation):
                     if dst not in regs_to_fix
                 }
                 irs.append(AssignBlock(new_dsts, assignblk.instr))
-            new_irblocks.append(IRBlock(irblock.loc_key, irs))
+            new_irblocks.append(IRBlock(self.loc_db, irblock.loc_key, irs))
 
         return instr_ir, new_irblocks
 
 
 class ir_aarch64b(ir_aarch64l):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_aarch64, "b", loc_db)
         self.pc = PC
         self.sp = SP

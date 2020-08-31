@@ -61,7 +61,7 @@ class mipsCGen(CGen):
                     dst_loc_key = self.ir_arch.get_next_instr(assignblock.instr)
                     assignments[self.ir_arch.IRDst] = m2_expr.ExprLoc(dst_loc_key, 32)
                     irs.append(AssignBlock(assignments, assignblock.instr))
-                irblocks[blk_idx] = IRBlock(irblock.loc_key, irs)
+                irblocks[blk_idx] = IRBlock(irblock.loc_db, irblock.loc_key, irs)
 
         return irblocks_list
 
@@ -85,9 +85,8 @@ class jitter_mips32l(Jitter):
 
     C_Gen = mipsCGen
 
-    def __init__(self, *args, **kwargs):
-        sp = LocationDB()
-        Jitter.__init__(self, ir_mips32l(sp), *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, ir_mips32l(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
 
     def push_uint32_t(self, value):
@@ -145,7 +144,6 @@ class jitter_mips32l(Jitter):
 
 class jitter_mips32b(jitter_mips32l):
 
-    def __init__(self, *args, **kwargs):
-        sp = LocationDB()
-        Jitter.__init__(self, ir_mips32b(sp), *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, ir_mips32b(loc_db), *args, **kwargs)
         self.vm.set_big_endian()

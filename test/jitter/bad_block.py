@@ -2,6 +2,7 @@ import sys
 from miasm.core.utils import decode_hex
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE, EXCEPT_UNK_MNEMO
 from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
 
 def code_sentinelle(jitter):
     jitter.run = False
@@ -9,7 +10,8 @@ def code_sentinelle(jitter):
     return True
 
 machine = Machine("x86_32")
-jitter = machine.jitter(sys.argv[1])
+loc_db = LocationDB()
+jitter = machine.jitter(loc_db, sys.argv[1])
 
 jitter.init_stack()
 

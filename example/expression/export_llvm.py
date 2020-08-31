@@ -6,18 +6,19 @@ from miasm.analysis.machine import Machine
 from miasm.jitter.llvmconvert import LLVMType, LLVMContext_IRCompilation, LLVMFunction_IRCompilation
 from llvmlite import ir as llvm_ir
 from miasm.expression.simplifications import expr_simp_high_to_explicit
+from miasm.core.locationdb import LocationDB
 
 parser = ArgumentParser("LLVM export example")
 parser.add_argument("target", help="Target binary")
 parser.add_argument("addr", help="Target address")
 parser.add_argument("--architecture", "-a", help="Force architecture")
 args = parser.parse_args()
-
+loc_db = LocationDB()
 # This part focus on obtaining an IRCFG to transform #
-cont = Container.from_stream(open(args.target, 'rb'))
+cont = Container.from_stream(open(args.target, 'rb'), loc_db)
 machine = Machine(args.architecture if args.architecture else cont.arch)
-ir = machine.ir(cont.loc_db)
-dis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
+ir = machine.ir(loc_db)
+dis = machine.dis_engine(cont.bin_stream, loc_db=loc_db)
 asmcfg = dis.dis_multiblock(int(args.addr, 0))
 ircfg = ir.new_ircfg_from_asmcfg(asmcfg)
 ircfg.simplify(expr_simp_high_to_explicit)

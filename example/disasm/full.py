@@ -15,6 +15,7 @@ from miasm.expression.simplifications import expr_simp
 from miasm.analysis.ssa import SSADiGraph
 from miasm.ir.ir import AssignBlock, IRBlock
 from miasm.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
+from miasm.core.locationdb import LocationDB
 
 log = logging.getLogger("dis")
 console_handler = logging.StreamHandler()
@@ -75,13 +76,20 @@ args = parser.parse_args()
 if args.verbose:
     log_asmblock.setLevel(logging.DEBUG)
 
+loc_db = LocationDB()
 log.info('Load binary')
 if args.rawbinary:
-    cont = Container.fallback_container(open(args.filename, "rb").read(),
-                                        vm=None, addr=args.base_address)
+    cont = Container.fallback_container(
+        open(args.filename, "rb").read(),
+        vm=None, addr=args.base_address,
+        loc_db=loc_db,
+    )
 else:
     with open(args.filename, "rb") as fdesc:
-        cont = Container.from_stream(fdesc, addr=args.base_address)
+        cont = Container.from_stream(
+            fdesc, addr=args.base_address,
+            loc_db=loc_db,
+        )
 
 default_addr = cont.entry_point
 bs = cont.bin_stream

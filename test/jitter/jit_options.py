@@ -5,6 +5,7 @@ import sys
 from miasm.core.utils import decode_hex
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
 from pdb import pm
 
 # Shellcode
@@ -21,16 +22,17 @@ from pdb import pm
 
 data = decode_hex("b810000000bb0100000083e8010f44cb75f8c3")
 run_addr = 0x40000000
+loc_db = LocationDB()
 
 def code_sentinelle(jitter):
     jitter.run = False
     jitter.pc = 0
     return True
 
-def init_jitter():
+def init_jitter(loc_db):
     global data, run_addr
     # Create jitter
-    myjit = Machine("x86_32").jitter(sys.argv[1])
+    myjit = Machine("x86_32").jitter(loc_db, sys.argv[1])
 
     myjit.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, data)
 
@@ -44,7 +46,7 @@ def init_jitter():
 
 # Test 'max_exec_per_call'
 print("[+] First run, to jit blocks")
-myjit = init_jitter()
+myjit = init_jitter(loc_db)
 myjit.init_run(run_addr)
 myjit.continue_run()
 
@@ -78,7 +80,7 @@ assert myjit.cpu.EAX >= 0xA
 
 # Test 'jit_maxline'
 print("[+] Run instr one by one")
-myjit = init_jitter()
+myjit = init_jitter(loc_db)
 myjit.jit.options["jit_maxline"] = 1
 myjit.jit.options["max_exec_per_call"] = 1
 

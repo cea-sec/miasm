@@ -7,6 +7,7 @@ from miasm.loader import elf as elf_csts
 from miasm.os_dep.linux import environment, syscall
 from miasm.analysis.machine import Machine
 from miasm.analysis.binary import Container
+from miasm.core.locationdb import LocationDB
 
 parser = ArgumentParser("Run an ELF in a Linux-like environment")
 parser.add_argument("target", help="Target ELF")
@@ -23,8 +24,9 @@ args = parser.parse_args()
 if args.verbose:
     syscall.log.setLevel(logging.DEBUG)
 
+loc_db = LocationDB()
 # Get corresponding interpreter and reloc address
-cont_target_tmp = Container.from_stream(open(args.target, 'rb'))
+cont_target_tmp = Container.from_stream(open(args.target, 'rb'), loc_db)
 ld_path = bytes(cont_target_tmp.executable.getsectionbyname(".interp").content).strip(b"\x00")
 if cont_target_tmp.executable.Ehdr.type in [elf_csts.ET_REL, elf_csts.ET_DYN]:
     elf_base_addr = 0x40000000
@@ -35,7 +37,7 @@ else:
 
 # Instantiate a jitter
 machine = Machine(cont_target_tmp.arch)
-jitter = machine.jitter(args.jitter)
+jitter = machine.jitter(loc_db, args.jitter)
 jitter.init_stack()
 
 # Get elements for the target architecture

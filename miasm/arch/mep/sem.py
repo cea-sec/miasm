@@ -1146,7 +1146,7 @@ class ir_mepb(IntermediateRepresentation):
 
     addrsize = 32
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_mep, "b", loc_db)
         self.pc = mn_mep.getpc()
         self.sp = mn_mep.getsp()
@@ -1172,7 +1172,7 @@ class ir_mepb(IntermediateRepresentation):
 class ir_mepl(ir_mepb):
     """Toshiba MeP miasm IR - Little Endian"""
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         IntermediateRepresentation.__init__(self, mn_mep, "l", loc_db)
         self.pc = mn_mep.getpc()
         self.sp = mn_mep.getsp()

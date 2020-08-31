@@ -1,6 +1,5 @@
 from builtins import range
 from miasm.jitter.jitload import Jitter, named_arguments
-from miasm.core.locationdb import LocationDB
 from miasm.arch.ppc.sem import ir_ppc32b
 import struct
 
@@ -15,8 +14,8 @@ log.setLevel(logging.CRITICAL)
 class jitter_ppc32b(Jitter):
     max_reg_arg = 8
 
-    def __init__(self, *args, **kwargs):
-        super(jitter_ppc32b, self).__init__(ir_ppc32b(LocationDB()),
+    def __init__(self, loc_db, *args, **kwargs):
+        super(jitter_ppc32b, self).__init__(ir_ppc32b(loc_db),
                                             *args, **kwargs)
         self.vm.set_big_endian()
 

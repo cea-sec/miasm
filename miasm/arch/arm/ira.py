@@ -7,19 +7,19 @@ from miasm.expression.expression import ExprAssign, ExprOp, ExprLoc, ExprCond
 from miasm.ir.ir import AssignBlock
 
 class ir_a_arml_base(ir_arml, ira):
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_arml.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
 class ir_a_armb_base(ir_armb, ira):
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_armb.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
 
 class ir_a_arml(ir_a_arml_base):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_a_arml_base.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
@@ -90,17 +90,17 @@ class ir_a_arml(ir_a_arml_base):
 
 class ir_a_armb(ir_a_armb_base, ir_a_arml):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_a_armb_base.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
 
 class ir_a_armtl(ir_armtl, ir_a_arml):
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_armtl.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
 class ir_a_armtb(ir_a_armtl, ir_armtb, ir_a_armb):
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_armtb.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0

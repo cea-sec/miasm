@@ -3,7 +3,6 @@
 # Note: inspiration from msp430/jit.py
 
 from miasm.jitter.jitload import Jitter
-from miasm.core.locationdb import LocationDB
 from miasm.core.utils import *
 from miasm.jitter.codegen import CGen
 from miasm.ir.translators.C import TranslatorC
@@ -77,9 +76,8 @@ class jitter_mepl(Jitter):
 
     C_Gen = mep_CGen
 
-    def __init__(self, *args, **kwargs):
-        sp = LocationDB()
-        Jitter.__init__(self, ir_mepl(sp), *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, ir_mepl(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
 
@@ -108,8 +106,7 @@ class jitter_mepl(Jitter):
 
 class jitter_mepb(jitter_mepl):
 
-    def __init__(self, *args, **kwargs):
-        sp = LocationDB()
-        Jitter.__init__(self, ir_mepb(sp), *args, **kwargs)
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, ir_mepb(loc_db), *args, **kwargs)
         self.vm.set_big_endian()
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC

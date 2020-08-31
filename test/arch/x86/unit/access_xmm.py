@@ -2,9 +2,11 @@
 """Test getter and setter for XMM registers (128 bits)"""
 
 from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
 
 # Jitter engine doesn't matter, use the always available 'python' one
-myjit = Machine("x86_32").jitter("python")
+loc_db = LocationDB()
+myjit = Machine("x86_32").jitter(loc_db, "python")
 
 # Test basic access (get)
 assert myjit.cpu.XMM0 == 0

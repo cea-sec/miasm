@@ -10,6 +10,7 @@ from miasm.analysis.machine import Machine
 from miasm.analysis.binary import Container
 from miasm.analysis.depgraph import DependencyGraph
 from miasm.expression.expression import ExprMem, ExprId, ExprInt
+from miasm.core.locationdb import LocationDB
 
 parser = ArgumentParser("Dependency grapher")
 parser.add_argument("filename", help="Binary to analyse")
@@ -33,10 +34,10 @@ parser.add_argument("--json",
                     help="Output solution in JSON",
                     action="store_true")
 args = parser.parse_args()
-
+loc_db = LocationDB()
 # Get architecture
 with open(args.filename, "rb") as fstream:
-    cont = Container.from_stream(fstream)
+    cont = Container.from_stream(fstream, loc_db)
 
 arch = args.architecture if args.architecture else cont.arch
 machine = Machine(arch)
@@ -50,8 +51,8 @@ for element in args.element:
     except KeyError:
         raise ValueError("Unknown element '%s'" % element)
 
-mdis = machine.dis_engine(cont.bin_stream, dont_dis_nulstart_bloc=True)
-ir_arch = machine.ira(mdis.loc_db)
+mdis = machine.dis_engine(cont.bin_stream, dont_dis_nulstart_bloc=True, loc_db=loc_db)
+ir_arch = machine.ira(loc_db)
 
 # Common argument forms
 init_ctx = {}

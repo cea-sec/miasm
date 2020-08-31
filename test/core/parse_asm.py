@@ -3,6 +3,7 @@
 
 from builtins import range
 import unittest
+from miasm.core.locationdb import LocationDB
 
 
 class TestParseAsm(unittest.TestCase):
@@ -10,6 +11,7 @@ class TestParseAsm(unittest.TestCase):
     def test_ParseTxt(self):
         from miasm.arch.x86.arch import mn_x86
         from miasm.core.parse_asm import parse_txt
+        loc_db = LocationDB()
 
         ASM0 = '''
         ;
@@ -33,13 +35,14 @@ class TestParseAsm(unittest.TestCase):
         ASM1 = '''
         .XXX
         '''
-        self.assertTrue(parse_txt(mn_x86, 32, ASM0))
-        self.assertRaises(ValueError, parse_txt, mn_x86, 32, ASM1)
+        self.assertTrue(parse_txt(mn_x86, 32, ASM0, loc_db))
+        self.assertRaises(ValueError, parse_txt, mn_x86, 32, ASM1, loc_db)
 
     def test_DirectiveDontSplit(self):
         from miasm.arch.x86.arch import mn_x86
         from miasm.core.parse_asm import parse_txt
         from miasm.core.asmblock import asm_resolve_final
+        loc_db = LocationDB()
 
         ASM0 = '''
         lbl0:
@@ -65,10 +68,8 @@ class TestParseAsm(unittest.TestCase):
         .string "toto"
         '''
 
-        asmcfg, loc_db = parse_txt(mn_x86, 32, ASM0)
-        patches = asm_resolve_final(mn_x86,
-                                    asmcfg,
-                                    loc_db)
+        asmcfg = parse_txt(mn_x86, 32, ASM0, loc_db)
+        patches = asm_resolve_final(mn_x86, asmcfg)
         lbls = []
         for i in range(6):
             lbls.append(loc_db.get_name_location('lbl%d' % i))
@@ -87,6 +88,7 @@ class TestParseAsm(unittest.TestCase):
     def test_DirectiveSplit(self):
         from miasm.arch.x86.arch import mn_x86
         from miasm.core.parse_asm import parse_txt
+        loc_db = LocationDB()
 
         ASM0 = '''
         lbl0:
@@ -96,7 +98,7 @@ class TestParseAsm(unittest.TestCase):
             RET
         '''
 
-        asmcfg, loc_db = parse_txt(mn_x86, 32, ASM0)
+        asmcfg = parse_txt(mn_x86, 32, ASM0, loc_db)
         lbls = []
         for i in range(2):
             lbls.append(loc_db.get_name_location('lbl%d' % i))

@@ -14,6 +14,7 @@ from pdb import pm
 from miasm.analysis.sandbox import Sandbox_Linux_arml
 from miasm.jitter.emulatedsymbexec import EmulatedSymbExec
 from miasm.jitter.jitcore_python import JitCore_Python
+from miasm.core.locationdb import LocationDB
 
 # Function called at each instruction
 instr_count = 0
@@ -45,7 +46,8 @@ JitCore_Python.SymbExecClass = ESETrackMemory
 
 # Create sandbox, forcing Python jitter
 options.jitter = "python"
-sb = Sandbox_Linux_arml(options.filename, options, globals())
+loc_db = LocationDB()
+sb = Sandbox_Linux_arml(loc_db, options.filename, options, globals())
 
 # Force jit one instr per call, and register our callback
 sb.jitter.jit.set_options(jit_maxline=1, max_exec_per_call=1)

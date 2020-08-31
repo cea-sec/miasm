@@ -21,9 +21,9 @@ from miasm.expression.simplifications import expr_simp
 from miasm.core import parse_asm, asmblock
 from miasm.core.locationdb import LocationDB
 
-
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
-EXCLUDE_REGS = set([ir_32().IRDst, ir_64().IRDst])
+loc_db = LocationDB()
+EXCLUDE_REGS = set([ir_32(loc_db).IRDst, ir_64(loc_db).IRDst])
 
 
 m32 = 32
@@ -56,9 +56,10 @@ def compute(ir, mode, asm, inputstate={}, debug=False):
 
 
 def compute_txt(ir, mode, txt, inputstate={}, debug=False):
-    asmcfg, loc_db = parse_asm.parse_txt(mn, mode, txt)
+    loc_db = LocationDB()
+    asmcfg = parse_asm.parse_txt(mn, mode, txt, loc_db)
     loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
-    patches = asmblock.asm_resolve_final(mn, asmcfg, loc_db)
+    patches = asmblock.asm_resolve_final(mn, asmcfg)
     ir_arch = ir(loc_db)
     lbl = loc_db.get_name_location("main")
     ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)

@@ -11,6 +11,9 @@ from miasm.analysis.machine import Machine
 from miasm.core.types import MemStruct, Self, Void, Str, Array, Ptr, \
                               Num, Array, set_allocator
 from miasm.os_dep.common import heap
+from miasm.core.locationdb import LocationDB
+
+loc_db = LocationDB()
 
 # Instantiate a heap
 my_heap = heap()
@@ -154,7 +157,7 @@ print()
 # A random jitter
 # You can also use miasm.jitter.VmMngr.Vm(), but it does not happen in real
 # life scripts, so here is the usual way:
-jitter = Machine("x86_32").jitter("python")
+jitter = Machine("x86_32").jitter(loc_db, "python")
 vm = jitter.vm
 
 # Auto-allocated by my_heap. If you allocate memory at `addr`,

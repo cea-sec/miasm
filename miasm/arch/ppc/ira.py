@@ -6,8 +6,8 @@ from miasm.arch.ppc.sem import ir_ppc32b
 
 class ir_a_ppc32b(ir_ppc32b, ira):
 
-    def __init__(self, *args):
-        super(ir_a_ppc32b, self).__init__(*args)
+    def __init__(self, loc_db, *args):
+        super(ir_a_ppc32b, self).__init__(loc_db, *args)
         self.ret_reg = self.arch.regs.R3
 
     # for test XXX TODO

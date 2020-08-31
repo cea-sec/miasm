@@ -14,6 +14,7 @@ from miasm.core.types import MemStruct, Num, Ptr, Str, \
                               set_allocator, MemUnion, Struct
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm.os_dep.common import heap
+from miasm.core.locationdb import LocationDB
 
 # Two structures with some fields
 class OtherStruct(MemStruct):
@@ -35,7 +36,8 @@ class MyStruct(MemStruct):
         ("i", Ptr("I", Num("I"))),
     ]
 
-jitter = Machine("x86_32").jitter("python")
+loc_db = LocationDB()
+jitter = Machine("x86_32").jitter(loc_db, "python")
 jitter.init_stack()
 addr = 0x1000
 size = 0x1000

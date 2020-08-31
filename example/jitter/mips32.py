@@ -5,6 +5,8 @@ from argparse import ArgumentParser
 from miasm.analysis import debugging
 from miasm.jitter.csts import *
 from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
+
 
 parser = ArgumentParser(
     description="""Sandbox raw binary with mips32 engine
@@ -34,8 +36,9 @@ def code_sentinelle(jitter):
     return True
 
 def jit_mips32_binary(args):
+    loc_db = LocationDB()
     filepath, entryp = args.binary, int(args.addr, 0)
-    myjit = machine.jitter(jit_type = args.jitter)
+    myjit = machine.jitter(loc_db, jit_type = args.jitter)
     myjit.init_stack()
 
     # Log level (if available with jitter engine)

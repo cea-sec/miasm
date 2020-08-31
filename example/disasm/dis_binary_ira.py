@@ -4,14 +4,16 @@ import sys
 from future.utils import viewvalues
 from miasm.analysis.binary import Container
 from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
 
 #####################################
 # Common section from dis_binary.py #
 #####################################
 
 fdesc = open(sys.argv[1], 'rb')
+loc_db = LocationDB()
 
-cont = Container.from_stream(fdesc)
+cont = Container.from_stream(fdesc, loc_db)
 
 machine = Machine(cont.arch)
 

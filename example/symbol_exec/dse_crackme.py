@@ -21,6 +21,7 @@ from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm.analysis.sandbox import Sandbox_Linux_x86_64
 from miasm.expression.expression import *
 from miasm.os_dep.win_api_x86_32 import get_win_str_a
+from miasm.core.locationdb import LocationDB
 
 is_win = platform.system() == "Windows"
 
@@ -75,7 +76,8 @@ parser.add_argument("--strategy",
 options = parser.parse_args()
 options.mimic_env = True
 options.command_line = ["%s" % TEMP_FILE.name]
-sb = Sandbox_Linux_x86_64(options.filename, options, globals())
+loc_db = LocationDB()
+sb = Sandbox_Linux_x86_64(loc_db, options.filename, options, globals())
 
 # Init segment
 sb.jitter.ir_arch.do_stk_segm = True
@@ -238,7 +240,7 @@ strategy = {
     "branch-cov": DSEPathConstraint.PRODUCE_SOLUTION_BRANCH_COV,
     "path-cov": DSEPathConstraint.PRODUCE_SOLUTION_PATH_COV,
 }[options.strategy]
-dse = DSEPathConstraint(machine, produce_solution=strategy)
+dse = DSEPathConstraint(machine, loc_db, produce_solution=strategy)
 
 # Attach to the jitter
 dse.attach(sb.jitter)

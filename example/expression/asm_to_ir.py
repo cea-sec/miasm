@@ -9,10 +9,13 @@ from miasm.expression.expression import *
 from miasm.core import asmblock
 from miasm.arch.x86.ira import ir_a_x86_32
 from miasm.analysis.data_flow import DeadRemoval
+from miasm.core.locationdb import LocationDB
 
 
 # First, asm code
-asmcfg, loc_db = parse_asm.parse_txt(mn_x86, 32, '''
+loc_db = LocationDB()
+asmcfg = parse_asm.parse_txt(
+    mn_x86, 32, '''
 main:
    MOV    EAX, 1
    MOV    EBX, 2
@@ -25,7 +28,9 @@ loop:
    ADD    EAX, ECX
    JZ     loop
    RET
-''')
+''',
+    loc_db
+)
 
 
 loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
@@ -35,7 +40,7 @@ for block in asmcfg.blocks:
 
 print("symbols:")
 print(loc_db)
-patches = asmblock.asm_resolve_final(mn_x86, asmcfg, loc_db)
+patches = asmblock.asm_resolve_final(mn_x86, asmcfg)
 
 # Translate to IR
 ir_arch = ir_a_x86_32(loc_db)

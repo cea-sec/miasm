@@ -316,9 +316,9 @@ class IRBlock(object):
     Stand for an intermediate representation  basic block.
     """
 
-    __slots__ = ["_loc_key", "_assignblks", "_dst", "_dst_linenb"]
+    __slots__ = ["_loc_db", "_loc_key", "_assignblks", "_dst", "_dst_linenb"]
 
-    def __init__(self, loc_key, assignblks):
+    def __init__(self, loc_db, loc_key, assignblks):
         """
         @loc_key: LocKey of the IR basic block
         @assignblks: list of AssignBlock
@@ -326,6 +326,7 @@ class IRBlock(object):
 
         assert isinstance(loc_key, m2_expr.LocKey)
         self._loc_key = loc_key
+        self._loc_db = loc_db
         for assignblk in assignblks:
             assert isinstance(assignblk, AssignBlock)
         self._assignblks = tuple(assignblks)
@@ -336,6 +337,8 @@ class IRBlock(object):
         if self.__class__ is not other.__class__:
             return False
         if self.loc_key != other.loc_key:
+            return False
+        if self.loc_db != other.loc_db:
             return False
         if len(self.assignblks) != len(other.assignblks):
             return False
@@ -352,6 +355,7 @@ class IRBlock(object):
         return self.loc_key
 
     loc_key = property(lambda self:self._loc_key)
+    loc_db = property(lambda self:self._loc_db)
     label = property(get_label)
 
     @property
@@ -413,7 +417,7 @@ class IRBlock(object):
                 else:
                     new_assignblk[dst] = src
             irs.append(AssignBlock(new_assignblk, assignblk.instr))
-        return IRBlock(self.loc_key, irs)
+        return IRBlock(self.loc_db, self.loc_key, irs)
 
     @property
     def dst_linenb(self):
@@ -422,15 +426,21 @@ class IRBlock(object):
             self.cache_dst()
         return self._dst_linenb
 
-    def __str__(self):
+    def to_string(self):
         out = []
-        out.append(str(self.loc_key))
-        for assignblk in self:
-            for dst, src in viewitems(assignblk):
-                out.append('\t%s = %s' % (dst, src))
-            out.append("")
-        return "\n".join(out)
+        names = self.loc_db.get_location_names(self.loc_key)
+        if not names:
+            node_name = "%s:" % self.loc_db.pretty_str(self.loc_key)
+        else:
+            node_name = "".join("%s:\n" % name for name in names)
+        out.append(node_name)
 
+        for assignblk in self:
+            out.append(assignblk.to_string(self.loc_db))
+        return '\n'.join(out)
+
+    def __str__(self):
+        return self.to_string()
 
     def modify_exprs(self, mod_dst=None, mod_src=None):
         """
@@ -451,24 +461,7 @@ class IRBlock(object):
             for dst, src in viewitems(assignblk):
                 new_assignblk[mod_dst(dst)] = mod_src(src)
             assignblks.append(AssignBlock(new_assignblk, assignblk.instr))
-        return IRBlock(self.loc_key, assignblks)
-
-    def to_string(self, loc_db=None):
-        out = []
-        if loc_db is None:
-            node_name = "%s:" % self.loc_key
-        else:
-            names = loc_db.get_location_names(self.loc_key)
-            if not names:
-                node_name = "%s:" % loc_db.pretty_str(self.loc_key)
-            else:
-                node_name = "".join("%s:\n" % name for name in names)
-        out.append(node_name)
-
-        for assignblk in self:
-            out.append(assignblk.to_string(loc_db))
-        return '\n'.join(out)
-
+        return IRBlock(self.loc_db, self.loc_key, assignblks)
 
     def simplify(self, simplifier):
         """
@@ -482,7 +475,7 @@ class IRBlock(object):
             if assignblk != new_assignblk:
                 modified = True
             assignblks.append(new_assignblk)
-        return modified, IRBlock(self.loc_key, assignblks)
+        return modified, IRBlock(self.loc_db, self.loc_key, assignblks)
 
 
 class irbloc(IRBlock):
@@ -536,10 +529,7 @@ class IRCFG(DiGraph):
                 self.add_uniq_edge(irblock.loc_key, dst.loc_key)
 
     def node2lines(self, node):
-        if self.loc_db is None:
-            node_name = str(node)
-        else:
-            node_name = self.loc_db.pretty_str(node)
+        node_name = self.loc_db.pretty_str(node)
         yield self.DotCellDescription(
             text="%s" % node_name,
             attr={
@@ -656,7 +646,7 @@ class IRCFG(DiGraph):
                 if assignblk != new_assignblk:
                     modified = True
                 assignblks.append(new_assignblk)
-            self.blocks[loc_key] = IRBlock(loc_key, assignblks)
+            self.blocks[loc_key] = IRBlock(self.loc_db, loc_key, assignblks)
         return modified
 
     def _extract_dst(self, todo, done):
@@ -757,7 +747,7 @@ class IntermediateRepresentation(object):
             irs = []
             for assignblk in irb:
                 irs.append(AssignBlock(assignblk, instr))
-            extra_irblocks[index] = IRBlock(irb.loc_key, irs)
+            extra_irblocks[index] = IRBlock(self.loc_db, irb.loc_key, irs)
         assignblk = AssignBlock(ir_bloc_cur, instr)
         return assignblk, extra_irblocks
 
@@ -773,7 +763,7 @@ class IntermediateRepresentation(object):
         if loc_key is None:
             offset = getattr(instr, "offset", None)
             loc_key = self.loc_db.get_or_create_offset_location(offset)
-        block = AsmBlock(loc_key)
+        block = AsmBlock(self.loc_db, loc_key)
         block.lines = [instr]
         self.add_asmblock_to_ircfg(block, ircfg, gen_pc_updt)
         return loc_key
@@ -827,11 +817,11 @@ class IntermediateRepresentation(object):
                 ir_blocks_all, gen_pc_updt
             )
             if split:
-                ir_blocks_all.append(IRBlock(loc_key, assignments))
+                ir_blocks_all.append(IRBlock(self.loc_db, loc_key, assignments))
                 loc_key = None
                 assignments = []
         if loc_key is not None:
-            ir_blocks_all.append(IRBlock(loc_key, assignments))
+            ir_blocks_all.append(IRBlock(self.loc_db, loc_key, assignments))
 
         new_ir_blocks_all = self.post_add_asmblock_to_ircfg(block, ircfg, ir_blocks_all)
         for irblock in new_ir_blocks_all:
@@ -915,7 +905,7 @@ class IntermediateRepresentation(object):
             else:
                 instr = None
             assignblk = AssignBlock({self.IRDst: dst}, instr)
-            ir_blocks[index] = IRBlock(irblock.loc_key, list(irblock.assignblks) + [assignblk])
+            ir_blocks[index] = IRBlock(self.loc_db, irblock.loc_key, list(irblock.assignblks) + [assignblk])
 
     def post_add_asmblock_to_ircfg(self, block, ircfg, ir_blocks):
         self.set_empty_dst_to_next(block, ir_blocks)

@@ -8,7 +8,7 @@ from miasm.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 
 class ir_a_x86_16(ir_x86_16, ira):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_x86_16.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.AX
 
@@ -17,7 +17,7 @@ class ir_a_x86_16(ir_x86_16, ira):
 
 class ir_a_x86_32(ir_x86_32, ir_a_x86_16):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_x86_32.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.EAX
 
@@ -39,7 +39,7 @@ class ir_a_x86_32(ir_x86_32, ir_a_x86_16):
 
 class ir_a_x86_64(ir_x86_64, ir_a_x86_16):
 
-    def __init__(self, loc_db=None):
+    def __init__(self, loc_db):
         ir_x86_64.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.RAX
 

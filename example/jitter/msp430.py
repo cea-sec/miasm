@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from miasm.analysis import debugging
 from miasm.jitter.csts import *
 from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
 
 parser = ArgumentParser(
     description="""Sandbox raw binary with msp430 engine
@@ -29,8 +30,9 @@ parser.add_argument("addr",
 machine = Machine("msp430")
 
 def jit_msp430_binary(args):
+    loc_db = LocationDB()
     filepath, entryp = args.binary, int(args.addr, 0)
-    myjit = machine.jitter(jit_type = args.jitter)
+    myjit = machine.jitter(loc_db, jit_type = args.jitter)
 
     # Log level (if available with jitter engine)
     myjit.set_trace_log(

@@ -144,7 +144,7 @@ class JitCore(object):
             return cur_block
         # Logging
         if self.log_newbloc:
-            print(cur_block.to_string(self.mdis.loc_db))
+            print(cur_block)
 
         # Update label -> block
         self.loc_key_to_block[cur_block.loc_key] = cur_block

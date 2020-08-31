@@ -125,7 +125,7 @@ Add instruction to the pool:
 Print current pool:
 ```pycon
 >>> for lbl, irblock in ircfg.blocks.items():
-...     print(irblock.to_string(loc_db))
+...     print(irblock)
 loc_0:
 R2 = R8 + R0
 
@@ -134,10 +134,10 @@ IRDst = loc_4
 ```
 Working with IR, for instance by getting side effects:
 ```pycon
->>> for lbl, irblock in ircfg.blocks.iteritems():
+>>> for lbl, irblock in ircfg.blocks.items():
 ...     for assignblk in irblock:
 ...         rw = assignblk.get_rw()
-...         for dst, reads in rw.iteritems():
+...         for dst, reads in rw.items():
 ...             print('read:   ', [str(x) for x in reads])
 ...             print('written:', dst)
 ...             print()
@@ -166,13 +166,13 @@ Giving a shellcode:
 00000010 8d5b01      lea    ebx, [ebx+0x1]
 00000013 89d8        mov    eax, ebx
 00000015 c3          ret
->>> s = '\x8dI\x04\x8d[\x01\x80\xf9\x01t\x05\x8d[\xff\xeb\x03\x8d[\x01\x89\xd8\xc3'
+>>> s = b'\x8dI\x04\x8d[\x01\x80\xf9\x01t\x05\x8d[\xff\xeb\x03\x8d[\x01\x89\xd8\xc3'
 ```
 Import the shellcode thanks to the `Container` abstraction:
 
 ```pycon
 >>> from miasm.analysis.binary import Container
->>> c = Container.from_string(s)
+>>> c = Container.from_string(s, loc_db)
 >>> c
 <miasm.analysis.binary.ContainerUnknown object at 0x7f34cefe6090>
 ```
@@ -182,10 +182,10 @@ Disassembling the shellcode at address `0`:
 ```pycon
 >>> from miasm.analysis.machine import Machine
 >>> machine = Machine('x86_32')
->>> mdis = machine.dis_engine(c.bin_stream)
+>>> mdis = machine.dis_engine(c.bin_stream, loc_db=loc_db)
 >>> asmcfg = mdis.dis_multiblock(0)
 >>> for block in asmcfg.blocks:
-...  print(block.to_string(asmcfg.loc_db))
+...  print(block)
 ...
 loc_0
 LEA        ECX, DWORD PTR [ECX + 0x4]
@@ -208,7 +208,7 @@ RET
 Initializing the Jit engine with a stack:
 
 ```pycon
->>> jitter = machine.jitter(jit_type='python')
+>>> jitter = machine.jitter(loc_db, jit_type='python')
 >>> jitter.init_stack()
 ```
 
