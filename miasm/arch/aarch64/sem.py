@@ -1361,6 +1361,24 @@ def ldaxrb(ir, instr, arg1, arg2):
     e.append(ExprAssign(arg1, ExprMem(ptr, 8).zeroExtend(arg1.size)))
     return e, []
 
+def ldxr(ir, instr, arg1, arg2):
+    # TODO XXX no memory lock implemented
+    assert arg2.is_op('preinc')
+    assert len(arg2.args) == 1
+    ptr = arg2.args[0]
+    e = []
+    e.append(ExprAssign(arg1, ExprMem(ptr, arg1.size).zeroExtend(arg1.size)))
+    return e, []
+
+def stlxr(ir, instr, arg1, arg2, arg3):
+    assert arg3.is_op('preinc')
+    assert len(arg3.args) == 1
+    ptr = arg3.args[0]
+    e = []
+    e.append(ExprAssign(ExprMem(ptr, arg2.size), arg2))
+    # TODO XXX here, force update success
+    e.append(ExprAssign(arg1, ExprInt(0, arg1.size)))
+    return e, []
 
 def stlxrb(ir, instr, arg1, arg2, arg3):
     assert arg3.is_op('preinc')
@@ -1372,6 +1390,11 @@ def stlxrb(ir, instr, arg1, arg2, arg3):
     e.append(ExprAssign(arg1, ExprInt(0, arg1.size)))
     return e, []
 
+def stlrb(ir, instr, arg1, arg2):
+    ptr = arg2.args[0]
+    e = []
+    e.append(ExprAssign(ExprMem(ptr, 8), arg1[:8]))
+    return e, []
 
 def l_str(ir, instr, arg1, arg2):
     e = []
@@ -1830,6 +1853,31 @@ def nop():
     """Do nothing"""
 
 
+@sbuild.parse
+def dsb(arg1):
+    """Data Syncronization Barrier"""
+
+@sbuild.parse
+def isb(arg1):
+    """Instruction Syncronization Barrier"""
+
+@sbuild.parse
+def dmb(arg1):
+    """Data Memory Barrier"""
+
+@sbuild.parse
+def tlbi(arg1, arg2, arg3, arg4):
+    """TLB invalidate operation"""
+
+@sbuild.parse
+def clrex(arg1):
+    """Clear the local monitor of the executing PE"""
+
+@sbuild.parse
+def ic(arg1, arg2, arg3, arg4):
+    """Instruction/Data cache operation"""
+
+
 def rev(ir, instr, arg1, arg2):
     out = []
     for i in range(0, arg2.size, 8):
@@ -2163,6 +2211,11 @@ mnemo_func.update({
     'ldaxrb': ldaxrb,
     'stlxrb': stlxrb,
 
+    'stlrb': stlrb,
+
+    'stlxr': stlxr,
+    'ldxr': ldxr,
+
     'str': l_str,
     'strb': strb,
     'strh': strh,
@@ -2210,7 +2263,13 @@ mnemo_func.update({
     'caspa':casp,
     'caspal':casp,
 
-
+    'yield': nop,
+    'isb': isb,
+    'dsb': dsb,
+    'dmb': dmb,
+    'tlbi': tlbi,
+    'clrex': clrex,
+    'ic': ic
 })
 
 

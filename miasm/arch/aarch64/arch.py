@@ -2188,10 +2188,17 @@ aarch64op("stlxrb",[bs('0'), bs('0'), bs('001000'), bs('0'), bs('0'), bs('0'), r
 aarch64op("stlxrh",[bs('0'), bs('1'), bs('001000'), bs('0'), bs('0'), bs('0'), rs32, bs('1'), bs('11111'), rn64_deref_nooff, rt32], [rs32, rt32, rn64_deref_nooff])
 aarch64op("stlxp", [bs('1'), sf, bs('001000'), bs('0'), bs('0'), bs('1'), rs32, bs('1'), rt2, rn64_deref_nooff, rt], [rs32, rt, rt2, rn64_deref_nooff])
 
+aarch64op("stlrb",[bs('0'), bs('0'), bs('001000'), bs('1'), bs('0'), bs('0'), bs('11111'), bs('1'), bs('11111'), rn64_deref_nooff, rt32], [rt32, rn64_deref_nooff])
+
 # barriers p.135
 aarch64op("dsb", [bs('1101010100'), bs('0000110011'), crm, bs('1'), bs('00'), bs('11111')], [crm])
 aarch64op("dmb", [bs('1101010100'), bs('0000110011'), crm, bs('1'), bs('01'), bs('11111')], [crm])
 aarch64op("isb", [bs('1101010100'), bs('0000110011'), crm, bs('1'), bs('10'), bs('11111')], [crm])
+aarch64op("ic",  [bs('1101010100'), bs('0'), bs('01'), op1, bs('0111'), crm, op2, rt64], [op1, crm, op2, rt64])
+aarch64op('clrex', [bs('1101010100'), bs('0'), bs('00'), bs('011'), bs('0011'), crm, bs('010'), bs('11111')], [crm])
+aarch64op("tlbi", [bs('1101010100'), bs('0'), bs('01'), op1, bs('1000'), crm, op2, rt64], [op1, crm, op2, rt64])
+aarch64op('yield', [bs('1101010100'), bs('0'), bs('00'), bs('011'), bs('0010'), bs('0000'), bs('001'), bs('11111')], [])
+
 
 stacctype = bs_mod_name(l=1, fname='order', mn_mod=['', 'L'])
 ltacctype = bs_mod_name(l=1, fname='order', mn_mod=['', 'A'])
