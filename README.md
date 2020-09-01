@@ -517,7 +517,9 @@ Documentation
 
 TODO
 
-An auto-generated documentation is available [here](http://miasmdoc.ajax.re).
+An auto-generated documentation is available:
+* [Doxygen](http://miasm.re/miasm_doxygen)
+* [pdoc](http://miasm.re/miasm_pdoc)
 
 Obtaining Miasm
 ===============
