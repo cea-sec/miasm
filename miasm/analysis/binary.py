@@ -64,14 +64,14 @@ class Container(object):
         cls.fallback_container = container
 
     @classmethod
-    def from_stream(cls, stream, *args, **kwargs):
+    def from_stream(cls, stream, loc_db, *args, **kwargs):
         """Instantiate a container and parse the binary
         @stream: stream to use as binary
         @vm: (optional) VmMngr instance to link with the executable
         @addr: (optional) Base address of the parsed binary. If set,
                force the unknown format
         """
-        return Container.from_string(stream.read(), *args, **kwargs)
+        return Container.from_string(stream.read(), loc_db, *args, **kwargs)
 
     def parse(self, data, *args, **kwargs):
         """Launch parsing of @data
