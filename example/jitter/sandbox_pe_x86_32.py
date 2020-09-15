@@ -1,16 +1,15 @@
 from pdb import pm
-from miasm.analysis.sandbox import Sandbox_Win_x86_32
+from miasm.analysis.sandbox import Sandbox_WinXP_x86_32
 from miasm.core.locationdb import LocationDB
 # Insert here user defined methods
 
 # Parse arguments
-parser = Sandbox_Win_x86_32.parser(description="PE sandboxer")
-parser.add_argument("filename", help="PE Filename")
+parser = Sandbox_WinXP_x86_32.parser(description="PE sandboxer")
 options = parser.parse_args()
 
 # Create sandbox
 loc_db = LocationDB()
-sb = Sandbox_Win_x86_32(loc_db, options.filename, options, globals())
+sb = Sandbox_WinXP_x86_32(loc_db, options, globals())
 
 # Run
 sb.run()

@@ -38,7 +38,6 @@ class ESETrackMemory(EmulatedSymbExec):
 
 # Parse arguments
 parser = Sandbox_Linux_arml.parser(description="Tracer")
-parser.add_argument("filename", help="ELF Filename")
 options = parser.parse_args()
 
 # Use our memory tracker
@@ -47,7 +46,7 @@ JitCore_Python.SymbExecClass = ESETrackMemory
 # Create sandbox, forcing Python jitter
 options.jitter = "python"
 loc_db = LocationDB()
-sb = Sandbox_Linux_arml(loc_db, options.filename, options, globals())
+sb = Sandbox_Linux_arml(loc_db, options, globals())
 
 # Force jit one instr per call, and register our callback
 sb.jitter.jit.set_options(jit_maxline=1, max_exec_per_call=1)
