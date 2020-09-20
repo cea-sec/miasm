@@ -8,7 +8,7 @@ from miasm.core.locationdb import LocationDB
 
 # Assemble code
 loc_db = LocationDB()
-asmcfg = parse_asm.parse_txt(
+asmcfg, loc_db = parse_asm.parse_txt(
     mn_x86, 32, '''
 main:
    MOV    EAX, 1
@@ -30,7 +30,7 @@ loop:
 loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
 
 # Spread information and resolve instructions offset
-patches = asmblock.asm_resolve_final(mn_x86, asmcfg)
+patches = asmblock.asm_resolve_final(mn_x86, asmcfg, loc_db)
 
 # Show resolved asmcfg
 for block in asmcfg.blocks:
