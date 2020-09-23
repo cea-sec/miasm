@@ -418,7 +418,7 @@ def mn_mtspr(ir, instr, arg1, arg2):
                  ExprAssign(exception_flags, ExprInt(EXCEPT_SPR_ACCESS, 32)) ], []
 
 def mn_mtsr(ir, instr, sr, rs):
-    srid = sr.arg.arg
+    srid = sr.arg
     return [ ExprAssign(sr_dict[srid], rs) ], []
 
 # TODO
@@ -426,7 +426,7 @@ def mn_mtsr(ir, instr, sr, rs):
 #    return [ ExprAssign(sr_dict[rb[0:3]], rs) ], []
 
 def mn_mfsr(ir, instr, rd, sr):
-    srid = sr.arg.arg
+    srid = sr.arg
     return [ ExprAssign(rd, sr_dict[srid]) ], []
 
 # TODO
