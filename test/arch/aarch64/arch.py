@@ -1823,6 +1823,16 @@ reg_tests_aarch64 = [
     ("XXXXXXXX    STLXRB     W17, W16, [X14]",
      "D0FD1108"),
 
+    ("XXXXXXXX    STLRB      W1, [X0]",
+     "01FC9F08"),
+    ("XXXXXXXX    IC         0x0, c1, 0x0, XZR",
+     "1F7108D5"),
+    ("XXXXXXXX    CLREX      0xF",
+     "5F3F03D5"),
+    ("XXXXXXXX    TLBI       0x0, c7, 0x0, XZR",
+     "1F8708D5"),
+    ("XXXXXXXX    YIELD      ",
+     "3F2003D5")
 ]
 
 
