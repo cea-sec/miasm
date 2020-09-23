@@ -3,7 +3,7 @@ from miasm.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm.arch.mips32.arch import mn_mips32
 from miasm.arch.mips32.regs import R_LO, R_HI, PC, RA, ZERO, exception_flags
 from miasm.core.sembuilder import SemBuilder
-from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO
+from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_SOFT_BP
 
 
 # SemBuilder context
@@ -393,9 +393,10 @@ def tlbwr():
 def tlbr():
     "TODO XXX"
 
-@sbuild.parse
-def break_(arg1):
-    "NOP"
+def break_(ir, instr):
+    e = []
+    e.append(ExprAssign(exception_flags, ExprInt(EXCEPT_SOFT_BP, 32)))
+    return e, []
 
 def ins(ir, instr, a, b, c, d):
     e = []
