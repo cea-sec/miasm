@@ -403,7 +403,13 @@ def gen_cmov(ir, instr, cond, dst, src, mov_if):
         dstA, dstB = loc_do_expr, loc_skip_expr
     else:
         dstA, dstB = loc_skip_expr, loc_do_expr
-    e = [m2_expr.ExprAssign(dst, dst)]
+    e = []
+    if instr.mode == 64:
+        # Force destination set in order to zero high bit orders
+        # In 64 bit:
+        # cmovz eax, ebx
+        # if zf == 0 => high part of RAX is set to zero
+        e = [m2_expr.ExprAssign(dst, dst)]
     e_do, extra_irs = mov(ir, instr, dst, src)
     e_do.append(m2_expr.ExprAssign(ir.IRDst, loc_skip_expr))
     e.append(m2_expr.ExprAssign(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
