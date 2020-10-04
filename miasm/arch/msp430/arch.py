@@ -464,7 +464,7 @@ class msp430_dreg_arg(msp430_sreg_arg):
 class bs_cond_off_s(bs_cond):
 
     @classmethod
-    def flen(cls, mode, v):
+    def flen(cls, mode, v, bs, offset_b):
         if v['a_s'] == 0b00:
             return None
         elif v['a_s'] == 0b01:
@@ -501,7 +501,7 @@ class bs_cond_off_s(bs_cond):
 class bs_cond_off_d(bs_cond_off_s):
 
     @classmethod
-    def flen(cls, mode, v):
+    def flen(cls, mode, v, bs, offset_b):
         if v['a_d'] == 0:
             return None
         elif v['a_d'] == 1:

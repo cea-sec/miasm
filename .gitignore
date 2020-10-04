@@ -4,3 +4,5 @@
 *~
 # Compiled python files
 *\.pyc
+# Version file
+/miasm/VERSION

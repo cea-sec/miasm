@@ -282,6 +282,9 @@ class bin_stream_elf(bin_stream_container):
         super(bin_stream_elf, self).__init__(binary, *args, **kwargs)
         self.endianness = binary.sex
 
+class bin_stream_wasm(bin_stream_container):
+    def __init__(self, binary, *args, **kwargs):
+        super(bin_stream_wasm, self).__init__(binary, *args, **kwargs)
 
 class bin_stream_vm(bin_stream):
 
