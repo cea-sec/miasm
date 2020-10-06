@@ -1855,11 +1855,11 @@ def nop():
 
 @sbuild.parse
 def dsb(arg1):
-    """Data Syncronization Barrier"""
+    """Data Synchronization Barrier"""
 
 @sbuild.parse
 def isb(arg1):
-    """Instruction Syncronization Barrier"""
+    """Instruction Synchronization Barrier"""
 
 @sbuild.parse
 def dmb(arg1):
