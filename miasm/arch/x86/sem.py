@@ -409,7 +409,7 @@ def gen_cmov(ir, instr, cond, dst, src, mov_if):
         # In 64 bit:
         # cmovz eax, ebx
         # if zf == 0 => high part of RAX is set to zero
-        e = [m2_expr.ExprAssign(dst, dst)]
+        e.append(m2_expr.ExprAssign(dst, dst))
     e_do, extra_irs = mov(ir, instr, dst, src)
     e_do.append(m2_expr.ExprAssign(ir.IRDst, loc_skip_expr))
     e.append(m2_expr.ExprAssign(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
@@ -647,7 +647,13 @@ def _rotate_tpl(ir, instr, dst, src, op, left=False):
             m2_expr.ExprAssign(of, new_of),
             m2_expr.ExprAssign(dst, res)
             ]
-    e = [m2_expr.ExprAssign(dst, dst)]
+    e = []
+    if instr.mode == 64:
+        # Force destination set in order to zero high bit orders
+        # In 64 bit:
+        # rol eax, cl
+        # if cl == 0 => high part of RAX is set to zero
+        e.append(m2_expr.ExprAssign(dst, dst))
     # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
         if int(shifter) != 0:
@@ -781,7 +787,13 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
         m2_expr.ExprAssign(a, res),
     ]
     e_do += update_flag_znp(res)
-    e = [m2_expr.ExprAssign(a, a)]
+    e = []
+    if instr.mode == 64:
+        # Force destination set in order to zero high bit orders
+        # In 64 bit:
+        # shr eax, cl
+        # if cl == 0 => high part of RAX is set to zero
+        e.append(m2_expr.ExprAssign(a, a))
     # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
         if int(shifter) != 0:
