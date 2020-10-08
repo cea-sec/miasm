@@ -539,7 +539,7 @@ class IRCFG(DiGraph):
             }
         )
         if node not in self._blocks:
-            yield [self.DotCellDescription(text="NOT PRESENT", attr={})]
+            yield [self.DotCellDescription(text="NOT PRESENT", attr={'bgcolor': 'red'})]
             return
         for i, assignblk in enumerate(self._blocks[node]):
             for dst, src in viewitems(assignblk):
