@@ -25,7 +25,7 @@ from future.utils import viewvalues, viewitems
 
 import miasm.expression.expression as m2_expr
 from miasm.expression.expression_helper import get_missing_interval
-from miasm.core.asmblock import AsmBlock, AsmConstraint
+from miasm.core.asmblock import AsmBlock, AsmBlockBad, AsmConstraint
 from miasm.core.graph import DiGraph
 from functools import reduce
 
@@ -539,7 +539,7 @@ class IRCFG(DiGraph):
             }
         )
         if node not in self._blocks:
-            yield [self.DotCellDescription(text="NOT PRESENT", attr={})]
+            yield [self.DotCellDescription(text="NOT PRESENT", attr={'bgcolor': 'red'})]
             return
         for i, assignblk in enumerate(self._blocks[node]):
             for dst, src in viewitems(assignblk):
@@ -806,6 +806,9 @@ class IntermediateRepresentation(object):
 
         loc_key = block.loc_key
         ir_blocks_all = []
+
+        if isinstance(block, AsmBlockBad):
+            return ir_blocks_all
 
         assignments = []
         for instr in block.lines:
