@@ -921,6 +921,71 @@ class IntermediateRepresentation(object):
         return new_irblocks
 
 
+try:
+    import re
+    import graphviz
+
+    class IRCfgGraphviz(IRCFG):
+        @classmethod
+        def from_ircfg(cls, ircfg):
+            new_ircfg = IRCfgGraphviz(ircfg.IRDst, ircfg.loc_db, blocks=ircfg.blocks)
+            for node in ircfg.nodes():
+                new_ircfg.add_node(node)
+            for src, dst in ircfg.edges():
+                new_ircfg.add_uniq_edge(src, dst)
+            return new_ircfg
+
+        def graphviz(self):
+            self.gv = graphviz.Digraph('html_table')
+            self._dot_offset = False
+            escape_chars = re.compile('[' + re.escape('{}') + '&|<>' + ']')
+            td_attr = {'align': 'left'}
+            nodes_attr = {'shape': 'Mrecord',
+                          'fontname': 'Courier New'}
+
+            for node in self.nodes():
+                elements = [x for x in self.node2lines(node)]
+                node_id = self.nodeid(node)
+                out_node = '<<table border="0" cellborder="0" cellpadding="3">'
+
+                node_html_lines = []
+                for lineDesc in elements:
+                    out_render = ""
+                    if isinstance(lineDesc, self.DotCellDescription):
+                        lineDesc = [lineDesc]
+                    for col in lineDesc:
+                        out_render += "<td %s>%s</td>" % (
+                            self._attr2str(td_attr, col.attr),
+                            escape_chars.sub(self._fix_chars, str(col.text)))
+                    node_html_lines.append(out_render)
+
+                node_html_lines = ('<tr>' +
+                                   ('</tr><tr>').join(node_html_lines) +
+                                   '</tr>')
+
+                out_node += node_html_lines + "</table>>"
+                self.gv.node(
+                    "%s" % node_id,
+                    label=out_node,
+                    shape="Mrecord"
+                )
+
+
+            for src, dst in self.edges():
+                attrs = self.edge_attr(src, dst)
+                self.gv.edge(
+                    str(self.nodeid(src)),
+                    str(self.nodeid(dst)),
+                    "",
+                    attrs,
+                )
+
+            return self.gv
+except ImportError:
+    # Skip as graphviz is not installed
+    pass
+
+
 class ir(IntermediateRepresentation):
     """
     DEPRECATED object
