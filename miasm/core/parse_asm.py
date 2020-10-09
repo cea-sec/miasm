@@ -3,6 +3,7 @@ import re
 import codecs
 from builtins import range
 
+from miasm.core.utils import force_str
 from miasm.expression.expression import ExprId, ExprInt, ExprOp, LocKey
 import miasm.core.asmblock as asmblock
 from miasm.core.cpu import instruction, base_expr
@@ -67,7 +68,7 @@ STATE_IN_BLOC = 1
 
 def asm_ast_to_expr_with_size(arg, loc_db, size):
     if isinstance(arg, AstId):
-        return ExprId(arg.name.encode(), size)
+        return ExprId(force_str(arg.name), size)
     if isinstance(arg, AstOp):
         args = [asm_ast_to_expr_with_size(tmp, loc_db, size) for tmp in arg.args]
         return ExprOp(arg.op, *args)
@@ -174,7 +175,7 @@ def parse_txt(mnemo, attrib, txt, loc_db):
         # label
         match_re = LABEL_RE.match(line)
         if match_re:
-            label_name = match_re.group(1).encode()
+            label_name = match_re.group(1)
             label = loc_db.get_or_create_name_location(label_name)
             lines.append(label)
             continue

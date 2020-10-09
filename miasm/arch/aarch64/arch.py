@@ -286,7 +286,7 @@ class aarch64_arg(m_arg):
             if isinstance(value.name, ExprId):
                 fixed_size.add(value.name.size)
                 return value.name
-            loc_key = loc_db.get_or_create_name_location(value.name.encode())
+            loc_key = loc_db.get_or_create_name_location(value.name)
             return m2_expr.ExprLoc(loc_key, size_hint)
         if isinstance(value, AstInt):
             assert size_hint is not None

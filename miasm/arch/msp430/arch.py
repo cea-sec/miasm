@@ -71,7 +71,7 @@ class msp430_arg(m_arg):
                 index = gpregs.str.index(name)
                 reg = gpregs.expr[index]
                 return reg
-            loc_key = loc_db.get_or_create_name_location(value.name.encode())
+            loc_key = loc_db.get_or_create_name_location(value.name)
             return ExprLoc(loc_key, 16)
         if isinstance(value, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in value.args]
