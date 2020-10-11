@@ -61,19 +61,6 @@ class DirectiveDontSplit(Directive):
     pass
 
 
-def guess_next_new_label(loc_db):
-    """Generate a new label
-    @loc_db: the LocationDB instance"""
-    i = 0
-    gen_name = "loc_%.8X"
-    while True:
-        name = gen_name % i
-        label = loc_db.get_name_location(name)
-        if label is None:
-            return loc_db.add_location(name)
-        i += 1
-
-
 STATE_NO_BLOC = 0
 STATE_IN_BLOC = 1
 
@@ -227,7 +214,7 @@ def parse_txt(mnemo, attrib, txt, loc_db):
             elif not isinstance(line, LocKey):
                 # First line must be a label. If it's not the case, generate
                 # it.
-                loc = guess_next_new_label(loc_db)
+                loc = loc_db.add_location()
                 cur_block = asmblock.AsmBlock(loc_db, loc, alignment=mnemo.alignment)
             else:
                 cur_block = asmblock.AsmBlock(loc_db, line, alignment=mnemo.alignment)
