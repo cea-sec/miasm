@@ -293,6 +293,65 @@ class DiGraph(object):
         out.append("}")
         return '\n'.join(out)
 
+
+    def graphviz(self):
+        try:
+            import re
+            import graphviz
+
+
+            self.gv = graphviz.Digraph('html_table')
+            self._dot_offset = False
+            escape_chars = re.compile('[' + re.escape('{}') + '&|<>' + ']')
+            td_attr = {'align': 'left'}
+            nodes_attr = {'shape': 'Mrecord',
+                          'fontname': 'Courier New'}
+
+            for node in self.nodes():
+                elements = [x for x in self.node2lines(node)]
+                node_id = self.nodeid(node)
+                out_node = '<<table border="0" cellborder="0" cellpadding="3">'
+
+                node_html_lines = []
+                for lineDesc in elements:
+                    out_render = ""
+                    if isinstance(lineDesc, self.DotCellDescription):
+                        lineDesc = [lineDesc]
+                    for col in lineDesc:
+                        out_render += "<td %s>%s</td>" % (
+                            self._attr2str(td_attr, col.attr),
+                            escape_chars.sub(self._fix_chars, str(col.text)))
+                    node_html_lines.append(out_render)
+
+                node_html_lines = ('<tr>' +
+                                   ('</tr><tr>').join(node_html_lines) +
+                                   '</tr>')
+
+                out_node += node_html_lines + "</table>>"
+                attrs = dict(nodes_attr)
+                attrs.update(self.node_attr(node))
+                self.gv.node(
+                    "%s" % node_id,
+                    out_node,
+                    attrs,
+                )
+
+
+            for src, dst in self.edges():
+                attrs = self.edge_attr(src, dst)
+                self.gv.edge(
+                    str(self.nodeid(src)),
+                    str(self.nodeid(dst)),
+                    "",
+                    attrs,
+                )
+
+            return self.gv
+        except ImportError:
+            # Skip as graphviz is not installed
+            return None
+
+
     @staticmethod
     def _reachable_nodes(head, next_cb):
         """Generic algorithm to compute all nodes reachable from/to node
