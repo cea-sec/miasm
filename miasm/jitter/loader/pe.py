@@ -23,14 +23,11 @@ log.setLevel(logging.INFO)
 
 def get_pe_dependencies(pe_obj):
     """Collect the shared libraries upon which this PE depends.
-    
     @pe_obj: pe object
     Returns a set of strings of DLL names.
-    
     Example:
-    
-        pe = miasm.analysis.binary.Container.from_string(buf)
-        deps = miasm.jitter.loader.pe.get_pe_dependencies(pe.executable)
+        container = miasm.analysis.binary.Container.from_string(buf)
+        deps = miasm.jitter.loader.pe.get_pe_dependencies(container.executable)
         assert sorted(deps)[0] == 'api-ms-win-core-appcompat-l1-1-0.dll'
     """
 
@@ -63,12 +60,12 @@ def get_import_address_pe(e):
     """Compute the addresses of imported symbols.
     @e: pe object
     Returns a dict mapping from tuple (dll name string, symbol name string) to set of virtual addresses.
-    
+
     Example:
-    
+
         pe = miasm.analysis.binary.Container.from_string(buf)
         imports = miasm.jitter.loader.pe.get_import_address_pe(pe.executable)
-        assert imports[('api-ms-win-core-rtlsupport-l1-1-0.dll', 'RtlCaptureStackBackTrace')] == {0x6b88a6d0}    
+        assert imports[('api-ms-win-core-rtlsupport-l1-1-0.dll', 'RtlCaptureStackBackTrace')] == {0x6b88a6d0}
     """
     import2addr = defaultdict(set)
     if e.DirImport.impdesc is None:
