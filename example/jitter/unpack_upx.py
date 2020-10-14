@@ -25,7 +25,7 @@ def kernel32_GetProcAddress(jitter):
 
     # Get the generated address of the library, and store it in memory to
     # dst_ad
-    ad = sb.libs.lib_get_add_func(args.libbase, fname, dst_ad)
+    ad = sb.loader.lib_get_add_func(args.libbase, fname, dst_ad)
     # Add a breakpoint in case of a call on the resolved function
     # NOTE: never happens in UPX, just for skeleton
     jitter.handle_function(ad)
@@ -108,7 +108,7 @@ out_fname = fname + '_unupx.bin'
 # vm2pe will:
 # - set the new entry point to the current address (ie, the OEP)
 # - dump each section from the virtual memory into the new PE
-# - use `sb.libs` to generate a new import directory, and use it in the new PE
+# - use `sb.loader` to generate a new import directory, and use it in the new PE
 # - save the resulting PE in `out_fname`
 
-vm2pe(sb.jitter, out_fname, libs=sb.libs, e_orig=sb.pe)
+vm2pe(sb.jitter, out_fname, loader=sb.loader, e_orig=sb.pe)

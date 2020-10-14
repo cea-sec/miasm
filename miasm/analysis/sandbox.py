@@ -3,6 +3,7 @@ from builtins import range
 
 import os
 import logging
+import warnings
 from argparse import ArgumentParser
 
 from future.utils import viewitems, viewvalues
@@ -79,6 +80,12 @@ class Sandbox(object):
 
         cls.CLS_ARCH.update_parser(parser)
         cls.CLS_OS.update_parser(parser)
+
+    def get_libs(self):
+        warnings.warn("Use loader instead of libs")
+        return self.loader
+
+    libs = property(get_libs)
 
     @classmethod
     def parser(cls, *args, **kwargs):
@@ -232,9 +239,9 @@ class OS_WinXP32(OS):
         self.jitter.init_stack()
 
         # Import manager
-        libs = LoaderWindows()
-        self.libs = libs
-        win_api_x86_32.winobjs.runtime_dll = libs
+        loader = LoaderWindows()
+        self.loader = loader
+        win_api_x86_32.winobjs.runtime_dll = loader
 
         self.name2module = {}
         fname_basename = os.path.basename(options.filename).lower()
@@ -259,7 +266,7 @@ class OS_WinXP32(OS):
                 vm_load_pe_libs(
                     self.jitter.vm,
                     self.LOADED_DLLS,
-                    libs,
+                    loader,
                     self.PATH_DLLS,
                     winobjs=win_api_x86_32.winobjs,
                 )
@@ -267,23 +274,23 @@ class OS_WinXP32(OS):
 
             # Patch libs imports
             for pe in viewvalues(self.name2module):
-                preload_pe(self.jitter.vm, pe, libs)
+                preload_pe(self.jitter.vm, pe, loader)
 
         if options.dependencies:
             vm_load_pe_and_dependencies(
                 self.jitter.vm,
                 fname_basename,
                 self.name2module,
-                libs,
+                loader,
                 self.PATH_DLLS,
                 winobjs=win_api_x86_32.winobjs,
             )
 
         # Fix pe imports
-        preload_pe(self.jitter.vm, self.pe, libs)
+        preload_pe(self.jitter.vm, self.pe, loader)
 
         # Library calls handler
-        self.jitter.add_lib_handler(libs, methods)
+        self.jitter.add_lib_handler(loader, methods)
 
         # Manage SEH
         if options.use_windows_structs:
@@ -334,7 +341,7 @@ class Sandbox_WinXP_x86_32(Sandbox):
     def __init__(self, loc_db, options, custom_methods=None):
         super(Sandbox_WinXP_x86_32, self).__init__(loc_db, options, custom_methods)
         self.pe = self.os.pe
-        self.libs = self.os.libs
+        self.loader = self.os.loader
 
         self.entry_point = self.pe.rva2virt(self.pe.Opthdr.AddressOfEntryPoint)
 
@@ -362,7 +369,7 @@ class Sandbox_WinXP_x86_64(Sandbox):
     def __init__(self, loc_db, options, custom_methods=None):
         super(Sandbox_WinXP_x86_64, self).__init__(loc_db, options, custom_methods)
         self.pe = self.os.pe
-        self.libs = self.os.libs
+        self.loader = self.os.loader
 
         self.entry_point = self.pe.rva2virt(self.pe.Opthdr.AddressOfEntryPoint)
 
@@ -405,18 +412,18 @@ class OS_Linux(OS):
         self.jitter.init_stack()
 
         # Import manager
-        self.libs = LoaderUnix()
+        self.loader = LoaderUnix()
 
         with open(options.filename, "rb") as fstream:
             self.elf = vm_load_elf(
                 self.jitter.vm, fstream.read(), name=options.filename,
             )
-        preload_elf(self.jitter.vm, self.elf, self.libs)
+        preload_elf(self.jitter.vm, self.elf, self.loader)
 
         self.entry_point = self.elf.Ehdr.entry
 
         # Library calls handler
-        self.jitter.add_lib_handler(self.libs, methods)
+        self.jitter.add_lib_handler(self.loader, methods)
         linux_stdlib.ABORT_ADDR = self.CALL_FINISH_ADDR
 
     @classmethod
@@ -464,7 +471,7 @@ class OS_Linux_shellcode(OS):
         self.jitter.init_stack()
 
         # Import manager
-        self.libs = LoaderUnix()
+        self.loader = LoaderUnix()
 
         data = open(options.filename, "rb").read()
         options.load_base_addr = int(options.load_base_addr, 0)
@@ -473,7 +480,7 @@ class OS_Linux_shellcode(OS):
         )
 
         # Library calls handler
-        self.jitter.add_lib_handler(self.libs, methods)
+        self.jitter.add_lib_handler(self.loader, methods)
         linux_stdlib.ABORT_ADDR = self.CALL_FINISH_ADDR
 
     @classmethod
@@ -508,7 +515,7 @@ class Sandbox_Linux_x86_32(Sandbox):
     def __init__(self, loc_db, options, custom_methods=None):
         super(Sandbox_Linux_x86_32, self).__init__(loc_db, options, custom_methods)
         self.elf = self.os.elf
-        self.libs = self.os.libs
+        self.loader = self.os.loader
 
         self.entry_point = self.elf.Ehdr.entry
 
@@ -574,7 +581,7 @@ class Sandbox_Linux_arml(Sandbox):
     def __init__(self, loc_db, options, custom_methods=None):
         super(Sandbox_Linux_arml, self).__init__(loc_db, options, custom_methods)
         self.elf = self.os.elf
-        self.libs = self.os.libs
+        self.loader = self.os.loader
 
         self.entry_point = self.elf.Ehdr.entry
 
@@ -643,7 +650,7 @@ class Sandbox_Linux_arml_shellcode(Sandbox):
         super(Sandbox_Linux_arml_shellcode, self).__init__(
             loc_db, options, custom_methods
         )
-        self.libs = self.os.libs
+        self.loader = self.os.loader
 
         self.entry_point = options.load_base_addr
 
@@ -723,7 +730,7 @@ class Sandbox_Linux_aarch64l(Sandbox):
     def __init__(self, loc_db, options, custom_methods=None):
         super(Sandbox_Linux_aarch64l, self).__init__(loc_db, options, custom_methods)
         self.elf = self.os.elf
-        self.libs = self.os.libs
+        self.loader = self.os.loader
 
         self.entry_point = self.elf.Ehdr.entry
 
@@ -779,7 +786,7 @@ class Sandbox_Linux_ppc32b(Sandbox):
     def __init__(self, loc_db, options, custom_methods=None):
         super(Sandbox_Linux_ppc32b, self).__init__(loc_db, options, custom_methods)
         self.elf = self.os.elf
-        self.libs = self.os.libs
+        self.loader = self.os.loader
 
         self.entry_point = self.elf.Ehdr.entry
 
@@ -811,7 +818,7 @@ class Sandbox_Linux_x86_64(Sandbox):
     def __init__(self, loc_db, options, custom_methods=None):
         super(Sandbox_Linux_x86_64, self).__init__(loc_db, options, custom_methods)
         self.elf = self.os.elf
-        self.libs = self.os.libs
+        self.loader = self.os.loader
 
         self.entry_point = self.elf.Ehdr.entry
 
@@ -868,7 +875,7 @@ class Sandbox_Linux_mips32b(Sandbox):
     def __init__(self, loc_db, options, custom_methods=None):
         super(Sandbox_Linux_mips32b, self).__init__(loc_db, options, custom_methods)
         self.elf = self.os.elf
-        self.libs = self.os.libs
+        self.loader = self.os.loader
 
         self.entry_point = self.elf.Ehdr.entry
 

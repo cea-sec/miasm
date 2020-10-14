@@ -290,11 +290,11 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", winobjs=None, **
     return pe
 
 
-def vm_load_pe_lib(vm, fname_in, libs, lib_path_base, **kargs):
-    """Call vm_load_pe on @fname_in and update @libs accordingly
+def vm_load_pe_lib(vm, fname_in, loader, lib_path_base, **kargs):
+    """Call vm_load_pe on @fname_in and update @loader accordingly
     @vm: VmMngr instance
     @fname_in: library name
-    @libs: LoaderWindows instance
+    @loader: LoaderWindows instance
     @lib_path_base: DLLs relative path
     Return the corresponding PE instance
     Extra arguments are passed to vm_load_pe
@@ -305,15 +305,15 @@ def vm_load_pe_lib(vm, fname_in, libs, lib_path_base, **kargs):
     fname = os.path.join(lib_path_base, fname_in)
     with open(fname, "rb") as fstream:
         pe = vm_load_pe(vm, fstream.read(), name=fname_in, **kargs)
-    libs.add_export_lib(pe, fname_in)
+    loader.add_export_lib(pe, fname_in)
     return pe
 
 
-def vm_load_pe_libs(vm, libs_name, libs, lib_path_base, **kargs):
+def vm_load_pe_libs(vm, libs_name, loader, lib_path_base, **kargs):
     """Call vm_load_pe_lib on each @libs_name filename
     @vm: VmMngr instance
     @libs_name: list of str
-    @libs: LoaderWindows instance
+    @loader: LoaderWindows instance
     @lib_path_base: (optional) DLLs relative path
     Return a dictionary Filename -> PE instances
     Extra arguments are passed to vm_load_pe_lib
@@ -321,17 +321,17 @@ def vm_load_pe_libs(vm, libs_name, libs, lib_path_base, **kargs):
     out = {}
     for fname in libs_name:
         assert isinstance(fname, str)
-        out[fname] = vm_load_pe_lib(vm, fname, libs, lib_path_base, **kargs)
+        out[fname] = vm_load_pe_lib(vm, fname, loader, lib_path_base, **kargs)
     return out
 
 
-def vm_fix_imports_pe_libs(lib_imgs, libs, lib_path_base,
+def vm_fix_imports_pe_libs(lib_imgs, loader, lib_path_base,
                            patch_vm_imp=True, **kargs):
     for e in viewvalues(lib_imgs):
-        preload_pe(e, libs, patch_vm_imp)
+        preload_pe(e, loader, patch_vm_imp)
 
 
-def vm2pe(myjit, fname, libs=None, e_orig=None,
+def vm2pe(myjit, fname, loader=None, e_orig=None,
           min_addr=None, max_addr=None,
           min_section_offset=0x1000, img_base=None,
           added_funcs=None, **kwargs):
@@ -379,15 +379,15 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
                 addr=ad - mye.NThdr.ImageBase,
                 data=all_mem[ad]['data'])
         first = False
-    if libs:
+    if loader:
         if added_funcs is not None:
             for addr, funcaddr in added_funcs:
-                libbase, dllname = libs.fad2info[funcaddr]
-                libs.lib_get_add_func(libbase, dllname, addr)
+                libbase, dllname = loader.fad2info[funcaddr]
+                loader.lib_get_add_func(libbase, dllname, addr)
 
         filter_import = kwargs.get(
             'filter_import', lambda _, ad: mye.virt.is_addr_in(ad))
-        new_dll = libs.gen_new_lib(mye, filter_import)
+        new_dll = loader.gen_new_lib(mye, filter_import)
     else:
         new_dll = {}
 
