@@ -241,7 +241,7 @@ class OS_WinXP32(OS):
         # Import manager
         loader = LoaderWindows()
         self.loader = loader
-        win_api_x86_32.winobjs.runtime_dll = loader
+        win_api_x86_32.winobjs.loader = loader
 
         self.name2module = {}
         fname_basename = os.path.basename(options.filename).lower()

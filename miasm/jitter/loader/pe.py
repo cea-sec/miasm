@@ -88,15 +88,15 @@ def get_import_address_pe(e):
     return import2addr
 
 
-def preload_pe(vm, e, runtime_lib, patch_vm_imp=True):
+def preload_pe(vm, e, loader, patch_vm_imp=True):
     import_information = get_import_address_pe(e)
     dyn_funcs = {}
     # log.debug('imported funcs: %s' % import_information)
     for (libname, libfunc), ads in viewitems(import_information):
         for ad in ads:
             libname = force_str(libname)
-            ad_base_lib = runtime_lib.lib_get_add_base(libname)
-            ad_libfunc = runtime_lib.lib_get_add_func(ad_base_lib, libfunc, ad)
+            ad_base_lib = loader.lib_get_add_base(libname)
+            ad_libfunc = loader.lib_get_add_func(ad_base_lib, libfunc, ad)
 
             libname_s = canon_libname_libfunc(libname, libfunc)
             dyn_funcs[libname_s] = ad_libfunc
@@ -328,7 +328,7 @@ def vm_load_pe_libs(vm, libs_name, loader, lib_path_base, **kargs):
 def vm_fix_imports_pe_libs(lib_imgs, loader, lib_path_base,
                            patch_vm_imp=True, **kargs):
     for e in viewvalues(lib_imgs):
-        preload_pe(e, loader, patch_vm_imp)
+        preload_pe(e, loader, patch_vm_imp=patch_vm_imp)
 
 
 def vm2pe(myjit, fname, loader=None, e_orig=None,
@@ -586,7 +586,7 @@ class limbimp_pe(LoaderWindows):
         super(limbimp_pe, self).__init__(*args, **kwargs)
 
 
-def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
+def vm_load_pe_and_dependencies(vm, fname, name2module, loader,
                                 lib_path_base, **kwargs):
     """Load a binary and all its dependencies. Returns a dictionary containing
     the association between binaries names and it's pe object
@@ -595,7 +595,7 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
     @fname: full path of the binary
     @name2module: dict containing association between name and pe
     object. Updated.
-    @runtime_lib: libimp instance
+    @loader: Loader instance
     @lib_path_base: directory of the libraries containing dependencies
 
     """
@@ -668,23 +668,23 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
             continue
         ad = pe_obj.NThdr.ImageBase
         libad = ad
-        runtime_lib.name2off[dllname] = ad
-        runtime_lib.libbase2lastad[ad] = ad + 0x1
-        runtime_lib.lib_imp2ad[ad] = {}
-        runtime_lib.lib_imp2dstad[ad] = {}
-        runtime_lib.libbase_ad += 0x1000
+        loader.name2off[dllname] = ad
+        loader.libbase2lastad[ad] = ad + 0x1
+        loader.lib_imp2ad[ad] = {}
+        loader.lib_imp2dstad[ad] = {}
+        loader.libbase_ad += 0x1000
 
     for (dllname, imp_ord_or_name), addr in known_export_addresses.items():
-        runtime_lib.add_function(dllname, imp_ord_or_name, addr)
-        libad = runtime_lib.name2off[dllname]
-        runtime_lib.lib_imp2ad[libad][imp_ord_or_name] = addr
+        loader.add_function(dllname, imp_ord_or_name, addr)
+        libad = loader.name2off[dllname]
+        loader.lib_imp2ad[libad][imp_ord_or_name] = addr
 
     assert not to_resolve
 
     for dllname, pe_obj in name2module.items():
         if pe_obj is None:
             continue
-        preload_pe(vm, pe_obj, runtime_lib, patch_vm_imp=True)
+        preload_pe(vm, pe_obj, loader, patch_vm_imp=True)
 
     return name2module
 

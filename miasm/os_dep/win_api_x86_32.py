@@ -164,7 +164,7 @@ class c_winobjs(object):
         self.windowlong_dw = 0x77700
         self.module_cur_hwnd = 0x88800
         self.module_file_nul = 0x999000
-        self.runtime_dll = None
+        self.loader = None
         self.current_pe = None
         self.tls_index = 0xf
         self.tls_values = {}
@@ -194,6 +194,17 @@ class c_winobjs(object):
             hour=13, minute=37,
             second=11, microsecond=123456
         )
+
+
+    def get_loader(self):
+        warnings.warn("Use loader instead of runtime_dll")
+        return self.loader
+
+    def set_loader(self, loader):
+        warnings.warn("Use loader instead of runtime_dll")
+        self.loader = loader
+
+    runtime_dll = property(get_loader, set_loader)
 
 winobjs = c_winobjs()
 
@@ -901,12 +912,12 @@ def kernel32_GetModuleFileName(jitter, funcname, set_str):
 
     if args.hmodule in [0, winobjs.hcurmodule]:
         p = winobjs.module_path[:]
-    elif (winobjs.runtime_dll and
-          args.hmodule in viewvalues(winobjs.runtime_dll.name2off)):
+    elif (winobjs.loader and
+          args.hmodule in viewvalues(winobjs.loader.name2off)):
         name_inv = dict(
             [
                 (x[1], x[0])
-                for x in viewitems(winobjs.runtime_dll.name2off)
+                for x in viewitems(winobjs.loader.name2off)
             ]
         )
         p = name_inv[args.hmodule]
@@ -1018,7 +1029,7 @@ def kernel32_LoadLibrary(jitter, get_str):
     ret_ad, args = jitter.func_args_stdcall(["dllname"])
 
     libname = get_str(args.dllname, 0x100)
-    ret = winobjs.runtime_dll.lib_get_add_base(libname)
+    ret = winobjs.loader.lib_get_add_base(libname)
     log.info("Loading %r ret 0x%x", libname, ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
@@ -1037,7 +1048,7 @@ def kernel32_LoadLibraryEx(jitter, get_str):
     if args.hfile != 0:
         raise NotImplementedError("Untested case")
     libname = get_str(args.dllname, 0x100)
-    ret = winobjs.runtime_dll.lib_get_add_base(libname)
+    ret = winobjs.loader.lib_get_add_base(libname)
     log.info("Loading %r ret 0x%x", libname, ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
@@ -1058,7 +1069,7 @@ def kernel32_GetProcAddress(jitter):
         if not fname:
             fname = None
     if fname is not None:
-        ad = winobjs.runtime_dll.lib_get_add_func(args.libbase, fname)
+        ad = winobjs.loader.lib_get_add_func(args.libbase, fname)
     else:
         ad = 0
     log.info("GetProcAddress %r %r ret 0x%x", args.libbase, fname, ad)
@@ -1072,7 +1083,7 @@ def kernel32_GetModuleHandle(jitter, funcname, get_str):
     if args.dllname:
         libname = get_str(args.dllname)
         if libname:
-            ret = winobjs.runtime_dll.lib_get_add_base(libname)
+            ret = winobjs.loader.lib_get_add_base(libname)
         else:
             log.warning('unknown module!')
             ret = 0
@@ -1978,7 +1989,7 @@ def ntdll_LdrLoadDll(jitter):
     s = get_win_str_w(jitter, p_src)
     libname = s.lower()
 
-    ad = winobjs.runtime_dll.lib_get_add_base(libname)
+    ad = winobjs.loader.lib_get_add_base(libname)
     log.info("Loading %r ret 0x%x", s, ad)
     jitter.vm.set_u32(args.modhandle, ad)
 
@@ -1999,7 +2010,7 @@ def ntdll_LdrGetProcedureAddress(jitter):
     l1, l2, p_src = struct.unpack('HHI', jitter.vm.get_mem(args.pfname, 0x8))
     fname = get_win_str_a(jitter, p_src)
 
-    ad = winobjs.runtime_dll.lib_get_add_func(args.libbase, fname)
+    ad = winobjs.loader.lib_get_add_func(args.libbase, fname)
     jitter.add_breakpoint(ad, jitter.handle_lib)
 
     jitter.vm.set_u32(args.p_ad, ad)
