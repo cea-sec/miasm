@@ -1,6 +1,7 @@
 from builtins import map
 import os
 import struct
+import json
 import logging
 import warnings
 from collections import defaultdict
@@ -92,17 +93,19 @@ def preload_pe(vm, e, loader, patch_vm_imp=True):
     import_information = get_import_address_pe(e)
     dyn_funcs = {}
     # log.debug('imported funcs: %s' % import_information)
-    for (libname, libfunc), ads in viewitems(import_information):
+    for (libname, funcname), ads in viewitems(import_information):
         for ad in ads:
             libname = force_str(libname)
+            if loader.apiset:
+                libname = loader.apiset.get_redirection(libname)
             ad_base_lib = loader.lib_get_add_base(libname)
-            ad_libfunc = loader.lib_get_add_func(ad_base_lib, libfunc, ad)
+            ad_funcname = loader.lib_get_add_func(ad_base_lib, funcname, ad)
 
-            libname_s = canon_libname_libfunc(libname, libfunc)
-            dyn_funcs[libname_s] = ad_libfunc
+            libname_s = canon_libname_libfunc(libname, funcname)
+            dyn_funcs[libname_s] = ad_funcname
             if patch_vm_imp:
                 vm.set_mem(
-                    ad, struct.pack(cstruct.size2type[e._wsize], ad_libfunc))
+                    ad, struct.pack(cstruct.size2type[e._wsize], ad_funcname))
     return dyn_funcs
 
 
@@ -421,10 +424,11 @@ def vm2pe(myjit, fname, loader=None, e_orig=None,
 
 class LoaderWindows(Loader):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, apiset=None, **kwargs):
         super(LoaderWindows, self).__init__(*args, **kwargs)
         # dependency -> redirector
         self.created_redirected_imports = {}
+        self.apiset = apiset
 
 
     def add_function(self, dllname, imp_ord_or_name, addr):
@@ -699,3 +703,47 @@ def guess_arch(pe):
     """Return the architecture specified by the PE container @pe.
     If unknown, return None"""
     return PE_machine.get(pe.Coffhdr.machine, None)
+
+
+class ApiSet(object):
+    def __init__(self, fname):
+        data = json.load(open(fname))
+        self.version = data['version']
+        self.hash_factor = data['hash_factor']
+        self.redirections = data['redirections']
+        self.hash_entries = data['hashes']
+
+    def compute_hash(self, apiset_lib_name):
+        """
+        Hash func can be found in ntdll!ApiSetpSearchForApiSet
+        """
+        hashk = 0
+        for c in apiset_lib_name:
+            hashk = (hashk * self.hash_factor + ord(c)) & ((1 << 32) - 1)
+        return hashk
+
+    def get_redirection(self, libname):
+        has_dll = libname.endswith(".dll")
+        if has_dll:
+            libname = libname[:-4]
+        if libname in self.redirections:
+            values = self.redirections[libname]
+            if len(values) == 1:
+                assert "" in values
+                log.warn("ApiSet %s => %s" % (libname, values[""]))
+                libname = values[""]
+            else:
+                libname_dll = "%s.dll" % libname
+                if libname_dll in values:
+                    fds
+                else:
+                    libname = values[""]
+        hash_to_search = self.compute_hash(libname)
+        if hash_to_search in self.hash_entries:
+            fds
+
+        if has_dll and not libname.endswith('.dll'):
+            libname += ".dll"
+        elif not has_dll and libname.endswith('.dll'):
+            libname = libname[:-4]
+        return libname

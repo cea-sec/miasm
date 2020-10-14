@@ -47,7 +47,7 @@ def win_get_llvm_reg():
     except FileNotFoundError:
       pass
     return winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, REG_PATH, 0, winreg.KEY_READ)
-  
+
 def win_find_clang_path():
     try:
         with win_get_llvm_reg() as rkey:
@@ -102,6 +102,8 @@ def buil_all():
         "miasm/analysis",
         "miasm/os_dep",
         "miasm/os_dep/linux",
+        "miasm/os_dep/windows",
+        "miasm/os_dep/windows/apiset",
         "miasm/loader",
         "miasm/jitter",
         "miasm/jitter/arch",
@@ -239,6 +241,7 @@ def buil_all():
                     "miasm": [
                         "jitter/*.h",
                         "jitter/arch/*.h",
+                        "os_dep/windows/apiset/*.json",
                         "VERSION"
                     ]
                 },

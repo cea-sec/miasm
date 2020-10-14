@@ -217,34 +217,36 @@ class OS_WinXP32(OS):
     STACK_SIZE = 0x10000
     STACK_BASE = 0x130000
 
-    def __init__(self, jitter, options, custom_methods=None):
-        from miasm.jitter.loader.pe import (
-            vm_load_pe,
-            vm_load_pe_libs,
-            preload_pe,
-            LoaderWindows,
-            vm_load_pe_and_dependencies,
-        )
-        from miasm.os_dep import win_api_x86_32, win_api_x86_32_seh
-
-        self.jitter = jitter
-        methods = dict(
-            (name, func) for name, func in viewitems(win_api_x86_32.__dict__)
-        )
-        methods.update(custom_methods)
-
+    def init_stack(self):
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
         self.jitter.stack_base = self.STACK_BASE
         self.jitter.init_stack()
 
+    def init_loader(self):
+        from miasm.jitter.loader.pe import LoaderWindows
+        from miasm.os_dep.win_api_x86_32 import winobjs
+
         # Import manager
         loader = LoaderWindows()
         self.loader = loader
-        win_api_x86_32.winobjs.loader = loader
+        winobjs.loader = loader
+
+    def use_windows_structs(self):
+        from miasm.os_dep import win_api_x86_32, win_api_x86_32_seh
+
+        win_api_x86_32_seh.main_pe_name = self.fname_basename
+        win_api_x86_32_seh.main_pe = self.pe
+        win_api_x86_32.winobjs.hcurmodule = self.pe.NThdr.ImageBase
+        win_api_x86_32_seh.name2module = self.name2module
+        win_api_x86_32_seh.set_win_fs_0(self.jitter)
+        win_api_x86_32_seh.init_seh(self.jitter)
+
+    def load_main_pe(self, options):
+        from miasm.jitter.loader.pe import vm_load_pe
+        from miasm.os_dep.win_api_x86_32 import winobjs
 
         self.name2module = {}
-        fname_basename = os.path.basename(options.filename).lower()
 
         # Load main pe
         with open(options.filename, "rb") as fstream:
@@ -253,53 +255,77 @@ class OS_WinXP32(OS):
                 fstream.read(),
                 load_hdr=options.load_hdr,
                 name=options.filename,
-                winobjs=win_api_x86_32.winobjs,
+                winobjs=winobjs,
             )
-            self.name2module[fname_basename] = self.pe
+            self.name2module[self.fname_basename] = self.pe
+        winobjs.current_pe = self.pe
 
-        win_api_x86_32.winobjs.current_pe = self.pe
+    def load_base_dll(self):
+        from miasm.os_dep.win_api_x86_32 import winobjs
+        from miasm.jitter.loader.pe import vm_load_pe_libs, preload_pe
 
-        # Load library
-        if options.loadbasedll:
-            # Load libs in memory
-            self.name2module.update(
-                vm_load_pe_libs(
-                    self.jitter.vm,
-                    self.LOADED_DLLS,
-                    loader,
-                    self.PATH_DLLS,
-                    winobjs=win_api_x86_32.winobjs,
-                )
-            )
-
-            # Patch libs imports
-            for pe in viewvalues(self.name2module):
-                preload_pe(self.jitter.vm, pe, loader)
-
-        if options.dependencies:
-            vm_load_pe_and_dependencies(
+        # Load libs in memory
+        self.name2module.update(
+            vm_load_pe_libs(
                 self.jitter.vm,
-                fname_basename,
-                self.name2module,
-                loader,
+                self.LOADED_DLLS,
+                self.loader,
                 self.PATH_DLLS,
-                winobjs=win_api_x86_32.winobjs,
+                winobjs=winobjs,
             )
+        )
 
-        # Fix pe imports
-        preload_pe(self.jitter.vm, self.pe, loader)
+        # Patch libs imports
+        for pe in viewvalues(self.name2module):
+            preload_pe(self.jitter.vm, pe, self.loader)
 
+    def load_dependencies(self):
+        from miasm.os_dep.win_api_x86_32 import winobjs
+        from miasm.jitter.loader.pe import vm_load_pe_and_dependencies
+
+        vm_load_pe_and_dependencies(
+            self.jitter.vm,
+            self.fname_basename,
+            self.name2module,
+            self.loader,
+            self.PATH_DLLS,
+            winobjs=winobjs,
+        )
+
+    def set_call_handler(self, custom_methods):
         # Library calls handler
-        self.jitter.add_lib_handler(loader, methods)
+        from miasm.os_dep import win_api_x86_32
+
+        methods = dict(
+            (name, func) for name, func in viewitems(win_api_x86_32.__dict__)
+        )
+        methods.update(custom_methods)
+        self.jitter.add_lib_handler(self.loader, methods)
+
+    def fix_preload_pe(self):
+        # Fix pe imports
+        from miasm.jitter.loader.pe import preload_pe
+
+        preload_pe(self.jitter.vm, self.pe, self.loader)
+
+    def __init__(self, jitter, options, custom_methods=None):
+        self.fname_basename = os.path.basename(options.filename).lower()
+        self.jitter = jitter
+
+        self.init_stack()
+        self.init_loader()
+        self.load_main_pe(options)
+        if options.loadbasedll:
+            self.load_base_dll()
+        if options.dependencies:
+            self.load_dependencies()
+
+        self.fix_preload_pe()
+        self.set_call_handler(custom_methods)
 
         # Manage SEH
         if options.use_windows_structs:
-            win_api_x86_32_seh.main_pe_name = fname_basename
-            win_api_x86_32_seh.main_pe = self.pe
-            win_api_x86_32.winobjs.hcurmodule = self.pe.NThdr.ImageBase
-            win_api_x86_32_seh.name2module = self.name2module
-            win_api_x86_32_seh.set_win_fs_0(self.jitter)
-            win_api_x86_32_seh.init_seh(self.jitter)
+            self.use_windows_structs()
 
     @classmethod
     def update_parser(cls, parser):
@@ -362,6 +388,26 @@ class Sandbox_WinXP_x86_32(Sandbox):
         super(Sandbox_WinXP_x86_32, self).call(prepare_cb, addr, *args)
 
 
+class OS_Win10(OS_WinXP32):
+    VERSION = "10.0.15063.0"
+
+    def init_loader(self):
+        from miasm.jitter.loader.pe import LoaderWindows
+        from miasm.os_dep.windows import apiset
+        from miasm.os_dep.win_api_x86_32 import winobjs
+
+        from miasm.jitter.loader.pe import ApiSet
+
+        basedir, _ = os.path.split(apiset.__file__)
+        apiset_file = os.path.join(basedir, "%s.json" % self.VERSION)
+        apiset = ApiSet(apiset_file)
+
+        # Import manager
+        loader = LoaderWindows(apiset=apiset)
+        self.loader = loader
+        winobjs.loader = loader
+
+
 class Sandbox_WinXP_x86_64(Sandbox):
     CLS_ARCH = Arch_x86_64
     CLS_OS = OS_WinXP32
@@ -388,6 +434,35 @@ class Sandbox_WinXP_x86_64(Sandbox):
         """
         prepare_cb = kwargs.pop("prepare_cb", self.jitter.func_prepare_stdcall)
         super(Sandbox_WinXP_x86_64, self).call(prepare_cb, addr, *args)
+
+
+class Sandbox_Win10_x86_64(Sandbox):
+    CLS_ARCH = Arch_x86_64
+    CLS_OS = OS_Win10
+
+    def __init__(self, loc_db, options, custom_methods=None):
+        super(Sandbox_Win10_x86_64, self).__init__(loc_db, options, custom_methods)
+
+        self.pe = self.os.pe
+        self.loader = self.os.loader
+
+        self.entry_point = self.pe.rva2virt(self.pe.Opthdr.AddressOfEntryPoint)
+
+        self.options = options
+        self.loc_db = loc_db
+
+        # Pre-stack return address
+        self.jitter.push_uint64_t(self.CALL_FINISH_ADDR)
+        self.jitter.add_breakpoint(self.CALL_FINISH_ADDR, self.code_sentinelle)
+
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop("prepare_cb", self.jitter.func_prepare_stdcall)
+        super(Sandbox_Win10_x86_64, self).call(prepare_cb, addr, *args)
 
 
 class OS_Linux(OS):
