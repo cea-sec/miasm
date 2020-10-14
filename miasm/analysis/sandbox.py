@@ -215,7 +215,7 @@ class OS_WinXP32(OS):
             vm_load_pe,
             vm_load_pe_libs,
             preload_pe,
-            libimp_pe,
+            LoaderWindows,
             vm_load_pe_and_dependencies,
         )
         from miasm.os_dep import win_api_x86_32, win_api_x86_32_seh
@@ -232,7 +232,7 @@ class OS_WinXP32(OS):
         self.jitter.init_stack()
 
         # Import manager
-        libs = libimp_pe()
+        libs = LoaderWindows()
         self.libs = libs
         win_api_x86_32.winobjs.runtime_dll = libs
 
@@ -391,7 +391,7 @@ class OS_Linux(OS):
     STACK_BASE = 0x100000
 
     def __init__(self, jitter, options, custom_methods=None):
-        from miasm.jitter.loader.elf import vm_load_elf, preload_elf, libimp_elf
+        from miasm.jitter.loader.elf import vm_load_elf, preload_elf, LoaderUnix
         from miasm.os_dep import linux_stdlib
 
         methods = linux_stdlib.__dict__
@@ -405,7 +405,7 @@ class OS_Linux(OS):
         self.jitter.init_stack()
 
         # Import manager
-        self.libs = libimp_elf()
+        self.libs = LoaderUnix()
 
         with open(options.filename, "rb") as fstream:
             self.elf = vm_load_elf(
@@ -450,7 +450,7 @@ class OS_Linux_shellcode(OS):
     STACK_BASE = 0x100000
 
     def __init__(self, jitter, options, custom_methods=None):
-        from miasm.jitter.loader.elf import vm_load_elf, preload_elf, libimp_elf
+        from miasm.jitter.loader.elf import vm_load_elf, preload_elf, LoaderUnix
         from miasm.os_dep import linux_stdlib
 
         methods = linux_stdlib.__dict__
@@ -464,7 +464,7 @@ class OS_Linux_shellcode(OS):
         self.jitter.init_stack()
 
         # Import manager
-        self.libs = libimp_elf()
+        self.libs = LoaderUnix()
 
         data = open(options.filename, "rb").read()
         options.load_base_addr = int(options.load_base_addr, 0)

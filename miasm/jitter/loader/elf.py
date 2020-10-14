@@ -1,4 +1,5 @@
 import struct
+import warnings
 from collections import defaultdict
 
 from future.utils import viewitems
@@ -8,7 +9,7 @@ from miasm.loader import *
 import miasm.loader.elf as elf_csts
 
 from miasm.jitter.csts import *
-from miasm.jitter.loader.utils import canon_libname_libfunc, libimp
+from miasm.jitter.loader.utils import canon_libname_libfunc, Loader
 from miasm.core.utils import force_str
 from miasm.core.interval import interval
 
@@ -315,8 +316,14 @@ def vm_load_elf(vm, fdata, name="", base_addr=0, loc_db=None, apply_reloc=False,
     return elf
 
 
-class libimp_elf(libimp):
+class LoaderUnix(Loader):
     pass
+
+
+class libimp_elf(LoaderUnix):
+    def __init__(self, *args, **kwargs):
+        warnings.warn("DEPRECATION WARNING: Use LoaderUnix instead of limimb_elf")
+        super(limbimp_elf, self).__init__(*args, **kwargs)
 
 
 # machine, size, sex -> arch_name

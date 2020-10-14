@@ -2,6 +2,7 @@ from builtins import map
 import os
 import struct
 import logging
+import warnings
 from collections import defaultdict
 
 from future.utils import viewitems, viewvalues
@@ -11,7 +12,7 @@ from miasm.loader import cstruct
 from miasm.loader import *
 
 from miasm.jitter.csts import *
-from miasm.jitter.loader.utils import canon_libname_libfunc, libimp
+from miasm.jitter.loader.utils import canon_libname_libfunc, Loader
 from miasm.core.utils import force_str
 
 log = logging.getLogger('loader_pe')
@@ -88,10 +89,10 @@ def get_import_address_pe(e):
 
 
 def preload_pe(vm, e, runtime_lib, patch_vm_imp=True):
-    fa = get_import_address_pe(e)
+    import_information = get_import_address_pe(e)
     dyn_funcs = {}
-    # log.debug('imported funcs: %s' % fa)
-    for (libname, libfunc), ads in viewitems(fa):
+    # log.debug('imported funcs: %s' % import_information)
+    for (libname, libfunc), ads in viewitems(import_information):
         for ad in ads:
             libname = force_str(libname)
             ad_base_lib = runtime_lib.lib_get_add_base(libname)
@@ -293,7 +294,7 @@ def vm_load_pe_lib(vm, fname_in, libs, lib_path_base, **kargs):
     """Call vm_load_pe on @fname_in and update @libs accordingly
     @vm: VmMngr instance
     @fname_in: library name
-    @libs: libimp_pe instance
+    @libs: LoaderWindows instance
     @lib_path_base: DLLs relative path
     Return the corresponding PE instance
     Extra arguments are passed to vm_load_pe
@@ -312,7 +313,7 @@ def vm_load_pe_libs(vm, libs_name, libs, lib_path_base, **kargs):
     """Call vm_load_pe_lib on each @libs_name filename
     @vm: VmMngr instance
     @libs_name: list of str
-    @libs: libimp_pe instance
+    @libs: LoaderWindows instance
     @lib_path_base: (optional) DLLs relative path
     Return a dictionary Filename -> PE instances
     Extra arguments are passed to vm_load_pe_lib
@@ -418,10 +419,10 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
     return mye
 
 
-class libimp_pe(libimp):
+class LoaderWindows(Loader):
 
     def __init__(self, *args, **kwargs):
-        super(libimp_pe, self).__init__(*args, **kwargs)
+        super(LoaderWindows, self).__init__(*args, **kwargs)
         # dependency -> redirector
         self.created_redirected_imports = {}
 
@@ -577,6 +578,12 @@ class libimp_pe(libimp):
                 all_ads = all_ads[i + 1:]
 
         return new_lib
+
+
+class limbimp_pe(LoaderWindows):
+    def __init__(self, *args, **kwargs):
+        warnings.warn("DEPRECATION WARNING: Use LoaderWindows instead of limimb_pe")
+        super(limbimp_pe, self).__init__(*args, **kwargs)
 
 
 def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,

@@ -21,7 +21,7 @@ def canon_libname_libfunc(libname, libfunc):
         return "%s_%s" % (dn, libfunc)
 
 
-class libimp(object):
+class Loader(object):
 
     def __init__(self, lib_base_ad=0x71111000, **kargs):
         self.name2off = {}
