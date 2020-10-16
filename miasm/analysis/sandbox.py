@@ -223,12 +223,16 @@ class OS_WinXP32(OS):
         self.jitter.stack_base = self.STACK_BASE
         self.jitter.init_stack()
 
-    def init_loader(self):
+    def init_loader(self, options):
         from miasm.jitter.loader.pe import LoaderWindows
         from miasm.os_dep.win_api_x86_32 import winobjs
 
         # Import manager
-        loader = LoaderWindows()
+        if options.loader_start_address:
+            loader_start_address = int(options.loader_start_address, 0)
+        else:
+            loader_start_address = None
+        loader = LoaderWindows(loader_start_address=loader_start_address)
         self.loader = loader
         winobjs.loader = loader
 
@@ -262,7 +266,7 @@ class OS_WinXP32(OS):
 
     def load_base_dll(self):
         from miasm.os_dep.win_api_x86_32 import winobjs
-        from miasm.jitter.loader.pe import vm_load_pe_libs, preload_pe
+        from miasm.jitter.loader.pe import vm_load_pe_libs, fix_pe_imports
 
         # Load libs in memory
         self.name2module.update(
@@ -276,8 +280,8 @@ class OS_WinXP32(OS):
         )
 
         # Patch libs imports
-        for pe in viewvalues(self.name2module):
-            preload_pe(self.jitter.vm, pe, self.loader)
+        for name, pe in self.name2module.items():
+            fix_pe_imports(self.jitter.vm, pe, self.loader, pe_name=name)
 
     def load_dependencies(self):
         from miasm.os_dep.win_api_x86_32 import winobjs
@@ -302,25 +306,27 @@ class OS_WinXP32(OS):
         methods.update(custom_methods)
         self.jitter.add_lib_handler(self.loader, methods)
 
-    def fix_preload_pe(self):
+    def fix_pe_imports(self):
         # Fix pe imports
-        from miasm.jitter.loader.pe import preload_pe
+        from miasm.jitter.loader.pe import fix_pe_imports
 
-        preload_pe(self.jitter.vm, self.pe, self.loader)
+        fix_pe_imports(
+            self.jitter.vm, self.pe, self.loader, pe_name=self.fname_basename
+        )
 
     def __init__(self, jitter, options, custom_methods=None):
         self.fname_basename = os.path.basename(options.filename).lower()
         self.jitter = jitter
 
         self.init_stack()
-        self.init_loader()
+        self.init_loader(options)
         self.load_main_pe(options)
         if options.loadbasedll:
             self.load_base_dll()
         if options.dependencies:
             self.load_dependencies()
 
-        self.fix_preload_pe()
+        self.fix_pe_imports()
         self.set_call_handler(custom_methods)
 
         # Manage SEH
@@ -358,6 +364,12 @@ class OS_WinXP32(OS):
             action="store_true",
             help="Don't log function calls",
         )
+        parser.add_argument(
+            "-x",
+            "--loader_start_address",
+            default=None,
+            help="Reloc libraries starting at load base address",
+        )
 
 
 class Sandbox_WinXP_x86_32(Sandbox):
@@ -391,7 +403,7 @@ class Sandbox_WinXP_x86_32(Sandbox):
 class OS_Win10(OS_WinXP32):
     VERSION = "10.0.15063.0"
 
-    def init_loader(self):
+    def init_loader(self, options):
         from miasm.jitter.loader.pe import LoaderWindows
         from miasm.os_dep.windows import apiset
         from miasm.os_dep.win_api_x86_32 import winobjs
@@ -403,7 +415,11 @@ class OS_Win10(OS_WinXP32):
         apiset = ApiSet(apiset_file)
 
         # Import manager
-        loader = LoaderWindows(apiset=apiset)
+        if options.loader_start_address:
+            loader_start_address = int(options.loader_start_address, 0)
+        else:
+            loader_start_address = None
+        loader = LoaderWindows(apiset=apiset, loader_start_address=loader_start_address)
         self.loader = loader
         winobjs.loader = loader
 

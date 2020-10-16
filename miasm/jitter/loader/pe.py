@@ -1,5 +1,6 @@
 from builtins import map
 import os
+import re
 import struct
 import json
 import logging
@@ -21,6 +22,8 @@ hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)-8s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.INFO)
+
+match_hyphen_digit = re.compile(".*-[\d]+-[\d]+$")
 
 
 def get_pe_dependencies(pe_obj):
@@ -89,7 +92,7 @@ def get_import_address_pe(e):
     return import2addr
 
 
-def preload_pe(vm, e, loader, patch_vm_imp=True):
+def fix_pe_imports(vm, e, loader, patch_vm_imp=True, pe_name=None):
     import_information = get_import_address_pe(e)
     dyn_funcs = {}
     # log.debug('imported funcs: %s' % import_information)
@@ -97,7 +100,7 @@ def preload_pe(vm, e, loader, patch_vm_imp=True):
         for ad in ads:
             libname = force_str(libname)
             if loader.apiset:
-                libname = loader.apiset.get_redirection(libname)
+                libname = loader.apiset.get_redirection(libname, pe_name)
             ad_base_lib = loader.lib_get_add_base(libname)
             ad_funcname = loader.lib_get_add_func(ad_base_lib, funcname, ad)
 
@@ -105,7 +108,8 @@ def preload_pe(vm, e, loader, patch_vm_imp=True):
             dyn_funcs[libname_s] = ad_funcname
             if patch_vm_imp:
                 vm.set_mem(
-                    ad, struct.pack(cstruct.size2type[e._wsize], ad_funcname))
+                    ad, struct.pack(cstruct.size2type[e._wsize], ad_funcname)
+                )
     return dyn_funcs
 
 
@@ -170,7 +174,7 @@ def get_export_name_addr_list(e):
     return out
 
 
-def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", winobjs=None, **kargs):
+def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", winobjs=None, base_addr=None, **kargs):
     """Load a PE in memory (@vm) from a data buffer @fdata
     @vm: VmMngr instance
     @fdata: data buffer to parse
@@ -185,6 +189,10 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", winobjs=None, **
 
     # Parse and build a PE instance
     pe = pe_init.PE(fdata, **kargs)
+
+    # Optionaly rebase PE
+    if base_addr is not None:
+        pe.reloc_to(base_addr)
 
     # Check if all section are aligned
     aligned = True
@@ -307,7 +315,7 @@ def vm_load_pe_lib(vm, fname_in, loader, lib_path_base, **kargs):
 
     fname = os.path.join(lib_path_base, fname_in)
     with open(fname, "rb") as fstream:
-        pe = vm_load_pe(vm, fstream.read(), name=fname_in, **kargs)
+        pe = loader.vm_load_pe(vm, fstream.read(), name=fname_in, **kargs)
     loader.add_export_lib(pe, fname_in)
     return pe
 
@@ -325,13 +333,9 @@ def vm_load_pe_libs(vm, libs_name, loader, lib_path_base, **kargs):
     for fname in libs_name:
         assert isinstance(fname, str)
         out[fname] = vm_load_pe_lib(vm, fname, loader, lib_path_base, **kargs)
+
     return out
 
-
-def vm_fix_imports_pe_libs(lib_imgs, loader, lib_path_base,
-                           patch_vm_imp=True, **kargs):
-    for e in viewvalues(lib_imgs):
-        preload_pe(e, loader, patch_vm_imp=patch_vm_imp)
 
 
 def vm2pe(myjit, fname, loader=None, e_orig=None,
@@ -424,11 +428,12 @@ def vm2pe(myjit, fname, loader=None, e_orig=None,
 
 class LoaderWindows(Loader):
 
-    def __init__(self, *args, apiset=None, **kwargs):
+    def __init__(self, *args, apiset=None, loader_start_address=None, **kwargs):
         super(LoaderWindows, self).__init__(*args, **kwargs)
         # dependency -> redirector
         self.created_redirected_imports = {}
         self.apiset = apiset
+        self.loader_start_address = loader_start_address
 
 
     def add_function(self, dllname, imp_ord_or_name, addr):
@@ -583,6 +588,19 @@ class LoaderWindows(Loader):
 
         return new_lib
 
+    def vm_load_pe(self, vm, fdata, align_s=True, load_hdr=True, name="", winobjs=None, **kargs):
+        pe = vm_load_pe(
+            vm, fdata,
+            align_s=align_s,
+            load_hdr=load_hdr,
+            name=name, winobjs=winobjs,
+            base_addr=self.loader_start_address,
+            **kargs
+        )
+        if self.loader_start_address:
+            self.loader_start_address += pe.NThdr.sizeofimage + 0x1000
+        return pe
+
 
 class limbimp_pe(LoaderWindows):
     def __init__(self, *args, **kwargs):
@@ -621,8 +639,9 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, loader,
             try:
                 with open(fname, "rb") as fstream:
                     log.info('Loading module name %r', fname)
-                    pe_obj = vm_load_pe(
-                        vm, fstream.read(), name=fname, **kwargs)
+                    pe_obj = loader.vm_load_pe(
+                        vm, fstream.read(), name=fname, **kwargs
+                    )
             except IOError:
                 log.error('Cannot open %s' % fname)
                 name2module[name] = None
@@ -630,13 +649,14 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, loader,
             name2module[name] = pe_obj
 
         new_dependencies = get_pe_dependencies(pe_obj)
-        todo += [(name, os.path.join(lib_path_base, name), weight - 1)
-                 for name in new_dependencies]
+        for libname in new_dependencies:
+            if loader.apiset:
+                libname = loader.apiset.get_redirection(libname, name)
+            todo.append((libname, os.path.join(lib_path_base, libname), weight - 1))
 
     known_export_addresses = {}
     to_resolve = {}
     for name, pe_obj in name2module.items():
-        print(name)
         if pe_obj is None:
             continue
         if pe_obj.DirExport.expdesc == None:
@@ -650,6 +670,9 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, loader,
                 known_export_addresses[(name, imp_ord_or_name)] = ad
             else:
                 dllname, func_info = ret
+
+                dllname = loader.apiset.get_redirection(dllname, name)
+
                 dllname = dllname + '.dll'
                 to_resolve[(name, imp_ord_or_name)] = (dllname, func_info)
 
@@ -688,7 +711,7 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, loader,
     for dllname, pe_obj in name2module.items():
         if pe_obj is None:
             continue
-        preload_pe(vm, pe_obj, loader, patch_vm_imp=True)
+        fix_pe_imports(vm, pe_obj, loader, patch_vm_imp=True, pe_name=dllname)
 
     return name2module
 
@@ -709,8 +732,6 @@ class ApiSet(object):
     def __init__(self, fname):
         data = json.load(open(fname))
         self.version = data['version']
-        self.hash_factor = data['hash_factor']
-        self.redirections = data['redirections']
         self.hash_entries = data['hashes']
 
     def compute_hash(self, apiset_lib_name):
@@ -722,26 +743,35 @@ class ApiSet(object):
             hashk = (hashk * self.hash_factor + ord(c)) & ((1 << 32) - 1)
         return hashk
 
-    def get_redirection(self, libname):
+    def get_redirected_host(self, libname, entries, parent):
+        if len(entries) == 1:
+            assert "" in entries
+            log.debug("ApiSet %s => %s" % (libname, entries[""]))
+            libname = entries[""]
+        else:
+            if parent in entries:
+                libname = entries[parent]
+            else:
+                libname = entries[""]
+        return libname
+
+    def get_redirection(self, libname, parent_name):
         has_dll = libname.endswith(".dll")
         if has_dll:
-            libname = libname[:-4]
-        if libname in self.redirections:
-            values = self.redirections[libname]
-            if len(values) == 1:
-                assert "" in values
-                log.warn("ApiSet %s => %s" % (libname, values[""]))
-                libname = values[""]
-            else:
-                libname_dll = "%s.dll" % libname
-                if libname_dll in values:
-                    fds
-                else:
-                    libname = values[""]
-        hash_to_search = self.compute_hash(libname)
-        if hash_to_search in self.hash_entries:
-            fds
+            name_nodll = libname[:-4]
+        else:
+            name_nodll = libname
 
+        # Remove last hyphen part to compute crc
+        if match_hyphen_digit.match(name_nodll):
+            cname = name_nodll[:name_nodll.rfind('-')]
+        else:
+            cname = name_nodll
+        values = self.hash_entries.get(cname, None)
+        if not values:
+            # No entry found
+            return libname
+        libname = self.get_redirected_host(cname, values, parent_name)
         if has_dll and not libname.endswith('.dll'):
             libname += ".dll"
         elif not has_dll and libname.endswith('.dll'):
