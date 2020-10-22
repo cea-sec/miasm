@@ -58,6 +58,7 @@ linux_env.filesystem.passthrough.append(re.compile(args.passthrough.encode()))
 ld_path = linux_env.filesystem.resolve_path(ld_path)
 cont_ld = Container.from_stream(
     open(ld_path, "rb"),
+    loc_db=loc_db,
     vm=jitter.vm,
     addr=0x80000000,
     apply_reloc=True

@@ -232,7 +232,7 @@ class OS_WinXP32(OS):
             loader_start_address = int(options.loader_start_address, 0)
         else:
             loader_start_address = None
-        loader = LoaderWindows(loader_start_address=loader_start_address)
+        loader = LoaderWindows(self.jitter.vm, loader_start_address=loader_start_address)
         self.loader = loader
         winobjs.loader = loader
 
@@ -242,7 +242,7 @@ class OS_WinXP32(OS):
         win_api_x86_32_seh.main_pe_name = self.fname_basename
         win_api_x86_32_seh.main_pe = self.pe
         win_api_x86_32.winobjs.hcurmodule = self.pe.NThdr.ImageBase
-        win_api_x86_32_seh.name2module = self.name2module
+        win_api_x86_32_seh.name2module = self.loader.module_name_to_module
         win_api_x86_32_seh.set_win_fs_0(self.jitter)
         win_api_x86_32_seh.init_seh(self.jitter)
 
@@ -250,51 +250,10 @@ class OS_WinXP32(OS):
         from miasm.jitter.loader.pe import vm_load_pe
         from miasm.os_dep.win_api_x86_32 import winobjs
 
-        self.name2module = {}
-
-        # Load main pe
-        with open(options.filename, "rb") as fstream:
-            self.pe = vm_load_pe(
-                self.jitter.vm,
-                fstream.read(),
-                load_hdr=options.load_hdr,
-                name=options.filename,
-                winobjs=winobjs,
-            )
-            self.name2module[self.fname_basename] = self.pe
+        module_image_base = self.loader.load_module(options.filename)
+        name = self.loader.module_base_address_to_name[module_image_base]
+        self.pe = self.loader.module_name_to_module[name]
         winobjs.current_pe = self.pe
-
-    def load_base_dll(self):
-        from miasm.os_dep.win_api_x86_32 import winobjs
-        from miasm.jitter.loader.pe import vm_load_pe_libs, fix_pe_imports
-
-        # Load libs in memory
-        self.name2module.update(
-            vm_load_pe_libs(
-                self.jitter.vm,
-                self.LOADED_DLLS,
-                self.loader,
-                self.PATH_DLLS,
-                winobjs=winobjs,
-            )
-        )
-
-        # Patch libs imports
-        for name, pe in self.name2module.items():
-            fix_pe_imports(self.jitter.vm, pe, self.loader, pe_name=name)
-
-    def load_dependencies(self):
-        from miasm.os_dep.win_api_x86_32 import winobjs
-        from miasm.jitter.loader.pe import vm_load_pe_and_dependencies
-
-        vm_load_pe_and_dependencies(
-            self.jitter.vm,
-            self.fname_basename,
-            self.name2module,
-            self.loader,
-            self.PATH_DLLS,
-            winobjs=winobjs,
-        )
 
     def set_call_handler(self, custom_methods):
         # Library calls handler
@@ -306,14 +265,6 @@ class OS_WinXP32(OS):
         methods.update(custom_methods)
         self.jitter.add_lib_handler(self.loader, methods)
 
-    def fix_pe_imports(self):
-        # Fix pe imports
-        from miasm.jitter.loader.pe import fix_pe_imports
-
-        fix_pe_imports(
-            self.jitter.vm, self.pe, self.loader, pe_name=self.fname_basename
-        )
-
     def __init__(self, jitter, options, custom_methods=None):
         self.fname_basename = os.path.basename(options.filename).lower()
         self.jitter = jitter
@@ -321,12 +272,7 @@ class OS_WinXP32(OS):
         self.init_stack()
         self.init_loader(options)
         self.load_main_pe(options)
-        if options.loadbasedll:
-            self.load_base_dll()
-        if options.dependencies:
-            self.load_dependencies()
 
-        self.fix_pe_imports()
         self.set_call_handler(custom_methods)
 
         # Manage SEH
@@ -419,7 +365,7 @@ class OS_Win10(OS_WinXP32):
             loader_start_address = int(options.loader_start_address, 0)
         else:
             loader_start_address = None
-        loader = LoaderWindows(apiset=apiset, loader_start_address=loader_start_address)
+        loader = LoaderWindows(self.jitter.vm, apiset=apiset, loader_start_address=loader_start_address)
         self.loader = loader
         winobjs.loader = loader
 
@@ -503,7 +449,7 @@ class OS_Linux(OS):
         self.jitter.init_stack()
 
         # Import manager
-        self.loader = LoaderUnix()
+        self.loader = LoaderUnix(self.jitter.vm)
 
         with open(options.filename, "rb") as fstream:
             self.elf = vm_load_elf(
@@ -562,7 +508,7 @@ class OS_Linux_shellcode(OS):
         self.jitter.init_stack()
 
         # Import manager
-        self.loader = LoaderUnix()
+        self.loader = LoaderUnix(self.jitter.vm)
 
         data = open(options.filename, "rb").read()
         options.load_base_addr = int(options.load_base_addr, 0)

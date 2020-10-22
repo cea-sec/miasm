@@ -913,11 +913,11 @@ def kernel32_GetModuleFileName(jitter, funcname, set_str):
     if args.hmodule in [0, winobjs.hcurmodule]:
         p = winobjs.module_path[:]
     elif (winobjs.loader and
-          args.hmodule in viewvalues(winobjs.loader.name2off)):
+          args.hmodule in viewvalues(winobjs.loader.module_name_to_base_address)):
         name_inv = dict(
             [
                 (x[1], x[0])
-                for x in viewitems(winobjs.loader.name2off)
+                for x in viewitems(winobjs.loader.module_name_to_base_address)
             ]
         )
         p = name_inv[args.hmodule]
@@ -1029,9 +1029,9 @@ def kernel32_LoadLibrary(jitter, get_str):
     ret_ad, args = jitter.func_args_stdcall(["dllname"])
 
     libname = get_str(args.dllname, 0x100)
-    ret = winobjs.loader.lib_get_add_base(libname)
-    log.info("Loading %r ret 0x%x", libname, ret)
-    jitter.func_ret_stdcall(ret_ad, ret)
+    module_image_base = winobjs.loader.load_module(libname)
+    log.info("Loading %r ret 0x%x", libname, module_image_base)
+    jitter.func_ret_stdcall(ret_ad, module_image_base)
 
 
 def kernel32_LoadLibraryA(jitter):
@@ -1069,7 +1069,8 @@ def kernel32_GetProcAddress(jitter):
         if not fname:
             fname = None
     if fname is not None:
-        ad = winobjs.loader.lib_get_add_func(args.libbase, fname)
+        name = winobjs.loader.module_base_address_to_name[args.libbase]
+        ad = winobjs.loader.resolve_function(name, fname)
     else:
         ad = 0
     log.info("GetProcAddress %r %r ret 0x%x", args.libbase, fname, ad)
@@ -2010,7 +2011,8 @@ def ntdll_LdrGetProcedureAddress(jitter):
     l1, l2, p_src = struct.unpack('HHI', jitter.vm.get_mem(args.pfname, 0x8))
     fname = get_win_str_a(jitter, p_src)
 
-    ad = winobjs.loader.lib_get_add_func(args.libbase, fname)
+    name = winobjs.loader.module_base_address_to_name[args.libbase]
+    ad = winobjs.resolve_function(name, fname)
     jitter.add_breakpoint(ad, jitter.handle_lib)
 
     jitter.vm.set_u32(args.p_ad, ad)

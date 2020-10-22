@@ -43,7 +43,7 @@ def preload_elf(vm, e, loader, patch_vm_imp=True, loc_db=None):
             continue
         for ad in ads:
             ad_base_lib = loader.lib_get_add_base(libname)
-            ad_libfunc = loader.lib_get_add_func(ad_base_lib, libfunc, ad)
+            ad_libfunc = loader.resolve_function(vm, ad_base_lib, libfunc, ad)
 
             libname_s = canon_libname_libfunc(libname, libfunc)
             dyn_funcs[libname_s] = ad_libfunc
@@ -317,7 +317,17 @@ def vm_load_elf(vm, fdata, name="", base_addr=0, loc_db=None, apply_reloc=False,
 
 
 class LoaderUnix(Loader):
-    pass
+
+    def lib_get_add_base(self, name):
+        name = name.lower().strip(' ')
+        if name in self.module_name_to_base_address:
+            ad = self.module_name_to_base_address[name]
+        else:
+            ad = self.fake_library_entry(name)
+        return ad
+
+    def resolve_function(self, vm, libad, imp_ord_or_name, dst_ad=None):
+        return self.fake_resolve_function(libad, imp_ord_or_name, dst_ad=dst_ad)
 
 
 class libimp_elf(LoaderUnix):

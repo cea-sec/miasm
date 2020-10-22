@@ -258,14 +258,14 @@ class DSEEngine(object):
 
         # lambda cannot contain statement
         def default_func(dse):
-            fname = loader.fad2cname[dse.jitter.pc]
+            fname = loader.module_base_address_to_name(dse.jitter.pc)
             if isinstance(fname, tuple):
                 fname = b"%s_%d_symb" % (force_bytes(fname[0]), fname[1])
             else:
                 fname = b"%s_symb" % force_bytes(fname)
             raise RuntimeError("Symbolic stub '%s' not found" % fname)
 
-        for addr, fname in viewitems(loader.fad2cname):
+        for addr, fname in viewitems(loader.function_address_to_canonical_name):
             if isinstance(fname, tuple):
                 fname = b"%s_%d_symb" % (force_bytes(fname[0]), fname[1])
             else:

@@ -491,7 +491,7 @@ class Jitter(object):
         """Resolve the name of the function which cause the handler call. Then
         call the corresponding handler from users callback.
         """
-        fname = jitter.libs.fad2cname[jitter.pc]
+        fname = jitter.loader.function_address_to_canonical_name[jitter.pc]
         if fname in jitter.user_globals:
             func = jitter.user_globals[fname]
         else:
@@ -510,21 +510,21 @@ class Jitter(object):
         """Add a breakpoint which will trigger the function handler"""
         self.add_breakpoint(f_addr, self.handle_lib)
 
-    def add_lib_handler(self, libs, user_globals=None):
-        """Add a function to handle libs call with breakpoints
-        @libs: libimp instance
+    def add_lib_handler(self, loader, user_globals=None):
+        """Add a function to handle loader call with breakpoints
+        @loader: Loader instance
         @user_globals: dictionary for defined user function
         """
         if user_globals is None:
             user_globals = {}
 
-        self.libs = libs
+        self.loader = loader
         out = {}
         for name, func in viewitems(user_globals):
             out[name] = func
         self.user_globals = out
 
-        for f_addr in libs.fad2cname:
+        for f_addr in loader.function_address_to_canonical_name:
             self.handle_function(f_addr)
 
     def eval_expr(self, expr):
