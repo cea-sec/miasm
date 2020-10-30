@@ -17,7 +17,7 @@ from miasm.ir.ir import IRBlock, AssignBlock
 from miasm.analysis.data_flow import load_from_int
 from utils import guess_machine, expr2colorstr
 from miasm.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
-
+from miasm.core.locationdb import LocationDB
 
 
 
@@ -200,19 +200,21 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
         print(fname)
 
     bs = bin_stream_ida()
-    mdis = dis_engine(bs)
-    ir_arch = IRADelModCallStack(mdis.loc_db)
+    loc_db = LocationDB()
+
+    mdis = dis_engine(bs, loc_db=loc_db)
+    ir_arch = IRADelModCallStack(loc_db)
 
 
     # populate symbols with ida names
     for addr, name in idautils.Names():
         if name is None:
             continue
-        if (mdis.loc_db.get_offset_location(addr) or
-            mdis.loc_db.get_name_location(name)):
+        if (loc_db.get_offset_location(addr) or
+            loc_db.get_name_location(name)):
             # Symbol alias
             continue
-        mdis.loc_db.add_location(name, addr)
+        loc_db.add_location(name, addr)
 
     if verbose:
         print("start disasm")
@@ -220,7 +222,7 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
         print(hex(start_addr))
 
     asmcfg = mdis.dis_multiblock(start_addr)
-    entry_points = set([mdis.loc_db.get_offset_location(start_addr)])
+    entry_points = set([loc_db.get_offset_location(start_addr)])
     if verbose:
         print("generating graph")
         open('asm_flow.dot', 'w').write(asmcfg.dot())
@@ -239,7 +241,7 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
                 for dst, src in viewitems(assignblk)
             }
             irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
-        ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_db, irb.loc_key, irs)
+        ircfg.blocks[irb.loc_key] = IRBlock(loc_db, irb.loc_key, irs)
 
     if verbose:
         out = ircfg.dot()
