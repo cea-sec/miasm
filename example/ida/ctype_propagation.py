@@ -17,6 +17,7 @@ from miasm.expression.expression import ExprLoc, ExprInt, ExprOp, ExprAssign
 from miasm.ir.symbexec_types import SymbExecCType
 from miasm.expression.parser import str_to_expr
 from miasm.analysis.cst_propag import add_state, propagate_cst_expr
+from miasm.core.locationdb import LocationDB
 
 from utils import guess_machine
 
@@ -264,13 +265,15 @@ def analyse_function():
     mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
 
     bs = bin_stream_ida()
-    mdis = dis_engine(bs, dont_dis_nulstart_bloc=True)
+    loc_db = LocationDB()
+
+    mdis = dis_engine(bs, loc_db=loc_db, dont_dis_nulstart_bloc=True)
     if end is not None:
         mdis.dont_dis = [end]
 
 
     iraCallStackFixer = get_ira_call_fixer(ira)
-    ir_arch = iraCallStackFixer(mdis.loc_db)
+    ir_arch = iraCallStackFixer(loc_db)
 
     asmcfg = mdis.dis_multiblock(addr)
     # Generate IR
@@ -308,8 +311,8 @@ def analyse_function():
         infos_types[expr] = set([objc])
 
     # Add fake head
-    lbl_real_start = ir_arch.loc_db.get_offset_location(addr)
-    lbl_head = ir_arch.loc_db.get_or_create_name_location("start")
+    lbl_real_start = loc_db.get_offset_location(addr)
+    lbl_head = loc_db.get_or_create_name_location("start")
 
     first_block = asmcfg.label2block(lbl_real_start)
 

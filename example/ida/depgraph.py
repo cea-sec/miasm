@@ -15,6 +15,7 @@ import ida_kernwin
 from miasm.core.bin_stream_ida import bin_stream_ida
 from miasm.core.asmblock import *
 from miasm.expression import expression as m2_expr
+from miasm.core.locationdb import LocationDB
 
 from miasm.expression.simplifications import expr_simp
 from miasm.analysis.depgraph import DependencyGraph
@@ -216,14 +217,16 @@ def launch_depgraph():
     mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
 
     bs = bin_stream_ida()
-    mdis = dis_engine(bs, dont_dis_nulstart_bloc=True)
-    ir_arch = ira(mdis.loc_db)
+    loc_db = LocationDB()
+
+    mdis = dis_engine(bs, loc_db=loc_db, dont_dis_nulstart_bloc=True)
+    ir_arch = ira(loc_db)
 
     # Populate symbols with ida names
     for ad, name in idautils.Names():
         if name is None:
             continue
-        mdis.loc_db.add_location(name, ad)
+        loc_db.add_location(name, ad)
 
     asmcfg = mdis.dis_multiblock(func.start_ea)
 
@@ -238,7 +241,7 @@ def launch_depgraph():
     # Simplify assignments
     for irb in list(viewvalues(ircfg.blocks)):
         irs = []
-        offset = ir_arch.loc_db.get_location_offset(irb.loc_key)
+        offset = loc_db.get_location_offset(irb.loc_key)
         fix_stack = offset is not None and settings.unalias_stack
         for assignblk in irb:
             if fix_stack:
@@ -259,7 +262,7 @@ def launch_depgraph():
     # Get dependency graphs
     dg = settings.depgraph
     graphs = dg.get(loc_key, elements, line_nb,
-                    set([ir_arch.loc_db.get_offset_location(func.start_ea)]))
+                    set([loc_db.get_offset_location(func.start_ea)]))
 
     # Display the result
     comments = {}

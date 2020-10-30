@@ -9,6 +9,7 @@ import idc
 
 from miasm.expression.expression_helper import Variables_Identifier
 from miasm.expression.expression import ExprAssign
+from miasm.core.locationdb import LocationDB
 
 from utils import expr2colorstr, translatorForm
 
@@ -136,11 +137,12 @@ def symbolic_exec():
     from utils import guess_machine
 
     start, end = idc.read_selection_start(), idc.read_selection_end()
+    loc_db = LocationDB()
 
     bs = bin_stream_ida()
     machine = guess_machine(addr=start)
 
-    mdis = machine.dis_engine(bs)
+    mdis = machine.dis_engine(bs, loc_db=loc_db)
 
     if start == idc.BADADDR and end == idc.BADADDR:
         start = idc.get_screen_ea()
@@ -148,7 +150,7 @@ def symbolic_exec():
 
     mdis.dont_dis = [end]
     asmcfg = mdis.dis_multiblock(start)
-    ira = machine.ira(loc_db=mdis.loc_db)
+    ira = machine.ira(loc_db=loc_db)
     ircfg = ira.new_ircfg_from_asmcfg(asmcfg)
 
     print("Run symbolic execution...")
@@ -161,7 +163,7 @@ def symbolic_exec():
 
     view = symbolicexec_t()
     all_views.append(view)
-    if not view.Create(modified, machine, mdis.loc_db,
+    if not view.Create(modified, machine, loc_db,
                        "Symbolic Execution - 0x%x to 0x%x"
                        % (start, idc.prev_head(end))):
         return
