@@ -232,7 +232,10 @@ class OS_WinXP32(OS):
             loader_start_address = int(options.loader_start_address, 0)
         else:
             loader_start_address = None
-        loader = LoaderWindows(self.jitter.vm, loader_start_address=loader_start_address)
+        loader = LoaderWindows(
+            self.jitter.vm, loader_start_address=loader_start_address,
+            fake_dll_load=options.fake_dll_load
+        )
         self.loader = loader
         winobjs.loader = loader
 
@@ -297,6 +300,12 @@ class OS_WinXP32(OS):
         )
         parser.add_argument(
             "-r", "--parse-resources", action="store_true", help="Load resources"
+        )
+        parser.add_argument(
+            "-f",
+            "--fake-dll-load",
+            action="store_true",
+            help="Don't load dll real dll, create fake entries",
         )
         parser.add_argument(
             "-i",
@@ -365,7 +374,10 @@ class OS_Win10(OS_WinXP32):
             loader_start_address = int(options.loader_start_address, 0)
         else:
             loader_start_address = None
-        loader = LoaderWindows(self.jitter.vm, apiset=apiset, loader_start_address=loader_start_address)
+        loader = LoaderWindows(
+            self.jitter.vm, apiset=apiset, loader_start_address=loader_start_address,
+            fake_dll_load=options.fake_dll_load
+        )
         self.loader = loader
         winobjs.loader = loader
 

@@ -330,7 +330,7 @@ def vm2pe(myjit, fname, loader=None, e_orig=None,
 
 class LoaderWindows(Loader):
 
-    def __init__(self, vm, apiset=None, loader_start_address=None, *args, **kwargs):
+    def __init__(self, vm, apiset=None, loader_start_address=None, fake_dll_load=False, *args, **kwargs):
         super(LoaderWindows, self).__init__(vm, *args, **kwargs)
         self.library_path = ["win_dll", "./"]
         # dependency -> redirector
@@ -338,6 +338,7 @@ class LoaderWindows(Loader):
         self.module_name_to_module = {}
         self.apiset = apiset
         self.loader_start_address = loader_start_address
+        self.fake_dll_load = fake_dll_load
 
     def lib_get_add_base(self, name):
         name = name.lower().strip(' ')
@@ -440,6 +441,9 @@ class LoaderWindows(Loader):
         Find the real path of module_name
         """
         module_name = module_name.lower()
+        if self.fake_dll_load:
+            self.fake_library_entry(module_name)
+            return None
         for path in self.library_path:
             fname = os.path.join(path, module_name)
             if os.access(fname, os.R_OK):
