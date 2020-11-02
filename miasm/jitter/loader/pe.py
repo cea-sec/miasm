@@ -499,16 +499,24 @@ class LoaderWindows(Loader):
 
     def load_module(self, name):
         """
-        Load module and it's dependencies
+        Resolve the path of @name and load module and it's dependencies
+
         Return image base address of the module
+
         """
         name = name.lower()
         fname = self.find_module_path(name)
-        if fname is None:
-            raise RuntimeError("Cannot find module %r" % fname)
+        return self.load_resolved_module(name, fname)
 
+    def load_resolved_module(self, name, fname):
+        """
+        Load module @name using its @fname path and it's dependencies
+        Return image base address of the module
+        """
         if name in self.unresolved_modules_names:
             return self.module_name_to_base_address[name]
+        if fname is None:
+            raise RuntimeError("Cannot find module %r" % fname)
 
         module_address = self.module_name_to_base_address.get(name, None)
         if module_address is not None:

@@ -250,7 +250,7 @@ class OS_WinXP32(OS):
         from miasm.jitter.loader.pe import vm_load_pe
         from miasm.os_dep.win_api_x86_32 import winobjs
 
-        module_image_base = self.loader.load_module(options.filename)
+        module_image_base = self.loader.load_resolved_module(options.filename, options.filename)
         name = self.loader.module_base_address_to_name[module_image_base]
         self.pe = self.loader.module_name_to_module[name]
         winobjs.current_pe = self.pe
