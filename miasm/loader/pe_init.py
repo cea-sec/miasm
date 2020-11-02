@@ -612,8 +612,9 @@ class PE(object):
 
     def reloc_to(self, imgbase):
         offset = imgbase - self.NThdr.ImageBase
-        if self.DirReloc is None:
-            log.warn('no relocation found!')
+        if self.DirReloc is None or self.DirReloc.reldesc is None:
+            log.warn('No relocation found')
+            return
         for rel in self.DirReloc.reldesc:
             rva = rel.rva
             for reloc in rel.rels:
