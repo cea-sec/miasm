@@ -195,9 +195,11 @@ class SSA(object):
         variables = self.get_regs(src)
         src_ssa = src
         # transform variables
+        to_replace = {}
         for expr in variables:
             ssa_var = self._transform_var_rhs(expr)
-            src_ssa = src_ssa.replace_expr({expr: ssa_var})
+            to_replace[expr] = ssa_var
+        src_ssa = src_ssa.replace_expr(to_replace)
 
         return src_ssa
 
