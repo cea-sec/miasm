@@ -1,5 +1,6 @@
 from builtins import map
-from miasm.expression.expression import ExprInt
+from miasm.expression.expression import ExprInt, ExprCompose, ExprCond
+from miasm.core.utils import size2mask
 from miasm.ir.translators.translator import Translator
 
 
@@ -84,6 +85,27 @@ class TranslatorPython(Translator):
                                          self.from_expr(amount_inv))
 
             return "((%s | %s) &0x%x)" % (part1, part2, int(expr.mask))
+
+        elif expr.op.startswith("zeroExt_"):
+            arg = expr.args[0]
+            if expr.size == arg.size:
+                return arg
+            return self.from_expr(ExprCompose(arg, ExprInt(0, expr.size - arg.size)))
+
+        elif expr.op.startswith("signExt_"):
+            arg = expr.args[0]
+            if expr.size == arg.size:
+                return arg
+            add_size = expr.size - arg.size
+            new_expr = ExprCompose(
+                arg,
+                ExprCond(
+                    arg.msb(),
+                    ExprInt(size2mask(add_size), add_size),
+                    ExprInt(0, add_size)
+                )
+            )
+            return self.from_expr(new_expr)
 
         raise NotImplementedError("Unknown operator: %s" % expr.op)
 
