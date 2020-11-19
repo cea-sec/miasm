@@ -1738,6 +1738,7 @@ simm7 = bs(l=7, cls=(aarch64_int64_noarg,), fname="imm", order=-1)
 nzcv = bs(l=4, cls=(aarch64_uint64_noarg, aarch64_arg), fname="nzcv", order=-1)
 uimm4 = bs(l=4, cls=(aarch64_uint64_noarg, aarch64_arg), fname="imm", order=-1)
 uimm5 = bs(l=5, cls=(aarch64_uint64_noarg, aarch64_arg), fname="imm", order=-1)
+uimm6 = bs(l=6, cls=(aarch64_uint64_noarg, aarch64_arg), fname="imm", order=-1)
 uimm12 = bs(l=12, cls=(aarch64_uint64_noarg,), fname="imm", order=-1)
 uimm16 = bs(l=16, cls=(aarch64_uint64_noarg, aarch64_arg), fname="imm", order=-1)
 uimm7 = bs(l=7, cls=(aarch64_uint64_noarg,), fname="imm", order=-1)
@@ -2138,7 +2139,7 @@ aarch64op("udiv", [sf, bs('0'), bs('0'), bs('11010110'), rm, bs('00001'), bs('0'
 
 
 # extract register p.150
-aarch64op("extr", [sf, bs('00100111'), bs(l=1, cls=(aarch64_eq,), ref="sf"), bs('0'), rm, simm6, rn, rd], [rd, rn, rm, simm6])
+aarch64op("extr", [sf, bs('00100111'), bs(l=1, cls=(aarch64_eq,), ref="sf"), bs('0'), rm, uimm6, rn, rd], [rd, rn, rm, uimm6])
 
 # shift reg p.155
 shiftr_name = {'LSL': 0b00, 'LSR': 0b01, 'ASR': 0b10, 'ROR': 0b11}
