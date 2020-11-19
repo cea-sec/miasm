@@ -1730,6 +1730,8 @@ reg_tests_aarch64 = [
 
     ("0006C588    EXTR       W2, W2, W2, 0x1F",
      "427C8213"),
+    ("XXXXXXXX    EXTR       X12, X12, X12, 0x20",
+     "8C81CC93"),
 
     ("00458AB8    CCMP       X3, X5, 0x8, GE",
      "68A045FA"),
