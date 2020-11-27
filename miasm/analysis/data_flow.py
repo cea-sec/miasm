@@ -1755,6 +1755,9 @@ class State(object):
         self.equivalence_classes = UnionFind()
         self.undefined = set()
 
+    def __str__(self):
+        return "{0.equivalence_classes}\n{0.undefined}".format(self)
+
     def copy(self):
         state = self.__class__()
         state.equivalence_classes = self.equivalence_classes.copy()
@@ -1983,6 +1986,9 @@ class State(object):
     def merge(self, other):
         """
         Merge the current state with @other
+        Merge rules:
+        - if two nodes are equal in both states => in equivalence class
+        - if node value is different or non present in another state => undefined
         @other: State instance
         """
         classes1 = self.equivalence_classes
@@ -2000,6 +2006,7 @@ class State(object):
             for node in component:
                 node_to_component2[node] = component
 
+        # Compute intersection of equivalence classes of states
         out = []
         nodes_ok = set()
         while components1:
@@ -2016,14 +2023,18 @@ class State(object):
                     continue
                 if node not in component2:
                     continue
+                # Found two classes containing node
                 common = component1.intersection(component2)
                 if len(common) == 1:
+                    # Intersection contains only one node => undefine node
                     if node.is_id() or node.is_mem():
                         assert(node not in nodes_ok)
                         undefined.add(node)
                         component2.discard(common.pop())
                     continue
                 if common:
+                    # Intersection contains multiple nodes
+                    # Here, common nodes don't interfer with any undefined
                     nodes_ok.update(common)
                     out.append(common)
                 diff = component1.difference(common)
@@ -2104,7 +2115,7 @@ class PropagateExpressions(object):
         """
         Merge predecessors states of irblock at location @loc_key
         @ircfg: IRCfg instance
-        @sates: Dictionary linking locations to state
+        @states: Dictionary linking locations to state
         @loc_key: location of the current irblock
         """
 
@@ -2176,15 +2187,14 @@ class PropagateExpressions(object):
             state = state.copy()
 
             new_irblock, modified_irblock = self.update_state(irblock, state)
-            if (
-                    state_orig is not None and
-                    state.equivalence_classes == state_orig.equivalence_classes and
+            if state_orig is not None:
+                # Merge current and previous state
+                state = state.merge(state_orig)
+                if (state.equivalence_classes == state_orig.equivalence_classes and
                     state.undefined == state_orig.undefined
-            ):
-                continue
+                    ):
+                    continue
 
-            if state_orig:
-                state.undefined.update(state_orig.undefined)
             states[loc_key] = state
             # Propagate to sons
             for successor in ircfg.successors(loc_key):
