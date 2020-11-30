@@ -45,3 +45,14 @@ print("-> 0x%x" % eval(target_exprs["Python"]))
 print("[+] Validate the Miasm syntax rebuilding")
 exprRebuild = eval(target_exprs["Miasm"])
 assert(expr == exprRebuild)
+
+
+a = ExprId("a", 32)
+b = ExprId("b", 32)
+cst1 = ExprInt(1, 32)
+eq_test = ExprOp("==", a, b + cst1)
+
+for lang in Translator.available_languages():
+    translator = Translator.to_language(lang)
+    print("Translate to %s:" % lang)
+    print(translator.from_expr(eq_test))
