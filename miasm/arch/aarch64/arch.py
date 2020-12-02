@@ -2029,8 +2029,8 @@ bs_ldstp_name = bs_name(l=1, name=ldstp_name)
 aarch64op("ldstp", [sf, bs('0'), bs('101'), bs('0'), bs('0'), post_pre, bs('1'), bs_ldstp_name, simm7, rt2, rn64_deref_sf, rt], [rt, rt2, rn64_deref_sf])
 aarch64op("ldstp", [sf, bs('0'), bs('101'), bs('0'), bs('0'), bs('1'), bs('0'), bs_ldstp_name, simm7, rt2, rn64_deref_sf, rt], [rt, rt2, rn64_deref_sf])
 
-aarch64op("ldstp", [sdsize, bs('101'), bs('1'), bs('0'), post_pre, bs('1'), bs_ldstp_name, uimm7, sd2, rn64_deref_sd, sd1], [sd1, sd2, rn64_deref_sd])
-aarch64op("ldstp", [sdsize, bs('101'), bs('1'), bs('0'), bs('1'), bs('0'), bs_ldstp_name, uimm7, sd2, rn64_deref_sd, sd1], [sd1, sd2, rn64_deref_sd])
+aarch64op("ldstp", [sdsize, bs('101'), bs('1'), bs('0'), post_pre, bs('1'), bs_ldstp_name, simm7, sd2, rn64_deref_sd, sd1], [sd1, sd2, rn64_deref_sd])
+aarch64op("ldstp", [sdsize, bs('101'), bs('1'), bs('0'), bs('1'), bs('0'), bs_ldstp_name, simm7, sd2, rn64_deref_sd, sd1], [sd1, sd2, rn64_deref_sd])
 
 
 # data process p.207
@@ -2124,8 +2124,6 @@ aarch64op("msub",  [sf, bs('00'), bs('11011'), bs('000'), rm, bs('1'), ra, rn, r
 
 aarch64op("umulh", [bs('1'), bs('00'), bs('11011'), bs('110'), rm64, bs('0'), bs('11111'), rn64, rd64], [rd64, rn64, rm64])
 aarch64op("smulh", [bs('1'), bs('00'), bs('11011'), bs('010'), rm64, bs('0'), bs('11111'), rn64, rd64], [rd64, rn64, rm64])
-aarch64op("umsubh",[bs('1'), bs('00'), bs('11011'), bs('101'), rm32, bs('1'), ra64, rn32, rd64], [rd64, rn32, rm32, ra64])
-
 
 aarch64op("smaddl",[bs('1'), bs('00'), bs('11011'), bs('001'), rm32, bs('0'), ra64, rn32, rd64], [rd64, rn32, rm32, ra64])
 aarch64op("umaddl",[bs('1'), bs('00'), bs('11011'), bs('101'), rm32, bs('0'), ra64, rn32, rd64], [rd64, rn32, rm32, ra64])
