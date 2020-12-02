@@ -1,6 +1,7 @@
 from builtins import map
 from miasm.expression.expression import ExprInt
 from miasm.ir.translators.translator import Translator
+from miasm.expression.expression import ExprCond, ExprInt
 
 
 class TranslatorPython(Translator):
@@ -71,6 +72,10 @@ class TranslatorPython(Translator):
                 )
         elif expr.op == "parity":
             return "(%s & 0x1)" % self.from_expr(expr.args[0])
+        elif expr.op == "==":
+            return self.from_expr(
+                ExprCond(expr.args[0] - expr.args[1], ExprInt(0, 1), ExprInt(1, 1))
+            )
 
         elif expr.op in ["<<<", ">>>"]:
             amount_raw = expr.args[1]
