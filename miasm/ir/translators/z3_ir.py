@@ -173,11 +173,14 @@ class TranslatorZ3(Translator):
     def _abs(self, z3_value):
         return z3.If(z3_value >= 0,z3_value,-z3_value)
 
-    def _sdivC(self, num, den):
-        """Divide (signed) @num by @den (z3 values) as C would
+    def _sdivC(self, num_expr, den_expr):
+        """Divide (signed) @num by @den (Expr) as C would
         See modint.__div__ for implementation choice
         """
-        result_sign = z3.If(num * den >= 0,
+        num, den = self.from_expr(num_expr), self.from_expr(den_expr)
+        num_s = self.from_expr(num_expr.signExtend(num_expr.size * 2))
+        den_s = self.from_expr(den_expr.signExtend(den_expr.size * 2))
+        result_sign = z3.If(num_s * den_s >= 0,
                             z3.BitVecVal(1, num.size()),
                             z3.BitVecVal(-1, num.size()),
         )
@@ -200,11 +203,11 @@ class TranslatorZ3(Translator):
                 elif expr.op == ">>>":
                     res = z3.RotateRight(res, arg)
                 elif expr.op == "sdiv":
-                    res = self._sdivC(res, arg)
+                    res = self._sdivC(expr.args[0], expr.args[1])
                 elif expr.op == "udiv":
                     res = z3.UDiv(res, arg)
                 elif expr.op == "smod":
-                    res = res - (arg * (self._sdivC(res, arg)))
+                    res = res - (arg * (self._sdivC(expr.args[0], expr.args[1])))
                 elif expr.op == "umod":
                     res = z3.URem(res, arg)
                 elif expr.op == "==":
