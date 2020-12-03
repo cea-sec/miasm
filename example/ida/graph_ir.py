@@ -16,6 +16,7 @@ from miasm.expression.simplifications import expr_simp
 from miasm.ir.ir import IRBlock, AssignBlock
 from miasm.analysis.data_flow import load_from_int
 from utils import guess_machine, expr2colorstr
+from miasm.expression.expression import ExprLoc, ExprInt, ExprOp, ExprAssign
 from miasm.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
 from miasm.core.locationdb import LocationDB
 
@@ -26,8 +27,9 @@ TYPE_GRAPH_IRSSA = 1
 TYPE_GRAPH_IRSSAUNSSA = 2
 
 OPTION_GRAPH_CODESIMPLIFY = 1
-OPTION_GRAPH_DONTMODSTACK = 2
-OPTION_GRAPH_LOADMEMINT = 4
+OPTION_GRAPH_USE_IDA_STACK = 2
+OPTION_GRAPH_DONTMODSTACK = 4
+OPTION_GRAPH_LOADMEMINT = 8
 
 
 class GraphIRForm(ida_kernwin.Form):
@@ -47,6 +49,7 @@ Analysis:
 
 Options:
 <Simplify code:{rCodeSimplify}>
+<Use ida stack:{rUseIdaStack}>
 <Subcalls dont change stack:{rDontModStack}>
 <Load static memory:{rLoadMemInt}>{cOptions}>
 """,
@@ -62,6 +65,7 @@ Options:
                 'cOptions': ida_kernwin.Form.ChkGroupControl(
                     (
                         "rCodeSimplify",
+                        "rUseIdaStack",
                         "rDontModStack",
                         "rLoadMemInt"
                     )
@@ -70,6 +74,7 @@ Options:
         )
         form, _ = self.Compile()
         form.rCodeSimplify.checked = True
+        form.rUseIdaStack.checked = True
         form.rDontModStack.checked = False
         form.rLoadMemInt.checked = False
 
@@ -173,22 +178,36 @@ def is_addr_ro_variable(bs, addr, size):
     return True
 
 
-def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadint=False, verbose=False):
+def build_graph(start_addr, type_graph, simplify=False, use_ida_stack=True, dontmodstack=False, loadint=False, verbose=False):
     machine = guess_machine(addr=start_addr)
     dis_engine, ira = machine.dis_engine, machine.ira
 
     class IRADelModCallStack(ira):
         def call_effects(self, addr, instr):
             assignblks, extra = super(IRADelModCallStack, self).call_effects(addr, instr)
-            if not dontmodstack:
-                return assignblks, extra
-            out = []
-            for assignblk in assignblks:
-                dct = dict(assignblk)
-                dct = {
-                    dst:src for (dst, src) in viewitems(dct) if dst != self.sp
-                }
-                out.append(AssignBlock(dct, assignblk.instr))
+            if use_ida_stack:
+                stk_before = idc.get_spd(instr.offset)
+                stk_after = idc.get_spd(instr.offset + instr.l)
+                stk_diff = stk_after - stk_before
+                print(hex(stk_diff))
+                call_assignblk = AssignBlock(
+                    [
+                        ExprAssign(self.ret_reg, ExprOp('call_func_ret', addr)),
+                        ExprAssign(self.sp, self.sp + ExprInt(stk_diff, self.sp.size))
+                    ],
+                    instr
+                )
+                return [call_assignblk], []
+            else:
+                if not dontmodstack:
+                    return assignblks, extra
+                out = []
+                for assignblk in assignblks:
+                    dct = dict(assignblk)
+                    dct = {
+                        dst:src for (dst, src) in viewitems(dct) if dst != self.sp
+                    }
+                    out.append(AssignBlock(dct, assignblk.instr))
             return out, extra
 
 
@@ -338,6 +357,7 @@ def function_graph_ir():
         func_addr,
         settings.cScope.value,
         simplify=settings.cOptions.value & OPTION_GRAPH_CODESIMPLIFY,
+        use_ida_stack=settings.cOptions.value & OPTION_GRAPH_USE_IDA_STACK,
         dontmodstack=settings.cOptions.value & OPTION_GRAPH_DONTMODSTACK,
         loadint=settings.cOptions.value & OPTION_GRAPH_LOADMEMINT,
         verbose=False
