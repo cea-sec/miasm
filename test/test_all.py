@@ -332,6 +332,10 @@ testset += RegressionTest(["simplifications.py", "--z3"],
                           base_dir="expression",
                           tags=[TAGS["z3"]])
 
+testset += RegressionTest(["z3_div.py"],
+                          base_dir="expression",
+                          tags=[TAGS["z3"]])
+
 ## ObjC/CHandler
 testset += RegressionTest(["test_chandler.py"], base_dir="expr_type",
                           tags=[TAGS["cparser"]])
