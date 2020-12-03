@@ -55,6 +55,20 @@ class moduint(object):
     def __div__(self, y):
         # Python: 8 / -7 == -2 (C-like: -1)
         # int(float) trick cannot be used, due to information loss
+        # Examples:
+        #
+        # 42 / 10 => 4
+        # 42 % 10 => 2
+        #
+        # -42 / 10 => -4
+        # -42 % 10 => -2
+        #
+        # 42 / -10 => -4
+        # 42 % -10 => 2
+        #
+        # -42 / -10 => 4
+        # -42 % -10 => -2
+
         den = int(y)
         num = int(self)
         result_sign = 1 if (den * num) >= 0 else -1
