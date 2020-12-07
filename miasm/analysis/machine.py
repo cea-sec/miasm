@@ -176,8 +176,8 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_ppc
-            from miasm.arch.ppc.lifter_model_call import ir_a_ppc32b as lifter_model_call
-            from miasm.arch.ppc.sem import Lifter_PPC32b as ir
+            from miasm.arch.ppc.lifter_model_call import LifterModelCallPpc32b as lifter_model_call
+            from miasm.arch.ppc.sem import Lifter_PPC32b as lifter
         elif machine_name == "mepb":
             from miasm.arch.mep.disasm import dis_mepb as dis_engine
             from miasm.arch.mep import arch

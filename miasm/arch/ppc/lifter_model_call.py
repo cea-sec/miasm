@@ -4,10 +4,10 @@ from miasm.ir.analysis import LifterModelCall
 from miasm.arch.ppc.sem import Lifter_PPC32b
 
 
-class ir_a_ppc32b(Lifter_PPC32b, LifterModelCall):
+class LifterModelCallPpc32b(Lifter_PPC32b, LifterModelCall):
 
     def __init__(self, loc_db, *args):
-        super(ir_a_ppc32b, self).__init__(loc_db, *args)
+        super(LifterModelCallPpc32b, self).__init__(loc_db, *args)
         self.ret_reg = self.arch.regs.R3
 
     # for test XXX TODO
