@@ -5,7 +5,7 @@ from miasm.arch.mep.sem import Lifter_MEPb, Lifter_MEPl
 from miasm.ir.analysis import LifterModelCall
 
 
-class ir_a_mepb(Lifter_MEPb, LifterModelCall):
+class LifterModelCallMepb(Lifter_MEPb, LifterModelCall):
     """MeP high level IR manipulations - Big Endian
 
     Notes:
@@ -38,8 +38,8 @@ class ir_a_mepb(Lifter_MEPb, LifterModelCall):
         return 32
 
 
-class ir_a_mepl(Lifter_MEPl, ir_a_mepb):
+class LifterModelCallMepl(Lifter_MEPl, LifterModelCallMepb):
     """MeP high level IR manipulations - Little Endian"""
 
     def __init__(self, loc_db):
-        ir_a_mepb.__init__(self, loc_db)
+        LifterModelCallMepb.__init__(self, loc_db)

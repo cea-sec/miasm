@@ -11,7 +11,7 @@ from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.core.locationdb import LocationDB
 from miasm.core.utils import Disasm_Exception
 from miasm.ir.ir import AssignBlock
-from miasm.arch.mep.lifter_model_call import ir_a_mepb
+from miasm.arch.mep.lifter_model_call import LifterModelCallMepb
 from miasm.expression.expression import ExprId, ExprInt, ExprOp, ExprMem, \
     ExprAssign, ExprLoc
 
@@ -44,7 +44,7 @@ def exec_instruction(mn_str, init_values, results, index=0, offset=0):
                                     ir.dst.name == "IRDst")]
 
     # Prepare symbolic execution
-    sb = SymbolicExecutionEngine(ir_a_mepb(loc_db), regs_init)
+    sb = SymbolicExecutionEngine(LifterModelCallMepb(loc_db), regs_init)
 
     # Assign int values before symbolic evaluation
     for expr_id, expr_value in init_values:
