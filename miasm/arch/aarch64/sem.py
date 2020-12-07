@@ -3,7 +3,7 @@ from future.utils import viewitems
 
 from miasm.expression.expression import ExprId, ExprInt, ExprLoc, ExprMem, \
     ExprCond, ExprCompose, ExprOp, ExprAssign
-from miasm.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
+from miasm.ir.ir import Lifter, IRBlock, AssignBlock
 from miasm.arch.aarch64.arch import mn_aarch64, conds_expr, replace_regs
 from miasm.arch.aarch64.regs import *
 from miasm.core.sembuilder import SemBuilder
@@ -2285,10 +2285,10 @@ class aarch64info(object):
     # offset
 
 
-class ir_aarch64l(IntermediateRepresentation):
+class ir_aarch64l(Lifter):
 
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_aarch64, "l", loc_db)
+        Lifter.__init__(self, mn_aarch64, "l", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 64)
@@ -2374,7 +2374,7 @@ class ir_aarch64l(IntermediateRepresentation):
 class ir_aarch64b(ir_aarch64l):
 
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_aarch64, "b", loc_db)
+        Lifter.__init__(self, mn_aarch64, "b", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 64)

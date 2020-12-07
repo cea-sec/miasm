@@ -2,7 +2,7 @@ from __future__ import print_function
 from builtins import range
 
 import miasm.expression.expression as expr
-from miasm.ir.ir import AssignBlock, IntermediateRepresentation, IRBlock
+from miasm.ir.ir import AssignBlock, Lifter, IRBlock
 from miasm.arch.ppc.arch import mn_ppc
 from miasm.arch.ppc.regs import *
 from miasm.core.sembuilder import SemBuilder
@@ -897,7 +897,7 @@ sem_dir = {
 }
 
 
-class ir_ppc32b(IntermediateRepresentation):
+class ir_ppc32b(Lifter):
 
     def __init__(self, loc_db):
         super(ir_ppc32b, self).__init__(mn_ppc, 'b', loc_db)

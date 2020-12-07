@@ -370,7 +370,7 @@ class DeadRemoval(object):
         Source : Kennedy, K. (1979). A survey of data flow analysis techniques.
         IBM Thomas J. Watson Research Division, page 43
 
-        @ircfg: IntermediateRepresentation instance
+        @ircfg: Lifter instance
         """
 
         modified = False

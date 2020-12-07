@@ -2,7 +2,7 @@
 # Guillaume Valadon <guillaume@valadon.net>
 
 from miasm.core.sembuilder import SemBuilder
-from miasm.ir.ir import IntermediateRepresentation
+from miasm.ir.ir import Lifter
 from miasm.arch.mep.arch import mn_mep
 from miasm.arch.mep.regs import PC, SP, LP, SAR, TP, RPB, RPE, RPC, EPC, NPC, \
     take_jmp, in_erepeat
@@ -1199,7 +1199,7 @@ def get_mnemo_expr(ir, instr, *args):
     return ir, extra_ir
 
 
-class ir_mepb(IntermediateRepresentation):
+class ir_mepb(Lifter):
     """Toshiba MeP miasm IR - Big Endian
 
        It transforms an instructon into an IR.
@@ -1208,7 +1208,7 @@ class ir_mepb(IntermediateRepresentation):
     addrsize = 32
 
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_mep, "b", loc_db)
+        Lifter.__init__(self, mn_mep, "b", loc_db)
         self.pc = mn_mep.getpc()
         self.sp = mn_mep.getsp()
         self.IRDst = ExprId("IRDst", 32)
@@ -1234,7 +1234,7 @@ class ir_mepl(ir_mepb):
     """Toshiba MeP miasm IR - Little Endian"""
 
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_mep, "l", loc_db)
+        Lifter.__init__(self, mn_mep, "l", loc_db)
         self.pc = mn_mep.getpc()
         self.sp = mn_mep.getsp()
         self.IRDst = ExprId("IRDst", 32)
