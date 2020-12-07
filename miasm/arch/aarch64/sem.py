@@ -2285,7 +2285,7 @@ class aarch64info(object):
     # offset
 
 
-class ir_aarch64l(Lifter):
+class Lifter_Aarch64l(Lifter):
 
     def __init__(self, loc_db):
         Lifter.__init__(self, mn_aarch64, "l", loc_db)
@@ -2371,7 +2371,7 @@ class ir_aarch64l(Lifter):
         return instr_ir, new_irblocks
 
 
-class ir_aarch64b(ir_aarch64l):
+class Lifter_Aarch64b(Lifter_Aarch64l):
 
     def __init__(self, loc_db):
         Lifter.__init__(self, mn_aarch64, "b", loc_db)

@@ -1,20 +1,20 @@
 #-*- coding:utf-8 -*-
 
 from miasm.ir.analysis import LifterModelCall
-from miasm.arch.aarch64.sem import ir_aarch64l, ir_aarch64b
+from miasm.arch.aarch64.sem import Lifter_Aarch64l, Lifter_Aarch64b
 
 
-class ir_a_aarch64l_base(ir_aarch64l, LifterModelCall):
+class ir_a_aarch64l_base(Lifter_Aarch64l, LifterModelCall):
 
     def __init__(self, loc_db):
-        ir_aarch64l.__init__(self, loc_db)
+        Lifter_Aarch64l.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.X0
 
 
-class ir_a_aarch64b_base(ir_aarch64b, LifterModelCall):
+class ir_a_aarch64b_base(Lifter_Aarch64b, LifterModelCall):
 
     def __init__(self, loc_db):
-        ir_aarch64b.__init__(self, loc_db)
+        Lifter_Aarch64b.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.X0
 
 
