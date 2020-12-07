@@ -897,10 +897,10 @@ sem_dir = {
 }
 
 
-class ir_ppc32b(Lifter):
+class Lifter_PPC32b(Lifter):
 
     def __init__(self, loc_db):
-        super(ir_ppc32b, self).__init__(mn_ppc, 'b', loc_db)
+        super(Lifter_PPC32b, self).__init__(mn_ppc, 'b', loc_db)
         self.pc = mn_ppc.getpc()
         self.sp = mn_ppc.getsp()
         self.IRDst = expr.ExprId('IRDst', 32)
