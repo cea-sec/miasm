@@ -5,7 +5,7 @@ from miasm.ir.ir import IRBlock, AssignBlock
 from miasm.ir.analysis import LifterModelCall
 from miasm.arch.mips32.sem import Lifter_Mips32l, Lifter_Mips32b
 
-class ir_a_mips32l(Lifter_Mips32l, LifterModelCall):
+class LifterModelCallMips32l(Lifter_Mips32l, LifterModelCall):
     def __init__(self, loc_db):
         Lifter_Mips32l.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.V0
@@ -98,7 +98,7 @@ class ir_a_mips32l(Lifter_Mips32l, LifterModelCall):
 
 
 
-class ir_a_mips32b(Lifter_Mips32b, ir_a_mips32l):
+class LifterModelCallMips32b(Lifter_Mips32b, LifterModelCallMips32l):
     def __init__(self, loc_db):
         Lifter_Mips32b.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.V0
