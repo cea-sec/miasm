@@ -6,7 +6,7 @@ class Machine(object):
 
     __dis_engine = None   # Disassembly engine
     __mn = None           # Machine instance
-    __ira = None          # IR analyser
+    __lifter_model_call = None          # IR analyser
     __jitter = None       # Jit engine
     __gdbserver = None    # GdbServer handler
 
@@ -19,7 +19,7 @@ class Machine(object):
 
         dis_engine = None
         mn = None
-        ira = None
+        lifter_model_call = None
         ir = None
         jitter = None
         gdbserver = None
@@ -38,7 +38,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_arm
-            from miasm.arch.arm.ira import ir_a_arml as ira
+            from miasm.arch.arm.lifter_model_call import ir_a_arml as lifter_model_call
             from miasm.arch.arm.sem import ir_arml as ir
         elif machine_name == "armb":
             from miasm.arch.arm.disasm import dis_armb as dis_engine
@@ -49,7 +49,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_arm
-            from miasm.arch.arm.ira import ir_a_armb as ira
+            from miasm.arch.arm.lifter_model_call import ir_a_armb as lifter_model_call
             from miasm.arch.arm.sem import ir_armb as ir
         elif machine_name == "aarch64l":
             from miasm.arch.aarch64.disasm import dis_aarch64l as dis_engine
@@ -60,7 +60,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_aarch64
-            from miasm.arch.aarch64.ira import ir_a_aarch64l as ira
+            from miasm.arch.aarch64.lifter_model_call import ir_a_aarch64l as lifter_model_call
             from miasm.arch.aarch64.sem import ir_aarch64l as ir
         elif machine_name == "aarch64b":
             from miasm.arch.aarch64.disasm import dis_aarch64b as dis_engine
@@ -71,13 +71,13 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_aarch64
-            from miasm.arch.aarch64.ira import ir_a_aarch64b as ira
+            from miasm.arch.aarch64.lifter_model_call import ir_a_aarch64b as lifter_model_call
             from miasm.arch.aarch64.sem import ir_aarch64b as ir
         elif machine_name == "armtl":
             from miasm.arch.arm.disasm import dis_armtl as dis_engine
             from miasm.arch.arm import arch
             mn = arch.mn_armt
-            from miasm.arch.arm.ira import ir_a_armtl as ira
+            from miasm.arch.arm.lifter_model_call import ir_a_armtl as lifter_model_call
             from miasm.arch.arm.sem import ir_armtl as ir
             try:
                 from miasm.arch.arm import jit
@@ -88,7 +88,7 @@ class Machine(object):
             from miasm.arch.arm.disasm import dis_armtb as dis_engine
             from miasm.arch.arm import arch
             mn = arch.mn_armt
-            from miasm.arch.arm.ira import ir_a_armtb as ira
+            from miasm.arch.arm.lifter_model_call import ir_a_armtb as lifter_model_call
             from miasm.arch.arm.sem import ir_armtb as ir
         elif machine_name == "sh4":
             from miasm.arch.sh4 import arch
@@ -102,7 +102,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_x86
-            from miasm.arch.x86.ira import ir_a_x86_16 as ira
+            from miasm.arch.x86.lifter_model_call import ir_a_x86_16 as lifter_model_call
             from miasm.arch.x86.sem import ir_x86_16 as ir
         elif machine_name == "x86_32":
             from miasm.arch.x86.disasm import dis_x86_32 as dis_engine
@@ -113,7 +113,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_x86
-            from miasm.arch.x86.ira import ir_a_x86_32 as ira
+            from miasm.arch.x86.lifter_model_call import ir_a_x86_32 as lifter_model_call
             from miasm.arch.x86.sem import ir_x86_32 as ir
             try:
                 from miasm.analysis.gdbserver import GdbServer_x86_32 as gdbserver
@@ -128,7 +128,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_x86
-            from miasm.arch.x86.ira import ir_a_x86_64 as ira
+            from miasm.arch.x86.lifter_model_call import ir_a_x86_64 as lifter_model_call
             from miasm.arch.x86.sem import ir_x86_64 as ir
         elif machine_name == "msp430":
             from miasm.arch.msp430.disasm import dis_msp430 as dis_engine
@@ -139,7 +139,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_msp430
-            from miasm.arch.msp430.ira import ir_a_msp430 as ira
+            from miasm.arch.msp430.lifter_model_call import ir_a_msp430 as lifter_model_call
             from miasm.arch.msp430.sem import ir_msp430 as ir
             try:
                 from miasm.analysis.gdbserver import GdbServer_msp430 as gdbserver
@@ -154,7 +154,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_mips32
-            from miasm.arch.mips32.ira import ir_a_mips32b as ira
+            from miasm.arch.mips32.lifter_model_call import ir_a_mips32b as lifter_model_call
             from miasm.arch.mips32.sem import ir_mips32b as ir
         elif machine_name == "mips32l":
             from miasm.arch.mips32.disasm import dis_mips32l as dis_engine
@@ -165,7 +165,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_mips32
-            from miasm.arch.mips32.ira import ir_a_mips32l as ira
+            from miasm.arch.mips32.lifter_model_call import ir_a_mips32l as lifter_model_call
             from miasm.arch.mips32.sem import ir_mips32l as ir
         elif machine_name == "ppc32b":
             from miasm.arch.ppc.disasm import dis_ppc32b as dis_engine
@@ -176,7 +176,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_ppc
-            from miasm.arch.ppc.ira import ir_a_ppc32b as ira
+            from miasm.arch.ppc.lifter_model_call import ir_a_ppc32b as lifter_model_call
             from miasm.arch.ppc.sem import ir_ppc32b as ir
         elif machine_name == "mepb":
             from miasm.arch.mep.disasm import dis_mepb as dis_engine
@@ -187,7 +187,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_mep
-            from miasm.arch.mep.ira import ir_a_mepb as ira
+            from miasm.arch.mep.lifter_model_call import ir_a_mepb as lifter_model_call
             from miasm.arch.mep.sem import ir_mepb as ir
         elif machine_name == "mepl":
             from miasm.arch.mep.disasm import dis_mepl as dis_engine
@@ -198,7 +198,7 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_mep
-            from miasm.arch.mep.ira import ir_a_mepl as ira
+            from miasm.arch.mep.lifter_model_call import ir_a_mepl as lifter_model_call
             from miasm.arch.mep.sem import ir_mepl as ir
         else:
             raise ValueError('Unknown machine: %s' % machine_name)
@@ -210,7 +210,7 @@ class Machine(object):
 
         self.__dis_engine = dis_engine
         self.__mn = mn
-        self.__ira = ira
+        self.__lifter_model_call = lifter_model_call
         self.__jitter = jitter
         self.__gdbserver = gdbserver
         self.__log_jit = log_jit
@@ -228,8 +228,12 @@ class Machine(object):
         return self.__mn
 
     @property
-    def ira(self):
-        return self.__ira
+    def lifter(self):
+        return self.__lifter
+
+    @property
+    def lifter_model_call(self):
+        return self.__lifter_model_call
 
     @property
     def ir(self):

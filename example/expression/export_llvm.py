@@ -17,16 +17,16 @@ loc_db = LocationDB()
 # This part focus on obtaining an IRCFG to transform #
 cont = Container.from_stream(open(args.target, 'rb'), loc_db)
 machine = Machine(args.architecture if args.architecture else cont.arch)
-ir = machine.ir(loc_db)
+lifter = machine.lifter(loc_db)
 dis = machine.dis_engine(cont.bin_stream, loc_db=loc_db)
 asmcfg = dis.dis_multiblock(int(args.addr, 0))
-ircfg = ir.new_ircfg_from_asmcfg(asmcfg)
+ircfg = lifter.new_ircfg_from_asmcfg(asmcfg)
 ircfg.simplify(expr_simp_high_to_explicit)
 ######################################################
 
 # Instantiate a context and the function to fill
 context = LLVMContext_IRCompilation()
-context.ir_arch = ir
+context.lifter = lifter
 
 func = LLVMFunction_IRCompilation(context, name="test")
 func.ret_type = llvm_ir.VoidType()

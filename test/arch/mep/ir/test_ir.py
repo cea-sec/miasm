@@ -6,7 +6,7 @@ from __future__ import print_function
 from miasm.core.utils import decode_hex
 from miasm.arch.mep.arch import mn_mep
 from miasm.arch.mep.regs import regs_init
-from miasm.arch.mep.ira import ir_mepb, ir_a_mepb
+from miasm.arch.mep.lifter_model_call import ir_mepb, ir_a_mepb
 from miasm.expression.expression import ExprId, ExprInt, ExprMem
 from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.core.locationdb import LocationDB

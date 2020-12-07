@@ -2,11 +2,11 @@
 
 from miasm.expression.expression import ExprAssign, ExprOp
 from miasm.ir.ir import AssignBlock
-from miasm.ir.analysis import ira
+from miasm.ir.analysis import LifterModelCall
 from miasm.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 
 
-class ir_a_x86_16(ir_x86_16, ira):
+class ir_a_x86_16(ir_x86_16, LifterModelCall):
 
     def __init__(self, loc_db):
         ir_x86_16.__init__(self, loc_db)

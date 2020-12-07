@@ -20,8 +20,8 @@ class TestSymbExec(unittest.TestCase):
 
 
         loc_db = LocationDB()
-        ira = ir_x86_32(loc_db)
-        ircfg = ira.new_ircfg()
+        lifter_model_call = ir_x86_32(loc_db)
+        ircfg = lifter_model_call.new_ircfg()
 
         id_x = ExprId('x', 32)
         id_a = ExprId('a', 32)
@@ -36,7 +36,7 @@ class TestSymbExec(unittest.TestCase):
                     return id_x
                 return super(CustomSymbExec, self).mem_read(expr)
 
-        sb = CustomSymbExec(ira,
+        sb = CustomSymbExec(lifter_model_call,
                             {
                                 ExprMem(ExprInt(0x4, 32), 8): ExprInt(0x44, 8),
                                 ExprMem(ExprInt(0x5, 32), 8): ExprInt(0x33, 8),
@@ -229,7 +229,7 @@ class TestSymbExec(unittest.TestCase):
         assert found
 
 
-        sb_empty = SymbolicExecutionEngine(ira)
+        sb_empty = SymbolicExecutionEngine(lifter_model_call)
         sb_empty.dump()
 
 

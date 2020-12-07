@@ -602,8 +602,8 @@ for script, prods, depends in [
         ], ["bin_cfg.dot"], [test_x86_32_dis]),
         (["dis_binary_ir.py", Example.get_sample("test_x86_32_dis.bin"),
         ], ["bin_ir_cfg.dot"], [test_x86_32_dis]),
-        (["dis_binary_ira.py", Example.get_sample("test_x86_32_dis.bin"),
-        ], ["bin_ira_cfg.dot"], [test_x86_32_dis]),
+        (["dis_binary_lifter_model_call.py", Example.get_sample("test_x86_32_dis.bin"),
+        ], ["bin_lifter_model_call_cfg.dot"], [test_x86_32_dis]),
         (["full.py", Example.get_sample("box_upx.exe")],
          ["graph_execflow.dot", "lines.dot"], []),
 ]:

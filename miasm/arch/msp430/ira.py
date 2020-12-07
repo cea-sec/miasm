@@ -1,11 +1,11 @@
 #-*- coding:utf-8 -*-
 
-from miasm.ir.analysis import ira
+from miasm.ir.analysis import LifterModelCall
 from miasm.arch.msp430.sem import ir_msp430
 from miasm.ir.ir import AssignBlock
 from miasm.expression.expression import *
 
-class ir_a_msp430_base(ir_msp430, ira):
+class ir_a_msp430_base(ir_msp430, LifterModelCall):
 
     def __init__(self, loc_db):
         ir_msp430.__init__(self, loc_db)

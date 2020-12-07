@@ -5,7 +5,7 @@ from miasm.expression.expression import ExprId, ExprInt, ExprAssign, ExprMem, \
     ExprCond, ExprLoc
 from miasm.core.locationdb import LocationDB
 from miasm.analysis.simplifier import IRCFGSimplifierSSA
-from miasm.ir.analysis import ira
+from miasm.ir.analysis import LifterModelCall
 from miasm.ir.ir import IRCFG, IRBlock, AssignBlock
 
 loc_db = LocationDB()
@@ -73,7 +73,7 @@ class Arch(object):
     def getsp(self, _):
         return sp
 
-class IRATest(ira):
+class IRATest(LifterModelCall):
 
     """Fake IRA class for tests"""
 
@@ -601,8 +601,8 @@ class CustomIRCFGSimplifierSSA(IRCFGSimplifierSSA):
         """
         regs = set(
             [
-                self.ir_arch.pc,
-                self.ir_arch.IRDst,
+                self.lifter.pc,
+                self.lifter.IRDst,
             ]
         )
         return regs

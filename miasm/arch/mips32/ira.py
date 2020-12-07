@@ -2,10 +2,10 @@
 
 from miasm.expression.expression import ExprAssign, ExprOp
 from miasm.ir.ir import IRBlock, AssignBlock
-from miasm.ir.analysis import ira
+from miasm.ir.analysis import LifterModelCall
 from miasm.arch.mips32.sem import ir_mips32l, ir_mips32b
 
-class ir_a_mips32l(ir_mips32l, ira):
+class ir_a_mips32l(ir_mips32l, LifterModelCall):
     def __init__(self, loc_db):
         ir_mips32l.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.V0

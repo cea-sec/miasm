@@ -11,7 +11,7 @@ from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.core.locationdb import LocationDB
 from miasm.core.utils import Disasm_Exception
 from miasm.ir.ir import AssignBlock
-from miasm.arch.mep.ira import ir_a_mepb
+from miasm.arch.mep.lifter_model_call import ir_a_mepb
 from miasm.expression.expression import ExprId, ExprInt, ExprOp, ExprMem, \
     ExprAssign, ExprLoc
 

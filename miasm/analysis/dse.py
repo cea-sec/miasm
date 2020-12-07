@@ -167,8 +167,8 @@ class DSEEngine(object):
         self.handler = {} # addr -> callback(DSEEngine instance)
         self.instrumentation = {} # addr -> callback(DSEEngine instance)
         self.addr_to_cacheblocks = {} # addr -> {label -> IRBlock}
-        self.ir_arch = self.machine.ir(loc_db=self.loc_db) # corresponding IR
-        self.ircfg = self.ir_arch.new_ircfg() # corresponding IR
+        self.lifter = self.machine.lifter(loc_db=self.loc_db) # corresponding IR
+        self.ircfg = self.lifter.new_ircfg() # corresponding IR
 
         # Defined after attachment
         self.jitter = None # Jitload (concrete execution)
@@ -186,17 +186,17 @@ class DSEEngine(object):
         # Symbexec engine
         ## Prepare symbexec engines
         self.symb = self.SYMB_ENGINE(self.jitter.cpu, self.jitter.vm,
-                                     self.ir_arch, {})
+                                     self.lifter, {})
         self.symb.enable_emulated_simplifications()
         self.symb_concrete = ESENoVMSideEffects(
             self.jitter.cpu, self.jitter.vm,
-            self.ir_arch, {}
+            self.lifter, {}
         )
 
         ## Update registers value
-        self.symb.symbols[self.ir_arch.IRDst] = ExprInt(
-            getattr(self.jitter.cpu, self.ir_arch.pc.name),
-            self.ir_arch.IRDst.size
+        self.symb.symbols[self.lifter.IRDst] = ExprInt(
+            getattr(self.jitter.cpu, self.lifter.pc.name),
+            self.lifter.IRDst.size
         )
 
         # Activate callback on each instr
@@ -288,7 +288,7 @@ class DSEEngine(object):
 
         for symbol in self.symb.modified_expr:
             # Do not consider PC
-            if symbol in [self.ir_arch.pc, self.ir_arch.IRDst]:
+            if symbol in [self.lifter.pc, self.lifter.IRDst]:
                 continue
 
             # Consider only concrete values
@@ -324,7 +324,7 @@ class DSEEngine(object):
         # Call callbacks associated to the current address
         cur_addr = self.jitter.pc
         if isinstance(cur_addr, LocKey):
-            lbl = self.ir_arch.loc_db.loc_key_to_label(cur_addr)
+            lbl = self.lifter.loc_db.loc_key_to_label(cur_addr)
             cur_addr = lbl.offset
 
         if cur_addr in self.handler:
@@ -335,7 +335,7 @@ class DSEEngine(object):
             self.instrumentation[cur_addr](self)
 
         # Handle current address
-        self.handle(ExprInt(cur_addr, self.ir_arch.IRDst.size))
+        self.handle(ExprInt(cur_addr, self.lifter.IRDst.size))
 
         # Avoid memory issue in ExpressionSimplifier
         if len(self.symb.expr_simp.cache) > 100000:
@@ -352,7 +352,7 @@ class DSEEngine(object):
 
             ## Update current state
             asm_block = self.mdis.dis_block(cur_addr)
-            self.ir_arch.add_asmblock_to_ircfg(asm_block, self.ircfg)
+            self.lifter.add_asmblock_to_ircfg(asm_block, self.ircfg)
             self.addr_to_cacheblocks[cur_addr] = dict(self.ircfg.blocks)
 
         # Emulate the current instruction
@@ -379,7 +379,7 @@ class DSEEngine(object):
                 self.symb.run_block_at(self.ircfg, cur_addr)
 
                 if not (isinstance(next_addr_concrete, ExprLoc) and
-                        self.ir_arch.loc_db.get_location_offset(
+                        self.lifter.loc_db.get_location_offset(
                             next_addr_concrete.loc_key
                         ) is None):
                     # Not a lbl_gen, exit
@@ -400,7 +400,7 @@ class DSEEngine(object):
         This version use the regs associated to the attrib (!= cpu.get_gpreg())
         """
         out = {}
-        regs = self.ir_arch.arch.regs.attrib_to_regs[self.ir_arch.attrib]
+        regs = self.lifter.arch.regs.attrib_to_regs[self.lifter.attrib]
         for reg in regs:
             if hasattr(self.jitter.cpu, reg.name):
                 out[reg.name] = getattr(self.jitter.cpu, reg.name)
@@ -432,7 +432,7 @@ class DSEEngine(object):
                 )
 
         # Restore registers
-        self.jitter.pc = snapshot["regs"][self.ir_arch.pc.name]
+        self.jitter.pc = snapshot["regs"][self.lifter.pc.name]
         for reg, value in viewitems(snapshot["regs"]):
             setattr(self.jitter.cpu, reg, value)
 
@@ -460,7 +460,7 @@ class DSEEngine(object):
             # not present
             symbexec.symbols.symbols_mem.base_to_memarray.clear()
         if cpu:
-            regs = self.ir_arch.arch.regs.attrib_to_regs[self.ir_arch.attrib]
+            regs = self.lifter.arch.regs.attrib_to_regs[self.lifter.attrib]
             for reg in regs:
                 if hasattr(self.jitter.cpu, reg.name):
                     value = ExprInt(getattr(self.jitter.cpu, reg.name),
@@ -638,17 +638,17 @@ class DSEPathConstraint(DSEEngine):
             self.cur_solver.add(self.z3_trans.from_expr(cons))
 
     def handle(self, cur_addr):
-        cur_addr = canonize_to_exprloc(self.ir_arch.loc_db, cur_addr)
-        symb_pc = self.eval_expr(self.ir_arch.IRDst)
+        cur_addr = canonize_to_exprloc(self.lifter.loc_db, cur_addr)
+        symb_pc = self.eval_expr(self.lifter.IRDst)
         possibilities = possible_values(symb_pc)
         cur_path_constraint = set() # path_constraint for the concrete path
         if len(possibilities) == 1:
             dst = next(iter(possibilities)).value
-            dst = canonize_to_exprloc(self.ir_arch.loc_db, dst)
+            dst = canonize_to_exprloc(self.lifter.loc_db, dst)
             assert dst == cur_addr
         else:
             for possibility in possibilities:
-                target_addr = canonize_to_exprloc(self.ir_arch.loc_db, possibility.value)
+                target_addr = canonize_to_exprloc(self.lifter.loc_db, possibility.value)
                 path_constraint = set() # Set of ExprAssign for the possible path
 
                 # Get constraint associated to the possible path
@@ -682,7 +682,7 @@ class DSEPathConstraint(DSEEngine):
                 for start, stop in memory_to_add:
                     for address in range(start, stop + 1):
                         expr_mem = ExprMem(ExprInt(address,
-                                                   self.ir_arch.pc.size),
+                                                   self.lifter.pc.size),
                                            8)
                         value = self.eval_expr(expr_mem)
                         if not value.is_int():

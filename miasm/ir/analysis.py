@@ -14,7 +14,7 @@ log.addHandler(console_handler)
 log.setLevel(logging.WARNING)
 
 
-class ira(Lifter):
+class LifterModelCall(Lifter):
     """IR Analysis
     This class provides higher level manipulations on IR, such as dead
     instruction removals.
@@ -23,7 +23,7 @@ class ira(Lifter):
     `miasm.ir.ir::Lifter` class.
 
     For instance:
-        class ira_x86_16(ir_x86_16, ira)
+        class LifterModelCall_x86_16(ir_x86_16, LifterModelCall)
 
     """
     ret_reg = None

@@ -106,7 +106,6 @@ if not arch:
 # Instance the arch-dependent machine
 machine = Machine(arch)
 mn, dis_engine = machine.mn, machine.dis_engine
-ira, ir = machine.ira, machine.ir
 log.info('ok')
 
 mdis = dis_engine(bs, loc_db=cont.loc_db)
@@ -215,9 +214,9 @@ if args.propagexpr:
     args.gen_ir = True
 
 
-class IRADelModCallStack(ira):
+class LifterDelModCallStack(machine.lifter_model_call):
         def call_effects(self, addr, instr):
-            assignblks, extra = super(IRADelModCallStack, self).call_effects(addr, instr)
+            assignblks, extra = super(LifterDelModCallStack, self).call_effects(addr, instr)
             if not args.calldontmodstack:
                 return assignblks, extra
             out = []
@@ -232,21 +231,21 @@ class IRADelModCallStack(ira):
 
 # Bonus, generate IR graph
 if args.gen_ir:
-    log.info("generating IR and IR analysis")
+    log.info("Lift and Lift with modeled calls")
 
-    ir_arch = ir(mdis.loc_db)
-    ir_arch_a = IRADelModCallStack(mdis.loc_db)
+    lifter = machine.lifter(mdis.loc_db)
+    lifter_model_call = LifterDelModCallStack(mdis.loc_db)
 
-    ircfg = ir_arch.new_ircfg()
-    ircfg_a = ir_arch.new_ircfg()
+    ircfg = lifter.new_ircfg()
+    ircfg_a = lifter.new_ircfg()
 
     head = list(entry_points)[0]
 
     for ad, asmcfg in viewitems(all_funcs_blocks):
         log.info("generating IR... %x" % ad)
         for block in asmcfg.blocks:
-            ir_arch.add_asmblock_to_ircfg(block, ircfg)
-            ir_arch_a.add_asmblock_to_ircfg(block, ircfg_a)
+            lifter.add_asmblock_to_ircfg(block, ircfg)
+            lifter_model_call.add_asmblock_to_ircfg(block, ircfg_a)
 
     log.info("Print blocks (without analyse)")
     for label, block in viewitems(ircfg.blocks):
@@ -260,7 +259,7 @@ if args.gen_ir:
 
     if args.simplify > 0:
         log.info("Simplify...")
-        ircfg_simplifier = IRCFGSimplifierCommon(ir_arch_a)
+        ircfg_simplifier = IRCFGSimplifierCommon(lifter_model_call)
         ircfg_simplifier.simplify(ircfg_a, head)
         log.info("ok...")
 
@@ -309,12 +308,12 @@ if args.propagexpr:
             ssa = self.do_simplify_loop(ssa, head)
             ircfg = self.ssa_to_unssa(ssa, head)
 
-            ircfg_simplifier = IRCFGSimplifierCommon(self.ir_arch)
+            ircfg_simplifier = IRCFGSimplifierCommon(self.lifter)
             ircfg_simplifier.deadremoval.add_expr_to_original_expr(ssa.ssa_variable_to_expr)
             ircfg_simplifier.simplify(ircfg, head)
             return ircfg
 
     head = list(entry_points)[0]
-    simplifier = CustomIRCFGSimplifierSSA(ir_arch_a)
+    simplifier = CustomIRCFGSimplifierSSA(lifter_model_call)
     ircfg = simplifier.simplify(ircfg_a, head)
     open('final.dot', 'w').write(ircfg.dot())

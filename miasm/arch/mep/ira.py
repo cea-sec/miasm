@@ -2,10 +2,10 @@
 # Guillaume Valadon <guillaume@valadon.net>
 
 from miasm.arch.mep.sem import ir_mepb, ir_mepl
-from miasm.ir.analysis import ira
+from miasm.ir.analysis import LifterModelCall
 
 
-class ir_a_mepb(ir_mepb, ira):
+class ir_a_mepb(ir_mepb, LifterModelCall):
     """MeP high level IR manipulations - Big Endian
 
     Notes:

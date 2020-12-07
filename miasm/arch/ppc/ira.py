@@ -1,10 +1,10 @@
 from miasm.expression.expression import ExprAssign, ExprOp
 from miasm.ir.ir import AssignBlock
-from miasm.ir.analysis import ira
+from miasm.ir.analysis import LifterModelCall
 from miasm.arch.ppc.sem import ir_ppc32b
 
 
-class ir_a_ppc32b(ir_ppc32b, ira):
+class ir_a_ppc32b(ir_ppc32b, LifterModelCall):
 
     def __init__(self, loc_db, *args):
         super(ir_a_ppc32b, self).__init__(loc_db, *args)

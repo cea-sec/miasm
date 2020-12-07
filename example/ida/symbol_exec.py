@@ -150,11 +150,11 @@ def symbolic_exec():
 
     mdis.dont_dis = [end]
     asmcfg = mdis.dis_multiblock(start)
-    ira = machine.ira(loc_db=loc_db)
-    ircfg = ira.new_ircfg_from_asmcfg(asmcfg)
+    lifter_model_call = machine.lifter_model_call(loc_db=loc_db)
+    ircfg = lifter_model_call.new_ircfg_from_asmcfg(asmcfg)
 
     print("Run symbolic execution...")
-    sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)
+    sb = SymbolicExecutionEngine(lifter_model_call, machine.mn.regs.regs_init)
     sb.run_at(ircfg, start)
     modified = {}
 

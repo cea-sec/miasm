@@ -90,7 +90,7 @@ class DSETest(object):
         self.assembly = bytes(output)
 
     def check(self):
-        regs = self.dse.ir_arch.arch.regs
+        regs = self.dse.lifter.arch.regs
         value = self.dse.eval_expr(regs.EDX)
         # The expected value should contains '<<', showing it has been in the
         # corresponding generated label
@@ -116,8 +116,8 @@ class DSEAttachInBreakpoint(DSETest):
     def __init__(self, *args, **kwargs):
         super(DSEAttachInBreakpoint, self).__init__(*args, **kwargs)
         self._dse = None
-        ircls = self.machine.ir
-        self._regs = ircls(self.loc_db).arch.regs
+        lifter_cls = self.machine.lifter
+        self._regs = lifter_cls(self.loc_db).arch.regs
         self._testid = ExprId("TEST", self._regs.EBX.size)
 
     def bp_attach(self, jitter):

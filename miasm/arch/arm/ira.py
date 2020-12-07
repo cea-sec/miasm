@@ -1,17 +1,17 @@
 #-*- coding:utf-8 -*-
 
-from miasm.ir.analysis import ira
+from miasm.ir.analysis import LifterModelCall
 from miasm.ir.ir import IRBlock
 from miasm.arch.arm.sem import ir_arml, ir_armtl, ir_armb, ir_armtb, tab_cond
 from miasm.expression.expression import ExprAssign, ExprOp, ExprLoc, ExprCond
 from miasm.ir.ir import AssignBlock
 
-class ir_a_arml_base(ir_arml, ira):
+class ir_a_arml_base(ir_arml, LifterModelCall):
     def __init__(self, loc_db):
         ir_arml.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
-class ir_a_armb_base(ir_armb, ira):
+class ir_a_armb_base(ir_armb, LifterModelCall):
     def __init__(self, loc_db):
         ir_armb.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0

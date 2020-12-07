@@ -4,7 +4,7 @@ from future.utils import viewitems
 
 from miasm.arch.x86.arch import mn_x86
 from miasm.expression.expression import get_rw
-from miasm.arch.x86.ira import ir_a_x86_32
+from miasm.arch.x86.lifter_model_call import ir_a_x86_32
 from miasm.core.locationdb import LocationDB
 
 loc_db = LocationDB()

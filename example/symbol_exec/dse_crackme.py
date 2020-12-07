@@ -137,7 +137,7 @@ FILE_stream = ExprId("FILE_0", 64)
 FILE_size = ExprId("FILE_0_size", 64)
 
 def xxx_fopen_symb(dse):
-    regs = dse.ir_arch.arch.regs
+    regs = dse.lifter.arch.regs
     fname_addr = dse.eval_expr(regs.RDI)
     mode = dse.eval_expr(regs.RSI)
     assert fname_addr.is_int()
@@ -151,13 +151,13 @@ def xxx_fopen_symb(dse):
 
     dse.update_state({
         regs.RSP: dse.eval_expr(regs.RSP + ExprInt(8, regs.RSP.size)),
-        dse.ir_arch.IRDst: ret_addr,
+        dse.lifter.IRDst: ret_addr,
         regs.RIP: ret_addr,
         regs.RAX: ret_value,
     })
 
 def xxx_fread_symb(dse):
-    regs = dse.ir_arch.arch.regs
+    regs = dse.lifter.arch.regs
     ptr = dse.eval_expr(regs.RDI)
     size = dse.eval_expr(regs.RSI)
     nmemb = dse.eval_expr(regs.RDX)
@@ -179,21 +179,21 @@ def xxx_fread_symb(dse):
 
     update.update({
         regs.RSP: dse.symb.eval_expr(regs.RSP + ExprInt(8, regs.RSP.size)),
-        dse.ir_arch.IRDst: ret_addr,
+        dse.lifter.IRDst: ret_addr,
         regs.RIP: ret_addr,
         regs.RAX: ret_value,
     })
     dse.update_state(update)
 
 def xxx_fclose_symb(dse):
-    regs = dse.ir_arch.arch.regs
+    regs = dse.lifter.arch.regs
     stream = dse.eval_expr(regs.RDI)
     FILE_to_info_symb[stream].close()
 
     ret_addr = ExprInt(dse.jitter.get_stack_arg(0), regs.RIP.size)
     dse.update_state({
         regs.RSP: dse.symb.eval_expr(regs.RSP + ExprInt(8, regs.RSP.size)),
-        dse.ir_arch.IRDst: ret_addr,
+        dse.lifter.IRDst: ret_addr,
         regs.RIP: ret_addr,
         regs.RAX: ExprInt(0, regs.RAX.size),
     })
@@ -203,7 +203,7 @@ def xxx_fclose_symb(dse):
 def xxx___libc_start_main_symb(dse):
     # ['RDI', 'RSI', 'RDX', 'RCX', 'R8', 'R9']
     # main, argc, argv, ...
-    regs = dse.ir_arch.arch.regs
+    regs = dse.lifter.arch.regs
     top_stack = dse.eval_expr(regs.RSP)
     main_addr = dse.eval_expr(regs.RDI)
     argc = dse.eval_expr(regs.RSI)
@@ -214,8 +214,8 @@ def xxx___libc_start_main_symb(dse):
         ExprMem(top_stack, 64): hlt_addr,
         regs.RDI: argc,
         regs.RSI: argv,
-        dse.ir_arch.IRDst: main_addr,
-        dse.ir_arch.pc: main_addr,
+        dse.lifter.IRDst: main_addr,
+        dse.lifter.pc: main_addr,
     })
 
 # Stop the execution on puts and get back the corresponding string
@@ -248,9 +248,9 @@ dse.attach(sb.jitter)
 # Update the jitter state: df is read, but never set
 # Approaches: specific or generic
 # - Specific:
-#   df_value = ExprInt(sb.jitter.cpu.df, dse.ir_arch.arch.regs.df.size)
+#   df_value = ExprInt(sb.jitter.cpu.df, dse.lifter.arch.regs.df.size)
 #   dse.update_state({
-#       dse.ir_arch.arch.regs.df: df_value
+#       dse.lifter.arch.regs.df: df_value
 #   })
 # - Generic:
 dse.update_state_from_concrete()
