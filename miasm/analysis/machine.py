@@ -155,7 +155,7 @@ class Machine(object):
                 pass
             mn = arch.mn_mips32
             from miasm.arch.mips32.lifter_model_call import ir_a_mips32b as lifter_model_call
-            from miasm.arch.mips32.sem import ir_mips32b as ir
+            from miasm.arch.mips32.sem import Lifter_Mips32b as ir
         elif machine_name == "mips32l":
             from miasm.arch.mips32.disasm import dis_mips32l as dis_engine
             from miasm.arch.mips32 import arch
@@ -166,7 +166,7 @@ class Machine(object):
                 pass
             mn = arch.mn_mips32
             from miasm.arch.mips32.lifter_model_call import ir_a_mips32l as lifter_model_call
-            from miasm.arch.mips32.sem import ir_mips32l as ir
+            from miasm.arch.mips32.sem import Lifter_Mips32l as ir
         elif machine_name == "ppc32b":
             from miasm.arch.ppc.disasm import dis_ppc32b as dis_engine
             from miasm.arch.ppc import arch

@@ -4,7 +4,7 @@ import logging
 from miasm.jitter.jitload import Jitter, named_arguments
 from miasm.core.locationdb import LocationDB
 from miasm.core.utils import pck32, upck32
-from miasm.arch.mips32.sem import ir_mips32l, ir_mips32b
+from miasm.arch.mips32.sem import Lifter_Mips32l, Lifter_Mips32b
 from miasm.jitter.codegen import CGen
 from miasm.ir.ir import AssignBlock, IRBlock
 import miasm.expression.expression as m2_expr
@@ -86,7 +86,7 @@ class jitter_mips32l(Jitter):
     C_Gen = mipsCGen
 
     def __init__(self, loc_db, *args, **kwargs):
-        Jitter.__init__(self, ir_mips32l(loc_db), *args, **kwargs)
+        Jitter.__init__(self, Lifter_Mips32l(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
 
     def push_uint32_t(self, value):
@@ -145,5 +145,5 @@ class jitter_mips32l(Jitter):
 class jitter_mips32b(jitter_mips32l):
 
     def __init__(self, loc_db, *args, **kwargs):
-        Jitter.__init__(self, ir_mips32b(loc_db), *args, **kwargs)
+        Jitter.__init__(self, Lifter_Mips32b(loc_db), *args, **kwargs)
         self.vm.set_big_endian()

@@ -618,7 +618,7 @@ def get_mnemo_expr(ir, instr, *args):
     instr, extra_ir = mnemo_func[instr.name.lower()](ir, instr, *args)
     return instr, extra_ir
 
-class ir_mips32l(Lifter):
+class Lifter_Mips32l(Lifter):
 
     def __init__(self, loc_db):
         Lifter.__init__(self, mn_mips32, 'l', loc_db)
@@ -652,7 +652,7 @@ class ir_mips32l(Lifter):
     def get_next_delay_loc_key(self, instr):
         return self.loc_db.get_or_create_offset_location(instr.offset + 16)
 
-class ir_mips32b(ir_mips32l):
+class Lifter_Mips32b(Lifter_Mips32l):
     def __init__(self, loc_db):
         self.addrsize = 32
         Lifter.__init__(self, mn_mips32, 'b', loc_db)
