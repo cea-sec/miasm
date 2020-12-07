@@ -14,7 +14,7 @@ from miasm.core.utils import upck32
 def get_lifter_model_call(arch, attrib):
     arch = arch.name, attrib
     if arch == ("arm", "arm"):
-        from miasm.arch.arm.lifter_model_call import ir_a_arm_base as lifter_model_call
+        from miasm.arch.arm.lifter_model_call import LifterModelCallArmlBase as lifter_model_call
     elif arch == ("x86", 32):
         from miasm.arch.x86.lifter_model_call import LifterModelCall_x86_32 as lifter_model_call
     elif arch == ("x86", 64):
