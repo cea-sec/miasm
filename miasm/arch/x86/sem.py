@@ -5748,7 +5748,7 @@ mnemo_func = {'mov': mov,
               }
 
 
-class ir_x86_16(Lifter):
+class Lifter_X86_16(Lifter):
 
     def __init__(self, loc_db):
         Lifter.__init__(self, mn_x86, 16, loc_db)
@@ -5891,7 +5891,7 @@ class ir_x86_16(Lifter):
         return IRBlock(self.loc_db, irblock.loc_key, irs)
 
 
-class ir_x86_32(ir_x86_16):
+class Lifter_X86_32(Lifter_X86_16):
 
     def __init__(self, loc_db):
         Lifter.__init__(self, mn_x86, 32, loc_db)
@@ -5905,7 +5905,7 @@ class ir_x86_32(ir_x86_16):
         self.addrsize = 32
 
 
-class ir_x86_64(ir_x86_16):
+class Lifter_X86_64(Lifter_X86_16):
 
     def __init__(self, loc_db):
         Lifter.__init__(self, mn_x86, 64, loc_db)

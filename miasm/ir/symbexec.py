@@ -764,7 +764,7 @@ class SymbolicExecutionEngine(object):
         from miasm.ir.symbexec import SymbolicExecutionEngine
         from miasm.ir.ir import AssignBlock
 
-        ir_arch = ir_x86_32()
+        ir_arch = Lifter_X86_32()
 
         init_state = {
             ir_arch.arch.regs.EAX: ir_arch.arch.regs.EBX,

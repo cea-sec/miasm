@@ -103,7 +103,7 @@ class Machine(object):
                 pass
             mn = arch.mn_x86
             from miasm.arch.x86.lifter_model_call import ir_a_x86_16 as lifter_model_call
-            from miasm.arch.x86.sem import ir_x86_16 as ir
+            from miasm.arch.x86.sem import Lifter_X86_16 as ir
         elif machine_name == "x86_32":
             from miasm.arch.x86.disasm import dis_x86_32 as dis_engine
             from miasm.arch.x86 import arch
@@ -114,7 +114,7 @@ class Machine(object):
                 pass
             mn = arch.mn_x86
             from miasm.arch.x86.lifter_model_call import ir_a_x86_32 as lifter_model_call
-            from miasm.arch.x86.sem import ir_x86_32 as ir
+            from miasm.arch.x86.sem import Lifter_X86_32 as ir
             try:
                 from miasm.analysis.gdbserver import GdbServer_x86_32 as gdbserver
             except ImportError:
@@ -129,7 +129,7 @@ class Machine(object):
                 pass
             mn = arch.mn_x86
             from miasm.arch.x86.lifter_model_call import ir_a_x86_64 as lifter_model_call
-            from miasm.arch.x86.sem import ir_x86_64 as ir
+            from miasm.arch.x86.sem import Lifter_X86_64 as ir
         elif machine_name == "msp430":
             from miasm.arch.msp430.disasm import dis_msp430 as dis_engine
             from miasm.arch.msp430 import arch

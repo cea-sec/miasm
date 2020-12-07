@@ -23,7 +23,7 @@ class LifterModelCall(Lifter):
     `miasm.ir.ir::Lifter` class.
 
     For instance:
-        class LifterModelCall_x86_16(ir_x86_16, LifterModelCall)
+        class LifterModelCall_x86_16(Lifter_X86_16, LifterModelCall)
 
     """
     ret_reg = None

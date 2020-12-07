@@ -6,7 +6,7 @@ from miasm.core.utils import decode_hex, encode_hex
 import miasm.expression.expression as m2_expr
 from miasm.arch.x86.arch import mn_x86, deref_mem_ad, \
     base_expr, rmarg, print_size
-from miasm.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
+from miasm.arch.x86.sem import Lifter_X86_16, Lifter_X86_32, Lifter_X86_64
 from miasm.core.bin_stream import bin_stream_str
 from miasm.core.locationdb import LocationDB
 
