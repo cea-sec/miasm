@@ -16,9 +16,9 @@ def get_lifter_model_call(arch, attrib):
     if arch == ("arm", "arm"):
         from miasm.arch.arm.lifter_model_call import ir_a_arm_base as lifter_model_call
     elif arch == ("x86", 32):
-        from miasm.arch.x86.lifter_model_call import ir_a_x86_32 as lifter_model_call
+        from miasm.arch.x86.lifter_model_call import LifterModelCall_x86_32 as lifter_model_call
     elif arch == ("x86", 64):
-        from miasm.arch.x86.lifter_model_call import ir_a_x86_64 as lifter_model_call
+        from miasm.arch.x86.lifter_model_call import LifterModelCall_x86_64 as lifter_model_call
     else:
         raise ValueError('unknown architecture: %s' % arch.name)
     return lifter_model_call

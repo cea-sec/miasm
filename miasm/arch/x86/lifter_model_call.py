@@ -6,7 +6,7 @@ from miasm.ir.analysis import LifterModelCall
 from miasm.arch.x86.sem import Lifter_X86_16, Lifter_X86_32, Lifter_X86_64
 
 
-class ir_a_x86_16(Lifter_X86_16, LifterModelCall):
+class LifterModelCall_x86_16(Lifter_X86_16, LifterModelCall):
 
     def __init__(self, loc_db):
         Lifter_X86_16.__init__(self, loc_db)
@@ -15,7 +15,7 @@ class ir_a_x86_16(Lifter_X86_16, LifterModelCall):
     def get_out_regs(self, _):
         return set([self.ret_reg, self.sp])
 
-class ir_a_x86_32(Lifter_X86_32, ir_a_x86_16):
+class LifterModelCall_x86_32(Lifter_X86_32, LifterModelCall_x86_16):
 
     def __init__(self, loc_db):
         Lifter_X86_32.__init__(self, loc_db)
@@ -37,7 +37,7 @@ class ir_a_x86_32(Lifter_X86_32, ir_a_x86_16):
         return 32
 
 
-class ir_a_x86_64(Lifter_X86_64, ir_a_x86_16):
+class LifterModelCall_x86_64(Lifter_X86_64, LifterModelCall_x86_16):
 
     def __init__(self, loc_db):
         Lifter_X86_64.__init__(self, loc_db)
