@@ -6,7 +6,7 @@ from miasm.jitter.jitload import Jitter
 from miasm.core.utils import *
 from miasm.jitter.codegen import CGen
 from miasm.ir.translators.C import TranslatorC
-from miasm.arch.mep.sem import ir_mepl, ir_mepb
+from miasm.arch.mep.sem import Lifter_MEPl, Lifter_MEPb
 
 import logging
 
@@ -77,7 +77,7 @@ class jitter_mepl(Jitter):
     C_Gen = mep_CGen
 
     def __init__(self, loc_db, *args, **kwargs):
-        Jitter.__init__(self, ir_mepl(loc_db), *args, **kwargs)
+        Jitter.__init__(self, Lifter_MEPl(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
 
@@ -107,6 +107,6 @@ class jitter_mepl(Jitter):
 class jitter_mepb(jitter_mepl):
 
     def __init__(self, loc_db, *args, **kwargs):
-        Jitter.__init__(self, ir_mepb(loc_db), *args, **kwargs)
+        Jitter.__init__(self, Lifter_MEPb(loc_db), *args, **kwargs)
         self.vm.set_big_endian()
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC

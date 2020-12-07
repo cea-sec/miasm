@@ -1199,7 +1199,7 @@ def get_mnemo_expr(ir, instr, *args):
     return ir, extra_ir
 
 
-class ir_mepb(Lifter):
+class Lifter_MEPb(Lifter):
     """Toshiba MeP miasm IR - Big Endian
 
        It transforms an instructon into an IR.
@@ -1230,7 +1230,7 @@ class ir_mepb(Lifter):
         return l
 
 
-class ir_mepl(ir_mepb):
+class Lifter_MEPl(Lifter_MEPb):
     """Toshiba MeP miasm IR - Little Endian"""
 
     def __init__(self, loc_db):

@@ -1,11 +1,11 @@
 # Toshiba MeP-c4 - miasm IR analysis
 # Guillaume Valadon <guillaume@valadon.net>
 
-from miasm.arch.mep.sem import ir_mepb, ir_mepl
+from miasm.arch.mep.sem import Lifter_MEPb, Lifter_MEPl
 from miasm.ir.analysis import LifterModelCall
 
 
-class ir_a_mepb(ir_mepb, LifterModelCall):
+class ir_a_mepb(Lifter_MEPb, LifterModelCall):
     """MeP high level IR manipulations - Big Endian
 
     Notes:
@@ -13,7 +13,7 @@ class ir_a_mepb(ir_mepb, LifterModelCall):
     """
 
     def __init__(self, loc_db):
-        ir_mepb.__init__(self, loc_db)
+        Lifter_MEPb.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
     # Note: the following are abstract method and must be implemented
@@ -38,7 +38,7 @@ class ir_a_mepb(ir_mepb, LifterModelCall):
         return 32
 
 
-class ir_a_mepl(ir_mepl, ir_a_mepb):
+class ir_a_mepl(Lifter_MEPl, ir_a_mepb):
     """MeP high level IR manipulations - Little Endian"""
 
     def __init__(self, loc_db):

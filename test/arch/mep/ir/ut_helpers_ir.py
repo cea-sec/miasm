@@ -4,7 +4,7 @@
 from __future__ import print_function
 
 from miasm.arch.mep.arch import mn_mep
-from miasm.arch.mep.sem import ir_mepb
+from miasm.arch.mep.sem import Lifter_MEPb
 from miasm.arch.mep.regs import regs_init
 
 from miasm.ir.symbexec import SymbolicExecutionEngine
@@ -35,7 +35,7 @@ def exec_instruction(mn_str, init_values, results, index=0, offset=0):
         instr.dstflow2label(loc_db)
 
     # Get the IR
-    im = ir_mepb(loc_db)
+    im = Lifter_MEPb(loc_db)
     iir, eiir = im.get_ir(instr)
 
     # Filter out IRDst

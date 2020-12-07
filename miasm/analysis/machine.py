@@ -188,7 +188,7 @@ class Machine(object):
                 pass
             mn = arch.mn_mep
             from miasm.arch.mep.lifter_model_call import ir_a_mepb as lifter_model_call
-            from miasm.arch.mep.sem import ir_mepb as ir
+            from miasm.arch.mep.sem import Lifter_MEPb as ir
         elif machine_name == "mepl":
             from miasm.arch.mep.disasm import dis_mepl as dis_engine
             from miasm.arch.mep import arch
@@ -199,7 +199,7 @@ class Machine(object):
                 pass
             mn = arch.mn_mep
             from miasm.arch.mep.lifter_model_call import ir_a_mepl as lifter_model_call
-            from miasm.arch.mep.sem import ir_mepl as ir
+            from miasm.arch.mep.sem import Lifter_MEPl as ir
         else:
             raise ValueError('Unknown machine: %s' % machine_name)
 
