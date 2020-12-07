@@ -494,7 +494,7 @@ def sll3(r0, rn, imm5):
 
 @sbuild.parse
 def fsft(rn, rm):
-    "FSFT - Funnel shift."""
+    """FSFT - Funnel shift."""
 
     # Rn <- ((Rn||Rm)<<SAR5..0)63..32
     # Note: lowest Rm bits are discarded
