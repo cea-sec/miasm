@@ -139,8 +139,8 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_msp430
-            from miasm.arch.msp430.lifter_model_call import ir_a_msp430 as lifter_model_call
-            from miasm.arch.msp430.sem import Lifter_MSP430 as ir
+            from miasm.arch.msp430.lifter_model_call import LifterModelCallMsp430 as lifter_model_call
+            from miasm.arch.msp430.sem import Lifter_MSP430 as lifter
             try:
                 from miasm.analysis.gdbserver import GdbServer_msp430 as gdbserver
             except ImportError:
