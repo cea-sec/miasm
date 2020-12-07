@@ -1,14 +1,14 @@
 #-*- coding:utf-8 -*-
 
 from miasm.ir.analysis import LifterModelCall
-from miasm.arch.msp430.sem import ir_msp430
+from miasm.arch.msp430.sem import Lifter_MSP430
 from miasm.ir.ir import AssignBlock
 from miasm.expression.expression import *
 
-class ir_a_msp430_base(ir_msp430, LifterModelCall):
+class ir_a_msp430_base(Lifter_MSP430, LifterModelCall):
 
     def __init__(self, loc_db):
-        ir_msp430.__init__(self, loc_db)
+        Lifter_MSP430.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R15
 
     def call_effects(self, addr, instr):

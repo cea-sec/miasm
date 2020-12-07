@@ -473,7 +473,7 @@ def ComposeExprAssign(dst, src):
     return e
 
 
-class ir_msp430(Lifter):
+class Lifter_MSP430(Lifter):
 
     def __init__(self, loc_db):
         Lifter.__init__(self, mn_msp430, None, loc_db)

@@ -9,7 +9,7 @@ from future.utils import viewitems
 
 from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.arch.msp430.arch import mn_msp430 as mn, mode_msp430 as mode
-from miasm.arch.msp430.sem import ir_msp430 as ir_arch
+from miasm.arch.msp430.sem import Lifter_MSP430 as ir_arch
 from miasm.arch.msp430.regs import *
 from miasm.expression.expression import *
 from miasm.core.locationdb import LocationDB
