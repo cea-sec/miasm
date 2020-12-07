@@ -39,7 +39,7 @@ class Machine(object):
                 pass
             mn = arch.mn_arm
             from miasm.arch.arm.lifter_model_call import ir_a_arml as lifter_model_call
-            from miasm.arch.arm.sem import ir_arml as ir
+            from miasm.arch.arm.sem import Lifter_Arml as ir
         elif machine_name == "armb":
             from miasm.arch.arm.disasm import dis_armb as dis_engine
             from miasm.arch.arm import arch
@@ -50,7 +50,7 @@ class Machine(object):
                 pass
             mn = arch.mn_arm
             from miasm.arch.arm.lifter_model_call import ir_a_armb as lifter_model_call
-            from miasm.arch.arm.sem import ir_armb as ir
+            from miasm.arch.arm.sem import Lifter_Armb as ir
         elif machine_name == "aarch64l":
             from miasm.arch.aarch64.disasm import dis_aarch64l as dis_engine
             from miasm.arch.aarch64 import arch
@@ -78,7 +78,7 @@ class Machine(object):
             from miasm.arch.arm import arch
             mn = arch.mn_armt
             from miasm.arch.arm.lifter_model_call import ir_a_armtl as lifter_model_call
-            from miasm.arch.arm.sem import ir_armtl as ir
+            from miasm.arch.arm.sem import Lifter_Armtl as ir
             try:
                 from miasm.arch.arm import jit
                 jitter = jit.jitter_armtl
@@ -89,7 +89,7 @@ class Machine(object):
             from miasm.arch.arm import arch
             mn = arch.mn_armt
             from miasm.arch.arm.lifter_model_call import ir_a_armtb as lifter_model_call
-            from miasm.arch.arm.sem import ir_armtb as ir
+            from miasm.arch.arm.sem import Lifter_Armtb as ir
         elif machine_name == "sh4":
             from miasm.arch.sh4 import arch
             mn = arch.mn_sh4

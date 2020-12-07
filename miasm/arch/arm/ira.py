@@ -2,18 +2,18 @@
 
 from miasm.ir.analysis import LifterModelCall
 from miasm.ir.ir import IRBlock
-from miasm.arch.arm.sem import ir_arml, ir_armtl, ir_armb, ir_armtb, tab_cond
+from miasm.arch.arm.sem import Lifter_Arml, Lifter_Armtl, Lifter_Armb, Lifter_Armtb, tab_cond
 from miasm.expression.expression import ExprAssign, ExprOp, ExprLoc, ExprCond
 from miasm.ir.ir import AssignBlock
 
-class ir_a_arml_base(ir_arml, LifterModelCall):
+class ir_a_arml_base(Lifter_Arml, LifterModelCall):
     def __init__(self, loc_db):
-        ir_arml.__init__(self, loc_db)
+        Lifter_Arml.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
-class ir_a_armb_base(ir_armb, LifterModelCall):
+class ir_a_armb_base(Lifter_Armb, LifterModelCall):
     def __init__(self, loc_db):
-        ir_armb.__init__(self, loc_db)
+        Lifter_Armb.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
 
@@ -95,12 +95,12 @@ class ir_a_armb(ir_a_armb_base, ir_a_arml):
         self.ret_reg = self.arch.regs.R0
 
 
-class ir_a_armtl(ir_armtl, ir_a_arml):
+class ir_a_armtl(Lifter_Armtl, ir_a_arml):
     def __init__(self, loc_db):
-        ir_armtl.__init__(self, loc_db)
+        Lifter_Armtl.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
-class ir_a_armtb(ir_a_armtl, ir_armtb, ir_a_armb):
+class ir_a_armtb(ir_a_armtl, Lifter_Armtb, ir_a_armb):
     def __init__(self, loc_db):
-        ir_armtb.__init__(self, loc_db)
+        Lifter_Armtb.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0

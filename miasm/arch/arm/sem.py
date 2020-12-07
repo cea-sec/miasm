@@ -1932,7 +1932,7 @@ class arminfo(object):
     # offset
 
 
-class ir_arml(Lifter):
+class Lifter_Arml(Lifter):
     def __init__(self, loc_db):
         Lifter.__init__(self, mn_arm, "l", loc_db)
         self.pc = PC
@@ -2129,7 +2129,7 @@ class ir_arml(Lifter):
 
 
 
-class ir_armb(ir_arml):
+class Lifter_Armb(Lifter_Arml):
     def __init__(self, loc_db):
         Lifter.__init__(self, mn_arm, "b", loc_db)
         self.pc = PC
@@ -2138,7 +2138,7 @@ class ir_armb(ir_arml):
         self.addrsize = 32
 
 
-class ir_armtl(ir_arml):
+class Lifter_Armtl(Lifter_Arml):
     def __init__(self, loc_db):
         Lifter.__init__(self, mn_armt, "l", loc_db)
         self.pc = PC
@@ -2164,7 +2164,7 @@ class ir_armtl(ir_arml):
                                                  lambda expr: expr.replace_expr(pc_fixed))
 
 
-class ir_armtb(ir_armtl):
+class Lifter_Armtb(Lifter_Armtl):
     def __init__(self, loc_db):
         Lifter.__init__(self, mn_armt, "b", loc_db)
         self.pc = PC
