@@ -60,8 +60,8 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_aarch64
-            from miasm.arch.aarch64.lifter_model_call import ir_a_aarch64l as lifter_model_call
-            from miasm.arch.aarch64.sem import Lifter_Aarch64l as ir
+            from miasm.arch.aarch64.lifter_model_call import LifterModelCallAarch64l as lifter_model_call
+            from miasm.arch.aarch64.sem import Lifter_Aarch64l as lifter
         elif machine_name == "aarch64b":
             from miasm.arch.aarch64.disasm import dis_aarch64b as dis_engine
             from miasm.arch.aarch64 import arch
@@ -71,8 +71,8 @@ class Machine(object):
             except ImportError:
                 pass
             mn = arch.mn_aarch64
-            from miasm.arch.aarch64.lifter_model_call import ir_a_aarch64b as lifter_model_call
-            from miasm.arch.aarch64.sem import Lifter_Aarch64b as ir
+            from miasm.arch.aarch64.lifter_model_call import LifterModelCallAarch64b as lifter_model_call
+            from miasm.arch.aarch64.sem import Lifter_Aarch64b as lifter
         elif machine_name == "armtl":
             from miasm.arch.arm.disasm import dis_armtl as dis_engine
             from miasm.arch.arm import arch
