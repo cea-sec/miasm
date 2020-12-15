@@ -185,6 +185,11 @@ PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 	return Py_None;
 }
 
+PyObject * cpu_dump_gpregs_with_attrib(JitCpu* self, PyObject* args)
+{
+	return cpu_dump_gpregs(self, args);
+}
+
 
 PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 {
@@ -237,6 +242,8 @@ static PyMethodDef JitCpu_methods[] = {
 	{"init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS,
 	 "X"},
 	{"dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS,
+	 "X"},
+	{"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS,
 	 "X"},
 	{"get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS,
 	 "X"},
