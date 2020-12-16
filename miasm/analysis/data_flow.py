@@ -1452,44 +1452,173 @@ def get_phi_sources(phi_src, phi_dsts, ids_to_src):
 class DelDummyPhi(object):
     """
     Del dummy phi
+    Find nodes which are in the same equivalence class and replace phi nodes by
+    the class representative.
     """
+
+    def src_gen_phi_node_srcs(self, equivalence_graph):
+        for node in equivalence_graph.nodes():
+            if not node.is_op("Phi"):
+                continue
+            phi_successors = equivalence_graph.successors(node)
+            for head in phi_successors:
+                # Walk from head to find if we have a phi merging node
+                known = set([node])
+                todo = set([head])
+                done = set()
+                while todo:
+                    node = todo.pop()
+                    if node in done:
+                        continue
+
+                    known.add(node)
+                    is_ok = True
+                    for parent in equivalence_graph.predecessors(node):
+                        if parent not in known:
+                            is_ok = False
+                            break
+                    if not is_ok:
+                        continue
+                    if node.is_op("Phi"):
+                        successors = equivalence_graph.successors(node)
+                        phi_node = successors.pop()
+                        return set([phi_node]), phi_node, head, equivalence_graph
+                    done.add(node)
+                    for successor in equivalence_graph.successors(node):
+                        todo.add(successor)
+        return None
+
+    def get_equivalence_class(self, node, ids_to_src):
+        todo = set([node])
+        done = set()
+        defined = set()
+        equivalence = set()
+        src_to_dst = {}
+        equivalence_graph = DiGraph()
+        while todo:
+            dst = todo.pop()
+            if dst in done:
+                continue
+            done.add(dst)
+            equivalence.add(dst)
+            src = ids_to_src.get(dst)
+            if src is None:
+                # Node is not defined
+                continue
+            src_to_dst[src] = dst
+            defined.add(dst)
+            if src.is_id():
+                equivalence_graph.add_uniq_edge(src, dst)
+                todo.add(src)
+            elif src.is_op('Phi'):
+                equivalence_graph.add_uniq_edge(src, dst)
+                for arg in src.args:
+                    assert arg.is_id()
+                    equivalence_graph.add_uniq_edge(arg, src)
+                    todo.add(arg)
+            else:
+                if src.is_mem() or (src.is_op() and src.op.startswith("call")):
+                    if src in equivalence_graph.nodes():
+                        print("BAD %s" % src)
+                        fds
+                        return None
+                equivalence_graph.add_uniq_edge(src, dst)
+                equivalence.add(src)
+
+        if len(equivalence_graph.heads()) == 0:
+            raise RuntimeError("Inconsistent graph")
+        elif len(equivalence_graph.heads()) == 1:
+            # Every nodes in the equivalence graph may be equivalent to the root
+            head = equivalence_graph.heads().pop()
+            successors = equivalence_graph.successors(head)
+            if len(successors) == 1:
+                # If successor is an id
+                successor = successors.pop()
+                if successor.is_id():
+                    nodes = equivalence_graph.nodes()
+                    nodes.discard(head)
+                    nodes.discard(successor)
+                    nodes = [node for node in nodes if node.is_id()]
+                    return nodes, successor, head, equivalence_graph
+            else:
+                # Walk from head to find if we have a phi merging node
+                known = set()
+                todo = set([head])
+                done = set()
+                while todo:
+                    node = todo.pop()
+                    if node in done:
+                        continue
+                    print(node)
+                    known.add(node)
+                    is_ok = True
+                    for parent in equivalence_graph.predecessors(node):
+                        if parent not in known:
+                            is_ok = False
+                            break
+                    if not is_ok:
+                        continue
+                    if node.is_op("Phi"):
+                        successors = equivalence_graph.successors(node)
+                        assert len(successors) == 1
+                        phi_node = successors.pop()
+                        return set([phi_node]), phi_node, head, equivalence_graph
+                    done.add(node)
+                    for successor in equivalence_graph.successors(node):
+                        todo.add(successor)
+
+        return self.src_gen_phi_node_srcs(equivalence_graph)
 
     def del_dummy_phi(self, ssa, head):
         ids_to_src = {}
+        def_to_loc = {}
         for block in viewvalues(ssa.graph.blocks):
             for index, assignblock in enumerate(block):
                 for dst, src in viewitems(assignblock):
                     if not dst.is_id():
                         continue
                     ids_to_src[dst] = src
+                    def_to_loc[dst] = block.loc_key
+
 
         modified = False
-        for block in ssa.graph.blocks.values():
+        for loc_key in ssa.graph.blocks.keys():
+            block = ssa.graph.blocks[loc_key]
             if not irblock_has_phi(block):
                 continue
             assignblk = block[0]
-            modified_assignblk = False
             for dst, phi_src in viewitems(assignblk):
                 assert phi_src.is_op('Phi')
-                true_value = get_phi_sources(phi_src, set([dst]), ids_to_src)
-                if true_value is False:
+                result = self.get_equivalence_class(dst, ids_to_src)
+                if result is None:
                     continue
+                defined, node, true_value, equivalence_graph = result
                 if expr_has_mem(true_value):
+                    # Don't propagate ExprMem
                     continue
-                fixed_phis = {}
-                for old_dst, old_phi_src in viewitems(assignblk):
-                    if old_dst == dst:
-                        continue
-                    fixed_phis[old_dst] = old_phi_src
+                if true_value.is_op() and true_value.op.startswith("call"):
+                    # Don't propagate call
+                    continue
+                # We have an equivalence of nodes
+                to_del = set(defined)
+                # Remove all implicated phis
+                for dst in to_del:
+                    loc_key = def_to_loc[dst]
+                    block = ssa.graph.blocks[loc_key]
 
+                    assignblk = block[0]
+                    fixed_phis = {}
+                    for old_dst, old_phi_src in viewitems(assignblk):
+                        if old_dst in defined:
+                            continue
+                        fixed_phis[old_dst] = old_phi_src
+
+                    assignblks = list(block)
+                    assignblks[0] = AssignBlock(fixed_phis, assignblk.instr)
+                    assignblks[1:1] = [AssignBlock({dst: true_value}, assignblk.instr)]
+                    new_irblock = IRBlock(block.loc_db, block.loc_key, assignblks)
+                    ssa.graph.blocks[loc_key] = new_irblock
                 modified = True
-
-                assignblks = list(block)
-                assignblks[0] = AssignBlock(fixed_phis, assignblk.instr)
-                assignblks[1:1] = [AssignBlock({dst: true_value}, assignblk.instr)]
-                new_irblock = IRBlock(block.loc_db, block.loc_key, assignblks)
-                ssa.graph.blocks[block.loc_key] = new_irblock
-
         return modified
 
 
