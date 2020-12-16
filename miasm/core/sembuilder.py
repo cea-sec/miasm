@@ -62,27 +62,6 @@ class MiasmTransformer(ast.NodeTransformer):
 
         return node
 
-    def visit_Subscript(self, node):
-        """memX[Y] -> ExprMem(Y, X)"""
-
-        # Recursive visit
-        node = self.generic_visit(node)
-
-        # Detect the syntax
-        if not isinstance(node.value, ast.Name):
-            return node
-        name = node.value.id
-        mem = self.parse_mem.search(name)
-        if mem is None:
-            return node
-
-        # Do replacement
-        addr = self.visit(node.slice.value)
-        call = ast.Call(func=ast.Name(id='ExprMem', ctx=ast.Load()),
-                        args=[addr, ast.Num(n=int(mem.groups()[0]))],
-                        keywords=[], starargs=None, kwargs=None)
-        return call
-
     def visit_IfExp(self, node):
         """X if Y else Z -> ExprCond(Y, X, Z)"""
         # Recursive visit

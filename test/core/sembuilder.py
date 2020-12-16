@@ -31,9 +31,9 @@ sb = SemBuilder(m2_expr.__dict__)
 def test(Arg1, Arg2, Arg3):
     "Test docstring"
     Arg1 = Arg2
-    mem32[Arg1] = Arg2
-    mem32[Arg2] = Arg3  + i32(4) - mem32[Arg1]
-    Arg3 = Arg3 if Arg2 else i32(0)
+    value1 = Arg2
+    value2 = Arg3  + i32(4) - ExprMem(Arg1, 32)
+    Arg3 = Arg3 if Arg2 + value1 else i32(0) + value2
     tmpvar = 'myop'(i32(2))
     Arg2 = ('myopsize%d' % Arg1.size)(tmpvar, Arg1)
     alias = Arg1[:24]
