@@ -49,6 +49,7 @@ Here are a few remainings TODO:
 """
 from builtins import range
 from collections import namedtuple
+import warnings
 
 try:
     import z3
@@ -547,6 +548,11 @@ class DSEPathConstraint(DSEEngine):
         self._history = None
         if produce_solution == self.PRODUCE_SOLUTION_PATH_COV:
             self._history = [] # List of addresses in the current path
+
+    @property
+    def ir_arch(self):
+        warnings.warn('DEPRECATION WARNING: use ".lifter" instead of ".ir_arch"')
+        return self.lifter
 
     def take_snapshot(self, *args, **kwargs):
         snap = super(DSEPathConstraint, self).take_snapshot(*args, **kwargs)

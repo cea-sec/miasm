@@ -3,6 +3,7 @@ Apply simplification passes to an IR cfg
 """
 
 import logging
+import warnings
 from functools import wraps
 from miasm.analysis.ssa import SSADiGraph
 from miasm.analysis.outofssa import UnSSADiGraph
@@ -49,6 +50,12 @@ class IRCFGSimplifier(object):
     def __init__(self, lifter):
         self.lifter = lifter
         self.init_passes()
+
+    @property
+    def ir_arch(self):
+        fds
+        warnings.warn('DEPRECATION WARNING: use ".lifter" instead of ".ir_arch"')
+        return self.lifter
 
     def init_passes(self):
         """

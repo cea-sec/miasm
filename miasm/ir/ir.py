@@ -921,6 +921,17 @@ class Lifter(object):
         return new_irblocks
 
 
+class IntermediateRepresentation(Lifter):
+    """
+    DEPRECATED object
+    Use Lifter instead of IntermediateRepresentation
+    """
+
+    def __init__(self, arch, attrib, loc_db):
+        warnings.warn('DEPRECATION WARNING: use "Lifter" instead of "IntermediateRepresentation"')
+        super(IntermediateRepresentation, self).__init__(arch, attrib, loc_db)
+
+
 class ir(Lifter):
     """
     DEPRECATED object

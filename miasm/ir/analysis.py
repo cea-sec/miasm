@@ -105,3 +105,15 @@ class LifterModelCall(Lifter):
     def sizeof_pointer(self):
         "Return the size of a void* in bits"
         raise NotImplementedError("Abstract method")
+
+
+
+class ira(LifterModelCall):
+    """
+    DEPRECATED object
+    Use LifterModelCall instead of ira
+    """
+
+    def __init__(self, arch, attrib, loc_db):
+        warnings.warn('DEPRECATION WARNING: use "LifterModelCall" instead of "ira"')
+        super(ira, self).__init__(arch, attrib, loc_db)

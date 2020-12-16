@@ -17,6 +17,7 @@ import os
 from llvmlite import binding as llvm
 from llvmlite import ir as llvm_ir
 from builtins import int as int_types
+import warnings
 
 from future.utils import viewitems, viewvalues
 
@@ -229,6 +230,11 @@ class LLVMContext_JIT(LLVMContext):
         self.load_libraries()
         LLVMContext.__init__(self, name)
         self.vmcpu = {}
+
+    @property
+    def ir_arch(self):
+        warnings.warn('DEPRECATION WARNING: use ".lifter" instead of ".ir_arch"')
+        return self.lifter
 
     def load_libraries(self):
         # Get LLVM specific functions

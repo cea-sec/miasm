@@ -1,4 +1,5 @@
 #-*- coding:utf-8 -*-
+import warnings
 
 
 class Machine(object):
@@ -216,7 +217,7 @@ class Machine(object):
         self.__log_jit = log_jit
         self.__log_arch = log_arch
         self.__base_expr = arch.base_expr
-        self.__ir = ir
+        self.__lifter = lifter
         self.__name = machine_name
 
     @property
@@ -267,3 +268,13 @@ class Machine(object):
     def available_machine(cls):
         "Return a list of supported machines"
         return cls.__available
+
+    @property
+    def ira(self):
+        warnings.warn('DEPRECATION WARNING: use ".lifter_model_call" instead of ".ira"')
+        return self.lifter_model_call
+
+    @property
+    def ir(self):
+        warnings.warn('DEPRECATION WARNING: use ".lifter" instead of ".ir"')
+        return self.lifter
