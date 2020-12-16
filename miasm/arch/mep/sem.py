@@ -24,6 +24,12 @@ def compute_u_inf(x, y):
     result = (((x - y) ^ ((x ^ y) & ((x - y) ^ x))) ^ x ^ y).msb()
     return result
 
+def i8(value):
+    return ExprInt(value, 8)
+
+def i32(value):
+    return ExprInt(value, 32)
+
 
 # SemBuilder context
 ctx = {"PC": PC, "SP": SP, "LP": LP, "SAR": SAR, "TP": TP,
@@ -53,28 +59,33 @@ def mep_nop_2_args(arg1, arg2):
 
 # Register indirect addressing mode
 
-@sbuild.parse
-def sb(reg_src, deref_dst):
+def sb(ir, instr, reg_src, deref_dst):
     """SB - Store Byte into memory"""
 
     # MemByte(Rm31..0) <- Rn7..0
     # MemByte((ZeroExt(disp7)+TP)31..0)) <- Rn7..0
     # MemByte((SignExt(disp16)+Rm)31..0) <- Rn7..0
-    mem8[deref_dst.ptr] = reg_src[:8]
+    e = []
+    e.append(ExprAssign(ExprMem(deref_dst.ptr, 8), reg_src[:8]))
+    return e, []
+
+manual_functions["sb"] = sb
 
 
-@sbuild.parse
-def sh(reg_src, deref_dst):
+def sh(ir, instr, reg_src, deref_dst):
     """SH - Store Halfword into memory"""
 
     # MemHword(Rm31..1||0) <- Rn15..0
     # MemHword((ZeroExt((disp7)6..1||0)+TP)31..1||0)) <- Rn15..0
     # MemHword((SignExt(disp16)+Rm)31..1||0) <- Rn15..0
-    mem16[deref_dst.ptr & i32(0xFFFFFFFE)] = reg_src[:16]
+    e = []
+    e.append(ExprAssign(ExprMem(deref_dst.ptr & i32(0xFFFFFFFE), 16), reg_src[:16]))
+    return e, []
+
+manual_functions["sh"] = sh
 
 
-@sbuild.parse
-def sw(reg_src, deref_dst):
+def sw(ir, instr, reg_src, deref_dst):
     """SW - Store Word into memory"""
 
     # MemWord(Rm31..2||00) <- Rn31..0
@@ -82,8 +93,11 @@ def sw(reg_src, deref_dst):
     # MemWord((ZeroExt((disp7)6..2||00)+TP)31..2||00)) <- Rn31..0
     # MemWord((SignExt(disp16)+Rm)31..2||00) <- Rn31..0
     # MemWord(ZeroExt((abs24)23..2||00)) - Rn31..0
+    e = []
+    e.append(ExprAssign(ExprMem(deref_dst.ptr & i32(0xFFFFFFFC), 32), reg_src))
+    return e, []
 
-    mem32[deref_dst.ptr & i32(0xFFFFFFFC)] = reg_src
+manual_functions["sw"] = sw
 
 # Without the sembuilder
 #def sw(ir, instr, reg_src, deref_reg_or_imm, deref_reg=None):
@@ -108,55 +122,70 @@ def sw(reg_src, deref_dst):
 #    return [ExprAssign(dst, reg_src)], []
 
 
-@sbuild.parse
-def lb(reg_dst, deref_dst):
+def lb(ir, instr, reg_dst, deref_dst):
     """LB - Load Byte from memory"""
 
     # Rn <- SignExt(MemByte(Rm31..0))
     # Rn <- SignExt(MemByte((ZeroExt(disp7)+TP)31..0))
     # Rn <- SignExt(MemByte((SignExt(disp16)+Rm)31..0)
-    reg_dst = mem8[deref_dst.ptr].signExtend(32)
+    e = []
+    e.append(ExprAssign(reg_dst, ExprMem(deref_dst.ptr, 8).signExtend(32)))
+    return e, []
+
+manual_functions["lb"] = lb
 
 
-@sbuild.parse
-def lh(reg_dst, deref_dst):
+def lh(ir, instr, reg_dst, deref_dst):
     """LH - Load Halfword from memory"""
 
     # Rn <- SignExt(MemHword(Rm31..1||0))
     # Rn <- SignExt(MemHword((ZeroExt((disp7)6..1||0)+TP)31..1||0)
     # Rn <- SignExt(MemHword((SignExt(disp16)+Rm)31..1||0))
-    reg_dst = mem16[deref_dst.ptr & i32(0xFFFFFFFE)].signExtend(32)
+    e = []
+    e.append(ExprAssign(reg_dst, ExprMem(deref_dst.ptr & i32(0xFFFFFFFE), 16).signExtend(32)))
+    return e, []
 
+manual_functions["lh"] = lh
 
-@sbuild.parse
-def lw(reg_dst, deref_dst):
+def lw(ir, instr, reg_dst, deref_dst):
     """LW - Load Word from memory"""
 
     # Rn <- MemWord(Rm31..2||00)
     # Rn <- MemWord((ZeroExt((disp7)6..2||00)+TP)31..2||00)
     # Rn <- MemWord((SignExt(disp16)+Rm)31..2||00)
     # Rn <- MemWord(ZeroExt((abs24)23..2||00))
-    reg_dst = mem32[deref_dst.ptr & i32(0xFFFFFFFC)]
+    e = []
+    e.append(ExprAssign(reg_dst, ExprMem(deref_dst.ptr & i32(0xFFFFFFFC), 32)))
+    return e, []
+
+manual_functions["lw"] = lw
 
 
-@sbuild.parse
-def lbu(reg_dst, deref_dst):
+def lbu(ir, instr, reg_dst, deref_dst):
     """LBU - Load an unsigned Byte from memory"""
 
     # Rn <- ZeroExt(MemByte(Rm31..0))
     # Rn <- ZeroExt(MemByte((ZeroExt(disp7)+TP)31..0))
     # Rn <- ZeroExt(MemByte((SignExt(disp16)+Rm)31..0))
-    reg_dst = mem8[deref_dst.ptr].zeroExtend(32)
+    e = []
+    e.append(ExprAssign(reg_dst, ExprMem(deref_dst.ptr, 8).zeroExtend(32)))
+    return e, []
+
+manual_functions["lbu"] = lbu
 
 
-@sbuild.parse
-def lhu(reg_dst, deref_dst):
+def lhu(ir, instr, reg_dst, deref_dst):
     """LHU - Load an unsigned Halfword from memory"""
 
     # Rn <- ZeroExt(MemHword(Rm31..1||0))
     # Rn <- ZeroExt(MemHword((SignExt(disp16)+Rm)31..1||0))
     # Rn <- ZeroExt(MemHword((ZeroExt((disp7)6..1||0)+TP)31..1||0))
-    reg_dst = mem16[deref_dst.ptr & i32(0xFFFFFFFE)].zeroExtend(32)
+    e = []
+    e.append(ExprAssign(reg_dst, ExprMem(deref_dst.ptr & i32(0xFFFFFFFE), 16).zeroExtend(32)))
+    return e, []
+
+manual_functions["lhu"] = lhu
+
 
 
 ### Byte/Halfword extension instructions
@@ -763,47 +792,62 @@ manual_functions["ldcb"] = mep_nop_2_args
 
 ### Bit manipulation instruction option
 
-@sbuild.parse
-def bsetm(rm_deref, imm3):
+def bsetm(ir, instr, rm_deref, imm3):
     """BSETM - Bit Set Memory"""
 
     # MemByte(Rm) <- MemByte(Rm) or (1<<imm3)
-    mem8[rm_deref.ptr] = ExprOp("|", mem8[rm_deref.ptr], (i8(1) << imm3[:8]))
+    e = []
+    e.append(ExprAssign(ExprMem(rm_deref.ptr, 8), ExprOp("|", ExprMem(rm_deref.ptr, 8), (i8(1) << imm3[:8]))))
+    return e, []
+
+manual_functions["bsetm"] = bsetm
 
 
-@sbuild.parse
-def bclrm(rm_deref, imm3):
+def bclrm(ir, instr, rm_deref, imm3):
     """BCLRM - Bit Clear Memory"""
 
     # MemByte(Rm) <- MemByte(Rm) and ~(1<<imm3)
+    e = []
     shift = ExprOp("<<", i8(1), imm3[:8])
-    mem8[rm_deref.ptr] = ExprOp("&", mem8[rm_deref.ptr], shift.__invert__())
+    e.append(ExprAssign(ExprMem(rm_deref.ptr, 8), ExprOp("&", ExprMem(rm_deref.ptr, 8), shift.__invert__())))
+    return e, []
+
+manual_functions["bclrm"] = bclrm
 
 
-@sbuild.parse
-def bnotm(rm_deref, imm3):
+def bnotm(ir, instr, rm_deref, imm3):
     """BNOTM - Bit Not Memory"""
 
     # MemByte(Rm) <- MemByte(Rm) xor (1<<imm3)
-    mem8[rm_deref.ptr] = ExprOp("^", mem8[rm_deref.ptr], (i8(1) << imm3[:8]))
+    e = []
+    e.append(ExprAssign(ExprMem(rm_deref.ptr, 8), ExprOp("^", ExprMem(rm_deref.ptr, 8), (i8(1) << imm3[:8]))))
+    return e, []
+
+manual_functions["bnotm"] = bnotm
 
 
-@sbuild.parse
-def btstm(r0, rm_deref, imm3):
+def btstm(ir, instr, r0, rm_deref, imm3):
     """BTSTM - Bit Test Memory"""
 
     # R0 <- ZeroExt( MemByte(Rm) and (1<<imm3) )
-    r0 = ExprOp("&", mem8[rm_deref.ptr], i8(1) << imm3[:8]).zeroExtend(32)
+    e = []
+    e.append(ExprAssign(r0, ExprOp("&", ExprMem(rm_deref.ptr, 8), i8(1) << imm3[:8]).zeroExtend(32)))
+    return e, []
+
+manual_functions["btstm"] = btstm
 
 
-@sbuild.parse
-def tas(rn, rm_deref):
+def tas(ir, instr, rn, rm_deref):
     """TAS - Load And Set"""
 
     # temp <- Rm; Rn <- ZeroExt(MemByte(temp)); MemByte(temp) <- 1
+    e = []
     temp = rm_deref
-    rn = mem8[temp.ptr].zeroExtend(32)
-    mem8[temp.ptr] = i8(1)
+    e.append(ExprAssign(rn, ExprMem(temp.ptr, 8).zeroExtend(32)))
+    e.append(ExprAssign(ExprMem(temp.ptr, 8),  i8(1)))
+    return e, []
+
+manual_functions["tas"] = tas
 
 
 ### Data cache option
@@ -1072,56 +1116,73 @@ manual_functions["swcp"] = sw
 manual_functions["lwcp"] = lw
 
 
-@sbuild.parse
-def smcp(reg_src, deref_dst):
+def smcp(ir, instr, reg_src, deref_dst):
     """SMCP - Store Word to memory from a coprocessor register"""
 
     # MemDword(Rm31..3||000) <- CRn
-    mem32[deref_dst.ptr & i32(0xFFFFFFF8)] = reg_src
+    e = []
+    e.append(ExprAssign(ExprMem(deref_dst.ptr & i32(0xFFFFFFF8), 32), reg_src))
+    return e, []
+
+manual_functions["smcp"] = smcp
 
 
-@sbuild.parse
-def lmcp(reg_dst, deref_src):
+def lmcp(ir, instr, reg_dst, deref_src):
     """LMCP - Load Word from memory to a coprocessor register"""
 
     # CRn <- MemDword(Rm31..3||000)
-    reg_dst = mem32[deref_src.ptr & i32(0xFFFFFFF8)]
+    e = []
+    e.append(ExprAssign(reg_dst, ExprMem(deref_src.ptr & i32(0xFFFFFFF8), 32)))
+    return e, []
+
+manual_functions["lmcp"] = lmcp
 
 
-@sbuild.parse
-def swcpi(reg_src, deref_dst):
+def swcpi(ir, instr, reg_src, deref_dst):
     """SWCPI - Store Word to memory, and increment the address"""
 
     # MemWord(Rm31..2||00) <- CRn 31..0; Rm<-Rm+4
-    mem32[deref_dst.ptr & i32(0xFFFFFFFC)] = reg_src
-    deref_dst.ptr = deref_dst.ptr + i32(4)
+    e = []
+    e.append(ExprAssign(ExprMem(deref_dst.ptr & i32(0xFFFFFFFC), 32), reg_src))
+    e.append(ExprAssign(deref_dst.ptr, deref_dst.ptr + i32(4)))
+    return e, []
+
+manual_functions["swcpi"] = swcpi
 
 
-@sbuild.parse
-def lwcpi(reg_dst, deref_src):
+def lwcpi(ir, instr, reg_dst, deref_src):
     """LWCPI - Load Word from memory, and increment the address"""
 
     # CRn <- MemWord(Rm31..2||00); Rm<-Rm+4
-    reg_dst = mem32[deref_src.ptr & i32(0xFFFFFFFC)]
-    deref_src.ptr = deref_src.ptr + i32(4)
+    e = []
+    e.append(ExprAssign(reg_dst, ExprMem(deref_src.ptr & i32(0xFFFFFFFC), 32)))
+    e.append(ExprAssign(deref_src.ptr, deref_src.ptr + i32(4)))
+    return e, []
 
+manual_functions["lwcpi"] = lwcpi
 
-@sbuild.parse
-def smcpi(reg_src, deref_dst):
+def smcpi(ir, instr, reg_src, deref_dst):
     """SMCPI - Store Word to memory, and increment the address"""
 
     # MemDword(Rm31..3||000) <- CRn; Rm<-Rm+8
-    mem32[deref_dst.ptr & i32(0xFFFFFFF8)] = reg_src
-    deref_dst.ptr = deref_dst.ptr + i32(8)
+    e = []
+    e.append(ExprAssign(ExprMem(deref_dst.ptr & i32(0xFFFFFFF8), 32), reg_src))
+    e.append(ExprAssign(deref_dst.ptr, deref_dst.ptr + i32(8)))
+    return e, []
+
+manual_functions["smcpi"] = smcpi
 
 
-@sbuild.parse
-def lmcpi(reg_dst, deref_src):
+def lmcpi(ir, instr, reg_dst, deref_src):
     """LMCPI - Load Word from memory, and increment the address"""
 
     # CRn <- MemDword(Rm31..3||000); Rm<-Rm+8
-    reg_dst = mem32[deref_src.ptr & i32(0xFFFFFFFC)]
-    deref_src.ptr = deref_src.ptr + i32(8)
+    e = []
+    e.append(ExprAssign(reg_dst, ExprMem(deref_src.ptr & i32(0xFFFFFFFC), 32)))
+    e.append(ExprAssign(deref_src.ptr, deref_src.ptr + i32(8)))
+    return e, []
+
+manual_functions["lmcpi"] = lmcpi
 
 
 ### IR MeP definitions
