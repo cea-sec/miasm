@@ -1698,7 +1698,7 @@ def exprfindmod(e, o=None):
         if e.op == '+':
             for a in e.args:
                 r = exprfindmod(a, o)
-                if out and r1:
+                if out and r:
                     raise ValueError('multiple displacement!')
                 out = r
             return out
