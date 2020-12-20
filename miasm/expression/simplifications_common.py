@@ -853,6 +853,17 @@ def simp_cc_conds(_, expr):
             ExprInt(1, expr.size)
         )
 
+    elif (expr.is_op("CC_S>=") and
+          len(expr.args) == 2 and
+          expr.args[0].is_op("FLAG_SIGN_SUB") and
+          expr.args[0].args[1].is_int(0) and
+          expr.args[1].is_int(0)):
+        expr = ExprOp(
+            TOK_INF_EQUAL_SIGNED,
+            expr.args[0].args[1],
+            expr.args[0].args[0],
+        )
+
     elif (expr.is_op("CC_S<") and
           test_cc_eq_args(
               expr,
