@@ -1971,10 +1971,6 @@ class State(object):
             if not self.propagation_allowed(src):
                 continue
 
-            ## Dont create equivalence if dependence on undef
-            if dst.is_mem() and self.may_interfer(self.undefined, dst.ptr):
-                continue
-
             self.undefined.discard(dst)
             if dst in self.equivalence_classes.nodes():
                 self.equivalence_classes.del_element(dst)
