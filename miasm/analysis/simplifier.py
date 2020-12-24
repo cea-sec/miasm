@@ -216,30 +216,12 @@ class IRCFGSimplifierSSA(IRCFGSimplifierCommon):
         return modified
 
     @fix_point
-    def do_propagate_int(self, ssa, head):
-        """
-        Constant propagation in the @ssa graph
-        @head: Location instance of the graph head
-        """
-        modified = self.propag_int.propagate(ssa, head)
-        return modified
-
-    @fix_point
     def do_del_unused_edges(self, ssa, head):
         """
         Del unused edges of the ssa graph
         @head: Location instance of the graph head
         """
         modified = del_unused_edges(ssa.graph, set([head]))
-        return modified
-
-    @fix_point
-    def do_propagate_mem(self, ssa, head):
-        """
-        Propagation of expression based on ExprInt/ExprId in the @ssa graph
-        @head: Location instance of the graph head
-        """
-        modified = self.propag_mem.propagate(ssa, head)
         return modified
 
     def do_propagate_expressions(self, ssa, head):
