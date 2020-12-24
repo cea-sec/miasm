@@ -4,14 +4,14 @@
 from __future__ import print_function
 
 from miasm.arch.mep.arch import mn_mep
-from miasm.arch.mep.sem import ir_mepb
+from miasm.arch.mep.sem import Lifter_MEPb
 from miasm.arch.mep.regs import regs_init
 
 from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.core.locationdb import LocationDB
 from miasm.core.utils import Disasm_Exception
 from miasm.ir.ir import AssignBlock
-from miasm.arch.mep.ira import ir_a_mepb
+from miasm.arch.mep.lifter_model_call import LifterModelCallMepb
 from miasm.expression.expression import ExprId, ExprInt, ExprOp, ExprMem, \
     ExprAssign, ExprLoc
 
@@ -35,7 +35,7 @@ def exec_instruction(mn_str, init_values, results, index=0, offset=0):
         instr.dstflow2label(loc_db)
 
     # Get the IR
-    im = ir_mepb(loc_db)
+    im = Lifter_MEPb(loc_db)
     iir, eiir = im.get_ir(instr)
 
     # Filter out IRDst
@@ -44,7 +44,7 @@ def exec_instruction(mn_str, init_values, results, index=0, offset=0):
                                     ir.dst.name == "IRDst")]
 
     # Prepare symbolic execution
-    sb = SymbolicExecutionEngine(ir_a_mepb(loc_db), regs_init)
+    sb = SymbolicExecutionEngine(LifterModelCallMepb(loc_db), regs_init)
 
     # Assign int values before symbolic evaluation
     for expr_id, expr_value in init_values:

@@ -285,7 +285,7 @@ class DependencyResult(DependencyState):
     def emul(self, ir_arch, ctx=None, step=False):
         """Symbolic execution of relevant nodes according to the history
         Return the values of inputs nodes' elements
-        @ir_arch: IntermediateRepresentation instance
+        @ir_arch: Lifter instance
         @ctx: (optional) Initial context as dictionary
         @step: (optional) Verbose execution
         Warning: The emulation is not sound if the inputs nodes depend on loop

@@ -2,7 +2,7 @@
 # Guillaume Valadon <guillaume@valadon.net>
 
 from miasm.core.sembuilder import SemBuilder
-from miasm.ir.ir import IntermediateRepresentation
+from miasm.ir.ir import Lifter
 from miasm.arch.mep.arch import mn_mep
 from miasm.arch.mep.regs import PC, SP, LP, SAR, TP, RPB, RPE, RPC, EPC, NPC, \
     take_jmp, in_erepeat
@@ -494,7 +494,7 @@ def sll3(r0, rn, imm5):
 
 @sbuild.parse
 def fsft(rn, rm):
-    "FSFT - Funnel shift."""
+    """FSFT - Funnel shift."""
 
     # Rn <- ((Rn||Rm)<<SAR5..0)63..32
     # Note: lowest Rm bits are discarded
@@ -1199,7 +1199,7 @@ def get_mnemo_expr(ir, instr, *args):
     return ir, extra_ir
 
 
-class ir_mepb(IntermediateRepresentation):
+class Lifter_MEPb(Lifter):
     """Toshiba MeP miasm IR - Big Endian
 
        It transforms an instructon into an IR.
@@ -1208,7 +1208,7 @@ class ir_mepb(IntermediateRepresentation):
     addrsize = 32
 
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_mep, "b", loc_db)
+        Lifter.__init__(self, mn_mep, "b", loc_db)
         self.pc = mn_mep.getpc()
         self.sp = mn_mep.getsp()
         self.IRDst = ExprId("IRDst", 32)
@@ -1230,11 +1230,11 @@ class ir_mepb(IntermediateRepresentation):
         return l
 
 
-class ir_mepl(ir_mepb):
+class Lifter_MEPl(Lifter_MEPb):
     """Toshiba MeP miasm IR - Little Endian"""
 
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_mep, "l", loc_db)
+        Lifter.__init__(self, mn_mep, "l", loc_db)
         self.pc = mn_mep.getpc()
         self.sp = mn_mep.getsp()
         self.IRDst = ExprId("IRDst", 32)

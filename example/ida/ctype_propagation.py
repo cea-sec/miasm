@@ -222,9 +222,9 @@ class CTypeEngineFixer(SymbExecCTypeFix):
                                                cst_propag_link)
 
 
-def get_ira_call_fixer(ira):
+def get_lifter_model_call_call_fixer(lifter_model_call):
 
-    class iraCallStackFixer(ira):
+    class lifter_model_callCallStackFixer(lifter_model_call):
 
         def call_effects(self, ad, instr):
             print(hex(instr.offset), instr)
@@ -241,7 +241,7 @@ def get_ira_call_fixer(ira):
             )
             return [call_assignblk], []
 
-    return iraCallStackFixer
+    return lifter_model_callCallStackFixer
 
 
 def analyse_function():
@@ -262,7 +262,7 @@ def analyse_function():
 
     # Init
     machine = guess_machine(addr=addr)
-    mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
+    mn, dis_engine, lifter_model_call = machine.mn, machine.dis_engine, machine.lifter_model_call
 
     bs = bin_stream_ida()
     loc_db = LocationDB()
@@ -272,8 +272,8 @@ def analyse_function():
         mdis.dont_dis = [end]
 
 
-    iraCallStackFixer = get_ira_call_fixer(ira)
-    ir_arch = iraCallStackFixer(loc_db)
+    lifter_model_callCallStackFixer = get_lifter_model_call_call_fixer(lifter_model_call)
+    ir_arch = lifter_model_callCallStackFixer(loc_db)
 
     asmcfg = mdis.dis_multiblock(addr)
     # Generate IR

@@ -370,7 +370,7 @@ class DeadRemoval(object):
         Source : Kennedy, K. (1979). A survey of data flow analysis techniques.
         IBM Thomas J. Watson Research Division, page 43
 
-        @ircfg: IntermediateRepresentation instance
+        @ircfg: Lifter instance
         """
 
         modified = False
@@ -793,7 +793,7 @@ def get_interval_length(interval_in):
 def check_expr_below_stack(ir_arch_a, expr):
     """
     Return False if expr pointer is below original stack pointer
-    @ir_arch_a: ira instance
+    @ir_arch_a: lifter_model_call instance
     @expr: Expression instance
     """
     ptr = expr.ptr
@@ -809,7 +809,7 @@ def retrieve_stack_accesses(ir_arch_a, ircfg):
     """
     Walk the ssa graph and find stack based variables.
     Return a dictionary linking stack base address to its size/name
-    @ir_arch_a: ira instance
+    @ir_arch_a: lifter_model_call instance
     @ircfg: IRCFG instance
     """
     stack_vars = set()
@@ -889,7 +889,7 @@ def replace_stack_vars(ir_arch_a, ircfg):
 
     WARNING: may fail
 
-    @ir_arch_a: ira instance
+    @ir_arch_a: lifter_model_call instance
     @ircfg: IRCFG instance
     """
 
@@ -949,7 +949,7 @@ def read_mem(bs, expr):
 def load_from_int(ir_arch, bs, is_addr_ro_variable):
     """
     Replace memory read based on constant with static value
-    @ir_arch: ira instance
+    @ir_arch: lifter_model_call instance
     @bs: binstream instance
     @is_addr_ro_variable: callback(addr, size) to test memory candidate
     """

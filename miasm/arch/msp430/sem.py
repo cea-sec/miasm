@@ -3,7 +3,7 @@
 from miasm.expression.expression import *
 from miasm.arch.msp430.regs import *
 from miasm.arch.msp430.arch import mn_msp430
-from miasm.ir.ir import IntermediateRepresentation
+from miasm.ir.ir import Lifter
 
 
 # Utils
@@ -473,10 +473,10 @@ def ComposeExprAssign(dst, src):
     return e
 
 
-class ir_msp430(IntermediateRepresentation):
+class Lifter_MSP430(Lifter):
 
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_msp430, None, loc_db)
+        Lifter.__init__(self, mn_msp430, None, loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 16)

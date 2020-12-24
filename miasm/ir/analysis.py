@@ -3,7 +3,7 @@
 import warnings
 import logging
 
-from miasm.ir.ir import IntermediateRepresentation, AssignBlock
+from miasm.ir.ir import Lifter, AssignBlock
 from miasm.expression.expression import ExprOp, ExprAssign
 
 
@@ -14,16 +14,16 @@ log.addHandler(console_handler)
 log.setLevel(logging.WARNING)
 
 
-class ira(IntermediateRepresentation):
+class LifterModelCall(Lifter):
     """IR Analysis
     This class provides higher level manipulations on IR, such as dead
     instruction removals.
 
     This class can be used as a common parent with
-    `miasm.ir.ir::IntermediateRepresentation` class.
+    `miasm.ir.ir::Lifter` class.
 
     For instance:
-        class ira_x86_16(ir_x86_16, ira)
+        class LifterModelCall_x86_16(Lifter_X86_16, LifterModelCall)
 
     """
     ret_reg = None
@@ -105,3 +105,15 @@ class ira(IntermediateRepresentation):
     def sizeof_pointer(self):
         "Return the size of a void* in bits"
         raise NotImplementedError("Abstract method")
+
+
+
+class ira(LifterModelCall):
+    """
+    DEPRECATED object
+    Use LifterModelCall instead of ira
+    """
+
+    def __init__(self, arch, attrib, loc_db):
+        warnings.warn('DEPRECATION WARNING: use "LifterModelCall" instead of "ira"')
+        super(ira, self).__init__(arch, attrib, loc_db)

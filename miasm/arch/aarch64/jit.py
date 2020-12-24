@@ -3,7 +3,7 @@ import logging
 
 from miasm.jitter.jitload import Jitter, named_arguments
 from miasm.core.utils import pck64, upck64
-from miasm.arch.aarch64.sem import ir_aarch64b, ir_aarch64l
+from miasm.arch.aarch64.sem import Lifter_Aarch64b, Lifter_Aarch64l
 
 log = logging.getLogger('jit_aarch64')
 hnd = logging.StreamHandler()
@@ -15,7 +15,7 @@ class jitter_aarch64l(Jitter):
     max_reg_arg = 8
 
     def __init__(self, loc_db, *args, **kwargs):
-        Jitter.__init__(self, ir_aarch64l(loc_db), *args, **kwargs)
+        Jitter.__init__(self, Lifter_Aarch64l(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
 
     def push_uint64_t(self, value):
@@ -75,5 +75,5 @@ class jitter_aarch64l(Jitter):
 class jitter_aarch64b(jitter_aarch64l):
 
     def __init__(self, loc_db, *args, **kwargs):
-        Jitter.__init__(self, ir_aarch64b(loc_db), *args, **kwargs)
+        Jitter.__init__(self, Lifter_Aarch64b(loc_db), *args, **kwargs)
         self.vm.set_big_endian()

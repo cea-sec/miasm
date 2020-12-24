@@ -2,7 +2,7 @@ from builtins import range
 from future.utils import viewitems, viewvalues
 
 from miasm.expression.expression import *
-from miasm.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
+from miasm.ir.ir import Lifter, IRBlock, AssignBlock
 from miasm.arch.arm.arch import mn_arm, mn_armt
 from miasm.arch.arm.regs import *
 
@@ -1932,9 +1932,9 @@ class arminfo(object):
     # offset
 
 
-class ir_arml(IntermediateRepresentation):
+class Lifter_Arml(Lifter):
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_arm, "l", loc_db)
+        Lifter.__init__(self, mn_arm, "l", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
@@ -2129,18 +2129,18 @@ class ir_arml(IntermediateRepresentation):
 
 
 
-class ir_armb(ir_arml):
+class Lifter_Armb(Lifter_Arml):
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_arm, "b", loc_db)
+        Lifter.__init__(self, mn_arm, "b", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
         self.addrsize = 32
 
 
-class ir_armtl(ir_arml):
+class Lifter_Armtl(Lifter_Arml):
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_armt, "l", loc_db)
+        Lifter.__init__(self, mn_armt, "l", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
@@ -2164,9 +2164,9 @@ class ir_armtl(ir_arml):
                                                  lambda expr: expr.replace_expr(pc_fixed))
 
 
-class ir_armtb(ir_armtl):
+class Lifter_Armtb(Lifter_Armtl):
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_armt, "b", loc_db)
+        Lifter.__init__(self, mn_armt, "b", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)

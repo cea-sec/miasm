@@ -17,6 +17,7 @@ import os
 from llvmlite import binding as llvm
 from llvmlite import ir as llvm_ir
 from builtins import int as int_types
+import warnings
 
 from future.utils import viewitems, viewvalues
 
@@ -221,14 +222,19 @@ class LLVMContext_JIT(LLVMContext):
     """Extend LLVMContext_JIT in order to handle memory management and custom
     operations"""
 
-    def __init__(self, library_filenames, ir_arch, name="mod"):
+    def __init__(self, library_filenames, lifter, name="mod"):
         "Init a LLVMContext object, and load the mem management shared library"
         self.library_filenames = library_filenames
-        self.ir_arch = ir_arch
+        self.lifter = lifter
         self.arch_specific()
         self.load_libraries()
         LLVMContext.__init__(self, name)
         self.vmcpu = {}
+
+    @property
+    def ir_arch(self):
+        warnings.warn('DEPRECATION WARNING: use ".lifter" instead of ".ir_arch"')
+        return self.lifter
 
     def load_libraries(self):
         # Get LLVM specific functions
@@ -256,12 +262,12 @@ class LLVMContext_JIT(LLVMContext):
         self.add_log_functions()
 
     def arch_specific(self):
-        arch = self.ir_arch.arch
+        arch = self.lifter.arch
         if arch.name == "x86":
             self.PC = arch.regs.RIP
-            self.logging_func = "dump_gpregs_%d" % self.ir_arch.attrib
+            self.logging_func = "dump_gpregs_%d" % self.lifter.attrib
         else:
-            self.PC = self.ir_arch.pc
+            self.PC = self.lifter.pc
             self.logging_func = "dump_gpregs"
         if arch.name == "mips32":
             from miasm.arch.mips32.jit import mipsCGen
@@ -774,7 +780,7 @@ class LLVMFunction(object):
             return ret
 
         if expr.is_loc():
-            offset = self.llvm_context.ir_arch.loc_db.get_location_offset(
+            offset = self.llvm_context.lifter.loc_db.get_location_offset(
                 expr.loc_key
             )
             ret = llvm_ir.Constant(LLVMType.IntType(expr.size), offset)
@@ -1365,7 +1371,7 @@ class LLVMFunction(object):
 
         # Get exception flag value
         builder = self.builder
-        m2_exception_flag = self.llvm_context.ir_arch.arch.regs.exception_flags
+        m2_exception_flag = self.llvm_context.lifter.arch.regs.exception_flags
         t_size = LLVMType.IntType(m2_exception_flag.size)
         exceptionflag = self.add_ir(m2_exception_flag)
 
@@ -1411,7 +1417,7 @@ class LLVMFunction(object):
 
     def gen_pre_code(self, instr_attrib):
         if instr_attrib.log_mn:
-            loc_db = self.llvm_context.ir_arch.loc_db
+            loc_db = self.llvm_context.lifter.loc_db
             self.printf(
                 "%.8X %s\n" % (
                     instr_attrib.instr.offset,
@@ -1489,13 +1495,13 @@ class LLVMFunction(object):
         offset = None
         if isinstance(dst, ExprInt):
             offset = int(dst)
-            loc_key = self.llvm_context.ir_arch.loc_db.get_or_create_offset_location(offset)
+            loc_key = self.llvm_context.lifter.loc_db.get_or_create_offset_location(offset)
             dst = ExprLoc(loc_key, dst.size)
 
         if isinstance(dst, ExprLoc):
             loc_key = dst.loc_key
             bbl = self.get_basic_block_by_loc_key(loc_key)
-            offset = self.llvm_context.ir_arch.loc_db.get_location_offset(loc_key)
+            offset = self.llvm_context.lifter.loc_db.get_location_offset(loc_key)
             if bbl is not None:
                 # "local" jump, inside this function
                 if offset is None:
@@ -1557,7 +1563,7 @@ class LLVMFunction(object):
             # Evaluate expressions
             values = {}
             for dst, src in viewitems(assignblk):
-                if dst == self.llvm_context.ir_arch.IRDst:
+                if dst == self.llvm_context.lifter.IRDst:
                     case2dst, case_value = self.expr2cases(src)
                 else:
                     values[dst] = self.add_ir(src)
@@ -1629,7 +1635,7 @@ class LLVMFunction(object):
         Translate an asm_bad_block into a CPU exception
         """
         builder = self.builder
-        m2_exception_flag = self.llvm_context.ir_arch.arch.regs.exception_flags
+        m2_exception_flag = self.llvm_context.lifter.arch.regs.exception_flags
         t_size = LLVMType.IntType(m2_exception_flag.size)
         self.assign(
             self.add_ir(ExprInt(1, 8)),
@@ -1639,7 +1645,7 @@ class LLVMFunction(object):
             t_size(m2_csts.EXCEPT_UNK_MNEMO),
             m2_exception_flag
         )
-        offset = self.llvm_context.ir_arch.loc_db.get_location_offset(
+        offset = self.llvm_context.lifter.loc_db.get_location_offset(
             asmblock.loc_key
         )
         self.set_ret(LLVMType.IntType(64)(offset))
@@ -1689,7 +1695,7 @@ class LLVMFunction(object):
             # Else Block
             builder.position_at_end(else_block)
             PC = self.llvm_context.PC
-            next_label_offset = self.llvm_context.ir_arch.loc_db.get_location_offset(next_label)
+            next_label_offset = self.llvm_context.lifter.loc_db.get_location_offset(next_label)
             to_ret = LLVMType.IntType(PC.size)(next_label_offset)
             self.assign(to_ret, PC)
             self.set_ret(to_ret)
@@ -1726,11 +1732,11 @@ class LLVMFunction(object):
         # Create basic blocks (for label branches)
         entry_bbl, builder = self.entry_bbl, self.builder
         for instr in asmblock.lines:
-            lbl = self.llvm_context.ir_arch.loc_db.get_or_create_offset_location(instr.offset)
+            lbl = self.llvm_context.lifter.loc_db.get_or_create_offset_location(instr.offset)
             self.append_basic_block(lbl)
 
         # TODO: merge duplicate code with CGen
-        codegen = self.llvm_context.cgen_class(self.llvm_context.ir_arch)
+        codegen = self.llvm_context.cgen_class(self.llvm_context.lifter)
         irblocks_list = codegen.block2assignblks(asmblock)
         instr_offsets = [line.offset for line in asmblock.lines]
 
@@ -1744,7 +1750,7 @@ class LLVMFunction(object):
                 )
                 self.local_vars_pointers[element.name] = ptr
             loc_key = codegen.get_block_post_label(asmblock)
-            offset = self.llvm_context.ir_arch.loc_db.get_location_offset(loc_key)
+            offset = self.llvm_context.lifter.loc_db.get_location_offset(loc_key)
             instr_offsets.append(offset)
             self.append_basic_block(loc_key)
 
@@ -1766,8 +1772,8 @@ class LLVMFunction(object):
 
             # Generate the corresponding code
             for index, irblock in enumerate(irblocks):
-                new_irblock = self.llvm_context.ir_arch.irbloc_fix_regs_for_mode(
-                    irblock, self.llvm_context.ir_arch.attrib)
+                new_irblock = self.llvm_context.lifter.irbloc_fix_regs_for_mode(
+                    irblock, self.llvm_context.lifter.attrib)
 
                 # Set the builder at the beginning of the correct bbl
                 self.builder.position_at_end(self.get_basic_block_by_loc_key(new_irblock.loc_key))
@@ -1848,7 +1854,7 @@ class LLVMFunction_IRCompilation(LLVMFunction):
 
     Example of use:
     >>> context = LLVMContext_IRCompilation()
-    >>> context.ir_arch = ir
+    >>> context.lifter = lifter
     >>>
     >>> func = LLVMFunction_IRCompilation(context, name="test")
     >>> func.ret_type = llvm_ir.VoidType()
@@ -1866,7 +1872,7 @@ class LLVMFunction_IRCompilation(LLVMFunction):
         super(LLVMFunction_IRCompilation, self).init_fc()
 
         # Create a global IRDst if not any
-        IRDst = self.llvm_context.ir_arch.IRDst
+        IRDst = self.llvm_context.lifter.IRDst
         if str(IRDst) not in self.mod.globals:
             llvm_ir.GlobalVariable(self.mod, LLVMType.IntType(IRDst.size),
                                    name=str(IRDst))
@@ -1879,7 +1885,7 @@ class LLVMFunction_IRCompilation(LLVMFunction):
 
         if isinstance(dst, Expr):
             if dst.is_int():
-                loc = self.llvm_context.ir_arch.loc_db.getby_offset_create(int(dst))
+                loc = self.llvm_context.lifter.loc_db.getby_offset_create(int(dst))
                 dst = ExprLoc(loc, dst.size)
             assert dst.is_loc()
             bbl = self.get_basic_block_by_loc_key(dst.loc_key)

@@ -139,7 +139,7 @@ print('ok')
 
 
 print('generating dataflow graph for:')
-ir_arch_analysis = machine.ira(loc_db)
+ir_arch_analysis = machine.lifter_model_call(loc_db)
 ircfg = ir_arch_analysis.new_ircfg_from_asmcfg(asmcfg)
 deadrm = DeadRemoval(ir_arch_analysis)
 

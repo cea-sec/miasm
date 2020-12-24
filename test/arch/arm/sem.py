@@ -9,7 +9,7 @@ from future.utils import viewitems
 
 from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.arch.arm.arch import mn_arm as mn
-from miasm.arch.arm.sem import ir_arml as ir_arch
+from miasm.arch.arm.sem import Lifter_Arml as ir_arch
 from miasm.arch.arm.regs import *
 from miasm.expression.expression import *
 from miasm.core.locationdb import LocationDB

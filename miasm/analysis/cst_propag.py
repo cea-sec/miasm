@@ -122,7 +122,7 @@ def compute_cst_propagation_states(ir_arch, ircfg, init_addr, init_infos):
     The attribute "constant expression" is true if the expression is based on
     constants or "init" regs values.
 
-    @ir_arch: IntermediateRepresentation instance
+    @ir_arch: Lifter instance
     @init_addr: analysis start address
     @init_infos: dictionary linking expressions to their values at @init_addr
     """
@@ -169,7 +169,7 @@ def propagate_cst_expr(ir_arch, ircfg, addr, init_infos):
     The attribute "constant expression" is true if the expression is based on
     constants or "init" regs values.
 
-    @ir_arch: IntermediateRepresentation instance
+    @ir_arch: Lifter instance
     @addr: analysis start address
     @init_infos: dictionary linking expressions to their values at @init_addr
 

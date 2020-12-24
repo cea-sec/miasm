@@ -13,15 +13,15 @@ class TestSymbExec(unittest.TestCase):
     def test_ClassDef(self):
         from miasm.expression.expression import ExprInt, ExprId, ExprMem, \
             ExprCompose, ExprAssign
-        from miasm.arch.x86.sem import ir_x86_32
+        from miasm.arch.x86.sem import Lifter_X86_32
         from miasm.core.locationdb import LocationDB
         from miasm.ir.symbexec import SymbolicExecutionEngine
         from miasm.ir.ir import AssignBlock
 
 
         loc_db = LocationDB()
-        ira = ir_x86_32(loc_db)
-        ircfg = ira.new_ircfg()
+        lifter_model_call = Lifter_X86_32(loc_db)
+        ircfg = lifter_model_call.new_ircfg()
 
         id_x = ExprId('x', 32)
         id_a = ExprId('a', 32)
@@ -36,7 +36,7 @@ class TestSymbExec(unittest.TestCase):
                     return id_x
                 return super(CustomSymbExec, self).mem_read(expr)
 
-        sb = CustomSymbExec(ira,
+        sb = CustomSymbExec(lifter_model_call,
                             {
                                 ExprMem(ExprInt(0x4, 32), 8): ExprInt(0x44, 8),
                                 ExprMem(ExprInt(0x5, 32), 8): ExprInt(0x33, 8),
@@ -229,13 +229,13 @@ class TestSymbExec(unittest.TestCase):
         assert found
 
 
-        sb_empty = SymbolicExecutionEngine(ira)
+        sb_empty = SymbolicExecutionEngine(lifter_model_call)
         sb_empty.dump()
 
 
         # Test memory full
         print('full')
-        arch_addr8 = ir_x86_32(loc_db)
+        arch_addr8 = Lifter_X86_32(loc_db)
         ircfg = arch_addr8.new_ircfg()
         # Hack to obtain tiny address space
         arch_addr8.addrsize = 5

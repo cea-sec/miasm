@@ -2,23 +2,23 @@
 
 from miasm.expression.expression import ExprAssign, ExprOp
 from miasm.ir.ir import AssignBlock
-from miasm.ir.analysis import ira
-from miasm.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
+from miasm.ir.analysis import LifterModelCall
+from miasm.arch.x86.sem import Lifter_X86_16, Lifter_X86_32, Lifter_X86_64
 
 
-class ir_a_x86_16(ir_x86_16, ira):
+class LifterModelCall_x86_16(Lifter_X86_16, LifterModelCall):
 
     def __init__(self, loc_db):
-        ir_x86_16.__init__(self, loc_db)
+        Lifter_X86_16.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.AX
 
     def get_out_regs(self, _):
         return set([self.ret_reg, self.sp])
 
-class ir_a_x86_32(ir_x86_32, ir_a_x86_16):
+class LifterModelCall_x86_32(Lifter_X86_32, LifterModelCall_x86_16):
 
     def __init__(self, loc_db):
-        ir_x86_32.__init__(self, loc_db)
+        Lifter_X86_32.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.EAX
 
     def sizeof_char(self):
@@ -37,10 +37,10 @@ class ir_a_x86_32(ir_x86_32, ir_a_x86_16):
         return 32
 
 
-class ir_a_x86_64(ir_x86_64, ir_a_x86_16):
+class LifterModelCall_x86_64(Lifter_X86_64, LifterModelCall_x86_16):
 
     def __init__(self, loc_db):
-        ir_x86_64.__init__(self, loc_db)
+        Lifter_X86_64.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.RAX
 
     def call_effects(self, ad, instr):

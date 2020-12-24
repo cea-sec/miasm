@@ -1,5 +1,5 @@
 import miasm.expression.expression as m2_expr
-from miasm.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
+from miasm.ir.ir import Lifter, IRBlock, AssignBlock
 from miasm.arch.mips32.arch import mn_mips32
 from miasm.arch.mips32.regs import R_LO, R_HI, PC, RA, ZERO, exception_flags
 from miasm.core.sembuilder import SemBuilder
@@ -618,10 +618,10 @@ def get_mnemo_expr(ir, instr, *args):
     instr, extra_ir = mnemo_func[instr.name.lower()](ir, instr, *args)
     return instr, extra_ir
 
-class ir_mips32l(IntermediateRepresentation):
+class Lifter_Mips32l(Lifter):
 
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_mips32, 'l', loc_db)
+        Lifter.__init__(self, mn_mips32, 'l', loc_db)
         self.pc = mn_mips32.getpc()
         self.sp = mn_mips32.getsp()
         self.IRDst = m2_expr.ExprId('IRDst', 32)
@@ -652,10 +652,10 @@ class ir_mips32l(IntermediateRepresentation):
     def get_next_delay_loc_key(self, instr):
         return self.loc_db.get_or_create_offset_location(instr.offset + 16)
 
-class ir_mips32b(ir_mips32l):
+class Lifter_Mips32b(Lifter_Mips32l):
     def __init__(self, loc_db):
         self.addrsize = 32
-        IntermediateRepresentation.__init__(self, mn_mips32, 'b', loc_db)
+        Lifter.__init__(self, mn_mips32, 'b', loc_db)
         self.pc = mn_mips32.getpc()
         self.sp = mn_mips32.getsp()
         self.IRDst = m2_expr.ExprId('IRDst', 32)

@@ -1,27 +1,27 @@
 #-*- coding:utf-8 -*-
 
-from miasm.ir.analysis import ira
-from miasm.arch.aarch64.sem import ir_aarch64l, ir_aarch64b
+from miasm.ir.analysis import LifterModelCall
+from miasm.arch.aarch64.sem import Lifter_Aarch64l, Lifter_Aarch64b
 
 
-class ir_a_aarch64l_base(ir_aarch64l, ira):
+class LifterModelCallAarch64lBase(Lifter_Aarch64l, LifterModelCall):
 
     def __init__(self, loc_db):
-        ir_aarch64l.__init__(self, loc_db)
+        Lifter_Aarch64l.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.X0
 
 
-class ir_a_aarch64b_base(ir_aarch64b, ira):
+class LifterModelCallAarch64bBase(Lifter_Aarch64b, LifterModelCall):
 
     def __init__(self, loc_db):
-        ir_aarch64b.__init__(self, loc_db)
+        Lifter_Aarch64b.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.X0
 
 
-class ir_a_aarch64l(ir_a_aarch64l_base):
+class LifterModelCallAarch64l(LifterModelCallAarch64lBase):
 
     def __init__(self, loc_db):
-        ir_a_aarch64l_base.__init__(self, loc_db)
+        LifterModelCallAarch64lBase.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.X0
 
     def get_out_regs(self, _):
@@ -43,8 +43,8 @@ class ir_a_aarch64l(ir_a_aarch64l_base):
         return 32
 
 
-class ir_a_aarch64b(ir_a_aarch64b_base, ir_a_aarch64l):
+class LifterModelCallAarch64b(LifterModelCallAarch64bBase, LifterModelCallAarch64l):
 
     def __init__(self, loc_db):
-        ir_a_aarch64b_base.__init__(self, loc_db)
+        LifterModelCallAarch64bBase.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.X0

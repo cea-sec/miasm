@@ -30,7 +30,7 @@ machine = Machine("x86_32")
 loc_db = LocationDB()
 cont = Container.from_stream(open(args.filename, 'rb'), loc_db)
 mdis = machine.dis_engine(cont.bin_stream, loc_db=loc_db)
-ir_arch = machine.ira(mdis.loc_db)
+ir_arch = machine.lifter_model_call(mdis.loc_db)
 addr = int(args.address, 0)
 deadrm = DeadRemoval(ir_arch)
 

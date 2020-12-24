@@ -111,15 +111,15 @@ ADD        R2, R8, R0
 
 Create an intermediate representation object:
 ```pycon
->>> ira = machine.ira(loc_db)
+>>> lifter = machine.lifter_model_call(loc_db)
 ```
 Create an empty ircfg
 ```pycon
->>> ircfg = ira.new_ircfg()
+>>> ircfg = lifter.new_ircfg()
 ```
 Add instruction to the pool:
 ```pycon
->>> ira.add_instr_to_ircfg(instr, ircfg)
+>>> lifter.add_instr_to_ircfg(instr, ircfg)
 ```
 
 Print current pool:
@@ -284,15 +284,15 @@ Symbolic execution
 Initializing the IR pool:
 
 ```pycon
->>> ira = machine.ira(loc_db)
->>> ircfg = ira.new_ircfg_from_asmcfg(asmcfg)
+>>> lifter = machine.lifter_model_call(loc_db)
+>>> ircfg = lifter.new_ircfg_from_asmcfg(asmcfg)
 ```
 
 Initializing the engine with default symbolic values:
 
 ```pycon
 >>> from miasm.ir.symbexec import SymbolicExecutionEngine
->>> sb = SymbolicExecutionEngine(ira)
+>>> sb = SymbolicExecutionEngine(lifter)
 ```
 
 Launching the execution:
@@ -306,7 +306,7 @@ Launching the execution:
 Same, with step logs (only changes are displayed):
 
 ```pycon
->>> sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)
+>>> sb = SymbolicExecutionEngine(lifter, machine.mn.regs.regs_init)
 >>> symbolic_pc = sb.run_at(ircfg, 0, step=True)
 Instr LEA        ECX, DWORD PTR [ECX + 0x4]
 Assignblk:

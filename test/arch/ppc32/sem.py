@@ -9,7 +9,7 @@ from future.utils import viewitems
 
 from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.arch.ppc.arch import mn_ppc as mn
-from miasm.arch.ppc.sem import ir_ppc32b as ir_arch
+from miasm.arch.ppc.sem import Lifter_PPC32b as ir_arch
 from miasm.arch.ppc.regs import *
 from miasm.expression.expression import *
 from miasm.core.locationdb import LocationDB

@@ -1,26 +1,26 @@
 #-*- coding:utf-8 -*-
 
-from miasm.ir.analysis import ira
+from miasm.ir.analysis import LifterModelCall
 from miasm.ir.ir import IRBlock
-from miasm.arch.arm.sem import ir_arml, ir_armtl, ir_armb, ir_armtb, tab_cond
+from miasm.arch.arm.sem import Lifter_Arml, Lifter_Armtl, Lifter_Armb, Lifter_Armtb, tab_cond
 from miasm.expression.expression import ExprAssign, ExprOp, ExprLoc, ExprCond
 from miasm.ir.ir import AssignBlock
 
-class ir_a_arml_base(ir_arml, ira):
+class LifterModelCallArmlBase(Lifter_Arml, LifterModelCall):
     def __init__(self, loc_db):
-        ir_arml.__init__(self, loc_db)
+        Lifter_Arml.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
-class ir_a_armb_base(ir_armb, ira):
+class LifterModelCallArmbBase(Lifter_Armb, LifterModelCall):
     def __init__(self, loc_db):
-        ir_armb.__init__(self, loc_db)
+        Lifter_Armb.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
 
-class ir_a_arml(ir_a_arml_base):
+class LifterModelCallArml(LifterModelCallArmlBase):
 
     def __init__(self, loc_db):
-        ir_a_arml_base.__init__(self, loc_db)
+        LifterModelCallArmlBase.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
     def call_effects(self, ad, instr):
@@ -88,19 +88,19 @@ class ir_a_arml(ir_a_arml_base):
     def sizeof_pointer(self):
         return 32
 
-class ir_a_armb(ir_a_armb_base, ir_a_arml):
+class LifterModelCallArmb(LifterModelCallArmbBase, LifterModelCallArml):
 
     def __init__(self, loc_db):
-        ir_a_armb_base.__init__(self, loc_db)
+        LifterModelCallArmbBase.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
 
-class ir_a_armtl(ir_armtl, ir_a_arml):
+class LifterModelCallArmtl(Lifter_Armtl, LifterModelCallArml):
     def __init__(self, loc_db):
-        ir_armtl.__init__(self, loc_db)
+        Lifter_Armtl.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
-class ir_a_armtb(ir_a_armtl, ir_armtb, ir_a_armb):
+class LifterModelCallArmtb(LifterModelCallArmtl, Lifter_Armtb, LifterModelCallArmb):
     def __init__(self, loc_db):
-        ir_armtb.__init__(self, loc_db)
+        Lifter_Armtb.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0

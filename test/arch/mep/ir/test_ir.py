@@ -6,7 +6,7 @@ from __future__ import print_function
 from miasm.core.utils import decode_hex
 from miasm.arch.mep.arch import mn_mep
 from miasm.arch.mep.regs import regs_init
-from miasm.arch.mep.ira import ir_mepb, ir_a_mepb
+from miasm.arch.mep.lifter_model_call import Lifter_MEPb, LifterModelCallMepb
 from miasm.expression.expression import ExprId, ExprInt, ExprMem
 from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.core.locationdb import LocationDB
@@ -30,12 +30,12 @@ class TestMisc(object):
             loc_db = LocationDB()
 
             # Get the IR
-            im = ir_mepb(loc_db)
+            im = Lifter_MEPb(loc_db)
             iir, eiir, = im.get_ir(mn)
             print("\nInternal representation:", iir)
 
             # Symbolic execution
-            sb = SymbolicExecutionEngine(ir_a_mepb(loc_db), regs_init)
+            sb = SymbolicExecutionEngine(LifterModelCallMepb(loc_db), regs_init)
 
             # Assign register values before symbolic evaluation
             for reg_expr_id, reg_expr_value in init_values:

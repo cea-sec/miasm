@@ -26,9 +26,9 @@ from utils import guess_machine
 
 class depGraphSettingsForm(ida_kernwin.Form):
 
-    def __init__(self, ira, ircfg, mn):
+    def __init__(self, lifter_model_call, ircfg, mn):
 
-        self.ira = ira
+        self.lifter_model_call = lifter_model_call
         self.ircfg = ircfg
         self.mn = mn
         self.stk_args = {'ARG%d' % i:i for i in range(10)}
@@ -51,7 +51,7 @@ class depGraphSettingsForm(ida_kernwin.Form):
         assert line_nb is not None
         cur_loc_key = str(cur_block.loc_key)
         loc_keys = sorted(map(str, ircfg.blocks))
-        regs = sorted(ira.arch.regs.all_regs_ids_byname)
+        regs = sorted(lifter_model_call.arch.regs.all_regs_ids_byname)
         regs += list(self.stk_args)
         reg_default = regs[0]
         for i in range(10):
@@ -130,13 +130,13 @@ Method to use:
             line = self.ircfg.blocks[self.loc_key][self.line_nb].instr
             arg_num = self.stk_args[value]
             stk_high = m2_expr.ExprInt(idc.get_spd(line.offset), ir_arch.sp.size)
-            stk_off = m2_expr.ExprInt(self.ira.sp.size // 8 * arg_num, ir_arch.sp.size)
-            element =  m2_expr.ExprMem(self.mn.regs.regs_init[ir_arch.sp] + stk_high + stk_off, self.ira.sp.size)
+            stk_off = m2_expr.ExprInt(self.lifter_model_call.sp.size // 8 * arg_num, ir_arch.sp.size)
+            element =  m2_expr.ExprMem(self.mn.regs.regs_init[ir_arch.sp] + stk_high + stk_off, self.lifter_model_call.sp.size)
             element = expr_simp(element)
             # Force stack unaliasing
             self.stk_unalias_force = True
         elif value:
-            element = self.ira.arch.regs.all_regs_ids_byname.get(value, None)
+            element = self.lifter_model_call.arch.regs.all_regs_ids_byname.get(value, None)
 
         else:
             raise ValueError("Unknown element '%s'!" % value)
@@ -214,13 +214,13 @@ def launch_depgraph():
 
     # Init
     machine = guess_machine(addr=func.start_ea)
-    mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
+    mn, dis_engine, lifter_model_call = machine.mn, machine.dis_engine, machine.lifter_model_call
 
     bs = bin_stream_ida()
     loc_db = LocationDB()
 
     mdis = dis_engine(bs, loc_db=loc_db, dont_dis_nulstart_bloc=True)
-    ir_arch = ira(loc_db)
+    ir_arch = lifter_model_call(loc_db)
 
     # Populate symbols with ida names
     for ad, name in idautils.Names():

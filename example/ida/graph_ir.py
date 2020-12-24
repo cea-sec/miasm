@@ -180,9 +180,9 @@ def is_addr_ro_variable(bs, addr, size):
 
 def build_graph(start_addr, type_graph, simplify=False, use_ida_stack=True, dontmodstack=False, loadint=False, verbose=False):
     machine = guess_machine(addr=start_addr)
-    dis_engine, ira = machine.dis_engine, machine.ira
+    dis_engine, lifter_model_call = machine.dis_engine, machine.lifter_model_call
 
-    class IRADelModCallStack(ira):
+    class IRADelModCallStack(lifter_model_call):
         def call_effects(self, addr, instr):
             assignblks, extra = super(IRADelModCallStack, self).call_effects(addr, instr)
             if use_ida_stack:
@@ -281,7 +281,7 @@ def build_graph(start_addr, type_graph, simplify=False, use_ida_stack=True, dont
         return
 
 
-    class IRAOutRegs(ira):
+    class IRAOutRegs(lifter_model_call):
         def get_out_regs(self, block):
             regs_todo = super(IRAOutRegs, self).get_out_regs(block)
             out = {}

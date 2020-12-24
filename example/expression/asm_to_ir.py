@@ -7,7 +7,7 @@ from miasm.arch.x86.arch import mn_x86
 from miasm.core import parse_asm
 from miasm.expression.expression import *
 from miasm.core import asmblock
-from miasm.arch.x86.ira import ir_a_x86_32
+from miasm.arch.x86.lifter_model_call import LifterModelCall_x86_32
 from miasm.analysis.data_flow import DeadRemoval
 from miasm.core.locationdb import LocationDB
 
@@ -43,7 +43,7 @@ print(loc_db)
 patches = asmblock.asm_resolve_final(mn_x86, asmcfg)
 
 # Translate to IR
-ir_arch = ir_a_x86_32(loc_db)
+ir_arch = LifterModelCall_x86_32(loc_db)
 ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
 deadrm = DeadRemoval(ir_arch)
 

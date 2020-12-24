@@ -6,7 +6,7 @@ from future.utils import viewitems
 from miasm.expression.expression import ExprId, ExprInt, ExprAssign, \
     ExprCond, ExprLoc, LocKey
 from miasm.core.locationdb import LocationDB
-from miasm.ir.analysis import ira
+from miasm.ir.analysis import LifterModelCall
 from miasm.ir.ir import IRBlock, AssignBlock
 from miasm.core.graph import DiGraph
 from miasm.analysis.depgraph import DependencyNode, DependencyGraph
@@ -91,7 +91,7 @@ class Arch(object):
         return SP
 
 
-class IRATest(ira):
+class IRATest(LifterModelCall):
 
     """Fake IRA class for tests"""
 

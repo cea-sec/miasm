@@ -25,7 +25,7 @@ import miasm.expression.expression as m2_expr
 from miasm.expression.simplifications import expr_simp
 from miasm.arch.x86.regs import *
 from miasm.arch.x86.arch import mn_x86, repeat_mn, replace_regs, is_mem_segm
-from miasm.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
+from miasm.ir.ir import Lifter, IRBlock, AssignBlock
 from miasm.core.sembuilder import SemBuilder
 from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_ILLEGAL_INSN, \
     EXCEPT_PRIV_INSN, EXCEPT_SOFT_BP, EXCEPT_INT_XX, EXCEPT_INT_1, \
@@ -5748,10 +5748,10 @@ mnemo_func = {'mov': mov,
               }
 
 
-class ir_x86_16(IntermediateRepresentation):
+class Lifter_X86_16(Lifter):
 
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_x86, 16, loc_db)
+        Lifter.__init__(self, mn_x86, 16, loc_db)
         self.do_stk_segm = False
         self.do_ds_segm = False
         self.do_str_segm = False
@@ -5891,10 +5891,10 @@ class ir_x86_16(IntermediateRepresentation):
         return IRBlock(self.loc_db, irblock.loc_key, irs)
 
 
-class ir_x86_32(ir_x86_16):
+class Lifter_X86_32(Lifter_X86_16):
 
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_x86, 32, loc_db)
+        Lifter.__init__(self, mn_x86, 32, loc_db)
         self.do_stk_segm = False
         self.do_ds_segm = False
         self.do_str_segm = False
@@ -5905,10 +5905,10 @@ class ir_x86_32(ir_x86_16):
         self.addrsize = 32
 
 
-class ir_x86_64(ir_x86_16):
+class Lifter_X86_64(Lifter_X86_16):
 
     def __init__(self, loc_db):
-        IntermediateRepresentation.__init__(self, mn_x86, 64, loc_db)
+        Lifter.__init__(self, mn_x86, 64, loc_db)
         self.do_stk_segm = False
         self.do_ds_segm = False
         self.do_str_segm = False

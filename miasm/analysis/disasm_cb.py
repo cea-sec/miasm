@@ -11,26 +11,26 @@ from miasm.core.locationdb import LocationDB
 from miasm.core.utils import upck32
 
 
-def get_ira(arch, attrib):
+def get_lifter_model_call(arch, attrib):
     arch = arch.name, attrib
     if arch == ("arm", "arm"):
-        from miasm.arch.arm.ira import ir_a_arm_base as ira
+        from miasm.arch.arm.lifter_model_call import LifterModelCallArmlBase as lifter_model_call
     elif arch == ("x86", 32):
-        from miasm.arch.x86.ira import ir_a_x86_32 as ira
+        from miasm.arch.x86.lifter_model_call import LifterModelCall_x86_32 as lifter_model_call
     elif arch == ("x86", 64):
-        from miasm.arch.x86.ira import ir_a_x86_64 as ira
+        from miasm.arch.x86.lifter_model_call import LifterModelCall_x86_64 as lifter_model_call
     else:
         raise ValueError('unknown architecture: %s' % arch.name)
-    return ira
+    return lifter_model_call
 
 
 def arm_guess_subcall(dis_engine, cur_block, offsets_to_dis):
     arch = dis_engine.arch
     loc_db = dis_engine.loc_db
-    ira = get_ira(arch, dis_engine.attrib)
+    lifter_model_call = get_lifter_model_call(arch, dis_engine.attrib)
 
-    ir_arch = ira(loc_db)
-    ircfg = ira.new_ircfg()
+    ir_arch = lifter_model_call(loc_db)
+    ircfg = lifter_model_call.new_ircfg()
     print('###')
     print(cur_block)
     ir_arch.add_asmblock_to_ircfg(cur_block, ircfg)
@@ -66,13 +66,13 @@ def arm_guess_subcall(dis_engine, cur_block, offsets_to_dis):
 def arm_guess_jump_table(dis_engine, cur_block, offsets_to_dis):
     arch = dis_engine.arch
     loc_db = dis_engine.loc_db
-    ira = get_ira(arch, dis_engine.attrib)
+    lifter_model_call = get_lifter_model_call(arch, dis_engine.attrib)
 
     jra = ExprId('jra')
     jrb = ExprId('jrb')
 
-    ir_arch = ira(loc_db)
-    ircfg = ira.new_ircfg()
+    ir_arch = lifter_model_call(loc_db)
+    ircfg = lifter_model_call.new_ircfg()
     ir_arch.add_asmblock_to_ircfg(cur_block, ircfg)
 
     for irblock in viewvalues(ircfg.blocks):

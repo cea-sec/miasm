@@ -21,12 +21,12 @@ mdis.lines_wd = 1
 asm_block = mdis.dis_block(START_ADDR)
 
 # Translate ASM -> IR
-ira = machine.ira(mdis.loc_db)
-ircfg = ira.new_ircfg()
-ira.add_asmblock_to_ircfg(asm_block, ircfg)
+lifter_model_call = machine.lifter_model_call(mdis.loc_db)
+ircfg = lifter_model_call.new_ircfg()
+lifter_model_call.add_asmblock_to_ircfg(asm_block, ircfg)
 
 # Instantiate a Symbolic Execution engine with default value for registers
-symb = SymbolicExecutionEngine(ira)
+symb = SymbolicExecutionEngine(lifter_model_call)
 
 # Emulate one IR basic block
 ## Emulation of several basic blocks can be done through .emul_ir_blocks
@@ -39,6 +39,6 @@ print('Modified memory (should be empty):')
 symb.dump(ids=False)
 
 # Check final status
-eax, ebx = ira.arch.regs.EAX, ira.arch.regs.EBX
+eax, ebx = lifter_model_call.arch.regs.EAX, lifter_model_call.arch.regs.EBX
 assert symb.symbols[eax] == ebx
 assert eax in symb.symbols

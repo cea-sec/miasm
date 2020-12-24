@@ -14,7 +14,7 @@ import copy
 
 from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.arch.x86.arch import mn_x86 as mn
-from miasm.arch.x86.sem import ir_x86_32 as ir_32, ir_x86_64 as ir_64
+from miasm.arch.x86.sem import Lifter_X86_32 as ir_32, Lifter_X86_64 as ir_64
 from miasm.arch.x86.regs import *
 from miasm.expression.expression import *
 from miasm.expression.simplifications import expr_simp

@@ -1,7 +1,7 @@
 from miasm.jitter.jitload import Jitter
 from miasm.core.locationdb import LocationDB
 from miasm.core.utils import pck16, upck16
-from miasm.arch.msp430.sem import ir_msp430
+from miasm.arch.msp430.sem import Lifter_MSP430
 
 import logging
 
@@ -14,7 +14,7 @@ log.setLevel(logging.CRITICAL)
 class jitter_msp430(Jitter):
 
     def __init__(self, loc_db, *args, **kwargs):
-        Jitter.__init__(self, ir_msp430(loc_db), *args, **kwargs)
+        Jitter.__init__(self, Lifter_MSP430(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
 
     def push_uint16_t(self, value):

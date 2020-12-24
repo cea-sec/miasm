@@ -4,7 +4,7 @@ from future.utils import viewitems
 
 from miasm.arch.x86.arch import mn_x86
 from miasm.expression.expression import get_rw
-from miasm.arch.x86.ira import ir_a_x86_32
+from miasm.arch.x86.lifter_model_call import LifterModelCall_x86_32
 from miasm.core.locationdb import LocationDB
 
 loc_db = LocationDB()
@@ -16,7 +16,7 @@ Get read/written registers for a given instruction
 """)
 
 arch = mn_x86
-ir_arch = ir_a_x86_32(loc_db)
+ir_arch = LifterModelCall_x86_32(loc_db)
 ircfg = ir_arch.new_ircfg()
 instr = arch.fromstring('LODSB', loc_db, 32)
 instr.offset, instr.l = 0, 15
