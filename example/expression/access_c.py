@@ -151,21 +151,21 @@ addr_head = 0
 asmcfg = mdis.dis_multiblock(addr_head)
 lbl_head = loc_db.get_offset_location(addr_head)
 
-ir_arch_a = lifter_model_call(loc_db)
-ircfg = ir_arch_a.new_ircfg_from_asmcfg(asmcfg)
+lifter = lifter_model_call(loc_db)
+ircfg = lifter.new_ircfg_from_asmcfg(asmcfg)
 
 open('graph_irflow.dot', 'w').write(ircfg.dot())
 
 # Main function's first argument's type is "struct ll_human*"
 ptr_llhuman = types_mngr.get_objc(CTypePtr(CTypeStruct('ll_human')))
 arg0 = ExprId('ptr', 64)
-ctx = {ir_arch_a.arch.regs.RDI: arg0}
+ctx = {lifter.arch.regs.RDI: arg0}
 expr_types = {arg0: (ptr_llhuman,),
               ExprInt(0x8A, 64): (ptr_llhuman,)}
 
 mychandler = MyCHandler(types_mngr, expr_types)
 
-for expr in get_funcs_arg0(ctx, ir_arch_a, ircfg, lbl_head):
+for expr in get_funcs_arg0(ctx, lifter, ircfg, lbl_head):
     print("Access:", expr)
     for c_str, ctype in mychandler.expr_to_c_and_types(expr):
         print('\taccess:', c_str)

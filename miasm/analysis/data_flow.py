@@ -213,8 +213,8 @@ class DeadRemoval(object):
     Do dead removal
     """
 
-    def __init__(self, ir_arch, expr_to_original_expr=None):
-        self.ir_arch = ir_arch
+    def __init__(self, lifter, expr_to_original_expr=None):
+        self.lifter = lifter
         if expr_to_original_expr is None:
             expr_to_original_expr = {}
         self.expr_to_original_expr = expr_to_original_expr
@@ -226,7 +226,7 @@ class DeadRemoval(object):
     def is_unkillable_destination(self, lval, rval):
         if (
                 lval.is_mem() or
-                self.ir_arch.IRDst == lval or
+                self.lifter.IRDst == lval or
                 lval.is_id("exception_flags") or
                 is_function_call(rval)
         ):
@@ -290,7 +290,7 @@ class DeadRemoval(object):
         Find definitions of out regs starting from @block
         """
         worklist = set()
-        for reg in self.ir_arch.get_out_regs(block):
+        for reg in self.lifter.get_out_regs(block):
             worklist.add((reg, block.loc_key))
         ret = self.find_definitions_from_worklist(worklist, ircfg)
         return ret
@@ -743,7 +743,7 @@ def expr_has_mem(expr):
 def stack_to_reg(expr):
     if expr.is_mem():
         ptr = expr.arg
-        SP = ir_arch_a.sp
+        SP = lifter.sp
         if ptr == SP:
             return ExprId("STACK.0", expr.size)
         elif (ptr.is_op('+') and
@@ -757,26 +757,26 @@ def stack_to_reg(expr):
     return False
 
 
-def is_stack_access(ir_arch_a, expr):
+def is_stack_access(lifter, expr):
     if not expr.is_mem():
         return False
     ptr = expr.ptr
-    diff = expr_simp(ptr - ir_arch_a.sp)
+    diff = expr_simp(ptr - lifter.sp)
     if not diff.is_int():
         return False
     return expr
 
 
-def visitor_get_stack_accesses(ir_arch_a, expr, stack_vars):
-    if is_stack_access(ir_arch_a, expr):
+def visitor_get_stack_accesses(lifter, expr, stack_vars):
+    if is_stack_access(lifter, expr):
         stack_vars.add(expr)
     return expr
 
 
-def get_stack_accesses(ir_arch_a, expr):
+def get_stack_accesses(lifter, expr):
     result = set()
     def get_stack(expr_to_test):
-        visitor_get_stack_accesses(ir_arch_a, expr_to_test, result)
+        visitor_get_stack_accesses(lifter, expr_to_test, result)
         return None
     visitor = ExprWalk(get_stack)
     visitor.visit(expr)
@@ -790,14 +790,14 @@ def get_interval_length(interval_in):
     return length
 
 
-def check_expr_below_stack(ir_arch_a, expr):
+def check_expr_below_stack(lifter, expr):
     """
     Return False if expr pointer is below original stack pointer
-    @ir_arch_a: lifter_model_call instance
+    @lifter: lifter_model_call instance
     @expr: Expression instance
     """
     ptr = expr.ptr
-    diff = expr_simp(ptr - ir_arch_a.sp)
+    diff = expr_simp(ptr - lifter.sp)
     if not diff.is_int():
         return True
     if int(diff) == 0 or int(expr_simp(diff.msb())) == 0:
@@ -805,20 +805,20 @@ def check_expr_below_stack(ir_arch_a, expr):
     return True
 
 
-def retrieve_stack_accesses(ir_arch_a, ircfg):
+def retrieve_stack_accesses(lifter, ircfg):
     """
     Walk the ssa graph and find stack based variables.
     Return a dictionary linking stack base address to its size/name
-    @ir_arch_a: lifter_model_call instance
+    @lifter: lifter_model_call instance
     @ircfg: IRCFG instance
     """
     stack_vars = set()
     for block in viewvalues(ircfg.blocks):
         for assignblk in block:
             for dst, src in viewitems(assignblk):
-                stack_vars.update(get_stack_accesses(ir_arch_a, dst))
-                stack_vars.update(get_stack_accesses(ir_arch_a, src))
-    stack_vars = [expr for expr in stack_vars if check_expr_below_stack(ir_arch_a, expr)]
+                stack_vars.update(get_stack_accesses(lifter, dst))
+                stack_vars.update(get_stack_accesses(lifter, src))
+    stack_vars = [expr for expr in stack_vars if check_expr_below_stack(lifter, expr)]
 
     base_to_var = {}
     for var in stack_vars:
@@ -829,7 +829,7 @@ def retrieve_stack_accesses(ir_arch_a, ircfg):
     for addr, vars in viewitems(base_to_var):
         var_interval = interval()
         for var in vars:
-            offset = expr_simp(addr - ir_arch_a.sp)
+            offset = expr_simp(addr - lifter.sp)
             if not offset.is_int():
                 # skip non linear stack offset
                 continue
@@ -879,7 +879,7 @@ def replace_mem_stack_vars(expr, base_to_info):
     return expr.visit(lambda expr:fix_stack_vars(expr, base_to_info))
 
 
-def replace_stack_vars(ir_arch_a, ircfg):
+def replace_stack_vars(lifter, ircfg):
     """
     Try to replace stack based memory accesses by variables.
 
@@ -889,11 +889,11 @@ def replace_stack_vars(ir_arch_a, ircfg):
 
     WARNING: may fail
 
-    @ir_arch_a: lifter_model_call instance
+    @lifter: lifter_model_call instance
     @ircfg: IRCFG instance
     """
 
-    base_to_info = retrieve_stack_accesses(ir_arch_a, ircfg)
+    base_to_info = retrieve_stack_accesses(lifter, ircfg)
     modified = False
     for block in list(viewvalues(ircfg.blocks)):
         assignblks = []
@@ -946,16 +946,16 @@ def read_mem(bs, expr):
     return ExprInt(value, expr.size)
 
 
-def load_from_int(ir_arch, bs, is_addr_ro_variable):
+def load_from_int(ircfg, bs, is_addr_ro_variable):
     """
     Replace memory read based on constant with static value
-    @ir_arch: lifter_model_call instance
+    @ircfg: IRCFG instance
     @bs: binstream instance
     @is_addr_ro_variable: callback(addr, size) to test memory candidate
     """
 
     modified = False
-    for block in list(viewvalues(ir_arch.blocks)):
+    for block in list(viewvalues(ircfg.blocks)):
         assignblks = list()
         for assignblk in block:
             out = {}
@@ -988,7 +988,7 @@ def load_from_int(ir_arch, bs, is_addr_ro_variable):
             out = AssignBlock(out, assignblk.instr)
             assignblks.append(out)
         block = IRBlock(block.loc_db, block.loc_key, assignblks)
-        ir_arch.blocks[block.loc_key] = block
+        ircfg.blocks[block.loc_key] = block
     return modified
 
 
@@ -1188,14 +1188,14 @@ class DiGraphLivenessIRA(DiGraphLiveness):
     DiGraph representing variable liveness for IRA
     """
 
-    def init_var_info(self, ir_arch_a):
+    def init_var_info(self, lifter):
         """Add ircfg out regs"""
 
         for node in self.leaves():
             irblock = self.ircfg.blocks.get(node, None)
             if irblock is None:
                 continue
-            var_out = ir_arch_a.get_out_regs(irblock)
+            var_out = lifter.get_out_regs(irblock)
             irblock_liveness = self.blocks[node]
             irblock_liveness.infos[-1].var_out = var_out
 

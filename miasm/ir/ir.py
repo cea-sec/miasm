@@ -839,8 +839,8 @@ class Lifter(object):
         warnings.warn("""DEPRECATION WARNING
         ircfg is now out of Lifter
         Use:
-        ircfg = ir_arch.new_ircfg()
-        ir_arch.add_asmblock_to_ircfg(block, ircfg)
+        ircfg = lifter.new_ircfg()
+        lifter.add_asmblock_to_ircfg(block, ircfg)
         """)
         raise RuntimeError("API Deprecated")
 

@@ -26,9 +26,9 @@ def get_node_name(label, i, n):
     return n_name
 
 
-def intra_block_flow_symb(ir_arch, _, flow_graph, irblock, in_nodes, out_nodes):
-    symbols_init = ir_arch.arch.regs.regs_init.copy()
-    sb = SymbolicExecutionEngine(ir_arch, symbols_init)
+def intra_block_flow_symb(lifter, _, flow_graph, irblock, in_nodes, out_nodes):
+    symbols_init = lifter.arch.regs.regs_init.copy()
+    sb = SymbolicExecutionEngine(lifter, symbols_init)
     sb.eval_updt_irblock(irblock)
     print('*' * 40)
     print(irblock)
@@ -85,7 +85,7 @@ def node2str(node):
     return out
 
 
-def gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb):
+def gen_block_data_flow_graph(lifter, ircfg, ad, block_flow_cb):
     for irblock in viewvalues(ircfg.blocks):
         print(irblock)
 
@@ -111,7 +111,7 @@ def gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb):
         irb_out_nodes[label] = {}
 
     for label, irblock in viewitems(ircfg.blocks):
-        block_flow_cb(ir_arch, ircfg, flow_graph, irblock, irb_in_nodes[label], irb_out_nodes[label])
+        block_flow_cb(lifter, ircfg, flow_graph, irblock, irb_in_nodes[label], irb_out_nodes[label])
 
     for label in ircfg.blocks:
         print(label)
@@ -119,7 +119,7 @@ def gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb):
         print('OUT', [str(x) for x in irb_out_nodes[label]])
 
     print('*' * 20, 'interblock', '*' * 20)
-    inter_block_flow(ir_arch, ircfg, flow_graph, irblock_0.loc_key, irb_in_nodes, irb_out_nodes)
+    inter_block_flow(lifter, ircfg, flow_graph, irblock_0.loc_key, irb_in_nodes, irb_out_nodes)
 
     # from graph_qt import graph_qt
     # graph_qt(flow_graph)
@@ -139,9 +139,9 @@ print('ok')
 
 
 print('generating dataflow graph for:')
-ir_arch_analysis = machine.lifter_model_call(loc_db)
-ircfg = ir_arch_analysis.new_ircfg_from_asmcfg(asmcfg)
-deadrm = DeadRemoval(ir_arch_analysis)
+lifter = machine.lifter_model_call(loc_db)
+ircfg = lifter.new_ircfg_from_asmcfg(asmcfg)
+deadrm = DeadRemoval(lifter)
 
 
 for irblock in viewvalues(ircfg.blocks):
@@ -153,7 +153,7 @@ if args.symb:
 else:
     block_flow_cb = intra_block_flow_raw
 
-gen_block_data_flow_graph(ir_arch_analysis, ircfg, ad, block_flow_cb)
+gen_block_data_flow_graph(lifter, ircfg, ad, block_flow_cb)
 
 print('*' * 40)
 print("""

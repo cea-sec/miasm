@@ -148,20 +148,20 @@ class MyCHandler(CHandler):
 
 class TypePropagationEngine(SymbExecCType):
 
-    def __init__(self, ir_arch, types_mngr, state):
+    def __init__(self, lifter, types_mngr, state):
         mychandler = MyCHandler(types_mngr, state.symbols)
-        super(TypePropagationEngine, self).__init__(ir_arch,
+        super(TypePropagationEngine, self).__init__(lifter,
                                                     state.symbols,
                                                     mychandler)
 
 
 class SymbExecCTypeFix(SymbExecCType):
 
-    def __init__(self, ir_arch,
+    def __init__(self, lifter,
                  symbols, chandler,
                  cst_propag_link,
                  sb_expr_simp=expr_simp):
-        super(SymbExecCTypeFix, self).__init__(ir_arch,
+        super(SymbExecCTypeFix, self).__init__(lifter,
                                                symbols,
                                                chandler,
                                                sb_expr_simp=expr_simp)
@@ -177,7 +177,7 @@ class SymbExecCTypeFix(SymbExecCType):
 
         offset2cmt = {}
         for index, assignblk in enumerate(irb):
-            if set(assignblk) == set([self.ir_arch.IRDst, self.ir_arch.pc]):
+            if set(assignblk) == set([self.lifter.IRDst, self.lifter.pc]):
                 # Don't display on jxx
                 continue
             instr = assignblk.instr
@@ -187,7 +187,7 @@ class SymbExecCTypeFix(SymbExecCType):
             todo = set()
 
             # Replace PC with value to match IR args
-            pc_fixed = {self.ir_arch.pc: m2_expr.ExprInt(instr.offset + instr.l, self.ir_arch.pc.size)}
+            pc_fixed = {self.lifter.pc: m2_expr.ExprInt(instr.offset + instr.l, self.lifter.pc.size)}
             inputs = tmp_r
             inputs.update(arg for arg in tmp_w if arg.is_mem())
             for arg in inputs:
@@ -209,14 +209,14 @@ class SymbExecCTypeFix(SymbExecCType):
             idc.set_cmt(offset, '\n'.join(value), 0)
             print("%x\n" % offset, '\n'.join(value))
 
-        return self.eval_expr(self.ir_arch.IRDst)
+        return self.eval_expr(self.lifter.IRDst)
 
 
 class CTypeEngineFixer(SymbExecCTypeFix):
 
-    def __init__(self, ir_arch, types_mngr, state, cst_propag_link):
+    def __init__(self, lifter, types_mngr, state, cst_propag_link):
         mychandler = MyCHandler(types_mngr, state.symbols)
-        super(CTypeEngineFixer, self).__init__(ir_arch,
+        super(CTypeEngineFixer, self).__init__(lifter,
                                                state.symbols,
                                                mychandler,
                                                cst_propag_link)
@@ -273,16 +273,16 @@ def analyse_function():
 
 
     lifter_model_callCallStackFixer = get_lifter_model_call_call_fixer(lifter_model_call)
-    ir_arch = lifter_model_callCallStackFixer(loc_db)
+    lifter = lifter_model_callCallStackFixer(loc_db)
 
     asmcfg = mdis.dis_multiblock(addr)
     # Generate IR
-    ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
+    ircfg = lifter.new_ircfg_from_asmcfg(asmcfg)
 
     cst_propag_link = {}
     if settings.cUnalias.value:
-        init_infos = {ir_arch.sp: ir_arch.arch.regs.regs_init[ir_arch.sp] }
-        cst_propag_link = propagate_cst_expr(ir_arch, ircfg, addr, init_infos)
+        init_infos = {lifter.sp: lifter.arch.regs.regs_init[lifter.sp] }
+        cst_propag_link = propagate_cst_expr(lifter, ircfg, addr, init_infos)
 
 
     types_mngr = get_types_mngr(settings.headerFile.value, settings.arch.value)
@@ -318,8 +318,8 @@ def analyse_function():
 
     assignblk_head = AssignBlock(
         [
-            ExprAssign(ir_arch.IRDst, ExprLoc(lbl_real_start, ir_arch.IRDst.size)),
-            ExprAssign(ir_arch.sp, ir_arch.arch.regs.regs_init[ir_arch.sp])
+            ExprAssign(lifter.IRDst, ExprLoc(lbl_real_start, lifter.IRDst.size)),
+            ExprAssign(lifter.sp, lifter.arch.regs.regs_init[lifter.sp])
         ],
         first_block.lines[0]
     )
@@ -340,9 +340,9 @@ def analyse_function():
         done.add((lbl, state))
         if lbl not in ircfg.blocks:
             continue
-        symbexec_engine = TypePropagationEngine(ir_arch, types_mngr, state)
+        symbexec_engine = TypePropagationEngine(lifter, types_mngr, state)
         symbexec_engine.run_block_at(ircfg, lbl)
-        symbexec_engine.del_mem_above_stack(ir_arch.sp)
+        symbexec_engine.del_mem_above_stack(lifter.sp)
 
         sons = ircfg.successors(lbl)
         for son in sons:
@@ -354,9 +354,9 @@ def analyse_function():
     for lbl, state in viewitems(states):
         if lbl not in ircfg.blocks:
             continue
-        symbexec_engine = CTypeEngineFixer(ir_arch, types_mngr, state, cst_propag_link)
+        symbexec_engine = CTypeEngineFixer(lifter, types_mngr, state, cst_propag_link)
         symbexec_engine.run_block_at(ircfg, lbl)
-        symbexec_engine.del_mem_above_stack(ir_arch.sp)
+        symbexec_engine.del_mem_above_stack(lifter.sp)
 
 
 if __name__ == "__main__":

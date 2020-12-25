@@ -16,11 +16,11 @@ Get read/written registers for a given instruction
 """)
 
 arch = mn_x86
-ir_arch = LifterModelCall_x86_32(loc_db)
-ircfg = ir_arch.new_ircfg()
+lifter = LifterModelCall_x86_32(loc_db)
+ircfg = lifter.new_ircfg()
 instr = arch.fromstring('LODSB', loc_db, 32)
 instr.offset, instr.l = 0, 15
-ir_arch.add_instr_to_ircfg(instr, ircfg)
+lifter.add_instr_to_ircfg(instr, ircfg)
 
 print('*' * 80)
 for lbl, irblock in viewitems(ircfg.blocks):
