@@ -25,7 +25,6 @@ class Machine(object):
         jitter = None
         gdbserver = None
         jit = None
-        jitter = None
         log_jit = None
         log_arch = None
 
