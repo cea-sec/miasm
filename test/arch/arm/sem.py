@@ -9,7 +9,7 @@ from future.utils import viewitems
 
 from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.arch.arm.arch import mn_arm as mn
-from miasm.arch.arm.sem import Lifter_Arml as ir_arch
+from miasm.arch.arm.sem import Lifter_Arml as Lifter
 from miasm.arch.arm.regs import *
 from miasm.expression.expression import *
 from miasm.core.locationdb import LocationDB
@@ -17,7 +17,7 @@ from pdb import pm
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
 loc_db = LocationDB()
-EXCLUDE_REGS = set([ir_arch(loc_db).IRDst])
+EXCLUDE_REGS = set([Lifter(loc_db).IRDst])
 
 
 def M(addr):
@@ -28,14 +28,14 @@ def compute(asm, inputstate={}, debug=False):
     loc_db = LocationDB()
     sympool = dict(regs_init)
     sympool.update({k: ExprInt(v, k.size) for k, v in viewitems(inputstate)})
-    ir_tmp = ir_arch(loc_db)
-    ircfg = ir_tmp.new_ircfg()
-    symexec = SymbolicExecutionEngine(ir_tmp, sympool)
+    lifter = Lifter(loc_db)
+    ircfg = lifter.new_ircfg()
+    symexec = SymbolicExecutionEngine(lifter, sympool)
     instr = mn.fromstring(asm, loc_db, "l")
     code = mn.asm(instr)[0]
     instr = mn.dis(code, "l")
     instr.offset = inputstate.get(PC, 0)
-    lbl = ir_tmp.add_instr_to_ircfg(instr, ircfg)
+    lbl = lifter.add_instr_to_ircfg(instr, ircfg)
     symexec.run_at(ircfg, lbl)
     if debug:
         for k, v in viewitems(symexec.symbols):

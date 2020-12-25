@@ -3,6 +3,7 @@ Module to generate C code for a given native @block
 """
 
 from builtins import zip
+import warnings
 
 from future.utils import viewitems, viewvalues
 
@@ -107,16 +108,21 @@ class CGen(object):
     CPU_exception_flag = EXCEPT_UNK_MNEMO;
     """ + CODE_RETURN_EXCEPTION
 
-    def __init__(self, ir_arch):
-        self.ir_arch = ir_arch
-        self.PC = self.ir_arch.pc
-        self.translator = TranslatorC(self.ir_arch.loc_db)
+    def __init__(self, lifter):
+        self.lifter = lifter
+        self.PC = self.lifter.pc
+        self.translator = TranslatorC(self.lifter.loc_db)
         self.init_arch_C()
+
+    @property
+    def ir_arch(self):
+        warnings.warn('DEPRECATION WARNING: use ".lifter" instead of ".ir_arch"')
+        return self.lifter
 
     def init_arch_C(self):
         """Iinitialize jitter internals"""
         self.id_to_c_id = {}
-        for reg in self.ir_arch.arch.regs.all_regs_ids:
+        for reg in self.lifter.arch.regs.all_regs_ids:
             self.id_to_c_id[reg] = ExprId('mycpu->%s' % reg, reg.size)
 
         self.C_PC = self.id_to_c(self.PC)
@@ -150,13 +156,13 @@ class CGen(object):
         @assignblk: Assignblk instance
         """
         new_assignblk = dict(assignblk)
-        if self.ir_arch.IRDst not in assignblk:
+        if self.lifter.IRDst not in assignblk:
             offset = instr.offset + instr.l
-            loc_key = self.ir_arch.loc_db.get_or_create_offset_location(offset)
-            dst = ExprLoc(loc_key, self.ir_arch.IRDst.size)
-            new_assignblk[self.ir_arch.IRDst] = dst
+            loc_key = self.lifter.loc_db.get_or_create_offset_location(offset)
+            dst = ExprLoc(loc_key, self.lifter.IRDst.size)
+            new_assignblk[self.lifter.IRDst] = dst
         irs = [AssignBlock(new_assignblk, instr)]
-        return IRBlock(self.ir_arch.loc_db, self.ir_arch.get_loc_key_for_instr(instr), irs)
+        return IRBlock(self.lifter.loc_db, self.lifter.get_loc_key_for_instr(instr), irs)
 
     def block2assignblks(self, block):
         """
@@ -165,7 +171,7 @@ class CGen(object):
         """
         irblocks_list = []
         for instr in block.lines:
-            assignblk_head, assignblks_extra = self.ir_arch.instr2ir(instr)
+            assignblk_head, assignblks_extra = self.lifter.instr2ir(instr)
             # Keep result in ordered list as first element is the assignblk head
             # The remainings order is not really important
             irblock_head = self.assignblk_to_irbloc(instr, assignblk_head)
@@ -174,7 +180,7 @@ class CGen(object):
             # Simplify high level operators
             out = []
             for irblock in irblocks:
-                new_irblock = self.ir_arch.irbloc_fix_regs_for_mode(irblock, self.ir_arch.attrib)
+                new_irblock = self.lifter.irbloc_fix_regs_for_mode(irblock, self.lifter.attrib)
                 new_irblock = new_irblock.simplify(expr_simp_high_to_explicit)[1]
                 out.append(new_irblock)
             irblocks = out
@@ -255,11 +261,11 @@ class CGen(object):
 
         for dst, src in viewitems(assignblk):
             src = src.replace_expr(prefetchers)
-            if dst == self.ir_arch.IRDst:
+            if dst == self.lifter.IRDst:
                 pass
             elif isinstance(dst, ExprId):
                 new_dst = self.add_local_var(dst_var, dst_index, dst)
-                if dst in self.ir_arch.arch.regs.regs_flt_expr:
+                if dst in self.lifter.arch.regs.regs_flt_expr:
                     # Don't mask float assignment
                     c_main.append(
                         '%s = (%s);' % (self.id_to_c(new_dst), self.id_to_c(src)))
@@ -299,7 +305,7 @@ class CGen(object):
                 raise ValueError("Unknown dst")
 
         for dst, new_dst in viewitems(dst_var):
-            if dst == self.ir_arch.IRDst:
+            if dst == self.lifter.IRDst:
                 continue
 
             c_updt.append('%s = %s;' % (self.id_to_c(dst), self.id_to_c(new_dst)))
@@ -339,13 +345,13 @@ class CGen(object):
                     "((%s)?(%s):(%s))" % (cond, src1b, src2b))
         if isinstance(expr, ExprInt):
             offset = int(expr)
-            loc_key = self.ir_arch.loc_db.get_or_create_offset_location(offset)
+            loc_key = self.lifter.loc_db.get_or_create_offset_location(offset)
             self.add_label_index(dst2index, loc_key)
             out = hex(offset)
             return ("%s" % dst2index[loc_key], out)
         if expr.is_loc():
             loc_key = expr.loc_key
-            offset = self.ir_arch.loc_db.get_location_offset(expr.loc_key)
+            offset = self.lifter.loc_db.get_location_offset(expr.loc_key)
             if offset is not None:
                 self.add_label_index(dst2index, loc_key)
                 out = hex(offset)
@@ -391,7 +397,7 @@ class CGen(object):
             out.append(
                 'printf("%.8X %s\\n");' % (
                     instr_attrib.instr.offset,
-                    instr_attrib.instr.to_string(self.ir_arch.loc_db)
+                    instr_attrib.instr.to_string(self.lifter.loc_db)
                 )
             )
         return out
@@ -421,7 +427,7 @@ class CGen(object):
             return out
 
         assert isinstance(dst, LocKey)
-        offset = self.ir_arch.loc_db.get_location_offset(dst)
+        offset = self.lifter.loc_db.get_location_offset(dst)
         if offset is None:
             # Generate goto for local labels
             return ['goto %s;' % dst]
@@ -523,7 +529,7 @@ class CGen(object):
         """
 
         # Check explicit exception raising
-        attrib.set_exception = self.ir_arch.arch.regs.exception_flags in assignblk
+        attrib.set_exception = self.lifter.arch.regs.exception_flags in assignblk
 
         element_read = assignblk.get_r(mem_read=True)
         # Check mem read
@@ -572,7 +578,7 @@ class CGen(object):
 
         last_instr = block.lines[-1]
         offset = last_instr.offset + last_instr.l
-        return self.ir_arch.loc_db.get_or_create_offset_location(offset)
+        return self.lifter.loc_db.get_or_create_offset_location(offset)
 
     def gen_init(self, block):
         """
@@ -582,7 +588,7 @@ class CGen(object):
 
         instr_offsets = [line.offset for line in block.lines]
         post_label = self.get_block_post_label(block)
-        post_offset = self.ir_arch.loc_db.get_location_offset(post_label)
+        post_offset = self.lifter.loc_db.get_location_offset(post_label)
         instr_offsets.append(post_offset)
         lbl_start = block.loc_key
         return (self.CODE_INIT % lbl_start).split("\n"), instr_offsets
@@ -618,7 +624,7 @@ class CGen(object):
         """
 
         loc_key = self.get_block_post_label(block)
-        offset = self.ir_arch.loc_db.get_location_offset(loc_key)
+        offset = self.lifter.loc_db.get_location_offset(loc_key)
         dst = self.dst_to_c(offset)
         code = self.CODE_RETURN_NO_EXCEPTION % (loc_key, self.C_PC, dst, dst)
         return code.split('\n')

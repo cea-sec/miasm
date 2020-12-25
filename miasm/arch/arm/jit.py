@@ -33,14 +33,14 @@ class arm_CGen(CGen):
 
             if instr.name.startswith("IT"):
                 assignments = []
-                label = self.ir_arch.get_instr_label(instr)
+                label = self.lifter.get_instr_label(instr)
                 irblocks = []
-                index, irblocks = self.ir_arch.do_it_block(label, index, block, assignments, True)
+                index, irblocks = self.lifter.do_it_block(label, index, block, assignments, True)
                 irblocks_list += irblocks
                 continue
 
 
-            assignblk_head, assignblks_extra = self.ir_arch.instr2ir(instr)
+            assignblk_head, assignblks_extra = self.lifter.instr2ir(instr)
             # Keep result in ordered list as first element is the assignblk head
             # The remainings order is not really important
             irblock_head = self.assignblk_to_irbloc(instr, assignblk_head)

@@ -87,10 +87,10 @@ class SymbExecTopNoMem(SymbolicExecutionEngine):
 
     StateEngine = SymbolicStateTop
 
-    def __init__(self, ir_arch, state, regstop,
+    def __init__(self, lifter, state, regstop,
                  sb_expr_simp=expr_simp):
         known_symbols = dict(state)
-        super(SymbExecTopNoMem, self).__init__(ir_arch, known_symbols,
+        super(SymbExecTopNoMem, self).__init__(lifter, known_symbols,
                                                sb_expr_simp)
         self.regstop = set(regstop)
 
@@ -125,7 +125,7 @@ class SymbExecTopNoMem(SymbolicExecutionEngine):
         return ret
 
     def eval_exprloc(self, expr, **kwargs):
-        offset = self.ir_arch.loc_db.get_location_offset(expr.loc_key)
+        offset = self.lifter.loc_db.get_location_offset(expr.loc_key)
         if offset is not None:
             ret = ExprInt(offset, expr.size)
         else:

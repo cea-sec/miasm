@@ -14,7 +14,7 @@ import copy
 
 from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.arch.x86.arch import mn_x86 as mn
-from miasm.arch.x86.sem import Lifter_X86_32 as ir_32, Lifter_X86_64 as ir_64
+from miasm.arch.x86.sem import Lifter_X86_32, Lifter_X86_64
 from miasm.arch.x86.regs import *
 from miasm.expression.expression import *
 from miasm.expression.simplifications import expr_simp
@@ -23,16 +23,16 @@ from miasm.core.locationdb import LocationDB
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
 loc_db = LocationDB()
-EXCLUDE_REGS = set([ir_32(loc_db).IRDst, ir_64(loc_db).IRDst])
+EXCLUDE_REGS = set([Lifter_X86_32(loc_db).IRDst, Lifter_X86_64(loc_db).IRDst])
 
 
 m32 = 32
 m64 = 64
 
-def symb_exec(lbl, ir_arch, ircfg, inputstate, debug):
+def symb_exec(lbl, lifter, ircfg, inputstate, debug):
     sympool = dict(regs_init)
     sympool.update(inputstate)
-    symexec = SymbolicExecutionEngine(ir_arch, sympool)
+    symexec = SymbolicExecutionEngine(lifter, sympool)
     symexec.run_at(ircfg, lbl)
     if debug:
         for k, v in viewitems(symexec.symbols):
@@ -43,27 +43,27 @@ def symb_exec(lbl, ir_arch, ircfg, inputstate, debug):
         if k not in EXCLUDE_REGS and regs_init.get(k, None) != v
     }
 
-def compute(ir, mode, asm, inputstate={}, debug=False):
+def compute(Lifter, mode, asm, inputstate={}, debug=False):
     loc_db = LocationDB()
     instr = mn.fromstring(asm, loc_db, mode)
     code = mn.asm(instr)[0]
     instr = mn.dis(code, mode)
     instr.offset = inputstate.get(EIP, 0)
-    ir_arch = ir(loc_db)
-    ircfg = ir_arch.new_ircfg()
-    lbl = ir_arch.add_instr_to_ircfg(instr, ircfg)
-    return symb_exec(lbl, ir_arch, ircfg, inputstate, debug)
+    lifter = Lifter(loc_db)
+    ircfg = lifter.new_ircfg()
+    lbl = lifter.add_instr_to_ircfg(instr, ircfg)
+    return symb_exec(lbl, lifter, ircfg, inputstate, debug)
 
 
-def compute_txt(ir, mode, txt, inputstate={}, debug=False):
+def compute_txt(Lifter, mode, txt, inputstate={}, debug=False):
     loc_db = LocationDB()
     asmcfg = parse_asm.parse_txt(mn, mode, txt, loc_db)
     loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
     patches = asmblock.asm_resolve_final(mn, asmcfg)
-    ir_arch = ir(loc_db)
+    lifter = Lifter(loc_db)
     lbl = loc_db.get_name_location("main")
-    ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
-    return symb_exec(lbl, ir_arch, ircfg, inputstate, debug)
+    ircfg = lifter.new_ircfg_from_asmcfg(asmcfg)
+    return symb_exec(lbl, lifter, ircfg, inputstate, debug)
 
 op_add = lambda a, b: a+b
 op_sub = lambda a, b: a-b
@@ -102,7 +102,7 @@ class TestX86Semantic(unittest.TestCase):
     def int_sse_op(self, name, op, elt_size, reg_size, arg1, arg2):
         arg1 = ExprInt(arg1, XMM0.size)
         arg2 = ExprInt(arg2, XMM0.size)
-        sem = compute(ir_32, m32, '%s XMM0, XMM1' % name,
+        sem = compute(Lifter_X86_32, m32, '%s XMM0, XMM1' % name,
                                   {XMM0: arg1, XMM1: arg2},
                                   False)
         ref = ExprInt(int_vec_op(op, elt_size, reg_size, int(arg1), int(arg2)), XMM0.size)
@@ -111,7 +111,7 @@ class TestX86Semantic(unittest.TestCase):
     def symb_sse_ops(self, names, a, b, ref):
         asm = "\n\t".join(["%s XMM0, XMM1" % name for name in names])
         asm = "main:\n\t" + asm
-        sem = compute_txt(ir_32, m32, asm,
+        sem = compute_txt(Lifter_X86_32, m32, asm,
                                   {XMM0: a, XMM1: b},
                                   False)
         self.assertEqual(sem, {XMM0: ref, XMM1: b})
@@ -119,7 +119,7 @@ class TestX86Semantic(unittest.TestCase):
     def mmx_logical_op(self, name, op, arg1, arg2):
         arg1 = ExprInt(arg1, mm0.size)
         arg2 = ExprInt(arg2, mm0.size)
-        sem = compute(ir_32, m32, '%s MM0, MM1' % name,
+        sem = compute(Lifter_X86_32, m32, '%s MM0, MM1' % name,
                                   {mm0: arg1, mm1: arg2},
                                   False)
         ref = ExprInt(op(int(arg1), int(arg2)), mm0.size)
@@ -128,7 +128,7 @@ class TestX86Semantic(unittest.TestCase):
     def sse_logical_op(self, name, op, arg1, arg2):
         arg1 = ExprInt(arg1, XMM0.size)
         arg2 = ExprInt(arg2, XMM1.size)
-        sem = compute(ir_32, m32, '%s XMM0, XMM1' % name,
+        sem = compute(Lifter_X86_32, m32, '%s XMM0, XMM1' % name,
                                   {XMM0: arg1, XMM1: arg2},
                                   False)
         ref = ExprInt(op(int(arg1), int(arg2)), XMM0.size)

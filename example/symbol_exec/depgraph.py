@@ -52,7 +52,7 @@ for element in args.element:
         raise ValueError("Unknown element '%s'" % element)
 
 mdis = machine.dis_engine(cont.bin_stream, dont_dis_nulstart_bloc=True, loc_db=loc_db)
-ir_arch = machine.lifter_model_call(loc_db)
+lifter = machine.lifter_model_call(loc_db)
 
 # Common argument forms
 init_ctx = {}
@@ -67,7 +67,7 @@ if args.rename_args:
 asmcfg = mdis.dis_multiblock(int(args.func_addr, 0))
 
 # Generate IR
-ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
+ircfg = lifter.new_ircfg_from_asmcfg(asmcfg)
 
 # Get the instance
 dg = DependencyGraph(
@@ -93,7 +93,7 @@ for sol_nb, sol in enumerate(dg.get(current_block.loc_key, elements, assignblk_i
     with open(fname, "w") as fdesc:
             fdesc.write(sol.graph.dot())
 
-    results = sol.emul(ir_arch, ctx=init_ctx)
+    results = sol.emul(lifter, ctx=init_ctx)
     tokens = {str(k): str(v) for k, v in viewitems(results)}
     if not args.json:
         result = ", ".join("=".join(x) for x in viewitems(tokens))

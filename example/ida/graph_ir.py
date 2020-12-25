@@ -103,14 +103,14 @@ def label_str(self):
     return "%s:%s" % (self.name, self.offset)
 
 
-def color_irblock(irblock, ir_arch):
+def color_irblock(irblock, lifter):
     out = []
-    lbl = idaapi.COLSTR("%s:" % ir_arch.loc_db.pretty_str(irblock.loc_key), idaapi.SCOLOR_INSN)
+    lbl = idaapi.COLSTR("%s:" % lifter.loc_db.pretty_str(irblock.loc_key), idaapi.SCOLOR_INSN)
     out.append(lbl)
     for assignblk in irblock:
         for dst, src in sorted(viewitems(assignblk)):
-            dst_f = expr2colorstr(dst, loc_db=ir_arch.loc_db)
-            src_f = expr2colorstr(src, loc_db=ir_arch.loc_db)
+            dst_f = expr2colorstr(dst, loc_db=lifter.loc_db)
+            src_f = expr2colorstr(src, loc_db=lifter.loc_db)
             line = idaapi.COLSTR("%s = %s" % (dst_f, src_f), idaapi.SCOLOR_INSN)
             out.append('    %s' % line)
         out.append("")
@@ -222,7 +222,7 @@ def build_graph(start_addr, type_graph, simplify=False, use_ida_stack=True, dont
     loc_db = LocationDB()
 
     mdis = dis_engine(bs, loc_db=loc_db)
-    ir_arch = IRADelModCallStack(loc_db)
+    lifter = IRADelModCallStack(loc_db)
 
 
     # populate symbols with ida names
@@ -247,7 +247,7 @@ def build_graph(start_addr, type_graph, simplify=False, use_ida_stack=True, dont
         open('asm_flow.dot', 'w').write(asmcfg.dot())
         print("generating IR... %x" % start_addr)
 
-    ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
+    ircfg = lifter.new_ircfg_from_asmcfg(asmcfg)
 
     if verbose:
         print("IR ok... %x" % start_addr)
@@ -271,7 +271,7 @@ def build_graph(start_addr, type_graph, simplify=False, use_ida_stack=True, dont
     head = list(entry_points)[0]
 
     if simplify:
-        ircfg_simplifier = IRCFGSimplifierCommon(ir_arch)
+        ircfg_simplifier = IRCFGSimplifierCommon(lifter)
         ircfg_simplifier.simplify(ircfg, head)
         title += " (simplified)"
 
@@ -302,7 +302,7 @@ def build_graph(start_addr, type_graph, simplify=False, use_ida_stack=True, dont
         if irblock is None:
             continue
         regs = {}
-        for reg in ir_arch.get_out_regs(irblock):
+        for reg in lifter.get_out_regs(irblock):
             regs[reg] = reg
         assignblks = list(irblock)
         new_assiblk = AssignBlock(regs, assignblks[-1].instr)
@@ -326,7 +326,7 @@ def build_graph(start_addr, type_graph, simplify=False, use_ida_stack=True, dont
                 ret = ssa.graph
             elif type_graph == TYPE_GRAPH_IRSSAUNSSA:
                 ircfg = self.ssa_to_unssa(ssa, head)
-                ircfg_simplifier = IRCFGSimplifierCommon(self.ir_arch)
+                ircfg_simplifier = IRCFGSimplifierCommon(self.lifter)
                 ircfg_simplifier.simplify(ircfg, head)
                 ret = ircfg
             else:
@@ -335,7 +335,7 @@ def build_graph(start_addr, type_graph, simplify=False, use_ida_stack=True, dont
 
 
     head = list(entry_points)[0]
-    simplifier = CustomIRCFGSimplifierSSA(ir_arch)
+    simplifier = CustomIRCFGSimplifierSSA(lifter)
     ircfg = simplifier.simplify(ircfg, head)
     open('final.dot', 'w').write(ircfg.dot())
 

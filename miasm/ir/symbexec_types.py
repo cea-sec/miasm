@@ -67,13 +67,13 @@ class SymbExecCType(SymbolicExecutionEngine):
     StateEngine = SymbolicStateCTypes
     OBJC_INTERNAL = "___OBJC___"
 
-    def __init__(self, ir_arch,
+    def __init__(self, lifter,
                  symbols,
                  chandler,
                  sb_expr_simp=expr_simp):
         self.chandler = chandler
 
-        super(SymbExecCType, self).__init__(ir_arch,
+        super(SymbExecCType, self).__init__(lifter,
                                             {},
                                             sb_expr_simp)
         self.symbols = dict(symbols)
