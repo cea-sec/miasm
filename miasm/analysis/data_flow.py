@@ -1519,8 +1519,6 @@ class DelDummyPhi(object):
             else:
                 if src.is_mem() or (src.is_op() and src.op.startswith("call")):
                     if src in equivalence_graph.nodes():
-                        print("BAD %s" % src)
-                        fds
                         return None
                 equivalence_graph.add_uniq_edge(src, dst)
                 equivalence.add(src)
