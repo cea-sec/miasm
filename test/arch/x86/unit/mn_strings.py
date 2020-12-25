@@ -21,8 +21,8 @@ class Test_SCAS(Asm_Test_32):
 
     def check(self):
         assert(self.myjit.cpu.ECX == len(self.MYSTRING))
-        mystr = self.myjit.ir_arch.loc_db.get_name_location('mystr')
-        assert(self.myjit.cpu.EDI == self.myjit.ir_arch.loc_db.get_location_offset(mystr) + len(self.MYSTRING)+1)
+        mystr = self.myjit.lifter.loc_db.get_name_location('mystr')
+        assert(self.myjit.cpu.EDI == self.myjit.lifter.loc_db.get_location_offset(mystr) + len(self.MYSTRING)+1)
 
 
 class Test_MOVS(Asm_Test_32):
@@ -43,10 +43,10 @@ class Test_MOVS(Asm_Test_32):
 
     def check(self):
         assert(self.myjit.cpu.ECX == 0)
-        buffer = self.myjit.ir_arch.loc_db.get_name_location('buffer')
-        assert(self.myjit.cpu.EDI == self.myjit.ir_arch.loc_db.get_location_offset(buffer) + len(self.MYSTRING))
-        mystr = self.myjit.ir_arch.loc_db.get_name_location('mystr')
-        assert(self.myjit.cpu.ESI == self.myjit.ir_arch.loc_db.get_location_offset(mystr) + len(self.MYSTRING))
+        buffer = self.myjit.lifter.loc_db.get_name_location('buffer')
+        assert(self.myjit.cpu.EDI == self.myjit.lifter.loc_db.get_location_offset(buffer) + len(self.MYSTRING))
+        mystr = self.myjit.lifter.loc_db.get_name_location('mystr')
+        assert(self.myjit.cpu.ESI == self.myjit.lifter.loc_db.get_location_offset(mystr) + len(self.MYSTRING))
 
 
 if __name__ == "__main__":

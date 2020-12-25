@@ -17,8 +17,8 @@ is_win = platform.system() == "Windows"
 class JitCore_Gcc(JitCore_Cc_Base):
     "JiT management, using a C compiler as backend"
 
-    def __init__(self, ir_arch, bin_stream):
-        super(JitCore_Gcc, self).__init__(ir_arch, bin_stream)
+    def __init__(self, lifter, bin_stream):
+        super(JitCore_Gcc, self).__init__(lifter, bin_stream)
         self.exec_wrapper = Jitgcc.gcc_exec_block
 
     def deleteCB(self, offset):
@@ -37,7 +37,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
         lib = ctypes.cdll.LoadLibrary(fname_so)
         func = getattr(lib, self.FUNCNAME)
         addr = ctypes.cast(func, ctypes.c_void_p).value
-        offset = self.ir_arch.loc_db.get_location_offset(label)
+        offset = self.lifter.loc_db.get_location_offset(label)
         self.offset_to_jitted_func[offset] = addr
         self.states[offset] = lib
 
@@ -133,10 +133,10 @@ class JitCore_Gcc(JitCore_Cc_Base):
         self.load_code(block.loc_key, fname_out)
 
     @staticmethod
-    def gen_C_source(ir_arch, func_code):
+    def gen_C_source(lifter, func_code):
         c_source = ""
         c_source += "\n".join(func_code)
 
-        c_source = gen_core(ir_arch.arch, ir_arch.attrib) + c_source
+        c_source = gen_core(lifter.arch, lifter.attrib) + c_source
         c_source = "#define PARITY_IMPORT\n#include <Python.h>\n" + c_source
         return c_source

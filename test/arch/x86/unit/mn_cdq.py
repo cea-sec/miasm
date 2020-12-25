@@ -10,7 +10,7 @@ class Test_CBW_16(Asm_Test_16):
     MYSTRING = "test CBW 16"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.EAX = 0x87654321
@@ -31,7 +31,7 @@ class Test_CBW_16_signed(Asm_Test_16):
     MYSTRING = "test CBW 16 signed"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.EAX = 0x87654381
@@ -52,7 +52,7 @@ class Test_CBW_32(Asm_Test_32):
     MYSTRING = "test CBW 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.EAX = 0x87654321
@@ -73,7 +73,7 @@ class Test_CBW_32_signed(Asm_Test_32):
     MYSTRING = "test CBW 32 signed"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.EAX = 0x87654381
@@ -94,7 +94,7 @@ class Test_CDQ_32(Asm_Test_32):
     MYSTRING = "test cdq 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.EAX = 0x77654321
@@ -115,7 +115,7 @@ class Test_CDQ_32_signed(Asm_Test_32):
     MYSTRING = "test cdq 32 signed"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.EAX = 0x87654321
@@ -136,7 +136,7 @@ class Test_CDQ_64(Asm_Test_64):
     MYSTRING = "test cdq 64"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.RAX = 0x1234567877654321
@@ -157,7 +157,7 @@ class Test_CDQ_64_signed(Asm_Test_64):
     MYSTRING = "test cdq 64 signed"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.RAX = 0x1234567887654321
@@ -178,7 +178,7 @@ class Test_CDQE_64(Asm_Test_64):
     MYSTRING = "test cdq 64"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.RAX = 0x1234567877654321
@@ -199,7 +199,7 @@ class Test_CDQE_64_signed(Asm_Test_64):
     MYSTRING = "test cdq 64 signed"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.RAX = 0x1234567887654321
@@ -220,7 +220,7 @@ class Test_CWD_32(Asm_Test_32):
     MYSTRING = "test cdq 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.EAX = 0x87654321
@@ -241,7 +241,7 @@ class Test_CWD_32_signed(Asm_Test_32):
     MYSTRING = "test cdq 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.EAX = 0x87658321
@@ -262,7 +262,7 @@ class Test_CWD_32(Asm_Test_32):
     MYSTRING = "test cdq 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.EAX = 0x87654321
@@ -283,7 +283,7 @@ class Test_CWDE_32(Asm_Test_32):
     MYSTRING = "test cwde 32"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.EAX = 0x87654321
@@ -304,7 +304,7 @@ class Test_CWDE_32_signed(Asm_Test_32):
     MYSTRING = "test cwde 32 signed"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.RAX = 0x87658321
@@ -325,7 +325,7 @@ class Test_CWDE_64(Asm_Test_64):
     MYSTRING = "test cwde 64"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.RAX = 0x1234567887654321
@@ -346,7 +346,7 @@ class Test_CWDE_64_signed(Asm_Test_64):
     MYSTRING = "test cwde 64 signed"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.RAX = 0x1234567887658321
@@ -367,7 +367,7 @@ class Test_CQO_64(Asm_Test_64):
     MYSTRING = "test cwde 64"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.RAX = 0x1234567887654321
@@ -388,7 +388,7 @@ class Test_CQO_64_signed(Asm_Test_64):
     MYSTRING = "test cwde 64 signed"
 
     def prepare(self):
-        self.myjit.ir_arch.loc_db.add_location("lbl_ret", self.ret_addr)
+        self.myjit.lifter.loc_db.add_location("lbl_ret", self.ret_addr)
 
     def test_init(self):
         self.myjit.cpu.RAX = 0x8234567887658321

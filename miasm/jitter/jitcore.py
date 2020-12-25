@@ -37,15 +37,15 @@ class JitCore(object):
     jitted_block_delete_cb = None
     jitted_block_max_size = 10000
 
-    def __init__(self, ir_arch, bin_stream):
+    def __init__(self, lifter, bin_stream):
         """Initialise a JitCore instance.
-        @ir_arch: ir instance for current architecture
+        @lifter: Lifter instance for current architecture
         @bin_stream: bin_stream instance
         """
         # Arch related
-        self.ir_arch = ir_arch
-        self.ircfg = self.ir_arch.new_ircfg()
-        self.arch_name = "%s%s" % (self.ir_arch.arch.name, self.ir_arch.attrib)
+        self.lifter = lifter
+        self.ircfg = self.lifter.new_ircfg()
+        self.arch_name = "%s%s" % (self.lifter.arch.name, self.lifter.attrib)
 
         # Structures for block tracking
         self.offset_to_jitted_func = BoundedDict(self.jitted_block_max_size,
@@ -64,13 +64,18 @@ class JitCore(object):
         # Disassembly Engine
         self.split_dis = set()
         self.mdis = disasmEngine(
-            ir_arch.arch, ir_arch.attrib, bin_stream,
+            lifter.arch, lifter.attrib, bin_stream,
             lines_wd=self.options["jit_maxline"],
-            loc_db=ir_arch.loc_db,
+            loc_db=lifter.loc_db,
             follow_call=False,
             dontdis_retcall=False,
             split_dis=self.split_dis,
         )
+
+    @property
+    def ir_arch(self):
+        warnings.warn('DEPRECATION WARNING: use ".lifter" instead of ".ir_arch"')
+        return self.lifter
 
 
     def set_options(self, **kwargs):
@@ -104,7 +109,7 @@ class JitCore(object):
             cur_block.ad_max = cur_block.lines[-1].offset + cur_block.lines[-1].l
         else:
             # 1 byte block for unknown mnemonic
-            offset = self.ir_arch.loc_db.get_location_offset(cur_block.loc_key)
+            offset = self.lifter.loc_db.get_location_offset(cur_block.loc_key)
             cur_block.ad_min = offset
             cur_block.ad_max = offset+1
 
@@ -131,7 +136,7 @@ class JitCore(object):
 
         # Get the block
         if isinstance(addr, LocKey):
-            addr = self.ir_arch.loc_db.get_location_offset(addr)
+            addr = self.lifter.loc_db.get_location_offset(addr)
             if addr is None:
                 raise RuntimeError("Unknown offset for LocKey")
 
@@ -172,7 +177,7 @@ class JitCore(object):
         """
 
         if offset is None:
-            offset = getattr(cpu, self.ir_arch.pc.name)
+            offset = getattr(cpu, self.lifter.pc.name)
 
         if offset not in self.offset_to_jitted_func:
             # Need to JiT the block
@@ -237,13 +242,13 @@ class JitCore(object):
             try:
                 for irblock in block.blocks:
                     # Remove offset -> jitted block link
-                    offset = self.ir_arch.loc_db.get_location_offset(irblock.loc_key)
+                    offset = self.lifter.loc_db.get_location_offset(irblock.loc_key)
                     if offset in self.offset_to_jitted_func:
                         del(self.offset_to_jitted_func[offset])
 
             except AttributeError:
                 # The block has never been translated in IR
-                offset = self.ir_arch.loc_db.get_location_offset(block.loc_key)
+                offset = self.lifter.loc_db.get_location_offset(block.loc_key)
                 if offset in self.offset_to_jitted_func:
                     del(self.offset_to_jitted_func[offset])
 
@@ -280,7 +285,7 @@ class JitCore(object):
         @block: asmblock
         """
         block_raw = b"".join(line.b for line in block.lines)
-        offset = self.ir_arch.loc_db.get_location_offset(block.loc_key)
+        offset = self.lifter.loc_db.get_location_offset(block.loc_key)
         block_hash = md5(
             b"%X_%s_%s_%s_%s" % (
                 offset,

@@ -51,11 +51,11 @@ class resolver(object):
 class JitCore_Cc_Base(JitCore):
     "JiT management, abstract class using a C compiler as backend"
 
-    def __init__(self, ir_arch, bin_stream):
+    def __init__(self, lifter, bin_stream):
         self.jitted_block_delete_cb = self.deleteCB
-        super(JitCore_Cc_Base, self).__init__(ir_arch, bin_stream)
+        super(JitCore_Cc_Base, self).__init__(lifter, bin_stream)
         self.resolver = resolver()
-        self.ir_arch = ir_arch
+        self.lifter = lifter
         self.states = {}
         self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache")
         try:
@@ -89,7 +89,7 @@ class JitCore_Cc_Base(JitCore):
             os.path.join(
                 lib_dir,
                 "arch",
-                "JitCore_%s%s" % (self.ir_arch.arch.name, ext)
+                "JitCore_%s%s" % (self.lifter.arch.name, ext)
             )
         ]
 
@@ -121,8 +121,8 @@ class JitCore_Cc_Base(JitCore):
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out
 
-        return self.gen_C_source(self.ir_arch, c_code)
+        return self.gen_C_source(self.lifter, c_code)
 
     @staticmethod
-    def gen_C_source(ir_arch, func_code):
+    def gen_C_source(lifter, func_code):
         raise NotImplementedError()
