@@ -1685,7 +1685,6 @@ class UnionFind(object):
         Replace the @old_node by the @new_node
         """
         classes = self.get_classes()
-        node_to_class = dict(self.node_to_class)
 
         new_classes = []
         replace_dct = {old_node:new_node}
@@ -2134,7 +2133,6 @@ class State(object):
         nodes_ok = set()
         while components1:
             component1 = components1.pop()
-            new_component1 = set()
             for node in component1:
                 if node in undefined:
                     continue
@@ -2275,7 +2273,7 @@ class PropagateExpressions(object):
         new_assignblocks = []
         modified = False
 
-        for index, assignblock in enumerate(irblock):
+        for assignblock in irblock:
             if not assignblock.items():
                 continue
             new_assignblk = state.eval_assignblock(assignblock)
