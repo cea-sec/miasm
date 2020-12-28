@@ -965,6 +965,18 @@ def simp_cond_cc_flag(expr_simp, expr):
         return ExprCond(arg, expr.src2, expr.src1)
     return expr
 
+def simp_cond_sub_cf(expr_simp, expr):
+    """
+    ExprCond(FLAG_SUB_CF(A, B), X, Y) => ExprCond(A <u B, X, Y)
+    """
+    if not expr.is_cond():
+        return expr
+    if not expr.cond.is_op("FLAG_SUB_CF"):
+        return expr
+    cond = ExprOp(TOK_INF_UNSIGNED, *expr.cond.args)
+    return ExprCond(cond, expr.src1, expr.src2)
+
+
 def simp_cmp_int(expr_simp, expr):
     """
     ({X, 0} == int) => X == int[:]
