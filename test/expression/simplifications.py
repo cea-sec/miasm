@@ -807,6 +807,17 @@ to_test = [
         ),
     ),
 
+    (
+        ExprCond(
+            ExprOp("FLAG_SUB_CF", a, b),
+            c, d
+        ),
+        ExprCond(
+            ExprOp("<u", a, b),
+            c, d
+        ),
+    ),
+
 
 
 ]
