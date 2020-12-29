@@ -1547,7 +1547,6 @@ class DelDummyPhi(object):
                     node = todo.pop()
                     if node in done:
                         continue
-                    print(node)
                     known.add(node)
                     is_ok = True
                     for parent in equivalence_graph.predecessors(node):
