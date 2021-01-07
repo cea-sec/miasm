@@ -261,6 +261,11 @@ class Jitter(object):
         self.init_exceptions_handler()
         self.exec_cb = None
 
+    @property
+    def ir_arch(self):
+        warnings.warn('DEPRECATION WARNING: use ".lifter" instead of ".ir_arch"')
+        return self.lifter
+
     def init_exceptions_handler(self):
         "Add common exceptions handlers"
 
