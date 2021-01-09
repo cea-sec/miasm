@@ -1270,7 +1270,10 @@ def get_mem_access(mem):
     updt = None
     if isinstance(mem, ExprOp):
         if mem.op == 'preinc':
-            addr = mem.args[0] + mem.args[1]
+            if len(mem.args) == 1:
+                addr = mem.args[0]
+            else:
+                addr = mem.args[0] + mem.args[1]
         elif mem.op == 'segm':
             base = mem.args[0]
             op, (reg, shift) = mem.args[1].op, mem.args[1].args
@@ -2206,11 +2209,13 @@ mnemo_func.update({
     'ldrsh': ldrsh,
     'ldrsw': ldrsw,
 
+    'ldar': ldr, # TODO memory barrier
     'ldarb': ldrb,
 
     'ldaxrb': ldaxrb,
     'stlxrb': stlxrb,
 
+    'stlr': l_str, # TODO memory barrier
     'stlrb': stlrb,
 
     'stlxr': stlxr,
