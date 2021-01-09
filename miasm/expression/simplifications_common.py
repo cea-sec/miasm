@@ -1779,15 +1779,10 @@ def simp_compose_and_mask(_, expr):
     if len(out) == 0:
         return ExprInt(0, expr.size)
     else:
-        if len(out) == 1:
-            result = out[0]
-            if result.size != expr.size:
-                result = result.zeroExtend(expr.size)
-        else:
-            size = sum(arg.size for arg in out)
-            if size != expr.size:
-                out.append(ExprInt(0, expr.size - size))
-            result = ExprCompose(*out)
+        size = sum(arg.size for arg in out)
+        if size != expr.size:
+            out.append(ExprInt(0, expr.size - size))
+        result = ExprCompose(*out)
         if mask_needed:
             result = result & arg2
         return result
