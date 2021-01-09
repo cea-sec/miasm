@@ -80,10 +80,10 @@ loc_db = LocationDB()
 sb = Sandbox_Linux_x86_64(loc_db, options.filename, options, globals())
 
 # Init segment
-sb.jitter.ir_arch.do_stk_segm = True
-sb.jitter.ir_arch.do_ds_segm = True
-sb.jitter.ir_arch.do_str_segm = True
-sb.jitter.ir_arch.do_all_segm = True
+sb.jitter.lifter.do_stk_segm = True
+sb.jitter.lifter.do_ds_segm = True
+sb.jitter.lifter.do_str_segm = True
+sb.jitter.lifter.do_all_segm = True
 FS_0_ADDR = 0x7ff70000
 sb.jitter.cpu.FS = 0x4
 sb.jitter.cpu.set_segm_base(sb.jitter.cpu.FS, FS_0_ADDR)

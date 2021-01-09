@@ -390,10 +390,10 @@ class Arch_x86(Arch):
         super(Arch_x86, self).__init__(loc_db, **kwargs)
 
         if self.options.usesegm:
-            self.jitter.ir_arch.do_stk_segm = True
-            self.jitter.ir_arch.do_ds_segm = True
-            self.jitter.ir_arch.do_str_segm = True
-            self.jitter.ir_arch.do_all_segm = True
+            self.jitter.lifter.do_stk_segm = True
+            self.jitter.lifter.do_ds_segm = True
+            self.jitter.lifter.do_str_segm = True
+            self.jitter.lifter.do_all_segm = True
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE

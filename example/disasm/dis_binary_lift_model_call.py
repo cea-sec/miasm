@@ -29,10 +29,10 @@ asmcfg = mdis.dis_multiblock(addr)
 # Get an IRA converter
 # The sub call are modelised by default operators
 # call_func_ret and call_func_stack
-ir_arch_analysis = machine.lifter_model_call(mdis.loc_db)
+lifter = machine.lifter_model_call(mdis.loc_db)
 
 # Get the IR of the asmcfg
-ircfg_analysis = ir_arch_analysis.new_ircfg_from_asmcfg(asmcfg)
+ircfg_analysis = lifter.new_ircfg_from_asmcfg(asmcfg)
 
 # Display each IR basic blocks
 for irblock in viewvalues(ircfg_analysis.blocks):

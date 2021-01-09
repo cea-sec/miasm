@@ -15,7 +15,7 @@ def get_node_name(label, i, n):
     return n_name
 
 
-def intra_block_flow_raw(ir_arch, ircfg, flow_graph, irb, in_nodes, out_nodes):
+def intra_block_flow_raw(lifter, ircfg, flow_graph, irb, in_nodes, out_nodes):
     """
     Create data flow for an irbloc using raw IR expressions
     """
@@ -66,7 +66,7 @@ def intra_block_flow_raw(ir_arch, ircfg, flow_graph, irb, in_nodes, out_nodes):
 
 
 
-def inter_block_flow_link(ir_arch, ircfg, flow_graph, irb_in_nodes, irb_out_nodes, todo, link_exec_to_data):
+def inter_block_flow_link(lifter, ircfg, flow_graph, irb_in_nodes, irb_out_nodes, todo, link_exec_to_data):
     lbl, current_nodes, exec_nodes = todo
     current_nodes = dict(current_nodes)
 
@@ -106,19 +106,19 @@ def inter_block_flow_link(ir_arch, ircfg, flow_graph, irb_in_nodes, irb_out_node
     return todo
 
 
-def create_implicit_flow(ir_arch, flow_graph, irb_in_nodes, irb_out_ndes):
+def create_implicit_flow(lifter, flow_graph, irb_in_nodes, irb_out_ndes):
 
     # first fix IN/OUT
     # If a son read a node which in not in OUT, add it
-    todo = set(ir_arch.blocks.keys())
+    todo = set(lifter.blocks.keys())
     while todo:
         lbl = todo.pop()
-        irb = ir_arch.blocks[lbl]
-        for lbl_son in ir_arch.graph.successors(irb.loc_key):
-            if not lbl_son in ir_arch.blocks:
+        irb = lifter.blocks[lbl]
+        for lbl_son in lifter.graph.successors(irb.loc_key):
+            if not lbl_son in lifter.blocks:
                 print("cannot find block!!", lbl)
                 continue
-            irb_son = ir_arch.blocks[lbl_son]
+            irb_son = lifter.blocks[lbl_son]
             for n_r in irb_in_nodes[irb_son.loc_key]:
                 if n_r in irb_out_nodes[irb.loc_key]:
                     continue
@@ -130,13 +130,13 @@ def create_implicit_flow(ir_arch, flow_graph, irb_in_nodes, irb_out_ndes):
                 if not n_r in irb_in_nodes[irb.loc_key]:
                     irb_in_nodes[irb.loc_key][n_r] = irb.loc_key, 0, n_r
                 node_n_r = irb_in_nodes[irb.loc_key][n_r]
-                for lbl_p in ir_arch.graph.predecessors(irb.loc_key):
+                for lbl_p in lifter.graph.predecessors(irb.loc_key):
                     todo.add(lbl_p)
 
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
 
-def inter_block_flow(ir_arch, ircfg, flow_graph, irb_0, irb_in_nodes, irb_out_nodes, link_exec_to_data=True):
+def inter_block_flow(lifter, ircfg, flow_graph, irb_0, irb_in_nodes, irb_out_nodes, link_exec_to_data=True):
 
     todo = set()
     done = set()
@@ -147,7 +147,7 @@ def inter_block_flow(ir_arch, ircfg, flow_graph, irb_0, irb_in_nodes, irb_out_no
         if state in done:
             continue
         done.add(state)
-        out = inter_block_flow_link(ir_arch, ircfg, flow_graph, irb_in_nodes, irb_out_nodes, state, link_exec_to_data)
+        out = inter_block_flow_link(lifter, ircfg, flow_graph, irb_in_nodes, irb_out_nodes, state, link_exec_to_data)
         todo.update(out)
 
 
@@ -161,20 +161,20 @@ class symb_exec_func(object):
     There is no real magic here, loops and complex merging will certainly fail.
     """
 
-    def __init__(self, ir_arch):
+    def __init__(self, lifter):
         self.todo = set()
         self.stateby_ad = {}
         self.cpt = {}
         self.states_var_done = set()
         self.states_done = set()
         self.total_done = 0
-        self.ir_arch = ir_arch
+        self.lifter = lifter
 
     def add_state(self, parent, ad, state):
         variables = dict(state.symbols)
 
         # get block dead, and remove from state
-        b = self.ir_arch.get_block(ad)
+        b = self.lifter.get_block(ad)
         if b is None:
             raise ValueError("unknown block! %s" % ad)
         s = parent, ad, tuple(sorted(viewitems(variables)))
@@ -198,7 +198,7 @@ class symb_exec_func(object):
             self.states_done.add(state)
             self.states_var_done.add(state)
 
-            sb = SymbolicExecutionEngine(self.ir_arch, dict(s))
+            sb = SymbolicExecutionEngine(self.lifter, dict(s))
 
             return parent, ad, sb
         return None

@@ -282,10 +282,10 @@ class DependencyResult(DependencyState):
 
         return IRBlock(irb.loc_db, irb.loc_key, assignblks)
 
-    def emul(self, ir_arch, ctx=None, step=False):
+    def emul(self, lifter, ctx=None, step=False):
         """Symbolic execution of relevant nodes according to the history
         Return the values of inputs nodes' elements
-        @ir_arch: Lifter instance
+        @lifter: Lifter instance
         @ctx: (optional) Initial context as dictionary
         @step: (optional) Verbose execution
         Warning: The emulation is not sound if the inputs nodes depend on loop
@@ -308,9 +308,9 @@ class DependencyResult(DependencyState):
                                              line_nb).assignblks
 
         # Eval the block
-        loc_db = ir_arch.loc_db
+        loc_db = lifter.loc_db
         temp_loc = loc_db.get_or_create_name_location("Temp")
-        symb_exec = SymbolicExecutionEngine(ir_arch, ctx_init)
+        symb_exec = SymbolicExecutionEngine(lifter, ctx_init)
         symb_exec.eval_updt_irblock(IRBlock(loc_db, temp_loc, assignblks), step=step)
 
         # Return only inputs values (others could be wrongs)
@@ -361,13 +361,13 @@ class DependencyResultImplicit(DependencyResult):
             conds = translator.from_expr(self.unsat_expr)
         return conds
 
-    def emul(self, ir_arch, ctx=None, step=False):
+    def emul(self, lifter, ctx=None, step=False):
         # Init
         ctx_init = {}
         if ctx is not None:
             ctx_init.update(ctx)
         solver = z3.Solver()
-        symb_exec = SymbolicExecutionEngine(ir_arch, ctx_init)
+        symb_exec = SymbolicExecutionEngine(lifter, ctx_init)
         history = self.history[::-1]
         history_size = len(history)
         translator = Translator.to_language("z3")

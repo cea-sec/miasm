@@ -17,16 +17,16 @@ log.addHandler(console_handler)
 log.setLevel(logging.INFO)
 
 
-def get_block(ir_arch, ircfg, mdis, addr):
+def get_block(lifter, ircfg, mdis, addr):
     """Get IRBlock at address @addr"""
     loc_key = ircfg.get_or_create_loc_key(addr)
     if not loc_key in ircfg.blocks:
         offset = mdis.loc_db.get_location_offset(loc_key)
         block = mdis.dis_block(offset)
-        ir_arch.add_asmblock_to_ircfg(block, ircfg)
+        lifter.add_asmblock_to_ircfg(block, ircfg)
     irblock = ircfg.get_block(loc_key)
     if irblock is None:
-        raise LookupError('No block found at that address: %s' % ir_arch.loc_db.pretty_str(loc_key))
+        raise LookupError('No block found at that address: %s' % lifter.loc_db.pretty_str(loc_key))
     return irblock
 
 
@@ -764,14 +764,14 @@ class SymbolicExecutionEngine(object):
         from miasm.ir.symbexec import SymbolicExecutionEngine
         from miasm.ir.ir import AssignBlock
 
-        ir_arch = Lifter_X86_32()
+        lifter = Lifter_X86_32()
 
         init_state = {
-            ir_arch.arch.regs.EAX: ir_arch.arch.regs.EBX,
+            lifter.arch.regs.EAX: lifter.arch.regs.EBX,
             ExprMem(id_x+ExprInt(0x10, 32), 32): id_a,
         }
 
-        sb_exec = SymbolicExecutionEngine(ir_arch, init_state)
+        sb_exec = SymbolicExecutionEngine(lifter, init_state)
 
         >>> sb_exec.dump()
         EAX                = a
@@ -779,7 +779,7 @@ class SymbolicExecutionEngine(object):
         >>> sb_exec.dump(mems=False)
         EAX                = a
 
-        >>> print sb_exec.eval_expr(ir_arch.arch.regs.EAX + ir_arch.arch.regs.ECX)
+        >>> print sb_exec.eval_expr(lifter.arch.regs.EAX + lifter.arch.regs.ECX)
         EBX + ECX
 
     Inspecting state:
@@ -796,14 +796,14 @@ class SymbolicExecutionEngine(object):
         - eval_updt_assignblk
         - eval_updt_irblock
 
-    Start a symbolic execution based on provisioned '.ir_arch' blocks:
+    Start a symbolic execution based on provisioned '.lifter' blocks:
         - run_block_at
         - run_at
     """
 
     StateEngine = SymbolicState
 
-    def __init__(self, ir_arch, state=None,
+    def __init__(self, lifter, state=None,
                  sb_expr_simp=expr_simp_explicit):
 
         self.expr_to_visitor = {
@@ -820,13 +820,18 @@ class SymbolicExecutionEngine(object):
         if state is None:
             state = {}
 
-        self.symbols = SymbolMngr(addrsize=ir_arch.addrsize, expr_simp=sb_expr_simp)
+        self.symbols = SymbolMngr(addrsize=lifter.addrsize, expr_simp=sb_expr_simp)
 
         for dst, src in viewitems(state):
             self.symbols.write(dst, src)
 
-        self.ir_arch = ir_arch
+        self.lifter = lifter
         self.expr_simp = sb_expr_simp
+
+    @property
+    def ir_arch(self):
+        warnings.warn('DEPRECATION WARNING: use ".lifter" instead of ".ir_arch"')
+        return self.lifter
 
     def get_state(self):
         """Return the current state of the SymbolicEngine"""
@@ -837,7 +842,7 @@ class SymbolicExecutionEngine(object):
         """Restaure the @state of the engine
         @state: StateEngine instance
         """
-        self.symbols = SymbolMngr(addrsize=self.ir_arch.addrsize, expr_simp=self.expr_simp)
+        self.symbols = SymbolMngr(addrsize=self.lifter.addrsize, expr_simp=self.expr_simp)
         for dst, src in viewitems(dict(state)):
             self.symbols[dst] = src
 
@@ -884,7 +889,7 @@ class SymbolicExecutionEngine(object):
 
     def eval_exprloc(self, expr, **kwargs):
         """[DEV]: Evaluate an ExprLoc using the current state"""
-        offset = self.ir_arch.loc_db.get_location_offset(expr.loc_key)
+        offset = self.lifter.loc_db.get_location_offset(expr.loc_key)
         if offset is not None:
             ret = ExprInt(offset, expr.size)
         else:
@@ -1040,7 +1045,7 @@ class SymbolicExecutionEngine(object):
                 self.dump(mems=False)
                 self.dump(ids=False)
                 print('_' * 80)
-        dst = self.eval_expr(self.ir_arch.IRDst)
+        dst = self.eval_expr(self.lifter.IRDst)
 
         return dst
 

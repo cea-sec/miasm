@@ -53,7 +53,6 @@ class IRCFGSimplifier(object):
 
     @property
     def ir_arch(self):
-        fds
         warnings.warn('DEPRECATION WARNING: use ".lifter" instead of ".ir_arch"')
         return self.lifter
 

@@ -28,8 +28,8 @@ class JitCore_LLVM(jitcore.JitCore):
         "ppc32": "JitCore_ppc32",
     }
 
-    def __init__(self, ir_arch, bin_stream):
-        super(JitCore_LLVM, self).__init__(ir_arch, bin_stream)
+    def __init__(self, lifter, bin_stream):
+        super(JitCore_LLVM, self).__init__(lifter, bin_stream)
 
         self.options.update(
             {
@@ -41,7 +41,7 @@ class JitCore_LLVM(jitcore.JitCore):
         )
 
         self.exec_wrapper = Jitllvm.llvm_exec_block
-        self.ir_arch = ir_arch
+        self.lifter = lifter
 
         # Cache temporary dir
         self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache")
@@ -72,23 +72,23 @@ class JitCore_LLVM(jitcore.JitCore):
         lib_dir = os.path.join(lib_dir, 'arch')
         try:
             jit_lib = os.path.join(
-                lib_dir, self.arch_dependent_libs[self.ir_arch.arch.name] + ext
+                lib_dir, self.arch_dependent_libs[self.lifter.arch.name] + ext
             )
             libs_to_load.append(jit_lib)
         except KeyError:
             pass
 
         # Create a context
-        self.context = LLVMContext_JIT(libs_to_load, self.ir_arch)
+        self.context = LLVMContext_JIT(libs_to_load, self.lifter)
 
         # Set the optimisation level
         self.context.optimise_level()
 
         # Save the current architecture parameters
-        self.arch = self.ir_arch.arch
+        self.arch = self.lifter.arch
 
         # Get the correspondence between registers and vmcpu struct
-        mod_name = "miasm.jitter.arch.JitCore_%s" % (self.ir_arch.arch.name)
+        mod_name = "miasm.jitter.arch.JitCore_%s" % (self.lifter.arch.name)
         mod = importlib.import_module(mod_name)
         self.context.set_vmcpu(mod.get_gpreg_offset_all())
 
@@ -140,5 +140,5 @@ class JitCore_LLVM(jitcore.JitCore):
 
         # Store a pointer on the function jitted code
         loc_key = block.loc_key
-        offset = self.ir_arch.loc_db.get_location_offset(loc_key)
+        offset = self.lifter.loc_db.get_location_offset(loc_key)
         self.offset_to_jitted_func[offset] = ptr

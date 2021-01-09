@@ -24,10 +24,10 @@ class mep_CGen(CGen):
     Note: it is used to emulate the *REPEAT instructions
     """
 
-    def __init__(self, ir_arch):
-        self.ir_arch = ir_arch
-        self.PC = self.ir_arch.arch.regs.PC
-        self.translator = TranslatorC(self.ir_arch.loc_db)
+    def __init__(self, lifter):
+        self.lifter = lifter
+        self.PC = self.lifter.arch.regs.PC
+        self.translator = TranslatorC(self.lifter.loc_db)
         self.init_arch_C()
 
     def gen_pre_code(self, attrib):
@@ -79,7 +79,7 @@ class jitter_mepl(Jitter):
     def __init__(self, loc_db, *args, **kwargs):
         Jitter.__init__(self, Lifter_MEPl(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
+        self.lifter.jit_pc = self.lifter.arch.regs.PC
 
     def push_uint16_t(self, v):
         regs = self.cpu.get_gpreg()
@@ -109,4 +109,4 @@ class jitter_mepb(jitter_mepl):
     def __init__(self, loc_db, *args, **kwargs):
         Jitter.__init__(self, Lifter_MEPb(loc_db), *args, **kwargs)
         self.vm.set_big_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
+        self.lifter.jit_pc = self.lifter.arch.regs.PC

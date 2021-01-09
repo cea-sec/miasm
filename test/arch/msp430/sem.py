@@ -9,14 +9,14 @@ from future.utils import viewitems
 
 from miasm.ir.symbexec import SymbolicExecutionEngine
 from miasm.arch.msp430.arch import mn_msp430 as mn, mode_msp430 as mode
-from miasm.arch.msp430.sem import Lifter_MSP430 as ir_arch
+from miasm.arch.msp430.sem import Lifter_MSP430 as Lifter
 from miasm.arch.msp430.regs import *
 from miasm.expression.expression import *
 from miasm.core.locationdb import LocationDB
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
 loc_db = LocationDB()
-EXCLUDE_REGS = set([res, ir_arch(loc_db).IRDst])
+EXCLUDE_REGS = set([res, Lifter(loc_db).IRDst])
 
 
 def M(addr):
@@ -27,14 +27,14 @@ def compute(asm, inputstate={}, debug=False):
     loc_db = LocationDB()
     sympool = dict(regs_init)
     sympool.update({k: ExprInt(v, k.size) for k, v in viewitems(inputstate)})
-    ir_tmp = ir_arch(loc_db)
-    ircfg = ir_tmp.new_ircfg()
-    symexec = SymbolicExecutionEngine(ir_tmp, sympool)
+    lifter = Lifter(loc_db)
+    ircfg = lifter.new_ircfg()
+    symexec = SymbolicExecutionEngine(lifter, sympool)
     instr = mn.fromstring(asm, mode)
     code = mn.asm(instr)[0]
     instr = mn.dis(code, mode)
     instr.offset = inputstate.get(PC, 0)
-    loc_key = ir_tmp.add_instr_to_ircfg(instr, ircfg)
+    loc_key = lifter.add_instr_to_ircfg(instr, ircfg)
     symexec.run_at(ircfg, loc_key)
     if debug:
         for k, v in viewitems(symexec.symbols):

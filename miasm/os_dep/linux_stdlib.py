@@ -74,7 +74,7 @@ def xxx___libc_start_main(jitter):
 
         main = args.main
         # done by __libc_init_first
-        size = jitter.ir_arch.pc.size // 8
+        size = jitter.lifter.pc.size // 8
         argc = args.argc
         argv = args.ubp_av
         envp = argv + (args.argc + 1) * size

@@ -34,8 +34,8 @@ class mipsCGen(CGen):
     return JIT_RET_NO_EXCEPTION;
     """
 
-    def __init__(self, ir_arch):
-        super(mipsCGen, self).__init__(ir_arch)
+    def __init__(self, lifter):
+        super(mipsCGen, self).__init__(lifter)
         self.delay_slot_dst = m2_expr.ExprId("branch_dst_irdst", 32)
         self.delay_slot_set = m2_expr.ExprId("branch_dst_set", 32)
 
@@ -49,17 +49,17 @@ class mipsCGen(CGen):
 
                 irs = []
                 for assignblock in irblock:
-                    if self.ir_arch.pc not in assignblock:
+                    if self.lifter.pc not in assignblock:
                         irs.append(AssignBlock(assignments, assignblock.instr))
                         continue
                     assignments = dict(assignblock)
                     # Add internal branch destination
                     assignments[self.delay_slot_dst] = assignblock[
-                        self.ir_arch.pc]
+                        self.lifter.pc]
                     assignments[self.delay_slot_set] = m2_expr.ExprInt(1, 32)
                     # Replace IRDst with next instruction
-                    dst_loc_key = self.ir_arch.get_next_instr(assignblock.instr)
-                    assignments[self.ir_arch.IRDst] = m2_expr.ExprLoc(dst_loc_key, 32)
+                    dst_loc_key = self.lifter.get_next_instr(assignblock.instr)
+                    assignments[self.lifter.IRDst] = m2_expr.ExprLoc(dst_loc_key, 32)
                     irs.append(AssignBlock(assignments, assignblock.instr))
                 irblocks[blk_idx] = IRBlock(irblock.loc_db, irblock.loc_key, irs)
 
@@ -71,7 +71,7 @@ class mipsCGen(CGen):
         """
 
         loc_key = self.get_block_post_label(block)
-        offset = self.ir_arch.loc_db.get_location_offset(loc_key)
+        offset = self.lifter.loc_db.get_location_offset(loc_key)
         out = (self.CODE_RETURN_NO_EXCEPTION % (loc_key,
                                                 self.C_PC,
                                                 m2_expr.ExprId('branch_dst_irdst', 32),

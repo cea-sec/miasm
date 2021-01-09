@@ -29,11 +29,11 @@ def arm_guess_subcall(dis_engine, cur_block, offsets_to_dis):
     loc_db = dis_engine.loc_db
     lifter_model_call = get_lifter_model_call(arch, dis_engine.attrib)
 
-    ir_arch = lifter_model_call(loc_db)
+    lifter = lifter_model_call(loc_db)
     ircfg = lifter_model_call.new_ircfg()
     print('###')
     print(cur_block)
-    ir_arch.add_asmblock_to_ircfg(cur_block, ircfg)
+    lifter.add_asmblock_to_ircfg(cur_block, ircfg)
 
     to_add = set()
     for irblock in viewvalues(ircfg.blocks):
@@ -41,7 +41,7 @@ def arm_guess_subcall(dis_engine, cur_block, offsets_to_dis):
         lr_val = None
         for exprs in irblock:
             for e in exprs:
-                if e.dst == ir_arch.pc:
+                if e.dst == lifter.pc:
                     pc_val = e.src
                 if e.dst == arch.regs.LR:
                     lr_val = e.src
@@ -71,15 +71,15 @@ def arm_guess_jump_table(dis_engine, cur_block, offsets_to_dis):
     jra = ExprId('jra')
     jrb = ExprId('jrb')
 
-    ir_arch = lifter_model_call(loc_db)
+    lifter = lifter_model_call(loc_db)
     ircfg = lifter_model_call.new_ircfg()
-    ir_arch.add_asmblock_to_ircfg(cur_block, ircfg)
+    lifter.add_asmblock_to_ircfg(cur_block, ircfg)
 
     for irblock in viewvalues(ircfg.blocks):
         pc_val = None
         for exprs in irblock:
             for e in exprs:
-                if e.dst == ir_arch.pc:
+                if e.dst == lifter.pc:
                     pc_val = e.src
         if pc_val is None:
             continue

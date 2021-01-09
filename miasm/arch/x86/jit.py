@@ -14,10 +14,10 @@ log.setLevel(logging.CRITICAL)
 
 
 class x86_32_CGen(CGen):
-    def __init__(self, ir_arch):
-        self.ir_arch = ir_arch
-        self.PC = self.ir_arch.arch.regs.RIP
-        self.translator = TranslatorC(self.ir_arch.loc_db)
+    def __init__(self, lifter):
+        self.lifter = lifter
+        self.PC = self.lifter.arch.regs.RIP
+        self.translator = TranslatorC(self.lifter.loc_db)
         self.init_arch_C()
 
     def gen_post_code(self, attrib, pc_value):
@@ -44,20 +44,20 @@ class jitter_x86_16(Jitter):
     def __init__(self, loc_db, *args, **kwargs):
         Jitter.__init__(self, Lifter_X86_16(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
-        self.ir_arch.do_stk_segm = False
-        self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode
-        self.ir_arch.irbloc_fix_regs_for_mode = self.ir_archbloc_fix_regs_for_mode
+        self.lifter.do_stk_segm = False
+        self.orig_irbloc_fix_regs_for_mode = self.lifter.irbloc_fix_regs_for_mode
+        self.lifter.irbloc_fix_regs_for_mode = self.lifterbloc_fix_regs_for_mode
 
-    def ir_archbloc_fix_regs_for_mode(self, irblock, attrib=64):
+    def lifterbloc_fix_regs_for_mode(self, irblock, attrib=64):
         return self.orig_irbloc_fix_regs_for_mode(irblock, 64)
 
     def push_uint16_t(self, value):
-        self.cpu.SP -= self.ir_arch.sp.size // 8
+        self.cpu.SP -= self.lifter.sp.size // 8
         self.vm.set_u16(self.cpu.SP, value)
 
     def pop_uint16_t(self):
         value = self.vm.get_u16(self.cpu.SP)
-        self.cpu.SP += self.ir_arch.sp.size // 8
+        self.cpu.SP += self.lifter.sp.size // 8
         return value
 
     def get_stack_arg(self, index):
@@ -75,30 +75,30 @@ class jitter_x86_32(Jitter):
     def __init__(self, loc_db, *args, **kwargs):
         Jitter.__init__(self, Lifter_X86_32(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
-        self.ir_arch.do_stk_segm = False
+        self.lifter.do_stk_segm = False
 
-        self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode
-        self.ir_arch.irbloc_fix_regs_for_mode = self.ir_archbloc_fix_regs_for_mode
+        self.orig_irbloc_fix_regs_for_mode = self.lifter.irbloc_fix_regs_for_mode
+        self.lifter.irbloc_fix_regs_for_mode = self.lifterbloc_fix_regs_for_mode
 
-    def ir_archbloc_fix_regs_for_mode(self, irblock, attrib=64):
+    def lifterbloc_fix_regs_for_mode(self, irblock, attrib=64):
         return self.orig_irbloc_fix_regs_for_mode(irblock, 64)
 
     def push_uint16_t(self, value):
-        self.cpu.ESP -= self.ir_arch.sp.size // 8
+        self.cpu.ESP -= self.lifter.sp.size // 8
         self.vm.set_u16(self.cpu.ESP, value)
 
     def pop_uint16_t(self):
         value = self.vm.get_u16(self.cpu.ESP)
-        self.cpu.ESP += self.ir_arch.sp.size // 8
+        self.cpu.ESP += self.lifter.sp.size // 8
         return value
 
     def push_uint32_t(self, value):
-        self.cpu.ESP -= self.ir_arch.sp.size // 8
+        self.cpu.ESP -= self.lifter.sp.size // 8
         self.vm.set_u32(self.cpu.ESP, value)
 
     def pop_uint32_t(self):
         value = self.vm.get_u32(self.cpu.ESP)
-        self.cpu.ESP += self.ir_arch.sp.size // 8
+        self.cpu.ESP += self.lifter.sp.size // 8
         return value
 
     def get_stack_arg(self, index):
@@ -201,21 +201,21 @@ class jitter_x86_64(Jitter):
     def __init__(self, loc_db, *args, **kwargs):
         Jitter.__init__(self, Lifter_X86_64(loc_db), *args, **kwargs)
         self.vm.set_little_endian()
-        self.ir_arch.do_stk_segm = False
+        self.lifter.do_stk_segm = False
 
-        self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode
-        self.ir_arch.irbloc_fix_regs_for_mode = self.ir_archbloc_fix_regs_for_mode
+        self.orig_irbloc_fix_regs_for_mode = self.lifter.irbloc_fix_regs_for_mode
+        self.lifter.irbloc_fix_regs_for_mode = self.lifterbloc_fix_regs_for_mode
 
-    def ir_archbloc_fix_regs_for_mode(self, irblock, attrib=64):
+    def lifterbloc_fix_regs_for_mode(self, irblock, attrib=64):
         return self.orig_irbloc_fix_regs_for_mode(irblock, 64)
 
     def push_uint64_t(self, value):
-        self.cpu.RSP -= self.ir_arch.sp.size // 8
+        self.cpu.RSP -= self.lifter.sp.size // 8
         self.vm.set_u64(self.cpu.RSP, value)
 
     def pop_uint64_t(self):
         value = self.vm.get_u64(self.cpu.RSP)
-        self.cpu.RSP += self.ir_arch.sp.size // 8
+        self.cpu.RSP += self.lifter.sp.size // 8
         return value
 
     def get_stack_arg(self, index):

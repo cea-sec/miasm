@@ -16,16 +16,16 @@ class JitCore_Python(jitcore.JitCore):
 
     SymbExecClass = EmulatedSymbExec
 
-    def __init__(self, ir_arch, bin_stream):
-        super(JitCore_Python, self).__init__(ir_arch, bin_stream)
-        self.ir_arch = ir_arch
-        self.ircfg = self.ir_arch.new_ircfg()
+    def __init__(self, lifter, bin_stream):
+        super(JitCore_Python, self).__init__(lifter, bin_stream)
+        self.lifter = lifter
+        self.ircfg = self.lifter.new_ircfg()
 
         # CPU & VM (None for now) will be set later
 
         self.symbexec = self.SymbExecClass(
             None, None,
-            self.ir_arch, {},
+            self.lifter, {},
             sb_expr_simp=expr_simp_explicit
         )
         self.symbexec.enable_emulated_simplifications()
@@ -40,7 +40,7 @@ class JitCore_Python(jitcore.JitCore):
 
     def arch_specific(self):
         """Return arch specific information for the current architecture"""
-        arch = self.ir_arch.arch
+        arch = self.lifter.arch
         has_delayslot = False
         if arch.name == "mips32":
             from miasm.arch.mips32.jit import mipsCGen
@@ -52,7 +52,7 @@ class JitCore_Python(jitcore.JitCore):
         else:
             from miasm.jitter.codegen import CGen
             cgen_class = CGen
-        return cgen_class(self.ir_arch), has_delayslot
+        return cgen_class(self.lifter), has_delayslot
 
     def add_block(self, asmblock):
         """Create a python function corresponding to an AsmBlock
@@ -64,7 +64,7 @@ class JitCore_Python(jitcore.JitCore):
         irblocks_list = codegen.block2assignblks(asmblock)
         instr_offsets = [line.offset for line in asmblock.lines]
 
-        loc_db = self.ir_arch.loc_db
+        loc_db = self.lifter.loc_db
         local_loc_keys = []
         for irblocks in irblocks_list:
             for irblock in irblocks:
@@ -87,7 +87,7 @@ class JitCore_Python(jitcore.JitCore):
             cur_loc_key = asmblock.loc_key
 
             # Update PC helper
-            update_pc = lambda value: setattr(cpu, self.ir_arch.pc.name, value)
+            update_pc = lambda value: setattr(cpu, self.lifter.pc.name, value)
 
             while True:
                 # Retrieve the expected irblock
@@ -107,8 +107,8 @@ class JitCore_Python(jitcore.JitCore):
                 irblock_attributes = irblocks_attributes[index]
 
                 # Do IRBlock
-                new_irblock = self.ir_arch.irbloc_fix_regs_for_mode(
-                    irblock, self.ir_arch.attrib
+                new_irblock = self.lifter.irbloc_fix_regs_for_mode(
+                    irblock, self.lifter.attrib
                 )
                 if index == 0:
                     # Pre code
@@ -148,7 +148,7 @@ class JitCore_Python(jitcore.JitCore):
                             update_pc(instr.offset)
                             return instr.offset
 
-                dst = exec_engine.eval_expr(self.ir_arch.IRDst)
+                dst = exec_engine.eval_expr(self.lifter.IRDst)
                 if dst.is_int():
                     loc_key = loc_db.get_or_create_offset_location(int(dst))
                     dst = ExprLoc(loc_key, dst.size)
@@ -163,7 +163,7 @@ class JitCore_Python(jitcore.JitCore):
 
                 if instr_attrib.log_regs:
                     update_pc(offset)
-                    cpu.dump_gpregs_with_attrib(self.ir_arch.attrib)
+                    cpu.dump_gpregs_with_attrib(self.lifter.attrib)
 
                 # Post-instr checks
                 if instr_attrib.mem_read | instr_attrib.mem_write:

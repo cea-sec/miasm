@@ -43,9 +43,9 @@ print(loc_db)
 patches = asmblock.asm_resolve_final(mn_x86, asmcfg)
 
 # Translate to IR
-ir_arch = LifterModelCall_x86_32(loc_db)
-ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
-deadrm = DeadRemoval(ir_arch)
+lifter = LifterModelCall_x86_32(loc_db)
+ircfg = lifter.new_ircfg_from_asmcfg(asmcfg)
+deadrm = DeadRemoval(lifter)
 
 
 # Display IR

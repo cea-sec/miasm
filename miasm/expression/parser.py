@@ -73,7 +73,7 @@ expr_aff.setParseAction(lambda t: ExprAssign(*t))
 
 
 def str_to_expr(str_in):
-    """Parse the @str_in and return the corresponoding Expression
+    """Parse the @str_in and return the corresponding Expression
     @str_in: repr string of an Expression"""
 
     try:
