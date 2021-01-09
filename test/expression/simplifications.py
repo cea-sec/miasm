@@ -368,6 +368,19 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
                  ExprInt(0x1, 32),
                  ExprInt(0x0, 32))
        ),
+   (ExprCompose(a[:8],b[:8],c[:8],d[:8])
+                &
+                ExprInt(0xA000B000, 32),
+    ExprCompose(ExprInt(0,8), b[:8], ExprInt(0,8), d[:8]) &
+        ExprInt(0xA000B000, 32)
+      ),
+
+    (ExprCompose(a[:8],b[:8],c[:8],d[:8])
+            &
+            ExprInt(0xFF00FF00, 32),
+     ExprCompose(ExprInt(0,8), b[:8], ExprInt(0,8), d[:8])
+       ),
+
     (ExprCompose(a[:16], b[:16])[8:32],
      ExprCompose(a[8:16], b[:16])),
     ((a >> ExprInt(16, 32))[:16],
