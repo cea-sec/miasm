@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
-from miasm.jitter.loader.pe import get_export_name_addr_list
 from miasm.analysis.binary import Container
+from miasm.core.locationdb import LocationDB
+from miasm.jitter.loader.pe import get_export_name_addr_list
 
 
 parser = ArgumentParser(description="Retrieve exported functions of a DLL")
@@ -10,7 +11,8 @@ args = parser.parse_args()
 
 
 fdesc = open(args.filename, 'rb')
-cont = Container.from_stream(fdesc)
+loc_db = LocationDB()
+cont = Container.from_stream(fdesc, loc_db)
 
 exported_funcs = get_export_name_addr_list(cont.executable)
 
