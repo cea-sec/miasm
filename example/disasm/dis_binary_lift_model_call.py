@@ -32,11 +32,11 @@ asmcfg = mdis.dis_multiblock(addr)
 lifter = machine.lifter_model_call(mdis.loc_db)
 
 # Get the IR of the asmcfg
-ircfg_analysis = lifter.new_ircfg_from_asmcfg(asmcfg)
+ircfg = lifter.new_ircfg_from_asmcfg(asmcfg)
 
 # Display each IR basic blocks
-for irblock in viewvalues(ircfg_analysis.blocks):
+for irblock in viewvalues(ircfg.blocks):
     print(irblock)
 
 # Output ir control flow graph in a dot file
-open('bin_lifter_model_call_cfg.dot', 'w').write(ircfg_analysis.dot())
+open('bin_lifter_model_call_cfg.dot', 'w').write(ircfg.dot())

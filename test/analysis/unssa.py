@@ -574,23 +574,6 @@ class IRAOutRegs(IRATest):
         return set(viewvalues(out))
 
 
-
-def add_out_reg_end(lifter_a, ircfg_a):
-    # Add dummy dependency to uncover out regs affectation
-    for loc in ircfg_a.leaves():
-        irblock = ircfg_a.blocks.get(loc)
-        if irblock is None:
-            continue
-        regs = {}
-        for reg in lifter.get_out_regs(irblock):
-            regs[reg] = reg
-        assignblks = list(irblock)
-        new_assiblk = AssignBlock(regs, assignblks[-1].instr)
-        assignblks.append(new_assiblk)
-        new_irblock = IRBlock(loc_db, irblock.loc_key, assignblks)
-        ircfg_a.blocks[loc] = new_irblock
-
-
 lifter = IRAOutRegs(loc_db)
 
 
