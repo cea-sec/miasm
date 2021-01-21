@@ -237,7 +237,7 @@ if args.gen_ir:
     lifter_model_call = LifterDelModCallStack(mdis.loc_db)
 
     ircfg = lifter.new_ircfg()
-    ircfg_a = lifter.new_ircfg()
+    ircfg_model_call = lifter.new_ircfg()
 
     head = list(entry_points)[0]
 
@@ -245,7 +245,7 @@ if args.gen_ir:
         log.info("generating IR... %x" % ad)
         for block in asmcfg.blocks:
             lifter.add_asmblock_to_ircfg(block, ircfg)
-            lifter_model_call.add_asmblock_to_ircfg(block, ircfg_a)
+            lifter_model_call.add_asmblock_to_ircfg(block, ircfg_model_call)
 
     log.info("Print blocks (without analyse)")
     for label, block in viewitems(ircfg.blocks):
@@ -254,30 +254,30 @@ if args.gen_ir:
     log.info("Gen Graph... %x" % ad)
 
     log.info("Print blocks (with analyse)")
-    for label, block in viewitems(ircfg_a.blocks):
+    for label, block in viewitems(ircfg_model_call.blocks):
         print(block)
 
     if args.simplify > 0:
         log.info("Simplify...")
         ircfg_simplifier = IRCFGSimplifierCommon(lifter_model_call)
-        ircfg_simplifier.simplify(ircfg_a, head)
+        ircfg_simplifier.simplify(ircfg_model_call, head)
         log.info("ok...")
 
     if args.defuse:
-        reachings = ReachingDefinitions(ircfg_a)
+        reachings = ReachingDefinitions(ircfg_model_call)
         open('graph_defuse.dot', 'w').write(DiGraphDefUse(reachings).dot())
 
     out = ircfg.dot()
     open('graph_irflow_raw.dot', 'w').write(out)
-    out = ircfg_a.dot()
+    out = ircfg_model_call.dot()
     open('graph_irflow.dot', 'w').write(out)
 
     if args.ssa and not args.propagexpr:
         if len(entry_points) != 1:
             raise RuntimeError("Your graph should have only one head")
-        ssa = SSADiGraph(ircfg_a)
+        ssa = SSADiGraph(ircfg_model_call)
         ssa.transform(head)
-        open("ssa.dot", "w").write(ircfg_a.dot())
+        open("ssa.dot", "w").write(ircfg_model_call.dot())
 
 
 if args.propagexpr:
@@ -315,5 +315,5 @@ if args.propagexpr:
 
     head = list(entry_points)[0]
     simplifier = CustomIRCFGSimplifierSSA(lifter_model_call)
-    ircfg = simplifier.simplify(ircfg_a, head)
+    ircfg = simplifier.simplify(ircfg_model_call, head)
     open('final.dot', 'w').write(ircfg.dot())
