@@ -242,6 +242,7 @@ def buil_all():
                         "VERSION"
                     ]
                 },
+                install_requires=['future', 'pyparsing'],
                 cmdclass={"install_data": smart_install_data},
                 ext_modules = ext_modules,
                 # Metadata
