@@ -156,6 +156,9 @@ reg_ext_off = (gpregz32_extend | gpregz64_extend)
 gpregs_32_64 = (gpregs32_info.parser | gpregs64_info.parser)
 gpregsz_32_64 = (gpregsz32_info.parser | gpregsz64_info.parser | base_expr)
 
+gpregs_32_64_nosp = (gpregs32_nosp_info.parser | gpregs64_nosp_info.parser)
+
+
 simdregs = (simd08_info.parser | simd16_info.parser | simd32_info.parser | simd64_info.parser)
 simdregs_h = (simd32_info.parser | simd64_info.parser | simd128_info.parser)
 
@@ -167,6 +170,11 @@ gpregs_info = {32: gpregs32_info,
 gpregsz_info = {32: gpregsz32_info,
                 64: gpregsz64_info}
 
+
+gpregs_nosp_info = {
+    32: gpregs32_nosp_info,
+    64: gpregs64_nosp_info
+}
 
 simds_info = {8: simd08_info,
               16: simd16_info,
@@ -535,6 +543,29 @@ class aarch64_gpreg_noarg(reg_noarg):
         if not self.expr.size in self.gpregs_info:
             return False
         if not self.expr in self.gpregs_info[self.expr.size].expr:
+            return False
+        self.value = self.gpregs_info[self.expr.size].expr.index(self.expr)
+        return True
+
+class aarch64_gpreg_noarg_nosp(aarch64_gpreg_noarg):
+    parser = gpregs_32_64_nosp
+    gpregs_info = gpregs_nosp_info
+
+    def decode(self, v):
+        size = 64 if self.parent.sf.value else 32
+        if v >= len(self.gpregs_info[size].expr):
+            return False
+        self.expr = self.gpregs_info[size].expr[v]
+        return True
+
+    def encode(self):
+        if not test_set_sf(self.parent, self.expr.size):
+            return False
+        if not self.expr.size in self.gpregs_info:
+            return False
+        if not self.expr in self.gpregs_info[self.expr.size].expr:
+            return False
+        if self.expr not in self.gpregs_info[self.expr.size].expr:
             return False
         self.value = self.gpregs_info[self.expr.size].expr.index(self.expr)
         return True
@@ -1666,6 +1697,8 @@ rmz = bs(l=5, cls=(aarch64_gpregz,), fname="rm")
 rnz = bs(l=5, cls=(aarch64_gpregz,), fname="rn")
 rdz = bs(l=5, cls=(aarch64_gpregz,), fname="rd")
 
+rd_nosp = bs(l=5, cls=(aarch64_gpreg_noarg_nosp, aarch64_arg), fname="rd")
+
 
 rn_n1 = bs(l=5, cls=(aarch64_gpreg_n1,), fname="rn")
 rm_n1 = bs(l=5, cls=(aarch64_gpreg_n1,), fname="rm")
@@ -1835,7 +1868,9 @@ aarch64op("adrp", [bs('1'), immlo, bs('10000'), immhip, rd64], [rd64, immhip])
 aarch64op("adr",  [bs('0'), immlo, bs('10000'), immhi, rd64], [rd64, immhi])
 
 # add/sub (reg shift)
-aarch64op("addsub", [sf, bs_adsu_name, modf, bs('01011'), shift, bs('0'), rm_sft, imm6, rn, rd], [rd, rn, rm_sft])
+aarch64op("addsub", [sf, bs_adsu_name, modf, bs('01011'), shift, bs('0'), rm_sft, imm6, rn, rd_nosp], [rd_nosp, rn, rm_sft])
+aarch64op("CMN", [sf, bs('0'), bs('1'), bs('01011'), shift, bs('0'), rm_sft, imm6, rn, bs('11111')], [rn, rm_sft])
+
 aarch64op("cmp", [sf, bs('1'), bs('1'), bs('01011'), shift, bs('0'), rm_sft, imm6, rn, bs('11111')], [rn, rm_sft], alias=True)
 # add/sub (reg ext)
 aarch64op("addsub", [sf, bs_adsu_name, modf, bs('01011'), bs('00'), bs('1'), rm_ext, option, imm3, rn, rd], [rd, rn, rm_ext])
