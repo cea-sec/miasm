@@ -2,7 +2,7 @@
 
 from builtins import range
 from miasm.expression.expression import ExprId
-from miasm.core.cpu import gen_reg, gen_regs
+from miasm.core.cpu import gen_reg, gen_regs, reg_info
 
 exception_flags = ExprId('exception_flags', 32)
 interrupt_num = ExprId('interrupt_num', 32)
@@ -24,6 +24,10 @@ gpregsz32_expr, gpregsz32_init, gpregsz32_info = gen_regs(
 gpregsz64_str = ["X%d" % i for i in range(0x1e)] + ["LR", "XZR"]
 gpregsz64_expr, gpregsz64_init, gpregsz64_info = gen_regs(
     gpregsz64_str, globals(), 64)
+
+gpregs32_nosp, _, gpregs32_nosp_info = gen_regs(gpregs32_str[:-1], globals(), 32)
+gpregs64_nosp, _, gpregs64_nosp_info = gen_regs(gpregs64_str[:-1], globals(), 64)
+
 
 cr_str = ["c%d" % i for i in range(0x10)]
 cr_expr, cr_init, cr_info = gen_regs(cr_str, globals(), 32)
