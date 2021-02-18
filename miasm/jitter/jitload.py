@@ -182,7 +182,16 @@ class JitterException(Exception):
         self.exception_flag = exception_flag
 
     def __str__(self):
-        return "A jitter exception occurred (0x%x)" % (self.exception_flag)
+        return "A jitter exception occurred: %s (0x%x)" % (
+            self.exception_flag_to_str(), self.exception_flag
+        )
+
+    def exception_flag_to_str(self):
+        exception_flag_list = []
+        for name, value in JitterExceptions.items():
+            if value & self.exception_flag == value:
+                exception_flag_list.append(name)
+        return ' & '.join(exception_flag_list)
 
 
 class Jitter(object):
