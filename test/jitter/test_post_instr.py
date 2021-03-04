@@ -6,6 +6,7 @@ from miasm.analysis.machine import Machine
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE, \
     EXCEPT_BREAKPOINT_MEMORY, EXCEPT_ACCESS_VIOL
 from miasm.core.locationdb import LocationDB
+from miasm.jitter.jitload import JitterException
 
 machine = Machine("x86_32")
 loc_db = LocationDB()
@@ -45,5 +46,5 @@ jitter.vm.add_memory_breakpoint(0x11000-4, 4, PAGE_READ | PAGE_WRITE)
 jitter.init_run(0x1000)
 try:
     jitter.continue_run()
-except AssertionError:
+except JitterException:
     assert jitter.vm.get_exception() == EXCEPT_ACCESS_VIOL
