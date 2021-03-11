@@ -91,7 +91,7 @@ Using `Machine` abstraction:
 XOR        ESI, DWORD PTR [EAX]
 ```
 
-For Mips:
+For MIPS:
 ```pycon
 >>> mn = Machine('mips32b').mn
 >>> print(mn.dis(b'\x97\xa3\x00 ', "b"))
@@ -205,7 +205,7 @@ MOV        EAX, EBX
 RET
 ```
 
-Initializing the Jit engine with a stack:
+Initializing the JIT engine with a stack:
 
 ```pycon
 >>> jitter = machine.jitter(loc_db, jit_type='python')
