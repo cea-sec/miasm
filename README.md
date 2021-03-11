@@ -597,7 +597,7 @@ They already use Miasm
 Tools
 -----
 
-* [Sibyl](https://github.com/cea-sec/Sibyl): A function divination too
+* [Sibyl](https://github.com/cea-sec/Sibyl): A function divination tool
 * [R2M2](https://github.com/guedou/r2m2): Use miasm as a radare2 plugin
 * [CGrex](https://github.com/mechaphish/cgrex) : Targeted patcher for CGC binaries
 * [ethRE](https://github.com/jbcayrou/ethRE) Reversing tool for Ethereum EVM (with corresponding Miasm2 architecture)
