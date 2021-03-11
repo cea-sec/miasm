@@ -113,7 +113,7 @@ Create an intermediate representation object:
 ```pycon
 >>> lifter = machine.lifter_model_call(loc_db)
 ```
-Create an empty ircfg
+Create an empty ircfg:
 ```pycon
 >>> ircfg = lifter.new_ircfg()
 ```
@@ -599,8 +599,8 @@ Tools
 
 * [Sibyl](https://github.com/cea-sec/Sibyl): A function divination tool
 * [R2M2](https://github.com/guedou/r2m2): Use miasm as a radare2 plugin
-* [CGrex](https://github.com/mechaphish/cgrex) : Targeted patcher for CGC binaries
-* [ethRE](https://github.com/jbcayrou/ethRE) Reversing tool for Ethereum EVM (with corresponding Miasm2 architecture)
+* [CGrex](https://github.com/mechaphish/cgrex): Targeted patcher for CGC binaries
+* [ethRE](https://github.com/jbcayrou/ethRE): Reversing tool for Ethereum EVM (with corresponding Miasm2 architecture)
 
 Blog posts / papers / conferences
 ---------------------------------
