@@ -91,7 +91,7 @@ Using `Machine` abstraction:
 XOR        ESI, DWORD PTR [EAX]
 ```
 
-For Mips:
+For MIPS:
 ```pycon
 >>> mn = Machine('mips32b').mn
 >>> print(mn.dis(b'\x97\xa3\x00 ', "b"))
@@ -113,7 +113,7 @@ Create an intermediate representation object:
 ```pycon
 >>> lifter = machine.lifter_model_call(loc_db)
 ```
-Create an empty ircfg
+Create an empty ircfg:
 ```pycon
 >>> ircfg = lifter.new_ircfg()
 ```
@@ -205,7 +205,7 @@ MOV        EAX, EBX
 RET
 ```
 
-Initializing the Jit engine with a stack:
+Initializing the JIT engine with a stack:
 
 ```pycon
 >>> jitter = machine.jitter(loc_db, jit_type='python')
@@ -597,10 +597,10 @@ They already use Miasm
 Tools
 -----
 
-* [Sibyl](https://github.com/cea-sec/Sibyl): A function divination too
+* [Sibyl](https://github.com/cea-sec/Sibyl): A function divination tool
 * [R2M2](https://github.com/guedou/r2m2): Use miasm as a radare2 plugin
-* [CGrex](https://github.com/mechaphish/cgrex) : Targeted patcher for CGC binaries
-* [ethRE](https://github.com/jbcayrou/ethRE) Reversing tool for Ethereum EVM (with corresponding Miasm2 architecture)
+* [CGrex](https://github.com/mechaphish/cgrex): Targeted patcher for CGC binaries
+* [ethRE](https://github.com/jbcayrou/ethRE): Reversing tool for Ethereum EVM (with corresponding Miasm2 architecture)
 
 Blog posts / papers / conferences
 ---------------------------------
