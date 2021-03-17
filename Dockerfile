@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Miasm-Docker. If not, see <http://www.gnu.org/licenses/>.
 
-FROM debian:stretch
+FROM debian:buster
 MAINTAINER Camille Mougey <commial@gmail.com>
 
 # Download needed packages
