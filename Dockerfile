@@ -15,7 +15,7 @@
 # along with Miasm-Docker. If not, see <http://www.gnu.org/licenses/>.
 
 FROM debian:buster
-MAINTAINER Camille Mougey <commial@gmail.com>
+LABEL maintainer="Camille Mougey <commial@gmail.com>"
 
 # Download needed packages
 RUN apt-get -qq update && \
