@@ -212,16 +212,16 @@ def slt(arg1, arg2, arg3):
 def l_sub(arg1, arg2, arg3):
     arg1 = arg2 - arg3
 
-def sb(arg1, arg2):
+def sb(ir, instr, arg1, arg2):
     """The least significant byte of @arg1 is stored at the specified address
     @arg2."""
     e = []
-    e.append(m2_expr.ExprMem(arg2.ptr, 8), arg1[:8])
+    e.append(m2_expr.ExprAssign(m2_expr.ExprMem(arg2.ptr, 8), arg1[:8]))
     return e, []
 
-def sh(arg1, arg2):
+def sh(ir, instr, arg1, arg2):
     e = []
-    e.append(m2_expr.ExprMem(arg2.ptr, 16), arg1[:16])
+    e.append(m2_expr.ExprAssign(m2_expr.ExprMem(arg2.ptr, 16), arg1[:16]))
     return e, []
 
 @sbuild.parse
