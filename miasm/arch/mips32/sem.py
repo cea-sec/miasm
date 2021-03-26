@@ -39,7 +39,7 @@ def jal(arg1):
     "Jumps to the calculated address @arg1 and stores the return address in $RA"
     PC = arg1
     ir.IRDst = arg1
-    RA = ExprLoc(ir.get_next_break_loc_key(instr), RA.size)
+    RA = m2_expr.ExprLoc(ir.get_next_break_loc_key(instr), RA.size)
 
 @sbuild.parse
 def jalr(arg1, arg2):
@@ -47,13 +47,13 @@ def jalr(arg1, arg2):
     address in another register @arg2"""
     PC = arg1
     ir.IRDst = arg1
-    arg2 = ExprLoc(ir.get_next_break_loc_key(instr), arg2.size)
+    arg2 = m2_expr.ExprLoc(ir.get_next_break_loc_key(instr), arg2.size)
 
 @sbuild.parse
 def bal(arg1):
     PC = arg1
     ir.IRDst = arg1
-    RA = ExprLoc(ir.get_next_break_loc_key(instr), RA.size)
+    RA = m2_expr.ExprLoc(ir.get_next_break_loc_key(instr), RA.size)
 
 @sbuild.parse
 def l_b(arg1):
@@ -91,14 +91,14 @@ def ll(arg1, arg2):
 @sbuild.parse
 def beq(arg1, arg2, arg3):
     "Branches on @arg3 if the quantities of two registers @arg1, @arg2 are eq"
-    dst = arg3 if ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
+    dst = arg3 if m2_expr.ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else m2_expr.ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst
     ir.IRDst = dst
 
 @sbuild.parse
 def beql(arg1, arg2, arg3):
     "Branches on @arg3 if the quantities of two registers @arg1, @arg2 are eq"
-    dst = arg3 if ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size)
+    dst = arg3 if m2_expr.ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else m2_expr.ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size)
     PC = dst
     ir.IRDst = dst
 
@@ -106,7 +106,7 @@ def beql(arg1, arg2, arg3):
 def bgez(arg1, arg2):
     """Branches on @arg2 if the quantities of register @arg1 is greater than or
     equal to zero"""
-    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if ExprOp(m2_expr.TOK_INF_SIGNED, arg1, ExprInt(0, arg1.size)) else arg2
+    dst = m2_expr.ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if m2_expr.ExprOp(m2_expr.TOK_INF_SIGNED, arg1, m2_expr.ExprInt(0, arg1.size)) else arg2
     PC = dst
     ir.IRDst = dst
 
@@ -114,7 +114,7 @@ def bgez(arg1, arg2):
 def bgezl(arg1, arg2):
     """Branches on @arg2 if the quantities of register @arg1 is greater than or
     equal to zero"""
-    dst = ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size) if ExprOp(m2_expr.TOK_INF_SIGNED, arg1, ExprInt(0, arg1.size)) else arg2
+    dst = m2_expr.ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size) if m2_expr.ExprOp(m2_expr.TOK_INF_SIGNED, arg1, m2_expr.ExprInt(0, arg1.size)) else arg2
     PC = dst
     ir.IRDst = dst
 
@@ -122,7 +122,7 @@ def bgezl(arg1, arg2):
 def bne(arg1, arg2, arg3):
     """Branches on @arg3 if the quantities of two registers @arg1, @arg2 are NOT
     equal"""
-    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else arg3
+    dst = m2_expr.ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if m2_expr.ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else arg3
     PC = dst
     ir.IRDst = dst
 
@@ -130,7 +130,7 @@ def bne(arg1, arg2, arg3):
 def bnel(arg1, arg2, arg3):
     """Branches on @arg3 if the quantities of two registers @arg1, @arg2 are NOT
     equal"""
-    dst = ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size) if ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else arg3
+    dst = m2_expr.ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size) if m2_expr.ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else arg3
     PC = dst
     ir.IRDst = dst
 
@@ -138,7 +138,7 @@ def bnel(arg1, arg2, arg3):
 def lui(arg1, arg2):
     """The immediate value @arg2 is shifted left 16 bits and stored in the
     register @arg1. The lower 16 bits are zeroes."""
-    arg1 = ExprCompose(i16(0), arg2[:16])
+    arg1 = m2_expr.ExprCompose(i16(0), arg2[:16])
 
 @sbuild.parse
 def nop():
@@ -191,20 +191,20 @@ def mul(arg1, arg2, arg3):
 def sltu(arg1, arg2, arg3):
     """If @arg2 is less than @arg3 (unsigned), @arg1 is set to one. It gets zero
     otherwise."""
-    arg1 = ExprCond(
-        ExprOp(m2_expr.TOK_INF_UNSIGNED, arg2, arg3),
-        ExprInt(1, arg1.size),
-        ExprInt(0, arg1.size)
+    arg1 = m2_expr.ExprCond(
+        m2_expr.ExprOp(m2_expr.TOK_INF_UNSIGNED, arg2, arg3),
+        m2_expr.ExprInt(1, arg1.size),
+        m2_expr.ExprInt(0, arg1.size)
     )
 
 @sbuild.parse
 def slt(arg1, arg2, arg3):
     """If @arg2 is less than @arg3 (signed), @arg1 is set to one. It gets zero
     otherwise."""
-    arg1 = ExprCond(
-        ExprOp(m2_expr.TOK_INF_SIGNED, arg2, arg3),
-        ExprInt(1, arg1.size),
-        ExprInt(0, arg1.size)
+    arg1 = m2_expr.ExprCond(
+        m2_expr.ExprOp(m2_expr.TOK_INF_SIGNED, arg2, arg3),
+        m2_expr.ExprInt(1, arg1.size),
+        m2_expr.ExprInt(0, arg1.size)
     )
 
 
@@ -212,16 +212,16 @@ def slt(arg1, arg2, arg3):
 def l_sub(arg1, arg2, arg3):
     arg1 = arg2 - arg3
 
-def sb(arg1, arg2):
+def sb(ir, instr, arg1, arg2):
     """The least significant byte of @arg1 is stored at the specified address
     @arg2."""
     e = []
-    e.append(m2_expr.ExprMem(arg2.ptr, 8), arg1[:8])
+    e.append(m2_expr.ExprAssign(m2_expr.ExprMem(arg2.ptr, 8), arg1[:8]))
     return e, []
 
-def sh(arg1, arg2):
+def sh(ir, instr, arg1, arg2):
     e = []
-    e.append(m2_expr.ExprMem(arg2.ptr, 16), arg1[:16])
+    e.append(m2_expr.ExprAssign(m2_expr.ExprMem(arg2.ptr, 16), arg1[:16]))
     return e, []
 
 @sbuild.parse
@@ -287,52 +287,52 @@ def seh(arg1, arg2):
 @sbuild.parse
 def bltz(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is less than zero"""
-    dst_o = arg2 if ExprOp(m2_expr.TOK_INF_SIGNED, arg1, ExprInt(0, arg1.size)) else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
+    dst_o = arg2 if m2_expr.ExprOp(m2_expr.TOK_INF_SIGNED, arg1, m2_expr.ExprInt(0, arg1.size)) else m2_expr.ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def bltzl(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is less than zero"""
-    dst_o = arg2 if ExprOp(m2_expr.TOK_INF_SIGNED, arg1, ExprInt(0, arg1.size)) else ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size)
+    dst_o = arg2 if m2_expr.ExprOp(m2_expr.TOK_INF_SIGNED, arg1, m2_expr.ExprInt(0, arg1.size)) else m2_expr.ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def blez(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is less than or equal to zero"""
-    cond = ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, ExprInt(0, arg1.size))
-    dst_o = arg2 if cond else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
+    cond = m2_expr.ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, m2_expr.ExprInt(0, arg1.size))
+    dst_o = arg2 if cond else m2_expr.ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def blezl(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is less than or equal to zero"""
-    cond = ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, ExprInt(0, arg1.size))
-    dst_o = arg2 if cond else ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size)
+    cond = m2_expr.ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, m2_expr.ExprInt(0, arg1.size))
+    dst_o = arg2 if cond else m2_expr.ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def bgtz(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is greater than zero"""
-    cond =  ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, ExprInt(0, arg1.size))
-    dst_o = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if cond else arg2
+    cond =  m2_expr.ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, m2_expr.ExprInt(0, arg1.size))
+    dst_o = m2_expr.ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if cond else arg2
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def bgtzl(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is greater than zero"""
-    cond =  ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, ExprInt(0, arg1.size))
-    dst_o = ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size) if cond else arg2
+    cond =  m2_expr.ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, m2_expr.ExprInt(0, arg1.size))
+    dst_o = m2_expr.ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size) if cond else arg2
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def wsbh(arg1, arg2):
-    arg1 = ExprCompose(arg2[8:16], arg2[0:8], arg2[24:32], arg2[16:24])
+    arg1 = m2_expr.ExprCompose(arg2[8:16], arg2[0:8], arg2[24:32], arg2[16:24])
 
 @sbuild.parse
 def rotr(arg1, arg2, arg3):
@@ -397,7 +397,7 @@ def tlbr():
 
 def break_(ir, instr):
     e = []
-    e.append(ExprAssign(exception_flags, ExprInt(EXCEPT_SOFT_BP, 32)))
+    e.append(m2_expr.ExprAssign(exception_flags, m2_expr.ExprInt(EXCEPT_SOFT_BP, 32)))
     return e, []
 
 def ins(ir, instr, a, b, c, d):
@@ -439,25 +439,25 @@ def c_le_d(arg1, arg2, arg3):
 
 @sbuild.parse
 def bc1t(arg1, arg2):
-    dst_o = arg2 if arg1 else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
+    dst_o = arg2 if arg1 else m2_expr.ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def bc1tl(arg1, arg2):
-    dst_o = arg2 if arg1 else ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size)
+    dst_o = arg2 if arg1 else m2_expr.ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def bc1f(arg1, arg2):
-    dst_o = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if arg1 else arg2
+    dst_o = m2_expr.ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if arg1 else arg2
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def bc1fl(arg1, arg2):
-    dst_o = ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size) if arg1 else arg2
+    dst_o = m2_expr.ExprLoc(ir.get_next_delay_loc_key(instr), ir.IRDst.size) if arg1 else arg2
     PC = dst_o
     ir.IRDst = dst_o
 
@@ -485,14 +485,14 @@ def multu(arg1, arg2):
 @sbuild.parse
 def div(arg1, arg2):
     """Divide (signed) @arg1 by @arg2 and stores the remaining/result in $R_HI/$R_LO"""
-    R_LO = ExprOp('sdiv' ,arg1, arg2)
-    R_HI = ExprOp('smod', arg1, arg2)
+    R_LO = m2_expr.ExprOp('sdiv' ,arg1, arg2)
+    R_HI = m2_expr.ExprOp('smod', arg1, arg2)
 
 @sbuild.parse
 def divu(arg1, arg2):
     """Divide (unsigned) @arg1 by @arg2 and stores the remaining/result in $R_HI/$R_LO"""
-    R_LO = ExprOp('udiv', arg1, arg2)
-    R_HI = ExprOp('umod', arg1, arg2)
+    R_LO = m2_expr.ExprOp('udiv', arg1, arg2)
+    R_HI = m2_expr.ExprOp('umod', arg1, arg2)
 
 @sbuild.parse
 def mfhi(arg1):
@@ -519,7 +519,7 @@ def ehb(arg1):
 @sbuild.parse
 def sc(arg1, arg2):
     arg2 = arg1;
-    arg1 = ExprInt(0x1, 32)
+    arg1 = m2_expr.ExprInt(0x1, 32)
 
 @sbuild.parse
 def mthi(arg1):
