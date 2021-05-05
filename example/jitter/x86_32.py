@@ -13,7 +13,7 @@ parser.add_argument("-j", "--jitter",
 args = parser.parse_args()
 
 def code_sentinelle(jitter):
-    jitter.run = False
+    jitter.running = False
     jitter.pc = 0
     return True
 
