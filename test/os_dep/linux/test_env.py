@@ -36,4 +36,4 @@ sb = sandbox(loc_db, options.filename, options, globals())
 # Run
 sb.run()
 
-assert(sb.jitter.run is False)
+assert(sb.jitter.running is False)

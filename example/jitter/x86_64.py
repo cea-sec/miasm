@@ -34,7 +34,7 @@ SYSCALL = {
 
 
 def code_sentinelle(jitter):
-    jitter.run = False
+    jitter.running = False
     jitter.pc = 0
     return True
 

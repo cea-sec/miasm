@@ -291,7 +291,7 @@ def sys_generic_exit_group(jitter, linux_env):
 
     # Stub
     log.debug("Exit with status code %d", status)
-    jitter.run = False
+    jitter.running = False
 
 
 def sys_generic_read(jitter, linux_env):

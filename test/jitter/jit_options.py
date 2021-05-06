@@ -25,7 +25,7 @@ run_addr = 0x40000000
 loc_db = LocationDB()
 
 def code_sentinelle(jitter):
-    jitter.run = False
+    jitter.running = False
     jitter.pc = 0
     return True
 
@@ -50,7 +50,7 @@ myjit = init_jitter(loc_db)
 myjit.init_run(run_addr)
 myjit.continue_run()
 
-assert myjit.run is False
+assert myjit.running is False
 assert myjit.cpu.EAX  == 0x0
 
 ## Let's specify a max_exec_per_call
@@ -74,7 +74,7 @@ myjit.init_run(run_addr)
 myjit.exec_cb = cb
 myjit.continue_run()
 
-assert myjit.run is True
+assert myjit.running is True
 # Use a '>=' because it's a 'max_...'
 assert myjit.cpu.EAX >= 0xA
 
@@ -94,7 +94,7 @@ myjit.init_run(run_addr)
 myjit.exec_cb = cb
 myjit.continue_run()
 
-assert myjit.run is False
+assert myjit.running is False
 assert myjit.cpu.EAX  == 0x00
 ## main(2) + (loop_main(3))*(0x10) + loop_end(1) + 0x1337beef (1)
 assert counter == 52

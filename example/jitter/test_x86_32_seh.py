@@ -59,4 +59,4 @@ sb.jitter.add_breakpoint(win_api_x86_32_seh.return_from_exception, return_from_s
 # Run
 sb.run()
 
-assert(sb.jitter.run is False)
+assert(sb.jitter.running is False)

@@ -223,7 +223,7 @@ Create a sentinelle to catch the return of the shellcode:
 
 ```Python
 def code_sentinelle(jitter):
-    jitter.run = False
+    jitter.running = False
     jitter.pc = 0
     return True
 

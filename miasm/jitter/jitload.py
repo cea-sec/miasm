@@ -212,6 +212,7 @@ class Jitter(object):
         self.arch = lifter.arch
         self.attrib = lifter.attrib
         arch_name = lifter.arch.name  # (lifter.arch.name, lifter.attrib)
+        self.running = False
 
         try:
             if arch_name == "x86":
@@ -418,7 +419,7 @@ class Jitter(object):
         """
         self.run_iterator = self.runiter_once(pc)
         self.pc = pc
-        self.run = True
+        self.running = True
 
     def continue_run(self, step=False, trace=False):
         """PRE: init_run.
@@ -430,7 +431,7 @@ class Jitter(object):
 
         if trace:
             self.set_trace_log()
-        while self.run:
+        while self.running:
             try:
                 return next(self.run_iterator)
             except StopIteration:
