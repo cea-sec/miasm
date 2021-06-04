@@ -20,7 +20,10 @@ is_win = platform.system() == "Windows"
 is_mac = platform.system() == "Darwin"
 is_64bit = platform.architecture()[0] == "64bit"
 if is_win:
-    import winreg
+    try:
+        import winreg
+    except ImportError:
+        import _winreg as winreg
 
 def set_extension_compile_args(extension):
     rel_lib_path = extension.name.replace('.', '/')
@@ -43,16 +46,22 @@ class smart_install_data(install_data):
 def win_get_llvm_reg():
     REG_PATH = "SOFTWARE\\LLVM\\LLVM"
     try:
-      return winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, REG_PATH, 0, winreg.KEY_READ | winreg.KEY_WOW64_32KEY)
-    except FileNotFoundError:
-      pass
+        try:
+            return winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, REG_PATH, 0, winreg.KEY_READ | winreg.KEY_WOW64_32KEY)
+        except FileNotFoundError:
+            pass
+    except NameError:
+        pass
     return winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, REG_PATH, 0, winreg.KEY_READ)
   
 def win_find_clang_path():
     try:
-        with win_get_llvm_reg() as rkey:
-            return winreg.QueryValueEx(rkey, None)[0]
-    except FileNotFoundError:
+        try:
+            with win_get_llvm_reg() as rkey:
+                return winreg.QueryValueEx(rkey, None)[0]
+        except FileNotFoundError:
+            return None
+    except NameError:
         return None
 
 def win_use_clang():
