@@ -553,7 +553,7 @@ class mep_arg(m_arg):
                 return arg.name
             if isinstance(arg.name, str) and arg.name in gpr_names:
                 return None  # GV: why?
-            loc_key = loc_db.get_or_create_name_location(arg.name.encode())
+            loc_key = loc_db.get_or_create_name_location(arg.name)
             return ExprLoc(loc_key, 32)
 
         elif isinstance(arg, AstMem):

@@ -7,7 +7,7 @@ import struct
 
 from future.utils import PY3, with_metaclass
 
-from miasm.core.utils import force_bytes
+from miasm.core.utils import force_bytes, force_str
 from miasm.loader import cstruct
 from miasm.loader import elf
 from miasm.loader.strpatchwork import StrPatchwork

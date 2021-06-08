@@ -58,9 +58,9 @@ loc_db.consistency_check()
 
 # Names manipulation
 loc_key5 = loc_db.add_location()
-name1 = b"name1"
-name2 = b"name2"
-name3 = b"name3"
+name1 = "name1"
+name2 = "name2"
+name3 = "name3"
 assert len(loc_db.get_location_names(loc_key5)) == 0
 loc_db.add_location_name(loc_key5, name1)
 loc_db.add_location_name(loc_key5, name2)

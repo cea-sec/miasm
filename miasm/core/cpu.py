@@ -1025,10 +1025,10 @@ class instruction(object):
                 loc_key = exprloc.loc_key
                 names = loc_db.get_location_names(loc_key)
                 # special symbols
-                if b'$' in names:
+                if '$' in names:
                     fixed_expr[exprloc] = self.get_asm_offset(exprloc)
                     continue
-                if b'_' in names:
+                if '_' in names:
                     fixed_expr[exprloc] = self.get_asm_next_offset(exprloc)
                     continue
                 arg_int = loc_db.get_location_offset(loc_key)

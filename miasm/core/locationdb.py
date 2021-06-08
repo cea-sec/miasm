@@ -4,7 +4,7 @@ from builtins import int as int_types
 from functools import reduce
 from future.utils import viewitems, viewvalues
 
-from miasm.core.utils import printable, force_bytes
+from miasm.core.utils import printable
 from miasm.expression.expression import LocKey, ExprLoc
 
 
@@ -85,7 +85,7 @@ class LocationDB(object):
         Return the LocKey of @name if any, None otherwise.
         @name: target name
         """
-        name = force_bytes(name)
+        assert isinstance(name, str)
         return self._name_to_loc_key.get(name)
 
     def get_or_create_name_location(self, name):
@@ -93,7 +93,7 @@ class LocationDB(object):
         Return the LocKey of @name if any, create one otherwise.
         @name: target name
         """
-        name = force_bytes(name)
+        assert isinstance(name, str)
         loc_key = self._name_to_loc_key.get(name)
         if loc_key is not None:
             return loc_key
@@ -121,7 +121,7 @@ class LocationDB(object):
         Return the offset of @name if any, None otherwise.
         @name: target name
         """
-        name = force_bytes(name)
+        assert isinstance(name, str)
         loc_key = self.get_name_location(name)
         if loc_key is None:
             return None
@@ -132,7 +132,7 @@ class LocationDB(object):
         @name: str instance
         @loc_key: LocKey instance
         """
-        name = force_bytes(name)
+        assert isinstance(name, str)
         assert loc_key in self._loc_keys
         already_existing_loc = self._name_to_loc_key.get(name)
         if already_existing_loc is not None and already_existing_loc != loc_key:
@@ -148,7 +148,7 @@ class LocationDB(object):
         @loc_key: LocKey instance
         """
         assert loc_key in self._loc_keys
-        name = force_bytes(name)
+        assert isinstance(name, str)
         already_existing_loc = self._name_to_loc_key.get(name)
         if already_existing_loc is None:
             raise KeyError("%r is not already associated" % name)
@@ -216,7 +216,7 @@ class LocationDB(object):
 
         @name: string
         """
-        name = force_bytes(name)
+        assert isinstance(name, str)
         if self.get_name_location(name) is None:
             return name
         i = 0
@@ -239,7 +239,6 @@ class LocationDB(object):
         LocKey may be updated and will be returned.
         """
 
-        name = force_bytes(name)
         # Deprecation handling
         if isinstance(name, int_types):
             assert offset is None or offset == name
@@ -258,6 +257,7 @@ class LocationDB(object):
         # Test for collisions
         name_loc_key = None
         if name is not None:
+            assert isinstance(name, str)
             name_loc_key = self.get_name_location(name)
 
         if strict:
