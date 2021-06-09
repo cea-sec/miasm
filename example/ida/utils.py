@@ -46,7 +46,7 @@ def guess_machine(addr=None):
         # Default is arm
         is_armt = False
         if addr is not None:
-            t_reg = GetReg(addr, "T")
+            t_reg = get_sreg(addr, "T")
             is_armt = t_reg == 1
 
         is_bigendian = info.is_be()
