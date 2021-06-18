@@ -36,21 +36,25 @@
 #define MAX(a,b)  (((a)>(b))?(a):(b))
 
 // #define DEBUG_MIASM_AUTOMOD_CODE
+#define MEMORY_ACCESS_LIST_INITIAL_COUNT 100
 
+/*
+  To avoid alloc/free for each instruction access, the buffer is allocated here,
+  and is increased depending of program needs.
+ */
 void memory_access_list_init(struct memory_access_list * access)
 {
-	access->array = NULL;
-	access->allocated = 0;
+	access->array = malloc(MEMORY_ACCESS_LIST_INITIAL_COUNT * sizeof(struct memory_access));
+	if (access->array == NULL) {
+		fprintf(stderr, "cannot realloc struct memory_access access->array\n");
+		exit(EXIT_FAILURE);
+	}
+	access->allocated = MEMORY_ACCESS_LIST_INITIAL_COUNT;
 	access->num = 0;
 }
 
 void memory_access_list_reset(struct memory_access_list * access)
 {
-	if (access->array) {
-		free(access->array);
-		access->array = NULL;
-	}
-	access->allocated = 0;
 	access->num = 0;
 }
 
