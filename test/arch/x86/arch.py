@@ -3205,6 +3205,6 @@ inst = mn_x86.dis(instr_bytes, 32, 0)
 assert(inst.b == instr_bytes)
 
 # Test multiple REX prefixes
-for i in range(1, 3):
+for i in range(1, 4):
     mn = mn_x86.dis(b'\x26' + b'\x48' * i + b'\x89\x10', 64)
     assert (str(mn).strip() == 'MOV        QWORD PTR ES:[RAX], RDX')
