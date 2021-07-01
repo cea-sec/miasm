@@ -751,14 +751,18 @@ class mn_x86(cls_mn):
                 break
             pre_dis_info['prefix'] += c
             offset += 1
-        if mode == 64 and c in b'@ABCDEFGHIJKLMNO':
-            x = ord(c)
+        rex_prefixes = b'@ABCDEFGHIJKLMNO'
+        if mode == 64 and c in rex_prefixes:
+            while c in rex_prefixes:
+                # multiple REX prefixes case - use last REX prefix
+                x = ord(c)
+                offset += 1
+                c = v.getbytes(offset)
             pre_dis_info['rex_p'] = 1
             pre_dis_info['rex_w'] = (x >> 3) & 1
             pre_dis_info['rex_r'] = (x >> 2) & 1
             pre_dis_info['rex_x'] = (x >> 1) & 1
             pre_dis_info['rex_b'] = (x >> 0) & 1
-            offset += 1
         elif pre_dis_info.get('g1', None) == 12 and c in [b'\xa6', b'\xa7', b'\xae', b'\xaf']:
             pre_dis_info['g1'] = 4
         return pre_dis_info, v, mode, offset, offset - offset_o
