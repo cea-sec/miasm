@@ -324,7 +324,7 @@ _write_pkg_file_orig = DistributionMetadata.write_pkg_file
 
 
 def _write_pkg_file(self, file):
-    with TemporaryFile(mode="w+", encoding="utf-8") as tmpfd:
+    with TemporaryFile(mode="w+") as tmpfd:
         _write_pkg_file_orig(self, tmpfd)
         tmpfd.seek(0)
         for line in tmpfd:
