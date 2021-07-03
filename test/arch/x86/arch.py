@@ -3125,6 +3125,8 @@ reg_tests = [
      "f30f1efa"),
     (m32, "00000000    ENDBR32",
      "f30f1efb"),
+    (m64, "00000000    MOV        QWORD PTR ES:[RAX], RDX",
+     "26488910"),
 ]
 
 
@@ -3201,3 +3203,8 @@ cProfile.run('profile_dis(o)')
 instr_bytes = b'\x65\xc7\x00\x09\x00\x00\x00'
 inst = mn_x86.dis(instr_bytes, 32, 0)
 assert(inst.b == instr_bytes)
+
+# Test multiple REX prefixes
+for i in range(1, 4):
+    mn = mn_x86.dis(b'\x26' + b'\x48' * i + b'\x89\x10', 64)
+    assert (str(mn).strip() == 'MOV        QWORD PTR ES:[RAX], RDX')
