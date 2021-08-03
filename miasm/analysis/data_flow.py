@@ -1921,10 +1921,21 @@ class State(object):
                     base2, offset2 = get_expr_base_offset(src.ptr)
                     if base1 != base2:
                         return True
-                    assert offset1 + dst.size // 8 - 1 <= int(base1.mask)
-                    assert offset2 + src.size // 8 - 1 <= int(base2.mask)
-                    interval1 = interval([(offset1, offset1 + dst.size // 8 - 1)])
-                    interval2 = interval([(offset2, offset2 + src.size // 8 - 1)])
+                    size1 = dst.size // 8
+                    size2 = src.size // 8
+                    # Special case:
+                    # @32[ESP + 0xFFFFFFFE], @32[ESP]
+                    # Both memories alias
+                    if offset1 <= int(base1.mask) - size1:
+                        interval1 = interval([(offset1, offset1 + dst.size // 8 - 1)])
+                    else:
+                        interval1 = interval([(offset1, int(base1.mask))])
+                        interval1 += interval([(0, int(base1.mask) - offset1 )])
+                    if offset2 <= int(base2.mask) - size2:
+                        interval2 = interval([(offset2, offset2 + src.size // 8 - 1)])
+                    else:
+                        interval2 = interval([(offset2, int(base2.mask))])
+                        interval2 += interval([(0, int(base2.mask) - offset2 )])
                     if (interval1 & interval2).empty:
                         continue
                     return True
