@@ -1926,16 +1926,20 @@ class State(object):
                     # Special case:
                     # @32[ESP + 0xFFFFFFFE], @32[ESP]
                     # Both memories alias
-                    if offset1 <= int(base1.mask) - size1:
+                    if offset1 + size1 <= int(base1.mask) + 1:
+                        # @32[ESP + 0xFFFFFFFC] => [0xFFFFFFFC, 0xFFFFFFFF]
                         interval1 = interval([(offset1, offset1 + dst.size // 8 - 1)])
                     else:
+                        # @32[ESP + 0xFFFFFFFE] => [0x0, 0x1] U [0xFFFFFFFE, 0xFFFFFFFF]
                         interval1 = interval([(offset1, int(base1.mask))])
-                        interval1 += interval([(0, int(base1.mask) - offset1 )])
-                    if offset2 <= int(base2.mask) - size2:
+                        interval1 += interval([(0, size1 - (int(base1.mask) + 1 - offset1) - 1 )])
+                    if offset2 + size2 <= int(base2.mask) + 1:
+                        # @32[ESP + 0xFFFFFFFC] => [0xFFFFFFFC, 0xFFFFFFFF]
                         interval2 = interval([(offset2, offset2 + src.size // 8 - 1)])
                     else:
+                        # @32[ESP + 0xFFFFFFFE] => [0x0, 0x1] U [0xFFFFFFFE, 0xFFFFFFFF]
                         interval2 = interval([(offset2, int(base2.mask))])
-                        interval2 += interval([(0, int(base2.mask) - offset2 )])
+                        interval2 += interval([(0, size2 - (int(base2.mask) + 1 - offset2) - 1)])
                     if (interval1 & interval2).empty:
                         continue
                     return True
