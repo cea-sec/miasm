@@ -1,7 +1,8 @@
 [![Build Status](https://travis-ci.org/cea-sec/miasm.svg)](https://travis-ci.org/cea-sec/miasm)
 [![Build status](https://ci.appveyor.com/api/projects/status/g845jr23nt18uf29/branch/master?svg=true)](https://ci.appveyor.com/project/cea-sec/miasm)
-[![Code Climate](https://codeclimate.com/github/cea-sec/miasm/badges/gpa.svg)](https://codeclimate.com/github/cea-sec/miasm) [![Join the chat at https://gitter.im/cea-sec/miasm](https://badges.gitter.im/cea-sec/miasm.svg)](https://gitter.im/cea-sec/miasm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
+[![Miasm tests](https://github.com/cea-sec/miasm/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/cea-sec/miasm/actions/workflows/tests.yml?branch=master)
+[![Code Climate](https://codeclimate.com/github/cea-sec/miasm/badges/gpa.svg)](https://codeclimate.com/github/cea-sec/miasm)
+[![Join the chat at https://gitter.im/cea-sec/miasm](https://badges.gitter.im/cea-sec/miasm.svg)](https://gitter.im/cea-sec/miasm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 <p align="center">
 <img src="https://raw.githubusercontent.com/cea-sec/miasm/master/doc/logo_miasm.png">
