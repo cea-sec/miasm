@@ -2548,10 +2548,6 @@ class x86_rm_reg_noarg(object):
             i -= 8
             self.setrexsize(1)
         self.value = i
-        if self.value > self.lmask:
-            log.debug("cannot encode field value %x %x",
-                      self.value, self.lmask)
-            return False
         return True
 
 
@@ -2573,10 +2569,6 @@ class x86_rm_reg_mm(x86_rm_reg_noarg, x86_arg):
             i -= 8
             self.setrexsize(1)
         self.value = i
-        if self.value > self.lmask:
-            log.debug("cannot encode field value %x %x",
-                      self.value, self.lmask)
-            return False
         return True
 
 class x86_rm_reg_xmm(x86_rm_reg_mm):

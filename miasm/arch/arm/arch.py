@@ -1676,10 +1676,6 @@ class armt_barrier_option(reg_noarg, arm_arg):
             log.debug("cannot encode reg %r", self.expr)
             return False
         self.value = self.reg_info.dct_expr_inv[self.expr]
-        if self.value > self.lmask:
-            log.debug("cannot encode field value %x %x",
-                      self.value, self.lmask)
-            return False
         return True
 
     def check_fbits(self, v):
@@ -1749,8 +1745,6 @@ class arm_widthm1(arm_imm, m_arg):
         if not isinstance(self.expr, ExprInt):
             return False
         v = int(self.expr) +  -1
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 
@@ -1996,8 +1990,6 @@ class arm_offpc(arm_offreg):
         if v & 3:
             return False
         v >>= 2
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 
@@ -2099,8 +2091,6 @@ class arm_offbw(imm_noarg):
                 log.debug('off must be aligned %r', v)
                 return False
             v >>= 2
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 
@@ -2117,8 +2107,6 @@ class arm_off(imm_noarg):
         if not isinstance(self.expr, ExprInt):
             return False
         v = int(self.expr)
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 
@@ -2139,8 +2127,6 @@ class arm_offh(imm_noarg):
             log.debug('off must be aligned %r', v)
             return False
         v >>= 1
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 
@@ -2284,8 +2270,6 @@ class armt_rlist_pclr(armt_rlist):
         v = 0
         for r in rlist:
             v |= 1 << r
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 

@@ -1797,8 +1797,6 @@ class op0_value(aarch64_uint64):
         v = self.encodeval(v)
         if v is False:
             return False
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 
