@@ -10,7 +10,7 @@ from miasm.expression.expression import ExprInt, ExprSlice, ExprMem, \
     TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED, TOK_EQUAL
 from miasm.expression.expression_helper import parity, op_propag_cst, \
     merge_sliceto_slice
-
+from miasm.expression.simplifications_explicit import simp_flags
 
 def simp_cst_propagation(e_s, expr):
     """This passe includes:
@@ -1850,3 +1850,19 @@ def simp_smod_sext(expr_s, expr):
                 # Case: int, b.signext()
                 return ExprOp("smod", src1, src2).signExtend(expr.size)
     return expr
+
+# FLAG_SUB_OF(CST1, CST2) => CST
+def simp_flag_cst(expr_simp, expr):
+    if expr.op not in [
+            "FLAG_EQ", "FLAG_EQ_AND", "FLAG_SIGN_SUB", "FLAG_EQ_CMP", "FLAG_ADD_CF",
+            "FLAG_SUB_CF", "FLAG_ADD_OF", "FLAG_SUB_OF", "FLAG_EQ_ADDWC", "FLAG_ADDWC_OF",
+            "FLAG_SUBWC_OF", "FLAG_ADDWC_CF", "FLAG_SUBWC_CF", "FLAG_SIGN_ADDWC",
+            "FLAG_SIGN_SUBWC", "FLAG_EQ_SUBWC",
+            "CC_U<=", "CC_U>=", "CC_S<", "CC_S>", "CC_S<=", "CC_S>=", "CC_U>",
+            "CC_U<", "CC_NEG", "CC_EQ", "CC_NE", "CC_POS"
+    ]:
+        return expr
+    if not all(arg.is_int() for arg in expr.args):
+        return expr
+    new_expr = expr_simp(simp_flags(expr_simp, expr))
+    return new_expr
