@@ -66,6 +66,7 @@ class ExpressionSimplifier(ExprVisitorCallbackBottomToTop):
             simplifications_common.simp_bcdadd_cf,
             simplifications_common.simp_bcdadd,
             simplifications_common.simp_smod_sext,
+            simplifications_common.simp_flag_cst,
         ],
 
         m2_expr.ExprSlice: [
