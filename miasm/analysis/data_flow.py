@@ -1280,6 +1280,8 @@ def update_phi_with_deleted_edges(ircfg, edges_to_del):
     modified = False
     blocks = dict(ircfg.blocks)
     for loc_dst, loc_srcs in viewitems(phi_locs_to_srcs):
+        if loc_dst not in ircfg.blocks:
+            continue
         block = ircfg.blocks[loc_dst]
         if not irblock_has_phi(block):
             continue
@@ -1353,6 +1355,8 @@ def del_unused_edges(ircfg, heads):
     for src, dst in edges_to_del_1.union(edges_to_del_2):
         ircfg.del_edge(src, dst)
     for node in nodes_to_del:
+        if node not in ircfg.blocks:
+            continue
         block = ircfg.blocks[node]
         ircfg.del_node(node)
         del ircfg.blocks[node]
