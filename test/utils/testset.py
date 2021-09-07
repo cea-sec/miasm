@@ -65,7 +65,7 @@ def worker(todo_queue, message_queue, init_args):
         # Check result
         error = None
         if testpy.returncode != 0:
-            error = outputs[1]
+            error = outputs[1].decode()
 
         # Report task finish
         message_queue.put(MessageTaskDone(test, error))
