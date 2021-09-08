@@ -5,6 +5,7 @@ from miasm.expression.expression import *
 from miasm.ir.ir import Lifter, IRBlock, AssignBlock
 from miasm.arch.arm.arch import mn_arm, mn_armt
 from miasm.arch.arm.regs import *
+from miasm.arch.arm.arch import regs_expr
 
 from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_INT_XX
 
@@ -974,31 +975,45 @@ def blx(ir, instr, a):
 # todo
 def vmov(ir, instr, a, b, c=None):
     e = []
+    if c is None:
+        if a not in spregs_expr and b not in spregs_expr:
+            raise NotImplementedError('Not implemented')
+        e.append(ExprAssign(a, b))
+    else:
+        if a in dpregs_expr:
+            # two gp to one dp
+            # a[32:] = b
+            # a[:32] = c
+            e.append(ExprAssign(a, (c.zeroExtend(a.size) << ExprInt(32, 64) | b.zeroExtend(a.size))))
+        elif a in regs_expr:
+            # one dp to two gp
+            # a = c[32:]
+            # b = c[:32]
+            e.append(ExprAssign(a, (c & ExprInt(0xffffffff, 64))[0:32]))
+            e.append(ExprAssign(b, ((c >> ExprInt(32, 64)) & ExprInt(0xffffffff, 64))[0:32]))
+        else:
+            raise NotImplementedError('Not implemented')
+        
     return e, []
 
 # todo
 def vstr(ir, instr, a, b):
-    e = []
-    return e, []
+    raise NotImplementedError('Not implemented')
 
 # todo
-def vcvt(ir, instr, a, a2):
-    e = []
-    return e, []
+def vcvt(ir, instr, a, b):
+    raise NotImplementedError('Not implemented')
 
-# todo:
+# todo
 def strex(ir, instr, a, b, c=None):
-    e = []
-    return e, []
+    raise NotImplementedError('Not implemented')
 
-
-# todo:
+# todo
 def ldrex(ir, instr, a, b):
-    e = []
-    return e, []
+    raise NotImplementedError('Not implemented')
 
-# todo:
 def dmb(ir, instr, a):
+    """Memory barrier"""
     e = []
     return e, []
 
