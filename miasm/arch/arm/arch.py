@@ -1749,6 +1749,7 @@ armop("pld", [bs8(0xF5), bs_addi, bs_rw, bs('01'), mem_rn_imm, bs('1111'), imm12
 
 armop("dsb", [bs('111101010111'), bs('1111'), bs('1111'), bs('0000'), bs('0100'), barrier_option])
 armop("isb", [bs('111101010111'), bs('1111'), bs('1111'), bs('0000'), bs('0110'), barrier_option])
+armop("dmb", [bs('111101010111'), bs('1111'), bs('1111'), bs('0000'), bs('0101'), barrier_option])
 armop("nop", [bs8(0xE3), bs8(0x20), bs8(0xF0), bs8(0)])
 
 class arm_widthm1(arm_imm, m_arg):
