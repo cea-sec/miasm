@@ -2085,9 +2085,6 @@ class arm_deref_reg_imm(arm_arg):
             log.debug('cannot encode off %r', off)
             return False
         self.value = gpregs.expr.index(e.args[0])
-        if self.value >= 1 << self.l:
-            log.debug('cannot encode reg %r', off)
-            return False
         return True
 
 class arm_derefl(arm_deref_reg_imm):
@@ -3396,9 +3393,6 @@ class armt_rn_deref_up(arm_arg):
 
         self.parent.off.expr = ExprInt(v, 32)
         self.value = gpregs.expr.index(e.args[0])
-        if self.value >= 1 << self.l:
-            log.debug('cannot encode reg %r', off)
-            return False
         return True
 
 class arm_gpreg_nopc_noarg(reg_noarg):
