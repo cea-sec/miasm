@@ -505,7 +505,7 @@ class TestARMSemantic(unittest.TestCase):
         self.assertEqual(compute_t('VMOV S0, R0', {S0: 0x1, R0: 0x2}), {S0: 0x2, R0: 0x2})
         self.assertEqual(compute_t('VMOV R0, S0', {S0: 0x1, R0: 0x2}), {S0: 0x1, R0: 0x1})
         self.assertEqual(compute_t('VMOV D0, R0, R1', {D0: 0x1, R0: 0x2, R1:0x3}), {D0: 0x2 | (0x3 << 32), R0: 0x2, R1: 0x3})
-        self.assertEqual(compute_t('VMOV R0, R1, D0', {D0: 0xffffffffffffffff, R0: 0x2, R1:0x3}), {D0: 0xffffffffffffffff, R0: 0xffffffff, R1: 0xffffffff})
+        self.assertEqual(compute_t('VMOV R0, R1, D0', {D0: 0xfffffffcfffffffe, R0: 0x2, R1:0x3}), {D0: 0xfffffffcfffffffe, R0: 0xfffffffe, R1: 0xfffffffc})
 
 if __name__ == '__main__':
     testsuite = unittest.TestLoader().loadTestsFromTestCase(TestARMSemantic)

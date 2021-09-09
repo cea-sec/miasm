@@ -982,15 +982,15 @@ def vmov(ir, instr, a, b, c=None):
     else:
         if a in dpregs_expr:
             # two gp to one dp
-            # a[32:] = b
-            # a[:32] = c
+            # a[:32] = b
+            # a[32:] = c
             e.append(ExprAssign(a, (c.zeroExtend(a.size) << ExprInt(32, 64) | b.zeroExtend(a.size))))
         elif a in regs_expr:
             # one dp to two gp
-            # a = c[32:]
-            # b = c[:32]
-            e.append(ExprAssign(a, (c & ExprInt(0xffffffff, 64))[0:32]))
-            e.append(ExprAssign(b, ((c >> ExprInt(32, 64)) & ExprInt(0xffffffff, 64))[0:32]))
+            # a = c[:32]
+            # b = c[32:]
+            e.append(ExprAssign(a, c[:32]))
+            e.append(ExprAssign(b, c[32:]))
         else:
             raise NotImplementedError('Not implemented')
         
