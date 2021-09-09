@@ -1005,7 +1005,7 @@ def vstr(ir, instr, a, b):
             e.append(ExprAssign(ExprMem(b.ptr + ExprInt(4, 32), 32), a[32:]))
         else:
             e.append(ExprAssign(b, a[32:]))
-            e.append(ExprAssign(b, a[:32]))
+            e.append(ExprAssign(ExprMem(b.ptr + ExprInt(4, 32), 32), a[:32]))
     else:
         raise NotImplementedError('Not implemented')
     return e, []
