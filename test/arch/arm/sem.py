@@ -506,6 +506,12 @@ class TestARMSemantic(unittest.TestCase):
         self.assertEqual(compute_t('VMOV R0, S0', {S0: 0x1, R0: 0x2}), {S0: 0x1, R0: 0x1})
         self.assertEqual(compute_t('VMOV D0, R0, R1', {D0: 0x1, R0: 0x2, R1:0x3}), {D0: 0x2 | (0x3 << 32), R0: 0x2, R1: 0x3})
         self.assertEqual(compute_t('VMOV R0, R1, D0', {D0: 0xfffffffcfffffffe, R0: 0x2, R1:0x3}), {D0: 0xfffffffcfffffffe, R0: 0xfffffffe, R1: 0xfffffffc})
+        self.assertEqual(compute_t('VSTR S0, [SP, 0x30]',
+        {S0: 0x10000, SP: 0x20000, ExprMem(ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), 32): 0x50}), 
+        {S0: 0x10000, SP: 0x20000, ExprMem(ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), 32): 0x10000})
+        self.assertEqual(compute_t('VSTR D0, [SP, 0x30]',
+        {D0: 0x1000000020000000, SP: 0x20000, ExprMem(ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), 32): 0x50      , ExprMem(ExprOp('+', ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), ExprInt(4, 32)), 32): 0x50}), 
+        {D0: 0x1000000020000000, SP: 0x20000, ExprMem(ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), 32): 0x20000000, ExprMem(ExprOp('+', ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), ExprInt(4, 32)), 32): 0x10000000})
 
 if __name__ == '__main__':
     testsuite = unittest.TestLoader().loadTestsFromTestCase(TestARMSemantic)

@@ -972,7 +972,6 @@ def blx(ir, instr, a):
     e.append(ExprAssign(LR, l))
     return e, []
 
-# todo
 def vmov(ir, instr, a, b, c=None):
     e = []
     if c is None:
@@ -996,9 +995,20 @@ def vmov(ir, instr, a, b, c=None):
         
     return e, []
 
-# todo
 def vstr(ir, instr, a, b):
-    raise NotImplementedError('Not implemented')
+    e = []
+    if a in spregs_expr:
+        e.append(ExprAssign(b, a))
+    elif a in dpregs_expr:
+        if instr.mode == 'l':
+            e.append(ExprAssign(b, a[:32]))
+            e.append(ExprAssign(ExprMem(b.ptr + ExprInt(4, 32), 32), a[32:]))
+        else:
+            e.append(ExprAssign(b, a[32:]))
+            e.append(ExprAssign(b, a[:32]))
+    else:
+        raise NotImplementedError('Not implemented')
+    return e, []
 
 # todo
 def vcvt(ir, instr, a, b):
