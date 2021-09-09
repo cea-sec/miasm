@@ -2043,6 +2043,13 @@ class arm_off8sppc(arm_imm):
     def encodeval(self, v):
         return v >> 2
 
+class arm_off8(arm_imm):
+
+    def decodeval(self, v):
+        return v << 2
+
+    def encodeval(self, v):
+        return v >> 2
 
 class arm_off7(arm_imm):
 
@@ -2358,8 +2365,9 @@ class arm_sp(arm_reg):
 
 off5 = bs(l=5, cls=(arm_imm,), fname="off")
 off3 = bs(l=3, cls=(arm_imm,), fname="off")
-off8 = bs(l=8, cls=(arm_imm,), fname="off")
+imm8 = bs(l=8, cls=(arm_imm,), fname="off")
 off7 = bs(l=7, cls=(arm_off7,), fname="off")
+off8 = bs(l=8, cls=(arm_off8,), fname="off", order=-1)
 
 rdl = bs(l=3, cls=(arm_gpreg_l,), fname="rd")
 rnl = bs(l=3, cls=(arm_gpreg_l,), fname="rn")
@@ -2461,7 +2469,7 @@ bs_br_name = bs_name(l=4, name=br_name)
 armtop("mshift", [bs('000'), bs_mshift_name, off5, rsl, rdl], [rdl, rsl, off5])
 armtop("addsubr", [bs('000110'),  bs_addsub_name, rnl, rsl, rdl], [rdl, rsl, rnl])
 armtop("addsubi", [bs('000111'),  bs_addsub_name, off3, rsl, rdl], [rdl, rsl, off3])
-armtop("mcas", [bs('001'), bs_mov_cmp_add_sub_name, rnl, off8])
+armtop("mcas", [bs('001'), bs_mov_cmp_add_sub_name, rnl, imm8])
 armtop("alu", [bs('010000'), bs_alu_name, rsl, rdl], [rdl, rsl])
   # should not be used ??
 armtop("hiregop00", [bs('010001'), bs_hiregop_name, bs('00'), rsl, rdl], [rdl, rsl])
@@ -3507,17 +3515,14 @@ vunsigned = bs(l=1, fname="unsigned")
 rt2_nopc = bs(l=4, cls=(arm_gpreg_nopc, arm_arg), fname="rt")
 rn_sp_nowb = bs("1101", cls=(arm_gpreg,), fname='rnsp')
 
-off8r2 = bs(l=8, cls=(arm_off7,), fname="off", order=-1)
-off8_ = bs(l=8, cls=(arm_off,), fname="off", order=-1)
-
 armtop("dmb",  [bs('111100111011'), bs('1111'), bs('1000'), bs('1111'), bs('0101'), barrier_option])
 armtop("teq",  [bs('111010101001'), rn_nosppc, bs('0'), imm5_3, bs('1111'), imm5_2, imm_stype, rm_sh])
 
 armtop("btransfersp", [bs('1110100010'), wback, bs_tbtransfer_name, rn_wb, pc_in, lr_in, bs('0'), trlist13pclr])
 armtop("add", [bs('11110'), imm12_1, bs('10000'), bs('0'), rn_sp_nowb, bs('0'), imm12_3, rd, imm12_8_t4], [rd, rn_sp_nowb, imm12_8_t4])
 armtop("strb", [bs('111110000000'), rn_noarg, rt, bs('000000'), imm2_noarg, rm_deref_reg], [rt, rm_deref_reg])
-armtop("strex", [bs('111010000100'), rn_deref, rt, rd, off8_], [rd, rt, rn_deref])
-armtop("ldrex",[bs('111010000101'), rn_deref, rt, bs('1111'), off8_], [rt, rn_deref])
+armtop("strex", [bs('111010000100'), rn_deref, rt, rd, off8], [rd, rt, rn_deref])
+armtop("ldrex",[bs('111010000101'), rn_deref, rt, bs('1111'), off8], [rt, rn_deref])
 
 # DDI0406C.d, A8.8.344
 armtop("vmov", [bs('11101110000'), bs('1'), sn_4_1, rt_nopc, bs('1010'), sn_x_1, bs('0010000')], [rt_nopc, sn_4_1])
@@ -3538,5 +3543,5 @@ armtop("vcvt", [bs('111011101'), sn_x_1, bs('111'), bs("000"), sn_4_1, bs('101')
 armtop("vcvt", [bs('111011101'), sn_x_1, bs('111'), bs("000"), sn_4_1, bs('101'), bs('0'), bs('0'), bs('1'), sm_x_1, bs('0'), sm_4_1], [sn_4_1, sm_4_1])
 
 # DDI0406C.d, A8.8.414
-armtop("vstr", [bs('11101101'), updown, dn_1_x, bs('00'), rn_nopc_deref_up, dn_1_4, bs('1011'), off8r2], [dn_1_4, rn_nopc_deref_up])
-armtop("vstr", [bs('11101101'), updown, sn_x_1, bs('00'), rn_nopc_deref_up, sn_4_1, bs('1010'), off8r2], [sn_4_1, rn_nopc_deref_up])
+armtop("vstr", [bs('11101101'), updown, dn_1_x, bs('00'), rn_nopc_deref_up, dn_1_4, bs('1011'), off8], [dn_1_4, rn_nopc_deref_up])
+armtop("vstr", [bs('11101101'), updown, sn_x_1, bs('00'), rn_nopc_deref_up, sn_4_1, bs('1010'), off8], [sn_4_1, rn_nopc_deref_up])
