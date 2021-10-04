@@ -90,6 +90,11 @@ jobs:
         MIASM_TEST_EXTRA_ARG: -o cparser
 
     - name: Loader tests
+      run: cd example/loader; python --version |& grep -q "Python 3" || flags="-W error"; for i in ../../miasm-extended-tests/loader/dll_win_xp/*.dll; do python get_exports.py $i; done
+      env:
+        MIASM_EXTENTED_TESTS_LOADER: loader
+
+    - name: Loader tests
       run: cd "miasm-extended-tests/$MIASM_EXTENTED_TESTS_LOADER" && ./test_dll.py
       env:
         MIASM_EXTENTED_TESTS_LOADER: loader
