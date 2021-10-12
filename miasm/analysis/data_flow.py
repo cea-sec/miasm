@@ -1921,29 +1921,29 @@ class State(object):
                 if dst in src:
                     return True
                 if dst.is_mem() and src.is_mem():
-                    base1, offset1 = get_expr_base_offset(dst.ptr)
-                    base2, offset2 = get_expr_base_offset(src.ptr)
-                    if base1 != base2:
+                    dst_base, dst_offset = get_expr_base_offset(dst.ptr)
+                    src_base, src_offset = get_expr_base_offset(src.ptr)
+                    if dst_base != src_base:
                         return True
-                    size1 = dst.size // 8
-                    size2 = src.size // 8
+                    dst_size = dst.size // 8
+                    src_size = src.size // 8
                     # Special case:
                     # @32[ESP + 0xFFFFFFFE], @32[ESP]
                     # Both memories alias
-                    if offset1 + size1 <= int(base1.mask) + 1:
+                    if dst_offset + dst_size <= int(dst_base.mask) + 1:
                         # @32[ESP + 0xFFFFFFFC] => [0xFFFFFFFC, 0xFFFFFFFF]
-                        interval1 = interval([(offset1, offset1 + dst.size // 8 - 1)])
+                        interval1 = interval([(dst_offset, dst_offset + dst.size // 8 - 1)])
                     else:
                         # @32[ESP + 0xFFFFFFFE] => [0x0, 0x1] U [0xFFFFFFFE, 0xFFFFFFFF]
-                        interval1 = interval([(offset1, int(base1.mask))])
-                        interval1 += interval([(0, size1 - (int(base1.mask) + 1 - offset1) - 1 )])
-                    if offset2 + size2 <= int(base2.mask) + 1:
+                        interval1 = interval([(dst_offset, int(dst_base.mask))])
+                        interval1 += interval([(0, dst_size - (int(dst_base.mask) + 1 - dst_offset) - 1 )])
+                    if src_offset + src_size <= int(src_base.mask) + 1:
                         # @32[ESP + 0xFFFFFFFC] => [0xFFFFFFFC, 0xFFFFFFFF]
-                        interval2 = interval([(offset2, offset2 + src.size // 8 - 1)])
+                        interval2 = interval([(src_offset, src_offset + src.size // 8 - 1)])
                     else:
                         # @32[ESP + 0xFFFFFFFE] => [0x0, 0x1] U [0xFFFFFFFE, 0xFFFFFFFF]
-                        interval2 = interval([(offset2, int(base2.mask))])
-                        interval2 += interval([(0, size2 - (int(base2.mask) + 1 - offset2) - 1)])
+                        interval2 = interval([(src_offset, int(src_base.mask))])
+                        interval2 += interval([(0, src_size - (int(src_base.mask) + 1 - src_offset) - 1)])
                     if (interval1 & interval2).empty:
                         continue
                     return True
