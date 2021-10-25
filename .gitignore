@@ -4,3 +4,8 @@
 *~
 # Compiled python files
 *\.pyc
+# Generated files
+*.egg*
+**.dot
+**.so
+VERSION
