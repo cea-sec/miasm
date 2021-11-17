@@ -929,8 +929,8 @@ def pop_gen(ir, instr, src, size):
 
     sp = mRSP[instr.mode]
     new_sp = sp + m2_expr.ExprInt(src.size // 8, sp.size)
-    # don't generate ESP incrementation on POP ESP
-    if src != ir.sp:
+    # Don't generate SP/ESP/RSP incrementation on POP SP/ESP/RSP
+    if not (src in mRSP.values()):
         e.append(m2_expr.ExprAssign(sp, new_sp))
     # XXX FIX XXX for pop [esp]
     if isinstance(src, m2_expr.ExprMem):
