@@ -9,6 +9,7 @@ from miasm.expression.expression import ExprMem, ExprInt, ExprId, ExprOp, ExprLo
 from miasm.core.bin_stream import bin_stream
 import miasm.arch.mips32.regs as regs
 import miasm.core.cpu as cpu
+from miasm.ir.ir import color_expr_html
 
 from miasm.core.asm_ast import AstInt, AstId, AstMem, AstOp
 
@@ -74,6 +75,20 @@ class instruction_mips32(cpu.instruction):
             return "(%s)"%arg
         assert(len(arg.args) == 2 and arg.op == '+')
         return "%s(%s)"%(arg.args[1], arg.args[0])
+
+    @staticmethod
+    def arg2html(expr, index=None, loc_db=None):
+        if expr.is_id() or expr.is_int() or expr.is_loc():
+            return color_expr_html(expr, loc_db)
+        assert(isinstance(expr, ExprMem))
+        arg = expr.ptr
+        if isinstance(arg, ExprId):
+            return "(%s)"%color_expr_html(arg, loc_db)
+        assert(len(arg.args) == 2 and arg.op == '+')
+        return "%s(%s)"%(
+            color_expr_html(arg.args[1], loc_db),
+            color_expr_html(arg.args[0], loc_db)
+        )
 
     def dstflow(self):
         if self.name == 'BREAK':

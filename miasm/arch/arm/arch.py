@@ -12,6 +12,8 @@ from miasm.core.bin_stream import bin_stream
 import miasm.arch.arm.regs as regs_module
 from miasm.arch.arm.regs import *
 from miasm.core.asm_ast import AstInt, AstId, AstMem, AstOp
+from miasm.ir.ir import color_expr_html
+from miasm.core import utils
 
 # A1 encoding
 
@@ -420,6 +422,83 @@ class instruction_arm(instruction):
                 o = '[%s, %s]' % (r, s)
             else:
                 o = '[%s]' % (r)
+
+
+        if wb:
+            o += "!"
+        return o
+
+    @staticmethod
+    def arg2html(expr, index=None, loc_db=None):
+        wb = False
+        if expr.is_id() or expr.is_int() or expr.is_loc():
+            return color_expr_html(expr, loc_db)
+        if isinstance(expr, ExprOp) and expr.op in expr2shift_dct:
+            if len(expr.args) == 1:
+                return '%s %s' % (color_expr_html(expr.args[0], loc_db), expr2shift_dct[expr.op])
+            elif len(expr.args) == 2:
+                return '%s %s %s' % (color_expr_html(expr.args[0], loc_db), expr2shift_dct[expr.op], expr.args[1])
+            else:
+                raise NotImplementedError('zarb arg2str')
+
+
+        sb = False
+        if isinstance(expr, ExprOp) and expr.op == "sbit":
+            sb = True
+            expr = expr.args[0]
+        if isinstance(expr, ExprOp) and expr.op == "reglist":
+            o = [gpregs.expr.index(x) for x in expr.args]
+            out = reglist2html(o)
+            if sb:
+                out += "^"
+            return out
+
+
+        if isinstance(expr, ExprOp) and expr.op == 'wback':
+            wb = True
+            expr = expr.args[0]
+        if isinstance(expr, ExprId):
+            out = color_expr_html(expr, loc_db)
+            if wb:
+                out += "!"
+            return out
+
+        if not isinstance(expr, ExprMem):
+            return color_expr_html(expr, loc_db)
+
+        expr = expr.ptr
+        if isinstance(expr, ExprOp) and expr.op == 'wback':
+            wb = True
+            expr = expr.args[0]
+
+
+        if isinstance(expr, ExprId):
+            r, s = expr, None
+        elif len(expr.args) == 1 and isinstance(expr.args[0], ExprId):
+            r, s = expr.args[0], None
+        elif isinstance(expr.args[0], ExprId):
+            r, s = expr.args[0], expr.args[1]
+        else:
+            r, s = expr.args[0].args
+        if isinstance(s, ExprOp) and s.op in expr2shift_dct:
+            s = ' '.join(
+                str(x)
+                for x in (
+                        color_expr_html(s.args[0], loc_db),
+                        utils.set_html_text_color(expr2shift_dct[s.op], utils.COLOR_OP),
+                        color_expr_html(s.args[1], loc_db)
+                )
+            )
+
+        if isinstance(expr, ExprOp) and expr.op == 'postinc':
+            o = '[%s]' % color_expr_html(r, loc_db)
+            if s and not (isinstance(s, ExprInt) and int(s) == 0):
+                o += ', %s' % color_expr_html(s, loc_db)
+        else:
+            if s and not (isinstance(s, ExprInt) and int(s) == 0):
+                o = '[%s, %s]' % (color_expr_html(r, loc_db), color_expr_html(s, loc_db))
+            else:
+                o = '[%s]' % color_expr_html(r, loc_db)
 
 
         if wb:
@@ -1257,6 +1336,23 @@ def reglist2str(rlist):
             out.append(regs_str[rlist[i]] + '-' + regs_str[rlist[j]])
             i = j + 1
     return "{" + ", ".join(out) + '}'
+
+def reglist2html(rlist):
+    out = []
+    i = 0
+    while i < len(rlist):
+        j = i + 1
+        while j < len(rlist) and rlist[j] < 13 and rlist[j] == rlist[j - 1] + 1:
+            j += 1
+        j -= 1
+        if j < i + 2:
+            out.append(color_expr_html(regs_expr[rlist[i]], None))
+            i += 1
+        else:
+            out.append(color_expr_html(regs_expr[rlist[i]], None) + '-' + color_expr_html(regs_expr[rlist[j]], None))
+            i = j + 1
+    out = utils.fix_html_chars("{") + ", ".join(out) + utils.fix_html_chars("}")
+    return out
 
 
 class arm_rlist(arm_arg):

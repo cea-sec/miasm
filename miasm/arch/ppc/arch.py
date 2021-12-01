@@ -9,6 +9,7 @@ from miasm.core.bin_stream import bin_stream
 import miasm.arch.ppc.regs as regs_module
 from miasm.arch.ppc.regs import *
 from miasm.core.asm_ast import AstInt, AstId, AstMem, AstOp
+from miasm.ir.ir import color_expr_html
 
 log = logging.getLogger("ppcdis")
 console_handler = logging.StreamHandler()
@@ -93,6 +94,28 @@ class instruction_ppc(instruction):
             return out
 
         return str(e)
+
+
+    @staticmethod
+    def arg2html(e, pos = None, loc_db=None):
+        if isinstance(e, ExprId) or isinstance(e, ExprInt) or isinstance(e, ExprLoc):
+            return color_expr_html(e, loc_db)
+        elif isinstance(e, ExprMem):
+            addr = e.ptr
+            if isinstance(addr, ExprInt) or isinstance(addr, ExprId):
+                out = '(%s)'%color_expr_html(addr, loc_db)
+            elif isinstance(addr, ExprOp):
+                if len(addr.args) == 1:
+                    out = '(%s)'%color_expr_html(addr, loc_db)
+                elif len(addr.args) == 2:
+                    out = '%s(%s)'%(color_expr_html(addr.args[1], loc_db), color_expr_html(addr.args[0], loc_db))
+                else:
+                    raise NotImplementedError('More than two args to ExprOp of address')
+            else:
+                raise NotImplementedError('Invalid memory expression')
+            return out
+
+        return color_expr_html(e, loc_db)
 
     @staticmethod
     def is_conditional_jump(s):

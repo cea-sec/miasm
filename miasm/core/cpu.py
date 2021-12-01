@@ -19,6 +19,7 @@ from miasm.expression.simplifications import expr_simp
 
 
 from miasm.core.asm_ast import AstNode, AstInt, AstId, AstOp
+from miasm.core import utils
 from future.utils import with_metaclass
 
 log = logging.getLogger("cpuhelper")
@@ -1004,6 +1005,19 @@ class instruction(object):
             args.append(x)
         o += self.gen_args(args)
         return o
+
+    def to_html(self, loc_db=None):
+        out = "%-10s " % self.name
+        out = '<font color="%s">%s</font>' % (utils.COLOR_MNEMO, out)
+
+        args = []
+        for i, arg in enumerate(self.args):
+            if not isinstance(arg, m2_expr.Expr):
+                raise ValueError('zarb arg type')
+            x = self.arg2html(arg, i, loc_db)
+            args.append(x)
+        out += self.gen_args(args)
+        return out
 
     def get_asm_offset(self, expr):
         return m2_expr.ExprInt(self.offset, expr.size)
