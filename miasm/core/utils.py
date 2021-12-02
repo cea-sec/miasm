@@ -1,4 +1,5 @@
 from __future__ import print_function
+import re
 import sys
 from builtins import range
 import struct
@@ -15,6 +16,28 @@ import codecs
 from future.utils import viewitems
 
 import collections
+
+COLOR_INT = "azure4"
+COLOR_ID = "forestgreen"#"chartreuse3"
+COLOR_MEM = "deeppink4"
+COLOR_OP_FUNC = "blue1"
+COLOR_LOC = "darkslateblue"
+COLOR_OP = "black"
+
+COLOR_MNEMO = "blue1"
+
+ESCAPE_CHARS = re.compile('[' + re.escape('{}') + '&|<>' + ']')
+
+def set_html_text_color(text, color):
+    return '<font color="%s">%s</font>' % (color, text)
+
+
+def _fix_chars(token):
+    return "&#%04d;" % ord(token.group())
+
+
+def fix_html_chars(text):
+    return ESCAPE_CHARS.sub(_fix_chars, str(text))
 
 upck8 = lambda x: struct.unpack('B', x)[0]
 upck16 = lambda x: struct.unpack('H', x)[0]
@@ -261,3 +284,4 @@ class BoundedDict(DictMixin):
 
     def __iter__(self):
         return iter(self._data)
+

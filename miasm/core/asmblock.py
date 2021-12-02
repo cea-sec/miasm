@@ -35,6 +35,9 @@ class AsmRaw(object):
     def to_string(self, loc_db):
         return str(self)
 
+    def to_html(self, loc_db):
+        return str(self)
+
 
 class AsmConstraint(object):
     c_to = "c_to"
@@ -439,6 +442,9 @@ class AsmCFG(DiGraph):
             # between the two graphs
             self.add_edge(*edge, constraint=graph.edges2constraint[edge])
 
+    def escape_text(self, text):
+        return text
+
 
     def node2lines(self, node):
         loc_key_name = self.loc_db.pretty_str(node)
@@ -462,9 +468,9 @@ class AsmCFG(DiGraph):
             if self._dot_offset:
                 yield [self.DotCellDescription(text="%.8X" % line.offset,
                                                attr={}),
-                       self.DotCellDescription(text=line.to_string(self.loc_db), attr={})]
+                       self.DotCellDescription(text=line.to_html(self.loc_db), attr={})]
             else:
-                yield self.DotCellDescription(text=line.to_string(self.loc_db), attr={})
+                yield self.DotCellDescription(text=line.to_html(self.loc_db), attr={})
 
     def node_attr(self, node):
         block = self._loc_key_to_block.get(node, None)

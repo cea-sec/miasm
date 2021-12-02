@@ -11,6 +11,7 @@ from miasm.core.bin_stream import bin_stream
 import miasm.arch.msp430.regs as regs_module
 from miasm.arch.msp430.regs import *
 from miasm.core.asm_ast import AstInt, AstId, AstMem, AstOp
+from miasm.ir.ir import color_expr_html
 
 log = logging.getLogger("msp430dis")
 console_handler = logging.StreamHandler()
@@ -126,6 +127,29 @@ class instruction_msp430(instruction):
                 o = "@%s" % expr.ptr
             elif isinstance(expr.ptr, ExprOp):
                 o = "%s(%s)" % (expr.ptr.args[1], expr.ptr.args[0])
+        else:
+            raise NotImplementedError('unknown instance expr = %s' % type(expr))
+        return o
+
+    @staticmethod
+    def arg2html(expr, index=None, loc_db=None):
+        if isinstance(expr, ExprId) or isinstance(expr, ExprInt) or expr.is_loc():
+            return color_expr_html(expr, loc_db)
+        elif isinstance(expr, ExprOp) and expr.op == "autoinc":
+            o = "@%s+" % color_expr_html(expr.args[0], loc_db)
+        elif isinstance(expr, ExprMem):
+            if isinstance(expr.ptr, ExprId):
+                if index == 0:
+                    o = "@%s" % color_expr_html(expr.ptr, loc_db)
+                else:
+                    o = "0x0(%s)" % color_expr_html(expr.ptr, loc_db)
+            elif isinstance(expr.ptr, ExprInt):
+                o = "@%s" % color_expr_html(expr.ptr, loc_db)
+            elif isinstance(expr.ptr, ExprOp):
+                o = "%s(%s)" % (
+                    color_expr_html(expr.ptr.args[1], loc_db),
+                    color_expr_html(expr.ptr.args[0], loc_db)
+                )
         else:
             raise NotImplementedError('unknown instance expr = %s' % type(expr))
         return o

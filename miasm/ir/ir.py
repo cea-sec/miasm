@@ -27,7 +27,10 @@ import miasm.expression.expression as m2_expr
 from miasm.expression.expression_helper import get_missing_interval
 from miasm.core.asmblock import AsmBlock, AsmBlockBad, AsmConstraint
 from miasm.core.graph import DiGraph
+from miasm.ir.translators import Translator
 from functools import reduce
+from miasm.core import utils
+import re
 
 
 def _expr_loc_to_symb(expr, loc_db):
@@ -43,6 +46,108 @@ def _expr_loc_to_symb(expr, loc_db):
             # Use only one name for readability
             name = sorted(names)[0]
     return m2_expr.ExprId(name, expr.size)
+
+
+ESCAPE_CHARS = re.compile('[' + re.escape('{}') + '&|<>' + ']')
+
+class TranslatorHtml(Translator):
+    __LANG__ = "custom_expr_color"
+
+    @staticmethod
+    def _fix_chars(token):
+        return "&#%04d;" % ord(token.group())
+
+    def __init__(self, loc_db=None, **kwargs):
+        super(TranslatorHtml, self).__init__(**kwargs)
+        self.loc_db = loc_db
+
+    def str_protected_child(self, child, parent):
+        return ("(%s)" % (
+            self.from_expr(child)) if m2_expr.should_parenthesize_child(child, parent)
+                else self.from_expr(child)
+        )
+
+    def from_ExprInt(self, expr):
+        out = str(expr)
+        out = '<font color="%s">%s</font>' % (utils.COLOR_INT, out)
+        return out
+
+    def from_ExprId(self, expr):
+        out = str(expr)
+        out = '<font color="%s">%s</font>' % (utils.COLOR_ID, out)
+        return out
+
+    def from_ExprLoc(self, expr):
+
+        if self.loc_db is None:
+            name = ESCAPE_CHARS.sub(self._fix_chars, str((expr)))
+        else:
+            names = self.loc_db.get_location_names(expr.loc_key)
+            if not names:
+                name = self.loc_db.pretty_str(expr.loc_key)
+            else:
+                # Use only one name for readability
+                name = sorted(names)[0]
+        name = ESCAPE_CHARS.sub(self._fix_chars, name)
+        out = '<font color="%s">%s</font>' % (utils.COLOR_LOC, name)
+        return out
+
+    def from_ExprMem(self, expr):
+        ptr = self.from_expr(expr.ptr)
+        size = '@' + str(expr.size)
+        size = '<font color="%s">%s</font>' % (utils.COLOR_MEM, size)
+        bracket_left = ESCAPE_CHARS.sub(self._fix_chars, '[')
+        bracket_right = ESCAPE_CHARS.sub(self._fix_chars, ']')
+        out = '%s%s%s%s' % (size, bracket_left, ptr, bracket_right)
+        return out
+
+    def from_ExprSlice(self, expr):
+        base = self.from_expr(expr.arg)
+        start = str(expr.start)
+        stop = str(expr.stop)
+        bracket_left = ESCAPE_CHARS.sub(self._fix_chars, '[')
+        bracket_right = ESCAPE_CHARS.sub(self._fix_chars, ']')
+        out = "(%s)%s%s:%s%s" % (base, bracket_left, start, stop, bracket_right)
+        return out
+
+    def from_ExprCompose(self, expr):
+        out = ESCAPE_CHARS.sub(self._fix_chars, "{")
+        out += ", ".join(["%s, %s, %s" % (self.from_expr(subexpr),
+                                          str(idx),
+                                          str(idx + subexpr.size))
+                          for idx, subexpr in expr.iter_args()])
+        out += ESCAPE_CHARS.sub(self._fix_chars, "}")
+        return out
+
+    def from_ExprCond(self, expr):
+        cond = self.str_protected_child(expr.cond, expr)
+        src1 = self.from_expr(expr.src1)
+        src2 = self.from_expr(expr.src2)
+        out = "%s?(%s,%s)" % (cond, src1, src2)
+        return out
+
+    def from_ExprOp(self, expr):
+        op = ESCAPE_CHARS.sub(self._fix_chars, expr._op)
+        if expr._op == '-':		# Unary minus
+            return '-' + self.str_protected_child(expr._args[0], expr)
+        if expr.is_associative() or expr.is_infix():
+            return (' ' + op + ' ').join([self.str_protected_child(arg, expr)
+                                          for arg in expr._args])
+
+        op = '<font color="%s">%s</font>' % (utils.COLOR_OP_FUNC, op)
+        return (op + '(' +
+                ', '.join(
+                    self.from_expr(arg)
+                    for arg in expr._args
+                ) + ')')
+
+    def from_ExprAssign(self, expr):
+        return "%s = %s" % tuple(map(expr.from_expr, (expr.dst, expr.src)))
+
+
+def color_expr_html(expr, loc_db):
+    translator = TranslatorHtml(loc_db=loc_db)
+    return translator.from_expr(expr)
 
 def slice_rest(expr):
     "Return the completion of the current slice"
@@ -489,6 +594,7 @@ class irbloc(IRBlock):
         super(irbloc, self).__init__(loc_key, irs)
 
 
+
 class IRCFG(DiGraph):
 
     """DiGraph for IR instances"""
@@ -528,6 +634,9 @@ class IRCFG(DiGraph):
             if dst.is_loc():
                 self.add_uniq_edge(irblock.loc_key, dst.loc_key)
 
+    def escape_text(self, text):
+        return text
+
     def node2lines(self, node):
         node_name = self.loc_db.pretty_str(node)
         yield self.DotCellDescription(
@@ -543,10 +652,10 @@ class IRCFG(DiGraph):
             return
         for i, assignblk in enumerate(self._blocks[node]):
             for dst, src in viewitems(assignblk):
-
-                new_src = src.visit(lambda expr:_expr_loc_to_symb(expr, self.loc_db))
-                new_dst = dst.visit(lambda expr:_expr_loc_to_symb(expr, self.loc_db))
-                line = "%s = %s" % (new_dst, new_src)
+                line = "%s = %s" % (
+                    color_expr_html(dst, self.loc_db),
+                    color_expr_html(src, self.loc_db)
+                )
                 if self._dot_offset:
                     yield [self.DotCellDescription(text="%-4d" % i, attr={}),
                            self.DotCellDescription(text=line, attr={})]
