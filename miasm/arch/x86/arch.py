@@ -6,7 +6,7 @@ import re
 
 from future.utils import viewitems
 
-from miasm.core.utils import int_to_byte
+from miasm.core import utils
 from miasm.expression.expression import *
 from pyparsing import *
 from miasm.core.cpu import *
@@ -14,6 +14,7 @@ from collections import defaultdict
 import miasm.arch.x86.regs as regs_module
 from miasm.arch.x86.regs import *
 from miasm.core.asm_ast import AstNode, AstInt, AstId, AstMem, AstOp
+from miasm.ir.ir import color_expr_html
 
 
 log = logging.getLogger("x86_arch")
@@ -570,6 +571,26 @@ class instruction_x86(instruction):
                 o = "REPE %s" % o
         return o
 
+    def to_html(self, loc_db=None):
+        o = super(instruction_x86, self).to_html(loc_db)
+        if self.additional_info.g1.value & 1:
+            text =  utils.set_html_text_color("LOCK", utils.COLOR_MNEMO)
+            o = "%s %s" % (text, o)
+        if self.additional_info.g1.value & 2:
+            if getattr(self.additional_info.prefixed, 'default', b"") != b"\xF2":
+                text =  utils.set_html_text_color("REPNE", utils.COLOR_MNEMO)
+                o = "%s %s" % (text, o)
+        if self.additional_info.g1.value & 8:
+            if getattr(self.additional_info.prefixed, 'default', b"") != b"\xF3":
+                text =  utils.set_html_text_color("REP", utils.COLOR_MNEMO)
+                o = "%s %s" % (text, o)
+        elif self.additional_info.g1.value & 4:
+            if getattr(self.additional_info.prefixed, 'default', b"") != b"\xF3":
+                text =  utils.set_html_text_color("REPE", utils.COLOR_MNEMO)
+                o = "%s %s" % (text, o)
+        return o
+
+
     def get_args_expr(self):
         args = []
         for a in self.args:
@@ -607,6 +628,40 @@ class instruction_x86(instruction):
             o = prefix + sz + ' PTR %s[%s]' % (segm, s)
         elif isinstance(expr, ExprOp) and expr.op == 'segm':
             o = "%s:%s" % (expr.args[0], expr.args[1])
+        else:
+            raise ValueError('check this %r' % expr)
+        return "%s" % o
+
+
+    @staticmethod
+    def arg2html(expr, index=None, loc_db=None):
+        if expr.is_id() or expr.is_int() or expr.is_loc():
+            o = color_expr_html(expr, loc_db)
+        elif ((isinstance(expr, ExprOp) and expr.op == 'far' and
+               isinstance(expr.args[0], ExprMem)) or
+              isinstance(expr, ExprMem)):
+            if isinstance(expr, ExprOp):
+                prefix, expr = "FAR ", expr.args[0]
+            else:
+                prefix = ""
+            sz = SIZE2MEMPREFIX[expr.size]
+            sz =  '<font color="%s">%s</font>' % (utils.COLOR_MEM, sz)
+            segm = ""
+            if is_mem_segm(expr):
+                segm = "%s:" % expr.ptr.args[0]
+                expr = expr.ptr.args[1]
+            else:
+                expr = expr.ptr
+            if isinstance(expr, ExprOp):
+                s = color_expr_html(expr, loc_db)#.replace('(', '').replace(')', '')
+            else:
+                s = color_expr_html(expr, loc_db)
+            o = prefix + sz + ' PTR %s[%s]' % (segm, s)
+        elif isinstance(expr, ExprOp) and expr.op == 'segm':
+            o = "%s:%s" % (
+                color_expr_html(expr.args[0], loc_db),
+                color_expr_html(expr.args[1], loc_db)
+            )
         else:
             raise ValueError('check this %r' % expr)
         return "%s" % o
@@ -751,14 +806,18 @@ class mn_x86(cls_mn):
                 break
             pre_dis_info['prefix'] += c
             offset += 1
-        if mode == 64 and c in b'@ABCDEFGHIJKLMNO':
-            x = ord(c)
+        rex_prefixes = b'@ABCDEFGHIJKLMNO'
+        if mode == 64 and c in rex_prefixes:
+            while c in rex_prefixes:
+                # multiple REX prefixes case - use last REX prefix
+                x = ord(c)
+                offset += 1
+                c = v.getbytes(offset)
             pre_dis_info['rex_p'] = 1
             pre_dis_info['rex_w'] = (x >> 3) & 1
             pre_dis_info['rex_r'] = (x >> 2) & 1
             pre_dis_info['rex_x'] = (x >> 1) & 1
             pre_dis_info['rex_b'] = (x >> 0) & 1
-            offset += 1
         elif pre_dis_info.get('g1', None) == 12 and c in [b'\xa6', b'\xa7', b'\xae', b'\xaf']:
             pre_dis_info['g1'] = 4
         return pre_dis_info, v, mode, offset, offset - offset_o
@@ -860,7 +919,7 @@ class mn_x86(cls_mn):
         if self.rex_b.value:
             rex |= 0x1
         if rex != 0x40 or self.rex_p.value == 1:
-            v = int_to_byte(rex) + v
+            v = utils.int_to_byte(rex) + v
             if hasattr(self, 'no_rex'):
                 return None
 
@@ -2544,10 +2603,6 @@ class x86_rm_reg_noarg(object):
             i -= 8
             self.setrexsize(1)
         self.value = i
-        if self.value > self.lmask:
-            log.debug("cannot encode field value %x %x",
-                      self.value, self.lmask)
-            return False
         return True
 
 
@@ -2569,10 +2624,6 @@ class x86_rm_reg_mm(x86_rm_reg_noarg, x86_arg):
             i -= 8
             self.setrexsize(1)
         self.value = i
-        if self.value > self.lmask:
-            log.debug("cannot encode field value %x %x",
-                      self.value, self.lmask)
-            return False
         return True
 
 class x86_rm_reg_xmm(x86_rm_reg_mm):

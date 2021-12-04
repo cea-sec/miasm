@@ -25,7 +25,7 @@ class Sandbox(object):
 
     @staticmethod
     def code_sentinelle(jitter):
-        jitter.run = False
+        jitter.running = False
         return False
 
     @classmethod

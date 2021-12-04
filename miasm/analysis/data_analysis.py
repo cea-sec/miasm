@@ -106,7 +106,7 @@ def inter_block_flow_link(lifter, ircfg, flow_graph, irb_in_nodes, irb_out_nodes
     return todo
 
 
-def create_implicit_flow(lifter, flow_graph, irb_in_nodes, irb_out_ndes):
+def create_implicit_flow(lifter, flow_graph, irb_in_nodes, irb_out_nodes):
 
     # first fix IN/OUT
     # If a son read a node which in not in OUT, add it

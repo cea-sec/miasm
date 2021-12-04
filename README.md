@@ -1,7 +1,8 @@
 [![Build Status](https://travis-ci.org/cea-sec/miasm.svg)](https://travis-ci.org/cea-sec/miasm)
 [![Build status](https://ci.appveyor.com/api/projects/status/g845jr23nt18uf29/branch/master?svg=true)](https://ci.appveyor.com/project/cea-sec/miasm)
-[![Code Climate](https://codeclimate.com/github/cea-sec/miasm/badges/gpa.svg)](https://codeclimate.com/github/cea-sec/miasm) [![Join the chat at https://gitter.im/cea-sec/miasm](https://badges.gitter.im/cea-sec/miasm.svg)](https://gitter.im/cea-sec/miasm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
+[![Miasm tests](https://github.com/cea-sec/miasm/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/cea-sec/miasm/actions/workflows/tests.yml?branch=master)
+[![Code Climate](https://codeclimate.com/github/cea-sec/miasm/badges/gpa.svg)](https://codeclimate.com/github/cea-sec/miasm)
+[![Join the chat at https://gitter.im/cea-sec/miasm](https://badges.gitter.im/cea-sec/miasm.svg)](https://gitter.im/cea-sec/miasm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 <p align="center">
 <img src="https://raw.githubusercontent.com/cea-sec/miasm/master/doc/logo_miasm.png">
@@ -91,7 +92,7 @@ Using `Machine` abstraction:
 XOR        ESI, DWORD PTR [EAX]
 ```
 
-For Mips:
+For MIPS:
 ```pycon
 >>> mn = Machine('mips32b').mn
 >>> print(mn.dis(b'\x97\xa3\x00 ', "b"))
@@ -113,7 +114,7 @@ Create an intermediate representation object:
 ```pycon
 >>> lifter = machine.lifter_model_call(loc_db)
 ```
-Create an empty ircfg
+Create an empty ircfg:
 ```pycon
 >>> ircfg = lifter.new_ircfg()
 ```
@@ -205,7 +206,7 @@ MOV        EAX, EBX
 RET
 ```
 
-Initializing the Jit engine with a stack:
+Initializing the JIT engine with a stack:
 
 ```pycon
 >>> jitter = machine.jitter(loc_db, jit_type='python')
@@ -223,7 +224,7 @@ Create a sentinelle to catch the return of the shellcode:
 
 ```Python
 def code_sentinelle(jitter):
-    jitter.run = False
+    jitter.running = False
     jitter.pc = 0
     return True
 
@@ -597,10 +598,10 @@ They already use Miasm
 Tools
 -----
 
-* [Sibyl](https://github.com/cea-sec/Sibyl): A function divination too
+* [Sibyl](https://github.com/cea-sec/Sibyl): A function divination tool
 * [R2M2](https://github.com/guedou/r2m2): Use miasm as a radare2 plugin
-* [CGrex](https://github.com/mechaphish/cgrex) : Targeted patcher for CGC binaries
-* [ethRE](https://github.com/jbcayrou/ethRE) Reversing tool for Ethereum EVM (with corresponding Miasm2 architecture)
+* [CGrex](https://github.com/mechaphish/cgrex): Targeted patcher for CGC binaries
+* [ethRE](https://github.com/jbcayrou/ethRE): Reversing tool for Ethereum EVM (with corresponding Miasm2 architecture)
 
 Blog posts / papers / conferences
 ---------------------------------

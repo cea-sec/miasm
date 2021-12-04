@@ -20,4 +20,4 @@ log_func.setLevel(logging.ERROR)
 # Run
 sb.run()
 
-assert(sb.jitter.run is False)
+assert(sb.jitter.running is False)

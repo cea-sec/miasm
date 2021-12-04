@@ -15,4 +15,4 @@ sb = Sandbox_Win_x86_32(loc_db, options.filename, options, globals())
 # Run
 sb.run()
 
-assert(sb.jitter.run is False)
+assert(sb.jitter.running is False)

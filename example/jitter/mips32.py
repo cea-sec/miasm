@@ -31,7 +31,7 @@ parser.add_argument("addr",
 machine = Machine("mips32l")
 
 def code_sentinelle(jitter):
-    jitter.run = False
+    jitter.running = False
     jitter.pc = 0
     return True
 

@@ -21,7 +21,7 @@ myjit.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, data)
 
 # Sentinelle called on terminate
 def code_sentinelle(jitter):
-    jitter.run = False
+    jitter.running = False
     jitter.pc = 0
     return True
 
@@ -33,7 +33,7 @@ myjit.init_run(run_addr)
 myjit.continue_run()
 
 # Check end
-assert myjit.run is False
+assert myjit.running is False
 
 # Check resulting state / accessors
 assert myjit.cpu.EAX == 0

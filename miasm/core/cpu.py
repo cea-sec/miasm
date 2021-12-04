@@ -19,6 +19,7 @@ from miasm.expression.simplifications import expr_simp
 
 
 from miasm.core.asm_ast import AstNode, AstInt, AstId, AstOp
+from miasm.core import utils
 from future.utils import with_metaclass
 
 log = logging.getLogger("cpuhelper")
@@ -737,10 +738,6 @@ class reg_noarg(object):
             log.debug("cannot encode reg %r", self.expr)
             return False
         self.value = self.reg_info.expr.index(self.expr)
-        if self.value > self.lmask:
-            log.debug("cannot encode field value %x %x",
-                      self.value, self.lmask)
-            return False
         return True
 
     def check_fbits(self, v):
@@ -1009,6 +1006,19 @@ class instruction(object):
         o += self.gen_args(args)
         return o
 
+    def to_html(self, loc_db=None):
+        out = "%-10s " % self.name
+        out = '<font color="%s">%s</font>' % (utils.COLOR_MNEMO, out)
+
+        args = []
+        for i, arg in enumerate(self.args):
+            if not isinstance(arg, m2_expr.Expr):
+                raise ValueError('zarb arg type')
+            x = self.arg2html(arg, i, loc_db)
+            args.append(x)
+        out += self.gen_args(args)
+        return out
+
     def get_asm_offset(self, expr):
         return m2_expr.ExprInt(self.offset, expr.size)
 
@@ -1025,10 +1035,10 @@ class instruction(object):
                 loc_key = exprloc.loc_key
                 names = loc_db.get_location_names(loc_key)
                 # special symbols
-                if b'$' in names:
+                if '$' in names:
                     fixed_expr[exprloc] = self.get_asm_offset(exprloc)
                     continue
-                if b'_' in names:
+                if '_' in names:
                     fixed_expr[exprloc] = self.get_asm_next_offset(exprloc)
                     continue
                 arg_int = loc_db.get_location_offset(loc_key)
@@ -1456,7 +1466,10 @@ class cls_mn(with_metaclass(metamn, object)):
                     break
 
                 if f.value is not None and f.l:
-                    assert f.value <= f.lmask
+                    if f.value > f.lmask:
+                        log.debug('cannot encode %r', f)
+                        can_encode = False
+                        break
                     cur_len += f.l
                 index += 1
                 if ret is True:
@@ -1595,8 +1608,6 @@ class imm_noarg(object):
         return v
 
     def encodeval(self, v):
-        if v > self.lmask:
-            return False
         return v
 
     def decode(self, v):
@@ -1614,8 +1625,6 @@ class imm_noarg(object):
             return False
         v = self.encodeval(v)
         if v is False:
-            return False
-        if v > self.lmask:
             return False
         self.value = v
         return True

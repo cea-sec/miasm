@@ -20,6 +20,9 @@ class DiGraph(object):
         # N -> Nodes N2 with a edge (N2 -> N)
         self._nodes_pred = {}
 
+        self.escape_chars = re.compile('[' + re.escape('{}') + '&|<>' + ']')
+
+
     def __repr__(self):
         out = []
         for node in self._nodes:
@@ -239,10 +242,12 @@ class DiGraph(object):
                            **attr))
         )
 
+    def escape_text(self, text):
+        return self.escape_chars.sub(self._fix_chars, text)
+
     def dot(self):
         """Render dot graph with HTML"""
 
-        escape_chars = re.compile('[' + re.escape('{}') + '&|<>' + ']')
         td_attr = {'align': 'left'}
         nodes_attr = {'shape': 'Mrecord',
                       'fontname': 'Courier New'}
@@ -266,7 +271,7 @@ class DiGraph(object):
                 for col in lineDesc:
                     out_render += "<td %s>%s</td>" % (
                         self._attr2str(td_attr, col.attr),
-                        escape_chars.sub(self._fix_chars, str(col.text)))
+                        self.escape_text(str(col.text)))
                 node_html_lines.append(out_render)
 
             node_html_lines = ('<tr>' +
@@ -302,7 +307,6 @@ class DiGraph(object):
 
             self.gv = graphviz.Digraph('html_table')
             self._dot_offset = False
-            escape_chars = re.compile('[' + re.escape('{}') + '&|<>' + ']')
             td_attr = {'align': 'left'}
             nodes_attr = {'shape': 'Mrecord',
                           'fontname': 'Courier New'}
@@ -320,7 +324,7 @@ class DiGraph(object):
                     for col in lineDesc:
                         out_render += "<td %s>%s</td>" % (
                             self._attr2str(td_attr, col.attr),
-                            escape_chars.sub(self._fix_chars, str(col.text)))
+                            self.escape_text(str(col.text)))
                     node_html_lines.append(out_render)
 
                 node_html_lines = ('<tr>' +

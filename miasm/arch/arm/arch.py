@@ -12,6 +12,8 @@ from miasm.core.bin_stream import bin_stream
 import miasm.arch.arm.regs as regs_module
 from miasm.arch.arm.regs import *
 from miasm.core.asm_ast import AstInt, AstId, AstMem, AstOp
+from miasm.ir.ir import color_expr_html
+from miasm.core import utils
 
 # A1 encoding
 
@@ -426,6 +428,83 @@ class instruction_arm(instruction):
             o += "!"
         return o
 
+    @staticmethod
+    def arg2html(expr, index=None, loc_db=None):
+        wb = False
+        if expr.is_id() or expr.is_int() or expr.is_loc():
+            return color_expr_html(expr, loc_db)
+        if isinstance(expr, ExprOp) and expr.op in expr2shift_dct:
+            if len(expr.args) == 1:
+                return '%s %s' % (color_expr_html(expr.args[0], loc_db), expr2shift_dct[expr.op])
+            elif len(expr.args) == 2:
+                return '%s %s %s' % (color_expr_html(expr.args[0], loc_db), expr2shift_dct[expr.op], expr.args[1])
+            else:
+                raise NotImplementedError('zarb arg2str')
+
+
+        sb = False
+        if isinstance(expr, ExprOp) and expr.op == "sbit":
+            sb = True
+            expr = expr.args[0]
+        if isinstance(expr, ExprOp) and expr.op == "reglist":
+            o = [gpregs.expr.index(x) for x in expr.args]
+            out = reglist2html(o)
+            if sb:
+                out += "^"
+            return out
+
+
+        if isinstance(expr, ExprOp) and expr.op == 'wback':
+            wb = True
+            expr = expr.args[0]
+        if isinstance(expr, ExprId):
+            out = color_expr_html(expr, loc_db)
+            if wb:
+                out += "!"
+            return out
+
+        if not isinstance(expr, ExprMem):
+            return color_expr_html(expr, loc_db)
+
+        expr = expr.ptr
+        if isinstance(expr, ExprOp) and expr.op == 'wback':
+            wb = True
+            expr = expr.args[0]
+
+
+        if isinstance(expr, ExprId):
+            r, s = expr, None
+        elif len(expr.args) == 1 and isinstance(expr.args[0], ExprId):
+            r, s = expr.args[0], None
+        elif isinstance(expr.args[0], ExprId):
+            r, s = expr.args[0], expr.args[1]
+        else:
+            r, s = expr.args[0].args
+        if isinstance(s, ExprOp) and s.op in expr2shift_dct:
+            s = ' '.join(
+                str(x)
+                for x in (
+                        color_expr_html(s.args[0], loc_db),
+                        utils.set_html_text_color(expr2shift_dct[s.op], utils.COLOR_OP),
+                        color_expr_html(s.args[1], loc_db)
+                )
+            )
+
+        if isinstance(expr, ExprOp) and expr.op == 'postinc':
+            o = '[%s]' % color_expr_html(r, loc_db)
+            if s and not (isinstance(s, ExprInt) and int(s) == 0):
+                o += ', %s' % color_expr_html(s, loc_db)
+        else:
+            if s and not (isinstance(s, ExprInt) and int(s) == 0):
+                o = '[%s, %s]' % (color_expr_html(r, loc_db), color_expr_html(s, loc_db))
+            else:
+                o = '[%s]' % color_expr_html(r, loc_db)
+
+
+        if wb:
+            o += "!"
+        return o
+
 
     def dstflow(self):
         if self.is_subcall():
@@ -792,7 +871,7 @@ class arm_arg(m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = loc_db.get_or_create_name_location(arg.name.encode())
+            loc_key = loc_db.get_or_create_name_location(arg.name)
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]
@@ -1258,6 +1337,23 @@ def reglist2str(rlist):
             i = j + 1
     return "{" + ", ".join(out) + '}'
 
+def reglist2html(rlist):
+    out = []
+    i = 0
+    while i < len(rlist):
+        j = i + 1
+        while j < len(rlist) and rlist[j] < 13 and rlist[j] == rlist[j - 1] + 1:
+            j += 1
+        j -= 1
+        if j < i + 2:
+            out.append(color_expr_html(regs_expr[rlist[i]], None))
+            i += 1
+        else:
+            out.append(color_expr_html(regs_expr[rlist[i]], None) + '-' + color_expr_html(regs_expr[rlist[j]], None))
+            i = j + 1
+    out = utils.fix_html_chars("{") + ", ".join(out) + utils.fix_html_chars("}")
+    return out
+
 
 class arm_rlist(arm_arg):
     parser = gpreg_list
@@ -1676,10 +1772,6 @@ class armt_barrier_option(reg_noarg, arm_arg):
             log.debug("cannot encode reg %r", self.expr)
             return False
         self.value = self.reg_info.dct_expr_inv[self.expr]
-        if self.value > self.lmask:
-            log.debug("cannot encode field value %x %x",
-                      self.value, self.lmask)
-            return False
         return True
 
     def check_fbits(self, v):
@@ -1749,8 +1841,6 @@ class arm_widthm1(arm_imm, m_arg):
         if not isinstance(self.expr, ExprInt):
             return False
         v = int(self.expr) +  -1
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 
@@ -1996,8 +2086,6 @@ class arm_offpc(arm_offreg):
         if v & 3:
             return False
         v >>= 2
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 
@@ -2099,8 +2187,6 @@ class arm_offbw(imm_noarg):
                 log.debug('off must be aligned %r', v)
                 return False
             v >>= 2
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 
@@ -2117,8 +2203,6 @@ class arm_off(imm_noarg):
         if not isinstance(self.expr, ExprInt):
             return False
         v = int(self.expr)
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 
@@ -2139,8 +2223,6 @@ class arm_offh(imm_noarg):
             log.debug('off must be aligned %r', v)
             return False
         v >>= 1
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 
@@ -2284,8 +2366,6 @@ class armt_rlist_pclr(armt_rlist):
         v = 0
         for r in rlist:
             v |= 1 << r
-        if v > self.lmask:
-            return False
         self.value = v
         return True
 

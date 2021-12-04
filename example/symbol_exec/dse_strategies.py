@@ -64,7 +64,7 @@ jitter.push_uint32_t(0)
 
 # Handle return
 def code_sentinelle(jitter):
-    jitter.run = False
+    jitter.running = False
     return False
 
 ret_addr = 0x1337beef
@@ -108,7 +108,7 @@ while todo:
     # Restore state, while keeping already found solutions
     dse.restore_snapshot(snapshot, keep_known_solutions=True)
 
-    # Reinit jitter (reset jitter.run, etc.)
+    # Reinit jitter (reset jitter.running, etc.)
     jitter.init_run(run_addr)
 
     # Set the argument value in the jitter context
@@ -140,4 +140,3 @@ print(
         len(reaches)
     )
 )
-

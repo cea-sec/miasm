@@ -1280,6 +1280,8 @@ def update_phi_with_deleted_edges(ircfg, edges_to_del):
     modified = False
     blocks = dict(ircfg.blocks)
     for loc_dst, loc_srcs in viewitems(phi_locs_to_srcs):
+        if loc_dst not in ircfg.blocks:
+            continue
         block = ircfg.blocks[loc_dst]
         if not irblock_has_phi(block):
             continue
@@ -1353,6 +1355,8 @@ def del_unused_edges(ircfg, heads):
     for src, dst in edges_to_del_1.union(edges_to_del_2):
         ircfg.del_edge(src, dst)
     for node in nodes_to_del:
+        if node not in ircfg.blocks:
+            continue
         block = ircfg.blocks[node]
         ircfg.del_node(node)
         del ircfg.blocks[node]
@@ -1917,14 +1921,29 @@ class State(object):
                 if dst in src:
                     return True
                 if dst.is_mem() and src.is_mem():
-                    base1, offset1 = get_expr_base_offset(dst.ptr)
-                    base2, offset2 = get_expr_base_offset(src.ptr)
-                    if base1 != base2:
+                    dst_base, dst_offset = get_expr_base_offset(dst.ptr)
+                    src_base, src_offset = get_expr_base_offset(src.ptr)
+                    if dst_base != src_base:
                         return True
-                    assert offset1 + dst.size // 8 - 1 <= int(base1.mask)
-                    assert offset2 + src.size // 8 - 1 <= int(base2.mask)
-                    interval1 = interval([(offset1, offset1 + dst.size // 8 - 1)])
-                    interval2 = interval([(offset2, offset2 + src.size // 8 - 1)])
+                    dst_size = dst.size // 8
+                    src_size = src.size // 8
+                    # Special case:
+                    # @32[ESP + 0xFFFFFFFE], @32[ESP]
+                    # Both memories alias
+                    if dst_offset + dst_size <= int(dst_base.mask) + 1:
+                        # @32[ESP + 0xFFFFFFFC] => [0xFFFFFFFC, 0xFFFFFFFF]
+                        interval1 = interval([(dst_offset, dst_offset + dst.size // 8 - 1)])
+                    else:
+                        # @32[ESP + 0xFFFFFFFE] => [0x0, 0x1] U [0xFFFFFFFE, 0xFFFFFFFF]
+                        interval1 = interval([(dst_offset, int(dst_base.mask))])
+                        interval1 += interval([(0, dst_size - (int(dst_base.mask) + 1 - dst_offset) - 1 )])
+                    if src_offset + src_size <= int(src_base.mask) + 1:
+                        # @32[ESP + 0xFFFFFFFC] => [0xFFFFFFFC, 0xFFFFFFFF]
+                        interval2 = interval([(src_offset, src_offset + src.size // 8 - 1)])
+                    else:
+                        # @32[ESP + 0xFFFFFFFE] => [0x0, 0x1] U [0xFFFFFFFE, 0xFFFFFFFF]
+                        interval2 = interval([(src_offset, int(src_base.mask))])
+                        interval2 += interval([(0, src_size - (int(src_base.mask) + 1 - src_offset) - 1)])
                     if (interval1 & interval2).empty:
                         continue
                     return True

@@ -46,8 +46,10 @@ class ContectRva(object):
         @rva_start: rva start address
         @rva_stop: rva stop address
         """
+        if rva_start is None:
+            raise IOError("Out of range")
         if rva_start < 0:
-            raise ValueError("Out of range")
+            raise IOError("Out of range")
         if rva_stop is not None:
             if rva_stop > len(self.parent.img_rva):
                 rva_stop = len(self.parent.img_rva)

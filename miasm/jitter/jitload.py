@@ -173,6 +173,27 @@ class ExceptionHandle(object):
         return not self.__eq__(to_cmp)
 
 
+class JitterException(Exception):
+
+    "Raised when any unhandled exception occurs (in jitter.vm or jitter.cpu)"
+
+    def __init__(self, exception_flag):
+        super(JitterException, self).__init__()
+        self.exception_flag = exception_flag
+
+    def __str__(self):
+        return "A jitter exception occurred: %s (0x%x)" % (
+            self.exception_flag_to_str(), self.exception_flag
+        )
+
+    def exception_flag_to_str(self):
+        exception_flag_list = []
+        for name, value in JitterExceptions.items():
+            if value & self.exception_flag == value:
+                exception_flag_list.append(name)
+        return ' & '.join(exception_flag_list)
+
+
 class Jitter(object):
 
     "Main class for JIT handling"
@@ -191,6 +212,7 @@ class Jitter(object):
         self.arch = lifter.arch
         self.attrib = lifter.attrib
         arch_name = lifter.arch.name  # (lifter.arch.name, lifter.attrib)
+        self.running = False
 
         try:
             if arch_name == "x86":
@@ -374,7 +396,9 @@ class Jitter(object):
             return
 
         # Exceptions should never be activated before run
-        assert(self.get_exception() == 0)
+        exception_flag = self.get_exception()
+        if exception_flag:
+            raise JitterException(exception_flag)
 
         # Run the block at PC
         self.pc = self.run_at(self.pc)
@@ -395,7 +419,7 @@ class Jitter(object):
         """
         self.run_iterator = self.runiter_once(pc)
         self.pc = pc
-        self.run = True
+        self.running = True
 
     def continue_run(self, step=False, trace=False):
         """PRE: init_run.
@@ -407,7 +431,7 @@ class Jitter(object):
 
         if trace:
             self.set_trace_log()
-        while self.run:
+        while self.running:
             try:
                 return next(self.run_iterator)
             except StopIteration:

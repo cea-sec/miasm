@@ -58,5 +58,5 @@ start_time = time.time()
 sb.run()
 stop_time = time.time()
 
-assert sb.jitter.run is False
+assert sb.jitter.running is False
 print("Instr speed: %02.f / sec" % (instr_count / (stop_time - start_time)))

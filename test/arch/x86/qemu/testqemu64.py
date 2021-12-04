@@ -137,4 +137,4 @@ sb.jitter.vm.add_memory_page(0x7fff0000 + 0x28, PAGE_READ | PAGE_WRITE, b"AAAAAA
 # Run
 sb.run(addr)
 
-assert(sb.jitter.run is False)
+assert(sb.jitter.running is False)

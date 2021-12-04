@@ -10,6 +10,7 @@ from miasm.core.asm_ast import AstId, AstMem
 
 from miasm.arch.mep.regs import *
 import miasm.arch.mep.regs as mep_regs_module  # will be used to set mn_mep.regs
+from miasm.ir.ir import color_expr_html
 
 
 # Note: pyparsing is used to alter the way special operands are parsed
@@ -91,6 +92,38 @@ class instruction_mep(instruction):
 
         elif isinstance(expr, ExprMem) and isinstance(expr.ptr, ExprOp):
             return "0x%X(%s)" % (int(expr.ptr.args[1]), expr.ptr.args[0])
+
+        # Raise an exception if the expression type was not processed
+        message = "instruction_mep.arg2str(): don't know what \
+                   to do with a '%s' instance." % type(expr)
+        raise Disasm_Exception(message)
+
+    @staticmethod
+    def arg2html(expr, pos=None, loc_db=None):
+        """Convert mnemonics arguments into readable html strings according to the
+        MeP-c4 architecture manual and their internal types
+
+        Notes:
+            - it must be implemented ! However, a simple 'return str(expr)'
+              could do the trick.
+            - it is used to mimic objdump output
+
+        Args:
+            expr: argument as a miasm expression
+            pos: position index in the arguments list
+        """
+
+        if isinstance(expr, ExprId) or isinstance(expr, ExprInt) or isinstance(expr, ExprLoc):
+            return color_expr_html(expr, loc_db)
+
+        elif isinstance(expr, ExprMem) and (isinstance(expr.ptr, ExprId) or isinstance(expr.ptr, ExprInt)):
+            return "(%s)" % color_expr_html(expr.ptr, loc_db)
+
+        elif isinstance(expr, ExprMem) and isinstance(expr.ptr, ExprOp):
+            return "%s(%s)" % (
+                color_expr_html(expr.ptr.args[1], loc_db),
+                color_expr_html(expr.ptr.args[0], loc_db)
+            )
 
         # Raise an exception if the expression type was not processed
         message = "instruction_mep.arg2str(): don't know what \
@@ -553,7 +586,7 @@ class mep_arg(m_arg):
                 return arg.name
             if isinstance(arg.name, str) and arg.name in gpr_names:
                 return None  # GV: why?
-            loc_key = loc_db.get_or_create_name_location(arg.name.encode())
+            loc_key = loc_db.get_or_create_name_location(arg.name)
             return ExprLoc(loc_key, 32)
 
         elif isinstance(arg, AstMem):

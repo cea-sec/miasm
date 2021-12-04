@@ -197,6 +197,17 @@ def buil_all():
                 "miasm/jitter/bn.h",
             ]
         ),
+        Extension(
+            "miasm.jitter.arch.JitCore_m68k",
+            [
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_m68k.c"
+            ]
+        ),
         Extension("miasm.jitter.Jitllvm",
                   ["miasm/jitter/Jitllvm.c",
                    "miasm/jitter/bn.c",
@@ -242,6 +253,7 @@ def buil_all():
                         "VERSION"
                     ]
                 },
+                install_requires=['future', 'pyparsing~=2.0'],
                 cmdclass={"install_data": smart_install_data},
                 ext_modules = ext_modules,
                 # Metadata

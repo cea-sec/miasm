@@ -73,6 +73,10 @@ reg_tests_aarch64 = [
     ("004029D0    CMP        X0, 0x3F",
      "1FFC00F1"),
 
+    ("XXXXXXXX    CMN        W12, W9",
+     "9F01092B"),
+    ("XXXXXXXX    CMN        W0, 0x1",
+     "1F040031"),
 
     ("0007FA38    AND        W0, W0, 0x7000000",
      "00080812"),
@@ -1825,8 +1829,13 @@ reg_tests_aarch64 = [
     ("XXXXXXXX    STLXRB     W17, W16, [X14]",
      "D0FD1108"),
 
+    ("XXXXXXXX    STLR       W9, [X8]",
+     "09FD9F88"),
     ("XXXXXXXX    STLRB      W1, [X0]",
      "01FC9F08"),
+    ("XXXXXXXX    STLRH      W9, [X8]",
+     "09FD9F48"),
+
     ("XXXXXXXX    IC         0x0, c1, 0x0, XZR",
      "1F7108D5"),
     ("XXXXXXXX    CLREX      0xF",

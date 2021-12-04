@@ -1735,7 +1735,10 @@ def kernel32_WideCharToMultiByte(jitter):
       ])
     if args.CodePage != CP_ACP and args.CodePage != CP_1252:
         raise NotImplementedError
-    src = jitter.vm.get_mem(args.lpWideCharStr, args.cchWideChar * 2)
+    cchWideChar = args.cchWideChar
+    if cchWideChar == 0xffffffff:
+        cchWideChar = len(get_win_str_w(jitter, args.lpWideCharStr)) + 1
+    src = jitter.vm.get_mem(args.lpWideCharStr, cchWideChar * 2)
     dst = src.decode("utf-16le").encode("cp1252", errors="replace")
     if args.cbMultiByte > 0:
         # return value is the number of bytes written

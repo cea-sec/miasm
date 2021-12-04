@@ -73,14 +73,14 @@ def fill_loc_db_with_symbols(elf, loc_db, base_addr=0):
             for name, sym in viewitems(section_header.symbols):
                 if not name or sym.value == 0:
                     continue
-                name = loc_db.find_free_name(name)
+                name = loc_db.find_free_name(force_str(name))
                 loc_db.add_location(name, sym.value, strict=False)
 
         if hasattr(section_header, 'reltab'):
             for rel in section_header.reltab:
                 if not rel.sym or rel.offset == 0:
                     continue
-                name = loc_db.find_free_name(rel.sym)
+                name = loc_db.find_free_name(force_str(rel.sym))
                 loc_db.add_location(name, rel.offset, strict=False)
 
         if hasattr(section_header, 'symtab'):
@@ -135,7 +135,7 @@ def fill_loc_db_with_symbols(elf, loc_db, base_addr=0):
                 # Reserved index (between SHN_LORESERV and SHN_HIRESERVE)
                 raise RuntimeError("Unsupported reserved index: %r" % symbol_entry)
 
-            name = symbol_entry.name
+            name = force_str(symbol_entry.name)
             if name == "":
                 # Ignore empty symbol
                 log.debug("Empty symbol %r", symbol_entry)

@@ -63,7 +63,7 @@ class LifterModelCallArml(LifterModelCallArmlBase):
             call_assignblk,
             AssignBlock([ExprAssign(self.IRDst, loc_next_expr)], instr),
         ]
-        e_do = IRBlock(loc_do, call_assignblks)
+        e_do = IRBlock(self.loc_db, loc_do, call_assignblks)
         assignblks_out = [
             AssignBlock([ExprAssign(self.IRDst, dst_cond)], instr)
         ]

@@ -84,7 +84,7 @@ def stop(jitter):
     logging.info('OEP reached')
 
     # Stop execution
-    jitter.run = False
+    jitter.running = False
     return False
 
 # Set callbacks

@@ -14,24 +14,37 @@
 # You should have received a copy of the GNU General Public License
 # along with Miasm-Docker. If not, see <http://www.gnu.org/licenses/>.
 
-FROM debian:stretch
-MAINTAINER Camille Mougey <commial@gmail.com>
+FROM debian:buster
+LABEL maintainer="Camille Mougey <commial@gmail.com>"
 
 # Download needed packages
-RUN apt-get -qq update && \
-    apt-get -qqy install python python3 libpython-dev libpython3-dev python-pyparsing python3-pyparsing python-pip python3-pip && \
-    apt-get -qqy install gcc g++ && \
-    apt-get -qq clean
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        python3 \
+        python3-dev \
+        python3-pip \
+        python3-setuptools \
+        python3-wheel \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /root/.cache
 
-# Get miasm
-ADD . /opt/miasm
-RUN cd /opt/miasm && \
-    pip install -r requirements.txt && \
-    pip install -r optional_requirements.txt && \
-    pip install . && \
-    pip3 install -r requirements.txt && \
-    pip3 install -r optional_requirements.txt && \
-    pip3 install .
+WORKDIR /opt/miasm
+
+# Install Requirements
+COPY requirements.txt /opt/miasm/requirements.txt
+RUN pip3 install -r requirements.txt
+COPY optional_requirements.txt /opt/miasm/optional_requirements.txt
+RUN pip3 install -r optional_requirements.txt
+
+# Install miasm
+COPY README.md /opt/miasm/README.md
+COPY setup.py /opt/miasm/setup.py
+COPY miasm /opt/miasm/miasm
+RUN pip3 install .
+
+# Get everything else
+COPY . /opt/miasm
 
 # Set user
 RUN useradd miasm && \
@@ -40,4 +53,4 @@ USER miasm
 
 # Default cmd
 WORKDIR /opt/miasm/test
-CMD ["/bin/bash", "-c", "for v in 2 3; do /usr/bin/python$v test_all.py -m; done"]
+CMD ["/bin/bash", "-c", "/usr/bin/python3 test_all.py -m"]
