@@ -104,3 +104,4 @@ for s, l in reg_tests_msp:
     print([x for x in a])
     print(repr(b))
     assert(b in a)
+    print(l.to_html())
