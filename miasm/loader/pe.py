@@ -714,9 +714,9 @@ class DirExport(CStruct):
         self.expdesc.name = rva
         rva += len(self.dlldescname)
         self.expdesc.addressoffunctions = rva
-        rva += len(self.f_address) * rva_size
+        rva += len(self.f_address) * 4
         self.expdesc.addressofnames = rva
-        rva += len(self.f_names) * rva_size
+        rva += len(self.f_names) * 4
         self.expdesc.addressofordinals = rva
         rva += len(self.f_nameordinals) * 2  # Ordinal size
         for func in self.f_names:
@@ -730,8 +730,8 @@ class DirExport(CStruct):
             return length
         length += len(self.expdesc)
         length += len(self.dlldescname)
-        length += len(self.f_address) * rva_size
-        length += len(self.f_names) * rva_size
+        length += len(self.f_address) * 4
+        length += len(self.f_names) * 4
         length += len(self.f_nameordinals) * 2  # Ordinal size
         for entry in self.f_names:
             length += len(entry.name)
@@ -775,16 +775,16 @@ class DirExport(CStruct):
         self.dlldescname.name = name
         self.f_address = struct_array(self, None,
                                       None,
-                                      Rva)
+                                      Rva32)
         self.f_names = struct_array(self, None,
                                     None,
-                                    Rva)
+                                    Rva32)
         self.f_nameordinals = struct_array(self, None,
                                            None,
                                            Ordinal)
         self.expdesc.base = 1
 
-    def add_name(self, name, rva=0xdeadc0fe):
+    def add_name(self, name, rva=0xdeadc0fe, ordinal=None):
         if self.expdesc is None:
             return
         names = [func.name.name for func in self.f_names]
@@ -798,14 +798,18 @@ class DirExport(CStruct):
         descname = DescName(self.parent_head)
 
         descname.name = name
-        wname = Rva(self.parent_head)
+        wname = Rva32(self.parent_head)
 
         wname.name = descname
-        woffset = Rva(self.parent_head)
+        woffset = Rva32(self.parent_head)
         woffset.rva = rva
         wordinal = Ordinal(self.parent_head)
         # func is append to list
-        wordinal.ordinal = len(self.f_address)
+        if ordinal is None:
+            wordinal.ordinal = len(self.f_address)
+        else:
+            wordinal.ordinal = ordinal
+
         self.f_address.append(woffset)
         # self.f_names.insert(index, wname)
         # self.f_nameordinals.insert(index, wordinal)
