@@ -198,7 +198,7 @@ idaapi.register_action(action_translate)
 
 
 if __name__ == '__main__':
-    idaapi.CompileLine('static key_F3() { RunPythonStatement("symbolic_exec()"); }')
+    idaapi.compile_idc_text('static key_F3() { RunPythonStatement("symbolic_exec()"); }')
     idc.add_idc_hotkey("F3", "key_F3")
 
     print("=" * 50)
