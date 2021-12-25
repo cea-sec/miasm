@@ -420,7 +420,7 @@ class instruction_aarch64(instruction):
             else:
                 return "[%s]" % color_expr_html(expr.args[0], loc_db)
         elif isinstance(expr, m2_expr.ExprOp) and expr.op == 'segm':
-            arg = color_expr_html(expr.args[1], loc_db)
+            arg = expr.args[1]
             if isinstance(arg, m2_expr.ExprId):
                 arg = str(arg)
             elif arg.op == 'LSL' and int(arg.args[1]) == 0:

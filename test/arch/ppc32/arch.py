@@ -114,6 +114,7 @@ for mode, s, l, in reg_tests:
     a = mn_ppc.asm(l)
     print('asm result %s' % [x for x in a])
     print(repr(b))
+    print(l.to_html())
 
     print('test re dis')
     for x in a:

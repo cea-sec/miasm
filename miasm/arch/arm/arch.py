@@ -481,7 +481,7 @@ class instruction_arm(instruction):
         else:
             r, s = expr.args[0].args
         if isinstance(s, ExprOp) and s.op in expr2shift_dct:
-            s = ' '.join(
+            s_html = ' '.join(
                 str(x)
                 for x in (
                         color_expr_html(s.args[0], loc_db),
@@ -489,14 +489,16 @@ class instruction_arm(instruction):
                         color_expr_html(s.args[1], loc_db)
                 )
             )
+        else:
+            s_html = color_expr_html(s, loc_db)
 
         if isinstance(expr, ExprOp) and expr.op == 'postinc':
             o = '[%s]' % color_expr_html(r, loc_db)
             if s and not (isinstance(s, ExprInt) and int(s) == 0):
-                o += ', %s' % color_expr_html(s, loc_db)
+                o += ', %s' % s_html
         else:
             if s and not (isinstance(s, ExprInt) and int(s) == 0):
-                o = '[%s, %s]' % (color_expr_html(r, loc_db), color_expr_html(s, loc_db))
+                o = '[%s, %s]' % (color_expr_html(r, loc_db), s_html)
             else:
                 o = '[%s]' % color_expr_html(r, loc_db)
 

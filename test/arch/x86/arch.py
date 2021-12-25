@@ -3153,6 +3153,7 @@ for mode, s, l, in reg_tests:
     a = mn_x86.asm(l)
     print('asm result', [x for x in a])
     print(repr(b))
+    print(l.to_html())
 
     for x in a:
         print("BYTES", repr(x))
