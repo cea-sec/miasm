@@ -19,7 +19,7 @@ class bin_stream_ida(bin_stream_str):
         for ad in range(l):
             offset = ad + start + self.base_address
             if not is_mapped(offset):
-                raise IOError("not enough bytes")
+                raise IOError(f"not enough bytes @ offset {offset:x}")
             out.append(int_to_byte(get_wide_byte(offset)))
         return b''.join(out)
 
