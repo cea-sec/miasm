@@ -3,4 +3,9 @@
 # Emacs files
 *~
 # Compiled python files
-*\.pyc
+*.py[cod]
+# Generated files
+*.egg*
+**.dot
+**.so
+VERSION
