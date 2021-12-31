@@ -83,7 +83,7 @@ if is_win and is_64bit:
     if not win_force_clang:
         print("Warning: couldn't find a Clang/LLVM installation. Some runtime functions needed by the jitter won't be compiled.")
 
-def buil_all():
+def build_all():
     packages=[
         "miasm",
         "miasm/arch",
@@ -352,5 +352,5 @@ def _write_pkg_file(self, file):
 DistributionMetadata.write_pkg_file = _write_pkg_file
 
 
-buil_all()
+build_all()
 
