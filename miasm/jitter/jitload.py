@@ -3,9 +3,9 @@ import warnings
 from functools import wraps
 from collections import namedtuple
 try:
-    from collections.abc import Sequence
+    from collections.abc import Sequence, Iterator
 except ImportError:
-    from collections import Sequence
+    from collections import Sequence, Iterator
 
 from future.utils import viewitems
 
@@ -374,7 +374,7 @@ class Jitter(object):
         old_pc = self.pc
         for res in self.breakpoints_handler.call_callbacks(self.pc, self):
             if res is not True:
-                if isinstance(res, collections.Iterator):
+                if isinstance(res, Iterator):
                     # If the breakpoint is a generator, yield it step by step
                     for tmp in res:
                         yield tmp
@@ -385,7 +385,7 @@ class Jitter(object):
         exception_flag = self.get_exception()
         for res in self.exceptions_handler(exception_flag, self):
             if res is not True:
-                if isinstance(res, collections.Iterator):
+                if isinstance(res, Iterator):
                     for tmp in res:
                         yield tmp
                 else:
@@ -407,7 +407,7 @@ class Jitter(object):
         exception_flag = self.get_exception()
         for res in self.exceptions_handler(exception_flag, self):
             if res is not True:
-                if isinstance(res, collections.Iterator):
+                if isinstance(res, Iterator):
                     for tmp in res:
                         yield tmp
                 else:

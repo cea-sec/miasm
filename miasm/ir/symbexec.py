@@ -1,7 +1,10 @@
 from __future__ import print_function
 from builtins import range
 import logging
-from collections import MutableMapping
+try:
+    from collections.abc import MutableMapping
+except ImportError:
+    from collections import MutableMapping
 
 from future.utils import viewitems
 
