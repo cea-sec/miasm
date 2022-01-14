@@ -135,6 +135,17 @@ class jitter_mips32l(Jitter):
             arg = self.get_stack_arg(index-4)
         return arg
 
+    def syscall_args_systemv(self, n_args):
+        # Documentation: http://man7.org/linux/man-pages/man2/syscall.2.html
+        # mips/o32      a0    a1    a2    a3    stack
+        args = [self.get_arg_n_stdcall(i) for i in range(n_args)]
+        return args
+
+    def syscall_ret_systemv(self, value1, value2, error):
+        # Documentation: http://man7.org/linux/man-pages/man2/syscall.2.html
+        self.cpu.V0 = value1
+        self.cpu.V1 = value2
+        self.cpu.A3 = error  # 0 -> no error, -1 -> error
 
     func_args_systemv = func_args_stdcall
     func_ret_systemv = func_ret_stdcall

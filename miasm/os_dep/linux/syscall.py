@@ -898,6 +898,15 @@ def sys_arml_gettimeofday(jitter, linux_env):
     jitter.cpu.R0 = 0
 
 
+def sys_mips32b_socket(jitter, linux_env):
+    # Parse arguments
+    family, type_, protocol = jitter.syscall_args_systemv(3)
+    log.debug("sys_socket(%x, %x, %x)", family, type_, protocol)
+
+    ret1 = linux_env.socket(family, type_, protocol)
+    jitter.syscall_ret_systemv(ret1, 0, 0)
+
+
 syscall_callbacks_x86_32 = {
     0x7A: sys_x86_32_newuname,
 }
@@ -976,6 +985,11 @@ syscall_callbacks_arml = {
 
     # ARM-specific ARM_NR_BASE == 0x0f0000
     0xf0005: sys_arml_set_tls,
+}
+
+
+syscall_callbacks_mips32b = {
+    0x1057: sys_mips32b_socket,
 }
 
 def syscall_x86_64_exception_handler(linux_env, syscall_callbacks, jitter):
@@ -1059,6 +1073,31 @@ def syscall_arml_exception_handler(linux_env, syscall_callbacks, jitter):
 
 
 
+def syscall_mips32b_exception_handler(linux_env, syscall_callbacks, jitter):
+    """Call to actually handle an EXCEPT_SYSCALL exception
+    In the case of an error raised by a SYSCALL, call the corresponding
+    syscall_callbacks
+    @linux_env: LinuxEnvironment_mips32b instance
+    @syscall_callbacks: syscall number -> func(jitter, linux_env)
+    """
+
+    # Dispatch to SYSCALL stub
+    syscall_number = jitter.cpu.V0
+    callback = syscall_callbacks.get(syscall_number)
+    if callback is None:
+        raise KeyError(
+            "No callback found for syscall number 0x%x" % syscall_number
+        )
+    callback(jitter, linux_env)
+    log.debug("-> %x", jitter.cpu.V0)
+
+    # Clean exception and move pc to the next instruction, to let the jitter
+    # continue
+    jitter.cpu.set_exception(jitter.cpu.get_exception() ^ EXCEPT_SYSCALL)
+    return True
+
+
+
 def enable_syscall_handling(jitter, linux_env, syscall_callbacks):
     """Activate handling of syscall for the current jitter instance.
     Syscall handlers are provided by @syscall_callbacks
@@ -1082,5 +1121,9 @@ def enable_syscall_handling(jitter, linux_env, syscall_callbacks):
         handler = syscall_arml_exception_handler
         handler = functools.partial(handler, linux_env, syscall_callbacks)
         jitter.add_exception_handler(EXCEPT_INT_XX, handler)
+    elif arch_name == "mips32b":
+        handler = syscall_mips32b_exception_handler
+        handler = functools.partial(handler, linux_env, syscall_callbacks)
+        jitter.add_exception_handler(EXCEPT_SYSCALL, handler)
     else:
         raise ValueError("No syscall handler implemented for %s" % arch_name)
