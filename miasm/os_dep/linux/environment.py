@@ -710,6 +710,11 @@ class LinuxEnvironment_arml(LinuxEnvironment):
     kuser_helper_version = 3
 
 
+class LinuxEnvironment_mips32b(LinuxEnvironment):
+    platform_arch = b"mips32b"
+    sys_machine = b"mips32b"
+
+
 class AuxVec(object):
     """Auxiliary vector abstraction, filled with default values
     (mainly based on https://lwn.net/Articles/519085)
