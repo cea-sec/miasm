@@ -69,7 +69,6 @@ class additional_info(object):
 
 
 class instruction_ppc(instruction):
-    delayslot = 0
 
     def __init__(self, *args, **kargs):
         super(instruction_ppc, self).__init__(*args, **kargs)

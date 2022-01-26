@@ -58,11 +58,6 @@ class instruction_mep(instruction):
         - it must be implemented !
     """
 
-    # Default delay slot
-    # Note:
-    #   - mandatory for the miasm Machine
-    delayslot = 0
-
     @staticmethod
     def arg2str(expr, pos=None, loc_db=None):
         """Convert mnemonics arguments into readable strings according to the

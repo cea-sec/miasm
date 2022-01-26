@@ -400,7 +400,6 @@ class additional_info(object):
 
 class instruction_sh4(instruction):
     __slots__ = []
-    delayslot = 0
 
     def __init__(self, *args, **kargs):
         super(instruction_sh4, self).__init__(*args, **kargs)

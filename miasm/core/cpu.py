@@ -987,6 +987,7 @@ class instruction(object):
         self.offset = None
         self.l = None
         self.b = None
+        self.delayslot = 0
 
     def gen_args(self, args):
         out = ', '.join([str(x) for x in args])
