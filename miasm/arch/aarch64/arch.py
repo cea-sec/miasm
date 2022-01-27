@@ -316,7 +316,6 @@ class aarch64_arg(m_arg):
 
 class instruction_aarch64(instruction):
     __slots__ = []
-    delayslot = 0
 
     def __init__(self, *args, **kargs):
         super(instruction_aarch64, self).__init__(*args, **kargs)

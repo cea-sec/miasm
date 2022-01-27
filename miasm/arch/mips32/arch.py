@@ -54,10 +54,10 @@ br_2 = ['BEQ', 'BEQL', 'BNE', 'BNEL']
 
 class instruction_mips32(cpu.instruction):
     __slots__ = []
-    delayslot = 1
 
     def __init__(self, *args, **kargs):
         super(instruction_mips32, self).__init__(*args, **kargs)
+        self.delayslot = 1
 
 
     @staticmethod
