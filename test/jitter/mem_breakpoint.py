@@ -71,9 +71,7 @@ jitter.vm.set_mem(0xFFFFFF800901EBEC, decode_hex("FD7BBEA901008052FD030091A26300
 
 jitter.set_trace_log()
 
-jitter.exceptions_handler.callbacks[EXCEPT_BREAKPOINT_MEMORY] = []
-jitter.add_exception_handler(EXCEPT_BREAKPOINT_MEMORY,
-                             mem_breakpoint_handler)
+jitter.add_exception_handler(EXCEPT_BREAKPOINT_MEMORY, mem_breakpoint_handler)
 jitter.vm.add_memory_breakpoint(0xFFFFFF8009080000, 0x8000000, PAGE_READ | PAGE_WRITE)
 
 jitter.init_run(0xFFFFFF800901EBEC)
