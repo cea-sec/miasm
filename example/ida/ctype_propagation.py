@@ -314,7 +314,7 @@ def analyse_function():
     lbl_real_start = loc_db.get_offset_location(addr)
     lbl_head = loc_db.get_or_create_name_location("start")
 
-    first_block = asmcfg.label2block(lbl_real_start)
+    first_block = asmcfg.loc_key_to_block(lbl_real_start)
 
     assignblk_head = AssignBlock(
         [
@@ -323,7 +323,7 @@ def analyse_function():
         ],
         first_block.lines[0]
     )
-    irb_head = IRBlock(lbl_head, [assignblk_head])
+    irb_head = IRBlock(loc_db, lbl_head, [assignblk_head])
     ircfg.blocks[lbl_head] = irb_head
     ircfg.add_uniq_edge(lbl_head, lbl_real_start)
 
