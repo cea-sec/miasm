@@ -48,7 +48,8 @@ def memory_breakpoint_handler(jitter):
     jitter.vm.set_exception(jitter.vm.get_exception() ^ EXCEPT_BREAKPOINT_MEMORY)
     jitter.vm.reset_memory_access()
 
-    return True
+    # Stop the jitter
+    return False
 sb.jitter.add_exception_handler(EXCEPT_BREAKPOINT_MEMORY, memory_breakpoint_handler)
 
 # Run
