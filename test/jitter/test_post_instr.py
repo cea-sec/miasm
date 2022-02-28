@@ -36,9 +36,7 @@ jitter.set_trace_log()
 def do_not_raise_me(jitter):
     raise ValueError("Should not be here")
 
-jitter.exceptions_handler.callbacks[EXCEPT_BREAKPOINT_MEMORY] = []
-jitter.add_exception_handler(EXCEPT_BREAKPOINT_MEMORY,
-                             do_not_raise_me)
+jitter.add_exception_handler(EXCEPT_BREAKPOINT_MEMORY, do_not_raise_me)
 jitter.vm.add_memory_breakpoint(0x11000-4, 4, PAGE_READ | PAGE_WRITE)
 
 # The memory write pending will raise automod exception

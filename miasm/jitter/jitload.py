@@ -294,13 +294,7 @@ class Jitter(object):
 
             return True
 
-        def exception_memory_breakpoint(jitter):
-            "Stop the execution and return an identifier"
-            return ExceptionHandle.memoryBreakpoint()
-
         self.add_exception_handler(EXCEPT_CODE_AUTOMOD, exception_automod)
-        self.add_exception_handler(EXCEPT_BREAKPOINT_MEMORY,
-                                   exception_memory_breakpoint)
 
     def add_breakpoint(self, addr, callback):
         """Add a callback associated with addr.

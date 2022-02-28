@@ -79,8 +79,9 @@ class Debugguer(object):
         "myjit : jitter instance"
         self.myjit = myjit
         self.bp_list = []     # DebugBreakpointSoft list
-        self.hw_bp_list = []  # DebugBreakpointHard list
+        self.mem_bp_list = []  # DebugBreakpointMemory list
         self.mem_watched = []  # Memory areas watched
+        self.init_memory_breakpoint()
 
     def init_run(self, addr):
         self.myjit.init_run(addr)
@@ -95,14 +96,20 @@ class Debugguer(object):
 
     def init_memory_breakpoint(self):
         "Set exception handler on EXCEPT_BREAKPOINT_MEMORY"
-        raise NotImplementedError("Not implemented")
+        def exception_memory_breakpoint(jitter):
+            "Stop the execution and return an identifier"
+            return ExceptionHandle.memoryBreakpoint()
+
+        self.myjit.add_exception_handler(csts.EXCEPT_BREAKPOINT_MEMORY,
+                                         exception_memory_breakpoint)
+
 
     def add_memory_breakpoint(self, addr, size, read=False, write=False):
         "add mem bp @[addr, addr + size], on read/write/both"
         access_type = DebugBreakpointMemory.get_access_type(read=read,
                                                             write=write)
         dbm = DebugBreakpointMemory(addr, size, access_type)
-        self.hw_bp_list.append(dbm)
+        self.mem_bp_list.append(dbm)
         self.myjit.vm.add_memory_breakpoint(addr, size, access_type)
 
     def remove_breakpoint(self, dbs):
@@ -117,7 +124,7 @@ class Debugguer(object):
 
     def remove_memory_breakpoint(self, dbm):
         "remove the DebugBreakpointMemory instance"
-        self.hw_bp_list.remove(dbm)
+        self.mem_bp_list.remove(dbm)
         self.myjit.vm.remove_memory_breakpoint(dbm.addr, dbm.access_type)
 
     def remove_memory_breakpoint_by_addr_access(self, addr, read=False,
@@ -125,7 +132,7 @@ class Debugguer(object):
         "remove breakpoints @ addr"
         access_type = DebugBreakpointMemory.get_access_type(read=read,
                                                             write=write)
-        for bp in self.hw_bp_list:
+        for bp in self.mem_bp_list:
             if bp.addr == addr and bp.access_type == access_type:
                 self.remove_memory_breakpoint(bp)
 
@@ -156,12 +163,24 @@ class Debugguer(object):
             print("Breakpoint reached @0x%08x" % res.addr)
         elif isinstance(res, ExceptionHandle):
             if res == ExceptionHandle.memoryBreakpoint():
-                print("Memory breakpoint reached!")
+                print("Memory breakpoint reached at instruction 0x%s" % self.myjit.pc)
+
+                memory_read = self.myjit.vm.get_memory_read()
+                if len(memory_read) > 0:
+                    print("Read:")
+                    for start_address, end_address in memory_read:
+                        print("- from %s to %s" % (hex(start_address), hex(end_address)))
+                memory_write = self.myjit.vm.get_memory_write()
+                if len(memory_write) > 0:
+                    print("Write:")
+                    for start_address, end_address in memory_write:
+                        print("- from %s to %s" % (hex(start_address), hex(end_address)))
 
                 # Remove flag
                 except_flag = self.myjit.vm.get_exception()
                 self.myjit.vm.set_exception(except_flag ^ res.except_flag)
-
+                # Clean memory access data
+                self.myjit.vm.reset_memory_access()
             else:
                 raise NotImplementedError("Unknown Except")
         else:
@@ -250,6 +269,14 @@ class DebugCmd(cmd.Cmd, object):
             for i, b in enumerate(bp_list):
                 print("%d\t0x%08x" % (i, b.addr))
 
+    def print_memory_breakpoints(self):
+        bp_list = self.dbg.mem_bp_list
+        if len(bp_list) == 0:
+            print("No memory breakpoints.")
+        else:
+            for _, bp in enumerate(bp_list):
+                print(str(bp))
+
     def print_watchmems(self):
         watch_list = self.dbg.mem_watched
         if len(watch_list) == 0:
@@ -324,6 +351,7 @@ class DebugCmd(cmd.Cmd, object):
             "r": "run",
             "i": "info",
             "b": "breakpoint",
+            "m": "memory_breakpoint",
             "s": "step",
             "d": "dump"
         }
@@ -391,6 +419,7 @@ class DebugCmd(cmd.Cmd, object):
             "registers",
             "display",
             "breakpoints",
+            "memory_breakpoint",
             "watchmem"
         ]
 
@@ -403,6 +432,10 @@ class DebugCmd(cmd.Cmd, object):
         if arg.startswith("b"):
             # Breakpoint
             self.print_breakpoints()
+
+        if arg.startswith("m"):
+            # Memory breakpoints
+            self.print_memory_breakpoints()
 
         if arg.startswith("d"):
             # Display
@@ -435,6 +468,31 @@ class DebugCmd(cmd.Cmd, object):
         print("Example:")
         print("\tbreakpoint 0x11223344")
         print("\tbreakpoint 1122 0xabcd")
+
+    def do_memory_breakpoint(self, arg):
+        if arg == "":
+            self.help_memory_breakpoint()
+            return
+        args = arg.split(" ")
+        if len(args) > 3 or len(args) <= 1:
+            self.help_memory_breakpoint()
+            return
+        address = int(args[0], 0)
+        size = int(args[1], 0)
+        if len(args) == 2:
+            self.dbg.add_memory_breakpoint(address, size, read=True, write=True)
+        else:
+            self.dbg.add_memory_breakpoint(address,
+                                           size,
+                                           read=('r' in args[2]),
+                                           write=('w' in args[2]))
+
+    def help_memory_breakpoint(self):
+        print("Add memory breakpoints to memory space defined by a starting")
+        print("address and a size on specified access type (default is 'rw').")
+        print("Example:")
+        print("\tmemory_breakpoint 0x11223344 0x100 r")
+        print("\tmemory_breakpoint 1122 10")
 
     def do_step(self, arg):
         if arg == "":
