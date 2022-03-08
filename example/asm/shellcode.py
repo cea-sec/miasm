@@ -13,7 +13,7 @@ from miasm.core.interval import interval
 from miasm.core.locationdb import LocationDB
 from miasm.core.utils import iterbytes, int_to_byte
 
-parser = ArgumentParser("Multi-arch (32 bits) assembler")
+parser = ArgumentParser(description="Multi-arch (32 bits) assembler")
 parser.add_argument('architecture', help="architecture: " +
                     ",".join(Machine.available_machine()))
 parser.add_argument("source", help="Source file to assemble")
