@@ -16,7 +16,7 @@ from miasm.core.locationdb import LocationDB
 
 
 
-parser = ArgumentParser("Constant expression propagation")
+parser = ArgumentParser(description="Constant expression propagation")
 parser.add_argument('filename', help="File to analyze")
 parser.add_argument('address', help="Starting address for disassembly engine")
 parser.add_argument('-s', "--simplify", action="store_true",

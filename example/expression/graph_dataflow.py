@@ -13,7 +13,7 @@ from miasm.analysis.data_flow import DeadRemoval
 from miasm.core.locationdb import LocationDB
 
 
-parser = ArgumentParser("Simple expression use for generating dataflow graph")
+parser = ArgumentParser(description="Simple expression use for generating dataflow graph")
 parser.add_argument("filename", help="File to analyse")
 parser.add_argument("addr", help="Function's address")
 parser.add_argument("-s", "--symb", help="Symbolic execution mode",
