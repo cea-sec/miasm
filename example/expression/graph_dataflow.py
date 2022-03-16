@@ -158,8 +158,10 @@ gen_block_data_flow_graph(lifter, ircfg, ad, block_flow_cb)
 print('*' * 40)
 print("""
  View with:
-dotty dataflow.dot
+dotty data.dot
+ or
+xdot data.dot
  or
  Generate ps with pdf:
-dot -Tps dataflow_xx.dot -o graph.ps
+dot -Tps data.dot -o graph.ps
 """)
