@@ -3,6 +3,8 @@ from miasm.expression.expression import *
 
 """
 Test memory interferences
+
+A memory interference may appear when two ExprMem objects relate to the same area of memory: editing one may impact the other.
 """
 
 a32 = ExprId('a', 32)
