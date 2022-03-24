@@ -583,7 +583,14 @@ Miasm comes with a set of regression tests. To run all of them:
 
 ```pycon
 cd miasm_directory/test
+
+# Run tests using our own test runner
 python test_all.py
+
+# Run tests using standard frameworks (slower, require 'parameterized')
+python -m unittest test_all.py        # sequential, requires 'unittest'
+python -m pytest test_all.py          # sequential, requires 'pytest'
+python -m pytest -n auto test_all.py  # parallel, requires 'pytest' and 'pytest-xdist'
 ```
 
 Some options can be specified:
