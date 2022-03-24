@@ -13,7 +13,7 @@ from miasm.analysis.data_flow import DeadRemoval
 from miasm.core.locationdb import LocationDB
 
 
-parser = ArgumentParser("Simple expression use for generating dataflow graph")
+parser = ArgumentParser(description="Simple expression use for generating dataflow graph")
 parser.add_argument("filename", help="File to analyse")
 parser.add_argument("addr", help="Function's address")
 parser.add_argument("-s", "--symb", help="Symbolic execution mode",
@@ -158,8 +158,10 @@ gen_block_data_flow_graph(lifter, ircfg, ad, block_flow_cb)
 print('*' * 40)
 print("""
  View with:
-dotty dataflow.dot
+dotty data.dot
+ or
+xdot data.dot
  or
  Generate ps with pdf:
-dot -Tps dataflow_xx.dot -o graph.ps
+dot -Tps data.dot -o graph.ps
 """)

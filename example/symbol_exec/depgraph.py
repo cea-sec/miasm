@@ -12,7 +12,7 @@ from miasm.analysis.depgraph import DependencyGraph
 from miasm.expression.expression import ExprMem, ExprId, ExprInt
 from miasm.core.locationdb import LocationDB
 
-parser = ArgumentParser("Dependency grapher")
+parser = ArgumentParser(description="Dependency grapher")
 parser.add_argument("filename", help="Binary to analyse")
 parser.add_argument("func_addr", help="Function address")
 parser.add_argument("target_addr", help="Address to start")
