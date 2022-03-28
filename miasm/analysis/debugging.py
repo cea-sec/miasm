@@ -163,18 +163,18 @@ class Debugguer(object):
             print("Breakpoint reached @0x%08x" % res.addr)
         elif isinstance(res, ExceptionHandle):
             if res == ExceptionHandle.memoryBreakpoint():
-                print("Memory breakpoint reached at instruction 0x%s" % self.myjit.pc)
+                print("Memory breakpoint reached @0x%08x" % self.myjit.pc)
 
                 memory_read = self.myjit.vm.get_memory_read()
                 if len(memory_read) > 0:
                     print("Read:")
                     for start_address, end_address in memory_read:
-                        print("- from %s to %s" % (hex(start_address), hex(end_address)))
+                        print("- from 0x%08x to 0x%08x" % (start_address, end_address))
                 memory_write = self.myjit.vm.get_memory_write()
                 if len(memory_write) > 0:
                     print("Write:")
                     for start_address, end_address in memory_write:
-                        print("- from %s to %s" % (hex(start_address), hex(end_address)))
+                        print("- from 0x%08x to 0x%08x" % (start_address, end_address))
 
                 # Remove flag
                 except_flag = self.myjit.vm.get_exception()
