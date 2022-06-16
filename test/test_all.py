@@ -13,8 +13,6 @@ import unittest
 from builtins import map
 from builtins import range
 
-from parameterized import parameterized
-
 from utils import cosmetics, multithread
 from utils.test import Test
 from utils.testset import TestSet
@@ -852,50 +850,54 @@ testset += RegressionTest(["launch.py"], base_dir="arch/mep/jit")
 
 
 # region Unittest compatibility
+try:
+    from parameterized import parameterized
 
-class TestSequence(unittest.TestCase):
-    # Compatibility layer for Python's unittest module
-    # Instead of calling the '__main__' defined below, we parameterize a single test with all the tests selected in
-    # testset, and run them as we would have.
+    class TestSequence(unittest.TestCase):
+        # Compatibility layer for Python's unittest module
+        # Instead of calling the '__main__' defined below, we parameterize a single test with all the tests selected in
+        # testset, and run them as we would have.
 
-    tests = testset.tests
-    tests_without_shellcodes = (t for t in tests if "shellcode.py" not in t.command_line[0])
+        tests = testset.tests
+        tests_without_shellcodes = (t for t in tests if "shellcode.py" not in t.command_line[0])
 
-    @staticmethod
-    def run_process(t):
-        """
-        @type t: Test
-        """
-        print("Base dir:", t.base_dir)
-        print("Command: ", t.command_line)
-        print("Depends: ", [t.command_line for t in t.depends])
-        print("Tags:    ", t.tags)
-        print("Products:", t.products)
-        executable = t.executable if t.executable else sys.executable
-        print("Exec:    ", executable, "(explicit)" if t.executable else "(default)")
+        @staticmethod
+        def run_process(t):
+            """
+            @type t: Test
+            """
+            print("Base dir:", t.base_dir)
+            print("Command: ", t.command_line)
+            print("Depends: ", [t.command_line for t in t.depends])
+            print("Tags:    ", t.tags)
+            print("Products:", t.products)
+            executable = t.executable if t.executable else sys.executable
+            print("Exec:    ", executable, "(explicit)" if t.executable else "(default)")
 
-        for t in t.depends:
-            assert "shellcode.py" in t.command_line[0], "At the moment, only dependencies on 'shellcode.py' are handled"
+            for t in t.depends:
+                assert "shellcode.py" in t.command_line[0], "At the moment, only dependencies on 'shellcode.py' are handled"
 
-        subprocess.check_call(
-            [executable] + t.command_line,
-            cwd=testset.base_dir + t.base_dir,
-        )
+            subprocess.check_call(
+                [executable] + t.command_line,
+                cwd=testset.base_dir + t.base_dir,
+            )
 
-        print("Done")
+            print("Done")
 
-    @classmethod
-    def setUpClass(cls):
-        for t in testset.tests:
-            if "shellcode.py" in t.command_line[0]:
-                print("\n*** Shellcode generation ***")
-                cls.run_process(t)
+        @classmethod
+        def setUpClass(cls):
+            for t in testset.tests:
+                if "shellcode.py" in t.command_line[0]:
+                    print("\n*** Shellcode generation ***")
+                    cls.run_process(t)
 
-    @parameterized.expand(("_".join(test.command_line), test) for test in tests_without_shellcodes)
-    def test(self, name, t):
-        print("***", name, "***")
-        TestSequence.run_process(t)
+        @parameterized.expand(("_".join(test.command_line), test) for test in tests_without_shellcodes)
+        def test(self, name, t):
+            print("***", name, "***")
+            TestSequence.run_process(t)
 
+except ImportError as e:
+    print("unittest/pytest support is disabled:", e)
 
 # endregion
 
