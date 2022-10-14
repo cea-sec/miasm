@@ -47,7 +47,7 @@ def win_get_llvm_reg():
     except FileNotFoundError:
       pass
     return winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, REG_PATH, 0, winreg.KEY_READ)
-  
+
 def win_find_clang_path():
     try:
         with win_get_llvm_reg() as rkey:
@@ -60,6 +60,8 @@ def win_use_clang():
     # the msbuild-bin directory. Thus, we need to
     # * copy-paste bin/clang-cl.exe into a temporary directory
     # * rename it to cl.exe
+    # * copy-paste bin/lld-link.exe into a temporary directory
+    # * rename it to link.exe
     # * add that path first in %Path%
     # * clean this mess on exit
     # We could use the build directory created by distutils for this, but it
@@ -70,6 +72,7 @@ def win_use_clang():
         return False
     tmpdir = tempfile.mkdtemp(prefix="llvm")
     copyfile(os.path.join(clang_path, "bin", "clang-cl.exe"), os.path.join(tmpdir, "cl.exe"))
+    copyfile(os.path.join(clang_path, "bin", "lld-link.exe"), os.path.join(tmpdir, "link.exe"))
     os.environ['Path'] = "%s;%s" % (tmpdir, os.environ["Path"])
     atexit.register(lambda dir_: rmtree(dir_), tmpdir)
 
