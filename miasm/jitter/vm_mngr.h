@@ -19,7 +19,9 @@
 #define CODENAT_H
 
 #if defined(_WIN32) || defined(_WIN64)
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
+#endif
 #endif
 
 #if _WIN32
