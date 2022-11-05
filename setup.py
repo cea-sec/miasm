@@ -296,6 +296,8 @@ def build_all():
         ext_modules_all = []
 
     print("building")
+    if not os.path.exists("build"):
+        os.mkdir("build")
     build_ok = False
     for name, ext_modules in [("all", ext_modules_all)]:
         print("build with", repr(name))
