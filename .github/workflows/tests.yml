@@ -22,6 +22,9 @@ jobs:
     - name: Update pip
       run: pip install pip --upgrade
 
+    - name: Update wheel
+      run: pip install wheel --upgrade
+
     - name: Install requirements
       run: pip install -r requirements.txt
 

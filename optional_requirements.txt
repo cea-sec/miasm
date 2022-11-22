@@ -1,4 +1,10 @@
 pycparser
 z3-solver==4.8.7.0
-llvmlite==0.31.0
+
+# llvmlite versions are compatible with a single LLVM version,
+# see https://pypi.org/project/llvmlite/
+# To install a pre-built binary bundling the correct LLVM version,
+# install 'wheel' before 'llvmlite'
+llvmlite>=0.31.0
+
 parameterized~=0.8.1
