@@ -618,6 +618,11 @@ class AsmCFG(DiGraph):
         for loc_key in self._nodes:
             if loc_key not in self._loc_key_to_block:
                 raise RuntimeError("Not supported yet: every node must have a corresponding AsmBlock")
+
+            block = self.loc_key_to_block(loc_key)
+            if not block.lines and not isinstance(block, AsmBlockBad):
+                raise RuntimeError("Blocks cannot be empty")
+
             # No next constraint to self
             if (loc_key, loc_key) in next_edges:
                 raise RuntimeError('Bad constraint: self in next')
