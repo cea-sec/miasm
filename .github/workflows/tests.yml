@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.6', '3.8', '3.10']
+        python-version: ['3.8', '3.10']
 
     steps:
 
@@ -25,11 +25,8 @@ jobs:
     - name: Install requirements
       run: pip install -r requirements.txt
 
-    - name: Install llvm 8 (llvmlite compatible)
-      run: sudo apt-get install llvm-8
-
-    - name: Use llvm 8
-      run: sudo update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-8 1
+    - name: Install llvm 11 (llvmlite compatible)
+      run: sudo apt-get install llvm-11
 
     - name: Install optional requirements
       run: pip install -r optional_requirements.txt

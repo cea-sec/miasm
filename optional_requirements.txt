@@ -1,4 +1,4 @@
 pycparser
 z3-solver==4.8.7.0
-llvmlite==0.31.0
+llvmlite==0.38.0
 parameterized~=0.8.1
