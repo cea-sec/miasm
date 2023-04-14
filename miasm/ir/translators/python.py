@@ -90,6 +90,9 @@ class TranslatorPython(Translator):
 
             return "((%s | %s) &0x%x)" % (part1, part2, int(expr.mask))
 
+        elif expr.op in ['cntleadzeros', 'cnttrailzeros']:
+            return "%s(0x%x, %s)" % (expr.op, expr.args[0].size, self.from_expr(arg))
+
         raise NotImplementedError("Unknown operator: %s" % expr.op)
 
     def from_ExprAssign(self, expr):
