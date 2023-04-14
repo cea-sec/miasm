@@ -10,12 +10,11 @@ import logging
 
 # Parse arguments
 parser = Sandbox_Linux_ppc32b.parser(description="ELF sandboxer")
-parser.add_argument("filename", help="ELF Filename")
 options = parser.parse_args()
 
 # Create sandbox
 loc_db = LocationDB()
-sb = Sandbox_Linux_ppc32b(loc_db, options.filename, options, globals())
+sb = Sandbox_Linux_ppc32b(loc_db, options, globals())
 log_func.setLevel(logging.ERROR)
 
 sb.run()

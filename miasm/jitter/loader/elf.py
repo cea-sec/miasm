@@ -1,4 +1,5 @@
 import struct
+import warnings
 from collections import defaultdict
 
 from future.utils import viewitems
@@ -8,7 +9,7 @@ from miasm.loader import *
 import miasm.loader.elf as elf_csts
 
 from miasm.jitter.csts import *
-from miasm.jitter.loader.utils import canon_libname_libfunc, libimp
+from miasm.jitter.loader.utils import canon_libname_libfunc, Loader
 from miasm.core.utils import force_str
 from miasm.core.interval import interval
 
@@ -32,17 +33,17 @@ def get_import_address_elf(e):
     return import2addr
 
 
-def preload_elf(vm, e, runtime_lib, patch_vm_imp=True, loc_db=None):
+def preload_elf(vm, e, loader, patch_vm_imp=True, loc_db=None):
     # XXX quick hack
-    fa = get_import_address_elf(e)
+    import_information = get_import_address_elf(e)
     dyn_funcs = {}
-    for (libname, libfunc), ads in viewitems(fa):
+    for (libname, libfunc), ads in viewitems(import_information):
         # Quick hack - if a symbol is already known, do not stub it
         if loc_db and loc_db.get_name_location(libfunc) is not None:
             continue
         for ad in ads:
-            ad_base_lib = runtime_lib.lib_get_add_base(libname)
-            ad_libfunc = runtime_lib.lib_get_add_func(ad_base_lib, libfunc, ad)
+            ad_base_lib = loader.lib_get_add_base(libname)
+            ad_libfunc = loader.resolve_function(vm, ad_base_lib, libfunc, ad)
 
             libname_s = canon_libname_libfunc(libname, libfunc)
             dyn_funcs[libname_s] = ad_libfunc
@@ -55,7 +56,7 @@ def preload_elf(vm, e, runtime_lib, patch_vm_imp=True, loc_db=None):
                            struct.pack(set_endianness +
                                        cstruct.size2type[e.size],
                                        ad_libfunc))
-    return runtime_lib, dyn_funcs
+    return loader, dyn_funcs
 
 def fill_loc_db_with_symbols(elf, loc_db, base_addr=0):
     """Parse the miasm.loader's ELF @elf to extract symbols, and fill the LocationDB
@@ -315,8 +316,24 @@ def vm_load_elf(vm, fdata, name="", base_addr=0, loc_db=None, apply_reloc=False,
     return elf
 
 
-class libimp_elf(libimp):
-    pass
+class LoaderUnix(Loader):
+
+    def lib_get_add_base(self, name):
+        name = name.lower().strip(' ')
+        if name in self.module_name_to_base_address:
+            ad = self.module_name_to_base_address[name]
+        else:
+            ad = self.fake_library_entry(name)
+        return ad
+
+    def resolve_function(self, vm, libad, imp_ord_or_name, dst_ad=None):
+        return self.fake_resolve_function(libad, imp_ord_or_name, dst_ad=dst_ad)
+
+
+class libimp_elf(LoaderUnix):
+    def __init__(self, *args, **kwargs):
+        warnings.warn("DEPRECATION WARNING: Use LoaderUnix instead of limimb_elf")
+        super(limbimp_elf, self).__init__(*args, **kwargs)
 
 
 # machine, size, sex -> arch_name

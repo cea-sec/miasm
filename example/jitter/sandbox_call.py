@@ -9,11 +9,10 @@ from miasm.core.locationdb import LocationDB
 
 # Parse arguments
 parser = Sandbox_Linux_arml.parser(description="ELF sandboxer")
-parser.add_argument("filename", help="ELF Filename")
 options = parser.parse_args()
 
 loc_db = LocationDB()
-sb = Sandbox_Linux_arml(loc_db, options.filename, options, globals())
+sb = Sandbox_Linux_arml(loc_db, options, globals())
 
 with open(options.filename, "rb") as fdesc:
     cont = Container.from_stream(fdesc, loc_db)

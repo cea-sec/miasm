@@ -114,7 +114,6 @@ def xxx_puts(jitter):
 
 # Parse arguments
 parser = Sandbox_Linux_x86_32.parser(description="ELF sandboxer")
-parser.add_argument("filename", help="ELF Filename")
 parser.add_argument("funcname", help="Targeted function's name")
 parser.add_argument("expected", help="Expected output")
 options = parser.parse_args()
@@ -124,7 +123,7 @@ expected = open(options.expected)
 
 # Create sandbox
 loc_db = LocationDB()
-sb = Sandbox_Linux_x86_32(loc_db, options.filename, options, globals())
+sb = Sandbox_Linux_x86_32(loc_db, options, globals())
 try:
     addr = sb.elf.getsectionbyname(".symtab")[options.funcname].value
 except AttributeError:

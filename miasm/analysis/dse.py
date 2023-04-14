@@ -247,8 +247,8 @@ class DSEEngine(object):
         @callback: func(dse instance)"""
         self.handler[addr] = callback
 
-    def add_lib_handler(self, libimp, namespace):
-        """Add search for handler based on a @libimp libimp instance
+    def add_lib_handler(self, loader, namespace):
+        """Add search for handler based on a @loader Loader instance
 
         Known functions will be looked by {name}_symb or {name}_{ord}_symb in the @namespace
         """
@@ -258,14 +258,14 @@ class DSEEngine(object):
 
         # lambda cannot contain statement
         def default_func(dse):
-            fname = libimp.fad2cname[dse.jitter.pc]
+            fname = loader.module_base_address_to_name(dse.jitter.pc)
             if isinstance(fname, tuple):
                 fname = b"%s_%d_symb" % (force_bytes(fname[0]), fname[1])
             else:
                 fname = b"%s_symb" % force_bytes(fname)
             raise RuntimeError("Symbolic stub '%s' not found" % fname)
 
-        for addr, fname in viewitems(libimp.fad2cname):
+        for addr, fname in viewitems(loader.function_address_to_canonical_name):
             if isinstance(fname, tuple):
                 fname = b"%s_%d_symb" % (force_bytes(fname[0]), fname[1])
             else:

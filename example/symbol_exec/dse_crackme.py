@@ -68,7 +68,6 @@ def xxx_fclose(jitter):
 
 # Create sandbox
 parser = Sandbox_Linux_x86_64.parser(description="ELF sandboxer")
-parser.add_argument("filename", help="ELF Filename")
 parser.add_argument("--strategy",
                     choices=["code-cov", "branch-cov", "path-cov"],
                     help="Strategy to use for solution creation",
@@ -77,7 +76,7 @@ options = parser.parse_args()
 options.mimic_env = True
 options.command_line = ["%s" % TEMP_FILE.name]
 loc_db = LocationDB()
-sb = Sandbox_Linux_x86_64(loc_db, options.filename, options, globals())
+sb = Sandbox_Linux_x86_64(loc_db, options, globals())
 
 # Init segment
 sb.jitter.lifter.do_stk_segm = True
@@ -261,7 +260,7 @@ dse.cur_solver.add(0 < z3_file_size)
 dse.cur_solver.add(z3_file_size < 0x10)
 
 # Register symbolic stubs for extern functions (xxx_puts_symb, ...)
-dse.add_lib_handler(sb.libs, globals())
+dse.add_lib_handler(sb.loader, globals())
 
 # Automatic exploration of solution
 

@@ -26,12 +26,11 @@ else:
 
 # Parse arguments
 parser = sandbox.parser(description="ELF sandboxer")
-parser.add_argument("filename", help="ELF Filename")
 options = parser.parse_args(sys.argv[2:])
 
 # Create sandbox
 loc_db = LocationDB()
-sb = sandbox(loc_db, options.filename, options, globals())
+sb = sandbox(loc_db, options, globals())
 
 # Run
 sb.run()

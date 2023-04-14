@@ -1,7 +1,8 @@
 from __future__ import print_function
+from pdb import pm
 import os
 import logging
-from miasm.analysis.sandbox import Sandbox_Win_x86_32
+from miasm.analysis.sandbox import Sandbox_WinXP_x86_32
 from miasm.jitter.loader.pe import vm2pe
 from miasm.core.locationdb import LocationDB
 
@@ -24,28 +25,33 @@ def kernel32_GetProcAddress(jitter):
 
     # Get the generated address of the library, and store it in memory to
     # dst_ad
-    ad = sb.libs.lib_get_add_func(args.libbase, fname, dst_ad)
+    name = sb.loader.module_base_address_to_name[args.libbase]
+    addr = sb.loader.resolve_function(name, fname, dst_ad=dst_ad)
     # Add a breakpoint in case of a call on the resolved function
     # NOTE: never happens in UPX, just for skeleton
-    jitter.handle_function(ad)
+    jitter.handle_function(addr)
 
-    jitter.func_ret_stdcall(ret_ad, ad)
+    jitter.func_ret_stdcall(ret_ad, addr)
 
 
-parser = Sandbox_Win_x86_32.parser(description="Generic UPX unpacker")
-parser.add_argument("filename", help="PE Filename")
+parser = Sandbox_WinXP_x86_32.parser(description="Generic UPX unpacker")
 parser.add_argument('-v', "--verbose",
                     help="verbose mode", action="store_true")
+
+"""
+parser.add_argument("filename", help="PE Filename")
+"""
+
 parser.add_argument("--graph",
                     help="Export the CFG graph in graph.dot",
                     action="store_true")
+
 options = parser.parse_args()
 options.load_hdr = True
 
 loc_db = LocationDB()
-sb = Sandbox_Win_x86_32(
-    loc_db, options.filename, options, globals(),
-    parse_reloc=False
+sb = Sandbox_WinXP_x86_32(
+    loc_db, options, globals()
 )
 
 
@@ -58,7 +64,7 @@ if options.verbose is True:
     print(sb.jitter.vm)
 
 # Ensure there is one and only one leave (for OEP discovering)
-mdis = sb.machine.dis_engine(sb.jitter.bs, loc_db=loc_db)
+mdis = sb.arch.machine.dis_engine(sb.jitter.bs, loc_db=loc_db)
 mdis.dont_dis_nulstart_bloc = True
 asmcfg = mdis.dis_multiblock(sb.entry_point)
 
@@ -103,7 +109,7 @@ out_fname = fname + '_unupx.bin'
 # vm2pe will:
 # - set the new entry point to the current address (ie, the OEP)
 # - dump each section from the virtual memory into the new PE
-# - use `sb.libs` to generate a new import directory, and use it in the new PE
+# - use `sb.loader` to generate a new import directory, and use it in the new PE
 # - save the resulting PE in `out_fname`
 
-vm2pe(sb.jitter, out_fname, libs=sb.libs, e_orig=sb.pe)
+vm2pe(sb.jitter, out_fname, loader=sb.loader, e_orig=sb.pe)

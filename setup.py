@@ -148,6 +148,8 @@ def build_all():
         "miasm/analysis",
         "miasm/os_dep",
         "miasm/os_dep/linux",
+        "miasm/os_dep/windows",
+        "miasm/os_dep/windows/apiset",
         "miasm/loader",
         "miasm/jitter",
         "miasm/jitter/arch",
@@ -311,6 +313,7 @@ def build_all():
                     "miasm": [
                         "jitter/*.h",
                         "jitter/arch/*.h",
+                        "os_dep/windows/apiset/*.json",
                         "VERSION"
                     ]
                 },
