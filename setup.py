@@ -254,13 +254,23 @@ def build_all():
                 "miasm/jitter/arch/JitCore_m68k.c"
             ]
         ),
-        Extension("miasm.jitter.Jitllvm",
-                  ["miasm/jitter/Jitllvm.c",
-                   "miasm/jitter/bn.c",
-                   "miasm/runtime/udivmodti4.c",
-                   "miasm/runtime/divti3.c",
-                   "miasm/runtime/udivti3.c"
-                  ]),
+        Extension(
+            "miasm.jitter.Jitllvm",
+            [
+                "miasm/jitter/Jitllvm.c",
+                "miasm/jitter/bn.c",
+                "miasm/runtime/udivmodti4.c",
+                "miasm/runtime/divti3.c",
+                "miasm/runtime/udivti3.c"
+            ],
+            depends=[
+                "miasm/runtime/export.h",
+                "miasm/runtime/int_endianness.h",
+                "miasm/runtime/int_lib.h",
+                "miasm/runtime/int_types.h",
+                "miasm/runtime/int_util.h",
+            ]
+        ),
         Extension("miasm.jitter.Jitgcc",
                   ["miasm/jitter/Jitgcc.c",
                    "miasm/jitter/bn.c",
@@ -311,6 +321,7 @@ def build_all():
                     "miasm": [
                         "jitter/*.h",
                         "jitter/arch/*.h",
+                        "runtime/*.h",
                         "VERSION"
                     ]
                 },
