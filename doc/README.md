@@ -40,3 +40,6 @@ class LocationDB(builtins.object)
   - Lifting from assembly to IR: [notebook](ir/lift.ipynb)
   - `LocationDB` usage, the database for locations: [notebook](locationdb/locationdb.ipynb)
 - more complex examples through blog posts on [miasm.re](https://miasm.re)
+- cheatsheets:
+  - `Sandbox` and associated emulation options: [cheatsheet](cheatsheets/reminder_sandbox.pdf)
+  - Disassembler, lifter and associated structures: [cheatsheet](cheatsheets/reminder_disassembler.pdf)
