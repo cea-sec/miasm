@@ -799,6 +799,12 @@ for jitter in ExampleJitter.jitter_engines:
                              products=[Example.get_sample("box_upx_exe_unupx.bin")],
                              tags=tags.get(jitter, []))
 
+    testset += ExampleJitter(["unpack_generic.py",
+                              Example.get_sample("box_upx.exe")] +
+                             ["--jitter", jitter, "-o"],
+                             products=[Example.get_sample("box_upx.exe.dump")],
+                             tags=tags.get(jitter, []))
+
     testset += ExampleJitter(["memory_breakpoint.py",
                               Example.get_sample("box_upx.exe")] +
                              ["--jitter", jitter] +
