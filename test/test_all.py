@@ -739,6 +739,7 @@ class ExampleSymbolExec(Example):
 
 
 testset += ExampleSymbolExec(["single_instr.py"])
+testset += ExampleSymbolExec(["symbol_exec.py", "--steps", Example.get_sample("box_upx.exe")])
 for options, nb_sol, tag in [([], 8, []),
                              (["-i", "--rename-args"], 12, [TAGS["z3"]])]:
     testset += ExampleSymbolExec(["depgraph.py",
