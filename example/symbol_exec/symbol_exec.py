@@ -26,7 +26,16 @@ machine = Machine(cont.arch)
 
 mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 
-addr = cont.entry_point if options.address is None else int(options.address, 0)
+# no address -> entry point
+# 0xXXXXXX -> use this address
+# symbol -> resolve then use
+if options.address is None:
+    addr = cont.entry_point
+else:
+    try:
+        addr = int(options.address, 0)
+    except ValueError:
+        addr = loc_db.get_name_offset(options.address)
 asmcfg = mdis.dis_multiblock(addr)
 
 lifter = machine.lifter_model_call(mdis.loc_db)
