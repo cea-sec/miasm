@@ -639,3 +639,21 @@ class DependencyGraph(object):
         lead = list(depnodes)[0]
         elements = set(depnode.element for depnode in depnodes)
         return self.get(lead.loc_key, elements, lead.line_nb, heads)
+
+    def address_to_location(self, address):
+        """Helper to retrieve the .get() arguments, ie.
+        assembly address -> irblock's location key and line number
+        """
+        current_loc_key = next(iter(self._ircfg.getby_offset(address)))
+        assignblk_index = 0
+        current_block = self._ircfg.get_block(current_loc_key)
+        for assignblk_index, assignblk in enumerate(current_block):
+            if assignblk.instr.offset == address:
+                break
+        else:
+            return None
+
+        return {
+            "loc_key": current_block.loc_key,
+            "line_nb": assignblk_index,
+        }
