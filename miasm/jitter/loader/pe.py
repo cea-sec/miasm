@@ -806,7 +806,7 @@ class ImpRecStrategy(object):
         fsm.send(None)
         for addr_start, page_info in self._jitter.vm.get_all_memory().items():
             data = page_info["data"]
-            for i in range(0, page_info["size"], 4):
+            for i in range(0, page_info["size"], struct.calcsize(self._ptrtype)):
                 fsm.send((data[i:i+4], addr_start + i))
 
         # Apply to libs
