@@ -798,21 +798,37 @@ class ImpRecStrategy(object):
         else:
             ValueError("Unsupported size: %d" % size)
 
-    def recover_import(self, update_libs=True):
-        # Hypothesis: align on 4
-        # Search for several addresses from `func_addrs` ending with a `\x00`
-        fsm_obj = ImpRecStateMachine(self._libs, self._ptrtype)
-        fsm = fsm_obj.run()
-        fsm.send(None)
-        for addr_start, page_info in self._jitter.vm.get_all_memory().items():
-            data = page_info["data"]
-            for i in range(0, page_info["size"], 4):
-                fsm.send((data[i:i+4], addr_start + i))
+    def recover_import(self, update_libs=True, align_hypothesis=False):
+        """
+        Launch the import recovery routine.
+        @update_libs: if set (default), update `libs` object with founded addresses
+        @align_hypothesis: if not set (default), do not consider import
+            addresses are written on aligned addresses
+        
+        Return the list of candidates
+        """
+        candidates = []
+
+        alignments = [0]
+        if not align_hypothesis:
+            alignments = list(range(0, struct.calcsize(self._ptrtype)))
+
+        for starting_offset in alignments:
+            # Search for several addresses from `func_addrs` ending with a `\x00`
+            fsm_obj = ImpRecStateMachine(self._libs, self._ptrtype)
+            fsm = fsm_obj.run()
+            fsm.send(None)
+            for addr_start, page_info in self._jitter.vm.get_all_memory().items():
+                data = page_info["data"]
+                for i in range(starting_offset, page_info["size"], struct.calcsize(self._ptrtype)):
+                    fsm.send((data[i:i+4], addr_start + i))
+
+            candidates.extend(fsm_obj.seen)
 
         # Apply to libs
         if update_libs:
-            for entry_list in fsm_obj.seen:
+            for entry_list in candidates:
                 for func_info in entry_list:
                     self._libs.lib_imp2dstad[func_info["lib_addr"]][func_info["entry_name"]].add(func_info["entry_memory_addr"])
 
-        return fsm_obj.seen
+        return candidates
