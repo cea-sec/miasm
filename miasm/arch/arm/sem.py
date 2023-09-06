@@ -405,6 +405,8 @@ def adc(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     r = b + c + cf.zeroExtend(32)
     if instr.name == 'ADCS' and a != PC:
@@ -421,6 +423,8 @@ def add(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     r = b + c
     if instr.name == 'ADDS' and a != PC:
@@ -459,6 +463,8 @@ def sub(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b - c
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -471,6 +477,8 @@ def subs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     r = b - c
     e += update_flag_arith_sub_zn(arg1, arg2)
@@ -486,6 +494,8 @@ def eor(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b ^ c
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -522,6 +532,8 @@ def rsb(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = c, b
     r = arg1 - arg2
     e.append(ExprAssign(a, r))
@@ -535,6 +547,8 @@ def rsbs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = c, b
     r = arg1 - arg2
     e += update_flag_arith_sub_zn(arg1, arg2)
@@ -550,6 +564,8 @@ def sbc(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     r = arg1 - (arg2 + (~cf).zeroExtend(32))
     e.append(ExprAssign(a, r))
@@ -563,6 +579,8 @@ def sbcs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     r = arg1 - (arg2 + (~cf).zeroExtend(32))
 
@@ -580,6 +598,8 @@ def rsc(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = c, b
     r = arg1 - (arg2 + (~cf).zeroExtend(32))
     e.append(ExprAssign(a, r))
@@ -593,6 +613,8 @@ def rscs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = c, b
     r = arg1 - (arg2 + (~cf).zeroExtend(32))
 
@@ -659,6 +681,8 @@ def cmn(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     e += update_flag_arith_add_zn(arg1, arg2)
     e += update_flag_arith_add_co(arg1, arg2)
@@ -669,6 +693,8 @@ def orr(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b | c
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -681,6 +707,8 @@ def orn(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = ~(b | c)
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -885,6 +913,8 @@ def bic(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b & (c ^ ExprInt(-1, 32))
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -921,6 +951,8 @@ def sdiv(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
 
     loc_div = ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
     loc_except = ExprId(ir.loc_db.add_location(), ir.IRDst.size)
@@ -952,6 +984,8 @@ def udiv(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
 
 
 
@@ -1015,6 +1049,8 @@ def mul(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b * c
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -1027,6 +1063,8 @@ def muls(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b * c
     e += update_flag_zn(r)
     e.append(ExprAssign(a, r))
@@ -1300,6 +1338,8 @@ def lsr(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     return _shift_rotate_tpl(ir, instr, a, b >> c, setflags=False)
 
 
@@ -1307,12 +1347,16 @@ def lsrs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     return _shift_rotate_tpl(ir, instr, a, b >> c, setflags= a != PC)
 
 def asr(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = ExprOp("a>>", b, c)
     return _shift_rotate_tpl(ir, instr, a, r, setflags=False)
 
@@ -1320,6 +1364,8 @@ def asrs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = ExprOp("a>>", b, c)
     return _shift_rotate_tpl(ir, instr, a, r, setflags= a != PC)
 
@@ -1327,6 +1373,8 @@ def lsl(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     return _shift_rotate_tpl(ir, instr, a, b << c, setflags=False)
 
 
@@ -1335,6 +1383,8 @@ def lsls(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     return _shift_rotate_tpl(ir, instr, a, b << c, setflags= a != PC)
 
 
