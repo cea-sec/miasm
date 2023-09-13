@@ -81,7 +81,7 @@ class TestARMSemantic(unittest.TestCase):
         self.assertEqual(
             compute('MOV R4, R4 LSR 31', {R4: 0xDEADBEEF, }), {R4: 0x00000001, })
         self.assertEqual(
-            compute('MOV R4, R4 LSR 32', {R4: 0xDEADBEEF, }), {R4: 0xDEADBEEF, })
+            compute('MOV R4, R4 LSR 32', {R4: 0xDEADBEEF, }), {R4: 0x0, })
         self.assertRaises(ValueError, compute, 'MOV R4, R4 LSR 33')
         self.assertEqual(
             compute('MOV R4, R4 LSR R5', {R4: 0xDEADBEEF, R5: 0xBADBAD01, }), {R4: 0x6F56DF77, R5: 0xBADBAD01, })
@@ -93,7 +93,7 @@ class TestARMSemantic(unittest.TestCase):
         self.assertEqual(
             compute('MOV R4, R4 ASR 31', {R4: 0xDEADBEEF, }), {R4: 0xFFFFFFFF, })
         self.assertEqual(
-            compute('MOV R4, R4 ASR 32', {R4: 0xDEADBEEF, }), {R4: 0xDEADBEEF, })
+            compute('MOV R4, R4 ASR 32', {R4: 0xDEADBEEF, }), {R4: 0xFFFFFFFF, })
         self.assertRaises(ValueError, compute, 'MOV R4, R4 ASR 33')
         self.assertEqual(
             compute('MOV R4, R4 ASR R5', {R4: 0xDEADBEEF, R5: 0xBADBAD01, }), {R4: 0xEF56DF77, R5: 0xBADBAD01, })
