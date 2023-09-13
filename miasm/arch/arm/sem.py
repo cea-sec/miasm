@@ -391,6 +391,9 @@ def update_flag_arith_subwc_co(arg1, arg2, arg3):
     e += update_flag_subwc_of(arg1, arg2, arg3)
     return e
 
+# Utility function for flag computation when it depends on the mode
+def isThumb(lifter):
+    return isinstance(lifter, (Lifter_Armtl, Lifter_Armtb))
 
 
 def get_dst(a):
