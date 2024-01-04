@@ -325,7 +325,7 @@ def build_all():
                         "VERSION"
                     ]
                 },
-                install_requires=["future", "pyparsing~=2.0"],
+                install_requires=["future", "pyparsing>=2.4.1"],
                 cmdclass={"install_data": smart_install_data},
                 ext_modules = ext_modules,
                 # Metadata

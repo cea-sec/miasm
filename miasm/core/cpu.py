@@ -393,7 +393,7 @@ variable = pyparsing.Word(pyparsing.alphas + "_$.", pyparsing.alphanums + "_")
 variable.setParseAction(cb_parse_id)
 operand = str_int | variable
 
-base_expr = pyparsing.operatorPrecedence(operand,
+base_expr = pyparsing.infixNotation(operand,
                                [(notop,   1, pyparsing.opAssoc.RIGHT, cb_op_not),
                                 (andop, 2, pyparsing.opAssoc.RIGHT, cb_op_and),
                                 (xorop, 2, pyparsing.opAssoc.RIGHT, cb_op_xor),
