@@ -35,7 +35,7 @@ def stop(jitter):
 if options.oep:
     # Set callbacks
     sb.jitter.add_breakpoint(int(options.oep, 0), stop)
-    
+
 # Run until an error is encountered - IT IS UNLIKELY THE ORIGINAL ENTRY POINT
 try:
     sb.run()
