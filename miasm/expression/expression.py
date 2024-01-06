@@ -2146,7 +2146,7 @@ def expr_is_sNaN(expr):
 
 def expr_is_float_lower(op1, op2):
     """Return 1 on 1 bit if @op1 < @op2, 0 otherwise.
-    /!\ Assume @op1 and @op2 are not NaN
+    [!] Assume @op1 and @op2 are not NaN
     Comparison is the floating point one, defined in IEEE754
     """
     sign1, sign2 = op1.msb(), op2.msb()
@@ -2160,7 +2160,7 @@ def expr_is_float_lower(op1, op2):
 
 def expr_is_float_equal(op1, op2):
     """Return 1 on 1 bit if @op1 == @op2, 0 otherwise.
-    /!\ Assume @op1 and @op2 are not NaN
+    [!] Assume @op1 and @op2 are not NaN
     Comparison is the floating point one, defined in IEEE754
     """
     sign1, sign2 = op1.msb(), op2.msb()

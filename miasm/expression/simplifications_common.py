@@ -1275,7 +1275,7 @@ def simp_cond_eq_zero(_, expr):
 
 def simp_sign_inf_zeroext(expr_s, expr):
     """
-    /!\ Ensure before: X.zeroExt(X.size) => X
+    [!] Ensure before: X.zeroExt(X.size) => X
 
     X.zeroExt() <s 0 => 0
     X.zeroExt() <=s 0 => X == 0
