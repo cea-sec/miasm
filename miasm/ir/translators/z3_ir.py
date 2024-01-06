@@ -1,10 +1,11 @@
 from builtins import map
 from builtins import range
-import imp
+import importlib.util
 import logging
 
 # Raise an ImportError if z3 is not available WITHOUT actually importing it
-imp.find_module("z3")
+if importlib.util.find_spec("z3") is None:
+    raise ImportError("No module named 'z3'")
 
 from miasm.ir.translators.translator import Translator
 
