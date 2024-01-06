@@ -20,7 +20,7 @@ class DiGraph(object):
         # N -> Nodes N2 with a edge (N2 -> N)
         self._nodes_pred = {}
 
-        self.escape_chars = re.compile('[' + re.escape('{}') + '&|<>' + ']')
+        self.escape_chars = re.compile(r'[\{\}&|<>]')
 
 
     def __repr__(self):

@@ -428,7 +428,7 @@ def offsize(p):
 
 
 def get_prefix(s):
-    g = re.search('(\S+)(\s+)', s)
+    g = re.search(r'(\S+)(\s+)', s)
     if not g:
         return None, s
     prefix, b = g.groups()
