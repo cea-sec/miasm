@@ -377,7 +377,7 @@ class DebugCmd(cmd.Cmd, object):
 
         args = arg.split(" ")
         if args[-1].lower() not in ["on", "off"]:
-            self.print_warning("/!\ %s not in 'on' / 'off'" % args[-1])
+            self.print_warning("[!] %s not in 'on' / 'off'" % args[-1])
             return
         mode = args[-1].lower() == "on"
         d = {}

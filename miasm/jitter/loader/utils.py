@@ -65,7 +65,7 @@ class libimp(object):
         #    imp_ord_or_name = vm_get_str(imp_ord_or_name, 0x100)
         #    imp_ord_or_name = imp_ord_or_name[:imp_ord_or_name.find('\x00')]
 
-        #/!\ can have multiple dst ad
+        #[!] can have multiple dst ad
         if not imp_ord_or_name in self.lib_imp2dstad[libad]:
             self.lib_imp2dstad[libad][imp_ord_or_name] = set()
         if dst_ad is not None:

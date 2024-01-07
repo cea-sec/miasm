@@ -408,7 +408,7 @@ default_prio = 0x1337
 
 
 def isbin(s):
-    return re.match('[0-1]+$', s)
+    return re.match(r'[0-1]+$', s)
 
 
 def int2bin(i, l):
@@ -1301,7 +1301,7 @@ class cls_mn(with_metaclass(metamn, object)):
     @classmethod
     def fromstring(cls, text, loc_db, mode = None):
         global total_scans
-        name = re.search('(\S+)', text).groups()
+        name = re.search(r'(\S+)', text).groups()
         if not name:
             raise ValueError('cannot find name', text)
         name = name[0]

@@ -388,7 +388,7 @@ class Context_AMD64(CStruct):
         ("MxCsr", "u32"),
 
         # Segment & processor
-        # /!\ activation depends on multiple flags
+        # [!] activation depends on multiple flags
         ("SegCs", "u16", is_activated("CONTEXT_CONTROL")),
         ("SegDs", "u16", is_activated("CONTEXT_SEGMENTS")),
         ("SegEs", "u16", is_activated("CONTEXT_SEGMENTS")),
@@ -406,7 +406,7 @@ class Context_AMD64(CStruct):
         ("Dr7", "u64", is_activated("CONTEXT_DEBUG_REGISTERS")),
 
         # Integer registers
-        # /!\ activation depends on multiple flags
+        # [!] activation depends on multiple flags
         ("Rax", "u64", is_activated("CONTEXT_INTEGER")),
         ("Rcx", "u64", is_activated("CONTEXT_INTEGER")),
         ("Rdx", "u64", is_activated("CONTEXT_INTEGER")),

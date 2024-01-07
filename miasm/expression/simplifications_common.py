@@ -1146,7 +1146,7 @@ def simp_cmp_bijective_op(expr_simp, expr):
     # a + b + c == a + b
     if not args_b:
         return ExprOp(TOK_EQUAL, ExprOp(op, *args_a), ExprInt(0, args_a[0].size))
-    
+
     arg_a = ExprOp(op, *args_a)
     arg_b = ExprOp(op, *args_b)
     return ExprOp(TOK_EQUAL, arg_a, arg_b)
@@ -1275,7 +1275,7 @@ def simp_cond_eq_zero(_, expr):
 
 def simp_sign_inf_zeroext(expr_s, expr):
     """
-    /!\ Ensure before: X.zeroExt(X.size) => X
+    [!] Ensure before: X.zeroExt(X.size) => X
 
     X.zeroExt() <s 0 => 0
     X.zeroExt() <=s 0 => X == 0
@@ -1782,7 +1782,7 @@ def simp_bcdadd_cf(_, expr):
     for i in range(0,16,4):
         nib_1 = (arg1.arg >> i) & (0xF)
         nib_2 = (arg2.arg >> i) & (0xF)
-        
+
         j = (carry + nib_1 + nib_2)
         if (j >= 10):
             carry = 1
@@ -1807,7 +1807,7 @@ def simp_bcdadd(_, expr):
     for i in range(0,16,4):
         nib_1 = (arg1.arg >> i) & (0xF)
         nib_2 = (arg2.arg >> i) & (0xF)
-        
+
         j = (carry + nib_1 + nib_2)
         if (j >= 10):
             carry = 1

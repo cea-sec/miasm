@@ -2452,7 +2452,7 @@ def user32_GetKeyboardType(jitter):
 
     jitter.func_ret_stdcall(ret_ad, ret)
 
-    
+
 class startupinfo(object):
     """
         typedef struct _STARTUPINFOA {
@@ -2528,7 +2528,7 @@ def kernel32_GetStartupInfo(jitter, funcname, set_str):
 
         Retrieves the contents of the STARTUPINFO structure that was specified
         when the calling process was created.
-        
+
         https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getstartupinfow
 
     """

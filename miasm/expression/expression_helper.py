@@ -89,7 +89,7 @@ op_propag_cst = ['+', '*', '^', '&', '|', '>>',
 def is_pure_int(e):
     """
     return True if expr is only composed with integers
-    /!\ ExprCond returns True is src1 and src2 are integers
+    [!] ExprCond returns True is src1 and src2 are integers
     """
     def modify_cond(e):
         if isinstance(e, m2_expr.ExprCond):
@@ -444,7 +444,7 @@ class ExprRandom(object):
         """Internal function for generating sub-expression according to options
         @size: (optional) Operation size
         @depth: (optional) Expression depth
-        /!\ @generated_elements is left modified
+        [!] @generated_elements is left modified
         """
         # Perfect tree handling
         if not cls.perfect_tree:

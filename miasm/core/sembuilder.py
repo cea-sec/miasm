@@ -22,8 +22,8 @@ class MiasmTransformer(ast.NodeTransformer):
     """
 
     # Parsers
-    parse_integer = re.compile("^i([0-9]+)$")
-    parse_mem = re.compile("^mem([0-9]+)$")
+    parse_integer = re.compile(r"^i([0-9]+)$")
+    parse_mem = re.compile(r"^mem([0-9]+)$")
 
     # Visitors
     def visit_Call(self, node):

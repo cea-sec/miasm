@@ -26,7 +26,7 @@ COLOR_OP = "black"
 
 COLOR_MNEMO = "blue1"
 
-ESCAPE_CHARS = re.compile('[' + re.escape('{}') + '&|<>' + ']')
+ESCAPE_CHARS = re.compile(r'[\{\}&|<>]')
 
 def set_html_text_color(text, color):
     return '<font color="%s">%s</font>' % (color, text)

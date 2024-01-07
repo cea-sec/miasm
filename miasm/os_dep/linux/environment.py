@@ -13,7 +13,7 @@ from miasm.core.interval import interval
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
 
-REGEXP_T = type(re.compile(''))
+REGEXP_T = type(re.compile(r''))
 
 StatInfo = namedtuple("StatInfo", [
     "st_dev", "st_ino", "st_nlink", "st_mode", "st_uid", "st_gid", "st_rdev",
@@ -262,7 +262,7 @@ class FileSystem(object):
                             expr.flags,
                             exc_info=True,
                         )
-                        return re.compile('$X')
+                        return re.compile(r'$X')
                 return expr
 
         # Remove '../', etc.
