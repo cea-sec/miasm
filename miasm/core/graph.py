@@ -378,10 +378,27 @@ class DiGraph(object):
         for next_node in self.predecessors_iter(node):
             yield next_node
 
+    def successors_stop_node_iter(self, node, tail):
+        if node == tail:
+            return
+        for next_node in self.successors_iter(node):
+            yield next_node
+
     def reachable_sons(self, head):
         """Compute all nodes reachable from node @head. Each son is an
         immediate successor of an arbitrary, already yielded son of @head"""
         return self._reachable_nodes(head, self.successors_iter)
+
+    def reachable_sons_stop_node(self, leaf, tail):
+        """Compute all sons of node @leaf. Each son is an immediate
+        predecessor of an arbitrary, already yielded son of @leaf.
+        Do not compute reachables past @tail node"""
+        return self._reachable_nodes(
+            leaf,
+            lambda node_cur: self.successors_stop_node_iter(
+                node_cur, tail
+            )
+        )
 
     def reachable_parents(self, leaf):
         """Compute all parents of node @leaf. Each parent is an immediate
