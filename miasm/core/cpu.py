@@ -255,18 +255,6 @@ multop = pyparsing.oneOf('* / %')
 plusop = pyparsing.oneOf('+ -')
 
 
-##########################
-
-def literal_list(l):
-    l = l[:]
-    l.sort()
-    l = l[::-1]
-    o = pyparsing.Literal(l[0])
-    for x in l[1:]:
-        o |= pyparsing.Literal(x)
-    return o
-
-
 def cb_int(tokens):
     assert len(tokens) == 1
     integer = AstInt(tokens[0])
@@ -712,20 +700,6 @@ class reg_noarg(object):
     reg_info = None
     parser = None
 
-    def fromstring(self, text, loc_db, parser_result=None):
-        if parser_result:
-            e, start, stop = parser_result[self.parser]
-            self.expr = e
-            return start, stop
-        try:
-            v, start, stop = next(self.parser.scanString(text))
-        except StopIteration:
-            return None, None
-        arg = v[0]
-        expr = self.parses_to_expr(arg, loc_db)
-        self.expr = expr
-        return start, stop
-
     def decode(self, v):
         v = v & self.lmask
         if v >= len(self.reg_info.expr):
@@ -1080,8 +1054,6 @@ class cls_mn(with_metaclass(metamn, object)):
 
     @classmethod
     def guess_mnemo(cls, bs, attrib, pre_dis_info, offset):
-        candidates = []
-
         candidates = set()
 
         fname_values = pre_dis_info
@@ -1397,7 +1369,6 @@ class cls_mn(with_metaclass(metamn, object)):
         can modify args and get the hex of a modified instruction
         """
         clist = cls.all_mn_name[instr.name]
-        clist = [x for x in clist]
         vals = []
         candidates = []
         args = instr.resolve_args_with_symbols(loc_db)
