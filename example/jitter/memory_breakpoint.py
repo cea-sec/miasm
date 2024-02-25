@@ -34,15 +34,15 @@ sb.jitter.vm.add_memory_breakpoint(address, size, access_type)
 def memory_breakpoint_handler(jitter):
     memory_read = jitter.vm.get_memory_read()
     if len(memory_read) > 0:
-        print("Read at instruction 0x%s:" % jitter.pc)
+        print("Read at instruction 0x%x:" % jitter.pc)
         for start_address, end_address in memory_read:
-            print("- from %s to %s" % (hex(start_address), hex(end_address)))
+            print("- from 0x%x to 0x%x" % (start_address, end_address))
 
     memory_write = jitter.vm.get_memory_write()
     if len(memory_write) > 0:
-        print("Write at instruction 0x%s:" % jitter.pc)
+        print("Write at instruction 0x%x:" % jitter.pc)
         for start_address, end_address in memory_write:
-            print("- from %s to %s" % (hex(start_address), hex(end_address)))
+            print("- from 0x%x to 0x%x" % (start_address, end_address))
 
     # Cleanup
     jitter.vm.set_exception(jitter.vm.get_exception() ^ EXCEPT_BREAKPOINT_MEMORY)
