@@ -44,7 +44,7 @@ csr_names = ["PC", "LP", "SAR", "S3", "RPB", "RPE", "RPC", "HI", "LO",
 csr_exprs, csr_inits, csr_infos = gen_regs(csr_names, globals())
 
 # Define aliases to control/special registers
-PC = csr_exprs[0]  # Program Conter. On MeP, it is the special register R0
+PC = csr_exprs[0]  # Program Counter. On MeP, it is the special register R0
 LP = csr_exprs[1]  # Link Pointer. On MeP, it is the special register R1
 SAR = csr_exprs[2]  # Shift Amount Register. On MeP, it is the special register R2
 RPB = csr_exprs[4]  # Repeat Begin. On MeP, it is the special register R4
