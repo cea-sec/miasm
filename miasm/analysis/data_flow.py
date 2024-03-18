@@ -1877,7 +1877,7 @@ class State(object):
     The state is represented using equivalence classes
 
     Each assignment can create/destroy equivalence classes. Interferences
-    between expression is computed using `may_interfer` function
+    between expression is computed using `may_interfere` function
     """
 
     def __init__(self):
@@ -1908,9 +1908,9 @@ class State(object):
         # required Python 2.7.14
         return not self == other
 
-    def may_interfer(self, dsts, src):
+    def may_interfere(self, dsts, src):
         """
-        Return True is @src may interfer with expressions in @dsts
+        Return True is @src may interfere with expressions in @dsts
         @dsts: Set of Expressions
         @src: expression to test
         """
@@ -2084,8 +2084,8 @@ class State(object):
         # Remove interfering known classes
         to_del = set()
         for node in list(classes.nodes()):
-            if self.may_interfer(dsts, node):
-                # Interfer with known equivalence class
+            if self.may_interfere(dsts, node):
+                # Interfere with known equivalence class
                 self.equivalence_classes.del_element(node)
                 if node.is_id() or node.is_mem():
                     self.undefined.add(node)
@@ -2104,8 +2104,8 @@ class State(object):
                 if node.is_id() or node.is_mem():
                     self.undefined.add(node)
 
-            # Don't create equivalence if self interfer
-            if self.may_interfer(dsts, src):
+            # Don't create equivalence if self interfere
+            if self.may_interfere(dsts, src):
                 if dst in self.equivalence_classes.nodes():
                     self.equivalence_classes.del_element(dst)
                     if dst.is_id() or dst.is_mem():
@@ -2137,7 +2137,7 @@ class State(object):
         undefined = set(node for node in self.undefined if node.is_id() or node.is_mem())
         undefined.update(set(node for node in other.undefined if node.is_id() or node.is_mem()))
         # Should we compute interference between srcs and undefined ?
-        # Nop => should already interfer in other state
+        # Nop => should already interfere in other state
         components1 = classes1.get_classes()
         components2 = classes2.get_classes()
 
@@ -2173,7 +2173,7 @@ class State(object):
                     continue
                 if common:
                     # Intersection contains multiple nodes
-                    # Here, common nodes don't interfer with any undefined
+                    # Here, common nodes don't interfere with any undefined
                     nodes_ok.update(common)
                     out.append(common)
                 diff = component1.difference(common)
