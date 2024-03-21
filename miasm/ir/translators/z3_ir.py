@@ -102,6 +102,110 @@ class Z3Mem(object):
         return not self.is_little_endian()
 
 
+class Z3MemStateful(object):
+    import z3
+    """
+    Global memory modelling as one large z3 array with low level reads and writes.
+    Memory access is modelled as 8 byte access per read/write. Addresses have size @size.
+
+    Thus, memory access is a map from <address size> -> 8 byte.
+
+    The structure of that class is adapted/based on class "Z3Mem" from
+    miasm2/ir/translators/z3_ir.py.
+    Especially the structure (or methods) of endianness (is_little_endian, is_big_endian), alignment and
+    read access (Z3Mem.get) are used.
+    """
+
+    def __init__(self, size, endianness="<"):
+        """
+        Initialises global memory
+        :param size: address size of memory entries
+        :param endianness: "<" for little endian, ">" for big endian
+        """
+        # Import z3 only on demand
+        global z3
+        import z3
+        self.endianness = endianness
+        self.size = size
+
+    def is_little_endian(self):
+        """True if this memory is little endian."""
+        return self.endianness == "<"
+
+    def is_big_endian(self):
+        """True if this memory is big endian."""
+        return not self.is_little_endian()
+
+    def gen_mem(self, mem="M", size=None):
+        """
+        Generates a z3 array that maps @self.size bitvecs to 8 byte bitvecs
+        :param mem: name of memory as string
+        :param size: memory address size
+        :return: z3 array
+        """
+        if not size:
+            size = self.size
+        return z3.Array(mem, z3.BitVecSort(size), z3.BitVecSort(8))
+
+    def read(self, mem, addr, size):
+        """
+        Reads a value in 8 byte steps from a z3 array
+        :param mem:  current z3 memory array
+        :param addr: memory address as z3 bitvec
+        :param size: size of the read value
+        :return: value in memory at address @addr
+        """
+        size = size.as_long()
+        original_size = size
+
+        if original_size % 8 != 0:
+            # Size not aligned on 8bits -> read more than size and extract after
+            size = ((original_size / 8) + 1) * 8
+
+        res = z3.Select(mem, addr)
+
+        if self.is_little_endian():
+            for i in xrange(1, size / 8):
+                res = z3.Concat(z3.Select(mem, addr + i), res)
+        else:
+            for i in xrange(1, size / 8):
+                res = z3.Concat(res, z3.Select(mem, addr + i))
+
+        if size == original_size:
+            return z3.simplify(res)
+        else:
+            return z3.Extract(original_size - 1, 0, res)
+
+    def write(self, mem, addr, v, size):
+        """
+        Writes a value in 8 byte steps into a z3 array
+        :param mem: current z3 memory array
+        :param addr: memory address as z3 bitvec
+        :param v: value to be written
+        :param size: size of value
+        :return: updated z3 memory array
+        """
+        size = size.as_long()
+        original_size = size
+
+        if original_size % 8 != 0:
+            # align size to 8 bits
+            size = ((original_size / 8) + 1) * 8
+
+        if self.is_little_endian():
+            mem = z3.Store(mem, addr, z3.Extract(7, 0, v))
+            for i in xrange(2, size / 8 + 1):
+                mem = z3.Store(mem, addr + i - 1, z3.Extract(8 * i - 1, 8 * (i - 1), v))
+        else:
+            mem = z3.Store(mem, addr, z3.Extract(self.size - 1, self.size - 8, v))
+            for i in xrange((size / 8) - 1, 0, -1):
+                mem = z3.Store(mem, addr + (-i % (size / 8)), z3.Extract(8 * i - 1, 8 * (i - 1), v))
+
+        return z3.simplify(mem)
+
+
+
+
 class TranslatorZ3(Translator):
     """Translate a Miasm expression to an equivalent z3 python binding
     expression. Memory is abstracted via z3.Array (see Z3Mem).
@@ -117,7 +221,7 @@ class TranslatorZ3(Translator):
     # Operations translation
     trivial_ops = ["+", "-", "/", "%", "&", "^", "|", "*", "<<"]
 
-    def __init__(self, endianness="<", loc_db=None, **kwargs):
+    def __init__(self, endianness="<", loc_db=None, stateful_mem=False, mem_size=64, **kwargs):
         """Instance a Z3 translator
         @endianness: (optional) memory endianness
         """
@@ -126,14 +230,21 @@ class TranslatorZ3(Translator):
         import z3
 
         super(TranslatorZ3, self).__init__(**kwargs)
-        self._mem = Z3Mem(endianness)
+        self.stateful_mem = stateful_mem
+        if self.stateful_mem:
+            self._mem = Z3MemStateful(mem_size, endianness)
+        else:
+            self._mem = Z3Mem(endianness)
         self.loc_db = loc_db
 
     def from_ExprInt(self, expr):
         return z3.BitVecVal(int(expr), expr.size)
 
     def from_ExprId(self, expr):
-        return z3.BitVec(str(expr), expr.size)
+        if self.stateful_mem and isinstance(expr.name, str) and expr.name.split(".")[0] == "M":
+            return self._mem.gen_mem(str(expr.name))
+        else:
+            return z3.BitVec(str(expr), expr.size)
 
     def from_ExprLoc(self, expr):
         if self.loc_db is None:
@@ -147,8 +258,14 @@ class TranslatorZ3(Translator):
         return z3.BitVec(str(loc_key), expr.size)
 
     def from_ExprMem(self, expr):
-        addr = self.from_expr(expr.ptr)
-        return self._mem.get(addr, expr.size)
+        if self.stateful_mem:
+            addr = self.from_expr(expr.ptr)
+            size = z3.IntVal(expr.size)
+            mem = self._mem.gen_mem()
+            return self._mem.read(mem, addr, size)
+        else:
+            addr = self.from_expr(expr.ptr)
+            return self._mem.get(addr, expr.size)
 
     def from_ExprSlice(self, expr):
         res = self.from_expr(expr.arg)
@@ -241,6 +358,17 @@ class TranslatorZ3(Translator):
                         z3.BitVecVal(1, 1),
                         z3.BitVecVal(0, 1)
                     )
+                elif expr.op == "mem_read":
+                    mem = self._mem.gen_mem(str(args[0]))
+                    addr = args[1]
+                    size = args[2]
+                    res = self._mem.read(mem, addr, size)
+                elif expr.op == "mem_write":
+                    mem = self._mem.gen_mem(str(args[0]))
+                    addr = args[1]
+                    val = args[2]
+                    size = args[3]
+                    res = self._mem.write(mem, addr, val, size)
                 else:
                     raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
         elif expr.op == 'parity':
