@@ -54,5 +54,5 @@ cur_addr = symb.run_at(ircfg, addr, step=options.steps)
 # Modified elements
 print('Modified registers:')
 symb.dump(mems=False)
-print('Modified memory (should be empty):')
+print('Modified memory:')
 symb.dump(ids=False)
