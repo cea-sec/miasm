@@ -5057,7 +5057,7 @@ def ldmxcsr(ir, instr, dst):
 
 
 def _select4(src, control):
-    # Implementation inspired from Intel Intrisics Guide
+    # Implementation inspired from Intel Intrinsics Guide
     # @control is already resolved (was an immediate)
 
     if control == 0:

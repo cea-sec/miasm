@@ -83,7 +83,7 @@ class TestLoadStore(object):
                          [(ExprMem(ExprInt(0x1010, 32), 32), ExprInt(0xABC7, 32))])
 
     def test_lb(self):
-        """Test LB executon"""
+        """Test LB execution"""
 
         # LB Rn,(Rm)
         exec_instruction("LB R1, (R2)",
