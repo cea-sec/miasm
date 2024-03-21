@@ -1949,6 +1949,14 @@ class State(object):
                     return True
         return False
 
+    def may_interfer(self, dsts, src):
+        warnings.warn(
+            "This method is deprecated, use `may_interfere` instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.may_interfere(dsts, src)
+        
     def _get_representative_expr(self, expr):
         representative = self.equivalence_classes.get_master(expr)
         if representative is None:
