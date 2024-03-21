@@ -1148,8 +1148,12 @@ class arm_op2(arm_arg):
             shift_op = ExprInt(amount, 32)
         a = regs_expr[rm]
         if shift_op == ExprInt(0, 32):
+            #rrx
             if shift_type == 3:
                 self.expr = ExprOp(allshifts[4], a)
+            #asr, lsr
+            elif shift_type == 1 or shift_type == 2:
+                self.expr = ExprOp(allshifts[shift_type], a, ExprInt(32, 32))
             else:
                 self.expr = a
         else:
