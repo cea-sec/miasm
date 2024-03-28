@@ -297,7 +297,7 @@ class PE(object):
         self.Doshdr = pe.Doshdr.unpack(self.content, off, self)
         off = self.Doshdr.lfanew
         if off > len(self.content):
-            log.warn('ntsig after eof!')
+            log.warning('ntsig after eof!')
             self.NTsig = None
             return
         self.NTsig = pe.NTsig.unpack(self.content,
@@ -309,7 +309,7 @@ class PE(object):
         self.DirRes = None
 
         if self.NTsig.signature != 0x4550:
-            log.warn('not a valid pe!')
+            log.warning('not a valid pe!')
             return
         off += len(self.NTsig)
         self.Coffhdr, length = pe.Coffhdr.unpack_l(self.content,
@@ -346,7 +346,7 @@ class PE(object):
             else:
                 raw_off = section.offset
             if raw_off != section.offset:
-                log.warn('unaligned raw section (%x %x)!', raw_off, section.offset)
+                log.warning('unaligned raw section (%x %x)!', raw_off, section.offset)
             section.data = StrPatchwork()
 
             if section.rawsize == 0:
@@ -575,7 +575,7 @@ class PE(object):
 
         for section in self.SHList:
             if off + len(bytes(self.SHList)) > section.offset:
-                log.warn("section offset overlap pe hdr 0x%x 0x%x" %
+                log.warning("section offset overlap pe hdr 0x%x 0x%x" %
                          (off + len(bytes(self.SHList)), section.offset))
         self.DirImport.build_content(content)
         self.DirExport.build_content(content)
@@ -585,7 +585,7 @@ class PE(object):
         self.DirTls.build_content(content)
 
         if (self.Doshdr.lfanew + len(self.NTsig) + len(self.Coffhdr)) % 4:
-            log.warn("non aligned coffhdr, bad crc calculation")
+            log.warning("non aligned coffhdr, bad crc calculation")
         crcs = compute_crc(bytes(content), self.NThdr.CheckSum)
         content[self.Doshdr.lfanew + len(self.NTsig) + len(self.Coffhdr) + 64] = struct.pack('I', crcs)
         return bytes(content)
@@ -615,7 +615,7 @@ class PE(object):
     def reloc_to(self, imgbase):
         offset = imgbase - self.NThdr.ImageBase
         if self.DirReloc is None:
-            log.warn('no relocation found!')
+            log.warning('no relocation found!')
         for rel in self.DirReloc.reldesc:
             rva = rel.rva
             for reloc in rel.rels:

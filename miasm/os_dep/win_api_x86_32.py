@@ -812,7 +812,7 @@ def kernel32_VirtualProtect(jitter):
         size = jitter.vm.get_all_memory()[addr]["size"]
         # Page is included in Protect area
         if (paddr <= addr < addr + size <= paddr + psize):
-            log.warn("set page %x %x", addr, ACCESS_DICT[flnewprotect])
+            log.warning("set page %x %x", addr, ACCESS_DICT[flnewprotect])
             jitter.vm.set_mem_access(addr, ACCESS_DICT[flnewprotect])
             continue
 
@@ -844,7 +844,7 @@ def kernel32_VirtualProtect(jitter):
             for split_addr, split_access, split_data in splits:
                 if not split_data:
                     continue
-                log.warn("create page %x %x", split_addr,
+                log.warning("create page %x %x", split_addr,
                          ACCESS_DICT[flnewprotect])
                 jitter.vm.add_memory_page(
                     split_addr, split_access, split_data,
