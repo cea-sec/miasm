@@ -501,7 +501,7 @@ class libimp_pe(libimp):
                         ad = found
                     else:
                         # import redirected lib from non loaded dll
-                        if not exp_dname in self.name2off:
+                        if exp_dname not in self.name2off:
                             self.created_redirected_imports.setdefault(
                                 exp_dname, set()).add(name)
 

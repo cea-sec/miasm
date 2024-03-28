@@ -1688,7 +1688,7 @@ class arm_mem_rn_imm(arm_arg):
               len(ptr.args) == 2 and
               ptr.op == 'preinc'):
             reg, imm = ptr.args
-            if not reg in gpregs.expr:
+            if reg not in gpregs.expr:
                 return False
             self.value = gpregs.expr.index(reg)
             if not isinstance(imm, ExprInt):
@@ -1772,7 +1772,7 @@ class armt_barrier_option(reg_noarg, arm_arg):
         return True
 
     def encode(self):
-        if not self.expr in self.reg_info.dct_expr_inv:
+        if self.expr not in self.reg_info.dct_expr_inv:
             log.debug("cannot encode reg %r", self.expr)
             return False
         self.value = self.reg_info.dct_expr_inv[self.expr]
@@ -1871,7 +1871,7 @@ class arm_rm_rot2(arm_arg):
             if not isinstance(value, ExprInt):
                 return False
             value = int(value)
-            if not value in [8, 16, 24]:
+            if value not in [8, 16, 24]:
                 return False
             self.parent.rot2.value = value // 8
         return True
@@ -2399,7 +2399,7 @@ class armt_reg_wb(arm_reg_wb):
     def decode(self, v):
         v = v & self.lmask
         e = self.reg_info.expr[v]
-        if not e in self.parent.trlist.expr.args:
+        if e not in self.parent.trlist.expr.args:
             e = ExprOp('wback', e)
         self.expr = e
         return True

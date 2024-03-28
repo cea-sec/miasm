@@ -235,7 +235,7 @@ class Section(with_metaclass(Section_metaclass, object)):
 
     def get_infosection(self):
         # XXX info may not be in sh list ?!?
-        if not self.sh.info in self.parent:
+        if self.sh.info not in self.parent:
             return None
         return self.parent[self.sh.info]
 
@@ -406,7 +406,7 @@ class StrTable(Section):
     def mod_name(self, name, new_name):
         s = bytes(self.content)
         name_b = b'\x00%s\x00' % name.encode()
-        if not name_b in s:
+        if name_b not in s:
             raise ValueError('Unknown name %r' % name)
         self.content = s.replace(
             name_b,

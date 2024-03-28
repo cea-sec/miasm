@@ -46,7 +46,7 @@ def fix_size(fields, wsize):
             pass
         elif v == "ptr":
             v = size2type[wsize]
-        elif not v in type2realtype:
+        elif v not in type2realtype:
             raise ValueError("unknown Cstruct type", v)
         else:
             v = type2realtype[v]

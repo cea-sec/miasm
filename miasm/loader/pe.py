@@ -1030,7 +1030,7 @@ class DirDelay(CStruct):
                 for funcname in new_functions
             ]
             for attr in ["attrs", "name", "hmod", "firstthunk", "originalfirstthunk", "boundiat", "unloadiat", "timestamp"]:
-                if not attr in import_descriptor:
+                if attr not in import_descriptor:
                     import_descriptor[attr] = 0
             entry = Delaydesc_e(self.parent_head, **import_descriptor)
             # entry.cstr.__dict__.update(import_descriptor)
@@ -1409,7 +1409,7 @@ class DirRes(CStruct):
             for entry in my_dir.resentries:
                 if not entry.offsettosubdir:
                     continue
-                if not entry.subdir in dir_todo:
+                if entry.subdir not in dir_todo:
                     dir_todo.append(entry.subdir)
                 else:
                     raise RuntimeError("recursive dir")
@@ -1447,7 +1447,7 @@ class DirRes(CStruct):
             for entry in my_dir.resentries:
                 if not entry.offsettosubdir:
                     continue
-                if not entry.subdir in dir_todo:
+                if entry.subdir not in dir_todo:
                     dir_todo.append(entry.subdir)
                 else:
                     raise RuntimeError("recursive dir")
