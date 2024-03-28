@@ -210,10 +210,10 @@ class SHList(CStruct):
         return section
 
     def align_sections(self, f_align=None, s_align=None):
-        if f_align == None:
+        if f_align is None:
             f_align = self.parent_head.NThdr.filealignment
             f_align = max(0x200, f_align)
-        if s_align == None:
+        if s_align is None:
             s_align = self.parent_head.NThdr.sectionalignment
             s_align = max(0x1000, s_align)
 
@@ -295,12 +295,12 @@ class struct_array(object):
         if not raw:
             return
 
-        while (num == None) or (num and i < num):
+        while (num is None) or (num and i < num):
             entry, length = cstr.unpack_l(raw, off,
                                           target_class.parent_head,
                                           target_class.parent_head._sex,
                                           target_class.parent_head._wsize)
-            if num == None:
+            if num is None:
                 if raw[off:off + length] == b'\x00' * length:
                     self.end = b'\x00' * length
                     break
@@ -532,9 +532,9 @@ class DirImport(CStruct):
                 if attr not in import_descriptor:
                     import_descriptor[attr] = 0
             entry = ImpDesc_e(self.parent_head, **import_descriptor)
-            if entry.firstthunk != None:
+            if entry.firstthunk is not None:
                 of1 = entry.firstthunk
-            elif of1 == None:
+            elif of1 is None:
                 raise RuntimeError("set fthunk")
             else:
                 entry.firstthunk = of1
@@ -617,7 +617,7 @@ class DirImport(CStruct):
 
     def get_funcvirt(self, dllname, funcname):
         rva = self.get_funcrva(dllname, funcname)
-        if rva == None:
+        if rva is None:
             return
         return self.parent_head.rva2virt(rva)
 
@@ -652,9 +652,9 @@ class DirExport(CStruct):
         expdesc = ExpDesc_e.unpack(raw,
                                    off,
                                    self.parent_head)
-        if self.parent_head.rva2off(expdesc.addressoffunctions) == None or \
-                self.parent_head.rva2off(expdesc.addressofnames) == None or \
-                self.parent_head.rva2off(expdesc.addressofordinals) == None:
+        if self.parent_head.rva2off(expdesc.addressoffunctions) is None or \
+                self.parent_head.rva2off(expdesc.addressofnames) is None or \
+                self.parent_head.rva2off(expdesc.addressofordinals) is None:
             log.warning("export dir malformed!")
             return None, off_o
         self.dlldescname = DescName.unpack(raw, expdesc.name, self.parent_head)
@@ -831,7 +831,7 @@ class DirExport(CStruct):
 
     def get_funcvirt(self, addr):
         rva = self.get_funcrva(addr)
-        if rva == None:
+        if rva is None:
             return
         return self.parent_head.rva2virt(rva)
 
@@ -1034,9 +1034,9 @@ class DirDelay(CStruct):
                     import_descriptor[attr] = 0
             entry = Delaydesc_e(self.parent_head, **import_descriptor)
             # entry.cstr.__dict__.update(import_descriptor)
-            if entry.firstthunk != None:
+            if entry.firstthunk is not None:
                 of1 = entry.firstthunk
-            elif of1 == None:
+            elif of1 is None:
                 raise RuntimeError("set fthunk")
             else:
                 entry.firstthunk = of1
@@ -1066,7 +1066,7 @@ class DirDelay(CStruct):
                 entry.originalfirstthunks.append(rva_ofirstt)
 
                 rva_func = Rva(self.parent_head)
-                if ibn != None:
+                if ibn is not None:
                     rva_func.rva = 0xDEADBEEF  # default func addr
                 else:
                     # ord ?XXX?
@@ -1114,7 +1114,7 @@ class DirDelay(CStruct):
 
     def get_funcvirt(self, addr):
         rva = self.get_funcrva(addr)
-        if rva == None:
+        if rva is None:
             return
         return self.parent_head.rva2virt(rva)
 

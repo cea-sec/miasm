@@ -177,7 +177,7 @@ class CStruct(with_metaclass(Cstruct_Metaclass, object)):
         self._size = None
         kargs = dict(kargs)
         # if not sex or size: get the one of the parent
-        if _sex == None and _wsize == None:
+        if _sex is None and _wsize is None:
             if parent_head:
                 _sex = parent_head._sex
                 _wsize = parent_head._wsize
@@ -211,8 +211,8 @@ class CStruct(with_metaclass(Cstruct_Metaclass, object)):
             if ffmt in type2realtype or (isinstance(ffmt, str) and re.match(r'\d+s', ffmt)):
                 # basic types
                 fmt = real_fmt(ffmt, self._wsize)
-                if cpt == None:
-                    if value == None:
+                if cpt is None:
+                    if value is None:
                         o = struct.calcsize(fmt) * b"\x00"
                     elif ffmt.endswith('s'):
                         new_value = force_bytes(value)
@@ -222,7 +222,7 @@ class CStruct(with_metaclass(Cstruct_Metaclass, object)):
                 else:
                     o = b""
                     for v in value:
-                        if value == None:
+                        if value is None:
                             o += struct.calcsize(fmt) * b"\x00"
                         else:
                             o += struct.pack(self.sex + fmt, v)
@@ -231,7 +231,7 @@ class CStruct(with_metaclass(Cstruct_Metaclass, object)):
                 o = value + b'\x00'
             elif ffmt in all_cstructs:
                 # sub structures
-                if cpt == None:
+                if cpt is None:
                     o = bytes(value)
                 else:
                     o = b""

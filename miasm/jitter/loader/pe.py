@@ -44,7 +44,7 @@ def get_pe_dependencies(pe_obj):
         out.add(libname)
 
     # If binary has redirected export, add dependencies
-    if pe_obj.DirExport.expdesc != None:
+    if pe_obj.DirExport.expdesc is not None:
         addrs = get_export_name_addr_list(pe_obj)
         for imp_ord_or_name, ad in addrs:
             # if export is a redirection, search redirected dll
@@ -631,7 +631,7 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
         print(name)
         if pe_obj is None:
             continue
-        if pe_obj.DirExport.expdesc == None:
+        if pe_obj.DirExport.expdesc is None:
             continue
         addrs = get_export_name_addr_list(pe_obj)
         for imp_ord_or_name, ad in addrs:

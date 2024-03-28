@@ -111,7 +111,7 @@ class ContentVirtual(object):
         @virt_stop: virt stop address
         """
         rva_start = self.parent.virt2rva(virt_start)
-        if virt_stop != None:
+        if virt_stop is not None:
             rva_stop = self.parent.virt2rva(virt_stop)
         else:
             rva_stop = None
@@ -135,7 +135,7 @@ class ContentVirtual(object):
     def find(self, pattern, start=0, end=None):
         if start != 0:
             start = self.parent.virt2rva(start)
-        if end != None:
+        if end is not None:
             end = self.parent.virt2rva(end)
 
         ret = self.parent.img_rva.find(pattern, start, end)
@@ -146,7 +146,7 @@ class ContentVirtual(object):
     def rfind(self, pattern, start=0, end=None):
         if start != 0:
             start = self.parent.virt2rva(start)
-        if end != None:
+        if end is not None:
             end = self.parent.virt2rva(end)
 
         ret = self.parent.img_rva.rfind(pattern, start, end)

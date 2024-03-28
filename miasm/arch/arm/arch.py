@@ -3003,7 +3003,7 @@ class armt_imm5_1(arm_imm):
         return True
 
 aif_str = ["X", "F", "I", "IF", "A", "AF", "AI", "AIF"]
-aif_expr = [ExprId(x, 32) if x != None else None for x in aif_str]
+aif_expr = [ExprId(x, 32) if x is not None else None for x in aif_str]
 
 aif_reg = reg_info(aif_str, aif_expr)
 

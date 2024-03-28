@@ -666,7 +666,7 @@ class virt(object):
         self.parent = x
 
     def get_rvaitem(self, start, stop=None):
-        if stop == None:
+        if stop is None:
             s = self.parent.getsectionbyvad(start)
             if s:
                 start = start - s.sh.addr
@@ -725,7 +725,7 @@ class virt(object):
                 n_item = slice(n_item, n_item + 1, 1)
             start = n_item.start + s.ph.offset
             stop = n_item.stop + s.ph.offset
-            if n_item.step != None:
+            if n_item.step is not None:
                 step = n_item.step + s.ph.offset
             else:
                 step = None

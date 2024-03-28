@@ -1096,7 +1096,7 @@ class aarch64_gpreg_ext2_128(aarch64_gpreg_ext2):
 def test_set_sf(parent, size):
     if not hasattr(parent, 'sf'):
         return False
-    if parent.sf.value == None:
+    if parent.sf.value is None:
         parent.sf.value = 1 if size == 64 else 0
         return True
     psize = 64 if parent.sf.value else 32
