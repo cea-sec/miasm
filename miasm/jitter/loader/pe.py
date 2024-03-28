@@ -753,7 +753,7 @@ class ImpRecStateMachine(object):
                     return
                 self.cur_list.append(self.format_func_info(func_info, func_addr))
             else:
-                self.state == self.STATE_SEARCH
+                self.state = self.STATE_SEARCH
         elif self.state == self.STATE_END_FUNC_LIST:
             self.seen.append(self.cur_list)
             self.state = self.STATE_SEARCH
