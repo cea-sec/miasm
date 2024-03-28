@@ -1491,7 +1491,7 @@ class aarch64_imm_hw_sc(aarch64_arg):
             return False
         if set_imm_to_size(self.parent.args[0].expr.size, self.expr.args[1]) is None:
             return False
-        arg, amount = [int(arg) for arg in self.expr.args]
+        arg, amount = (int(arg) for arg in self.expr.args)
         if arg > 0xFFFF:
             return False
         if amount % 16 or amount // 16 > 4:

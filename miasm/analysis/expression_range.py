@@ -57,7 +57,7 @@ def expr_range(expr):
             return - expr_range(expr.args[0])
         elif expr.op == "%":
             assert len(expr.args) == 2
-            op, mod = [expr_range(arg) for arg in expr.args]
+            op, mod = (expr_range(arg) for arg in expr.args)
             if mod.intervals.length == 1:
                 # Modulo intervals is not supported
                 return op % mod.intervals.hull()[0]
