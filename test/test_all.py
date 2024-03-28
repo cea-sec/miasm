@@ -713,7 +713,7 @@ for script in [["basic_op.py"],
                ["expr_random.py"],
                ["expr_translate.py"],
                ["expr_reduce.py"],
-               ["interfer.py"],
+               ["interfere.py"],
                ]:
     testset += ExampleExpression(script)
 
