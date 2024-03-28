@@ -461,7 +461,7 @@ class bs(object):
         if cls:
             for b in cls:
                 if 'flen' in b.__dict__:
-                    flen = getattr(b, 'flen')
+                    flen = b.flen
 
         self.strbits = strbits
         self.l = l
