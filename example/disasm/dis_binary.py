@@ -8,7 +8,7 @@ fdesc = open(sys.argv[1], 'rb')
 loc_db = LocationDB()
 
 # The Container will provide a *bin_stream*, bytes source for the disasm engine
-# It will prodive a view from a PE or an ELF.
+# It will provide a view from a PE or an ELF.
 cont = Container.from_stream(fdesc, loc_db)
 
 # The Machine, instantiated with the detected architecture, will provide tools

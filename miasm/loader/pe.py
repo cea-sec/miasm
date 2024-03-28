@@ -1110,7 +1110,7 @@ class DirDelay(CStruct):
                         if isfromva(tmp_thunk[j].rva & 0x7FFFFFFF) == func:
                             return isfromva(entry.firstthunk) + j * 4
             else:
-                raise ValueError('unknown func tpye %r' % func)
+                raise ValueError('unknown func type %r' % func)
 
     def get_funcvirt(self, addr):
         rva = self.get_funcrva(addr)

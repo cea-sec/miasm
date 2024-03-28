@@ -476,7 +476,7 @@ class Jitter(object):
     def get_exception(self):
         return self.cpu.get_exception() | self.vm.get_exception()
 
-    # commun functions
+    # common functions
     def get_c_str(self, addr, max_char=None):
         """Get C str from vm.
         @addr: address in memory
