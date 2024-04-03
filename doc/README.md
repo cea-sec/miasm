@@ -36,6 +36,7 @@ class LocationDB(builtins.object)
 
 - examples for the main features (see `/example`)
 - interactive tutorials (IPython Notebooks) on the following topics:
+  - Emulation API: [notebook](jitter/jitter.ipynb)
   - Miasm's IR bricks known as `Expr`: [notebook](expression/expression.ipynb)
   - Lifting from assembly to IR: [notebook](ir/lift.ipynb)
   - `LocationDB` usage, the database for locations: [notebook](locationdb/locationdb.ipynb)
