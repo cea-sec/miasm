@@ -416,12 +416,12 @@ class DiGraph(object):
             dominators[node] = set(nodes)
 
         dominators[head] = set([head])
-        todo = set(nodes)
+        todo = set([n for n in next_cb(head)])
 
         while todo:
             node = todo.pop()
 
-            # Heads state must not be changed
+            # Head's state must not be changed
             if node == head:
                 continue
 
@@ -446,6 +446,7 @@ class DiGraph(object):
             dominators[node] = new_dom
             for succ in next_cb(node):
                 todo.add(succ)
+
         return dominators
 
     def compute_dominators(self, head):
