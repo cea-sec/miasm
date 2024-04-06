@@ -516,7 +516,7 @@ instance to emulate library functions effects.
 Documentation
 =============
 
-TODO
+Some documentation ressources are available in the [doc](doc) folder.
 
 An auto-generated documentation is available:
 * [Doxygen](http://miasm.re/miasm_doxygen)
