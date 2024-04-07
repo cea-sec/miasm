@@ -8,7 +8,7 @@ import logging
 from future.utils import viewitems
 
 from miasm.ir.symbexec import SymbolicExecutionEngine
-from miasm.arch.arm.arch import mn_arm as mn
+from miasm.arch.arm.arch import mn_arm, mn_armt
 from miasm.arch.arm.sem import Lifter_Arml as Lifter
 from miasm.arch.arm.regs import *
 from miasm.expression.expression import *
@@ -23,8 +23,14 @@ EXCLUDE_REGS = set([Lifter(loc_db).IRDst])
 def M(addr):
     return ExprMem(ExprInt(addr, 16), 16)
 
+# compute for armt
+def compute_t(asm, inputstate={}, debug=False):
+    return _compute(asm, mn_armt, inputstate, debug)
 
 def compute(asm, inputstate={}, debug=False):
+    return _compute(asm, mn_arm, inputstate, debug)
+
+def _compute(asm, mn, inputstate={}, debug=False):
     loc_db = LocationDB()
     sympool = dict(regs_init)
     sympool.update({k: ExprInt(v, k.size) for k, v in viewitems(inputstate)})
@@ -545,6 +551,18 @@ class TestARMSemantic(unittest.TestCase):
         self.assertEqual(compute('SMLAL R0, R1, R2, R3', {R0: 0x0, R1: 0x0, R2: 0x1, R3: 0x80808080}), {R0: 0x80808080, R1: 0xffffffff, R2: 0x1, R3: 0x80808080})
         self.assertEqual(compute('SMLAL R2, R3, R4, R5', {R2: 0xffffffff, R3: 0x0, R4: 0x12345678, R5: 0x87654321}), {R2: 0x70b88d77, R3: 0xf76c768e, R4: 0x12345678, R5: 0x87654321})
         self.assertEqual(compute('SMLAL R2, R3, R4, R5', {R2: 0xffffffff, R3: 0x00000002, R4: 0x12345678, R5: 0x87654321}), {R2: 0x70b88d77, R3: 0xf76c7690, R4: 0x12345678, R5: 0x87654321})
+
+    def test_vmov(self):
+        self.assertEqual(compute_t('VMOV S0, R0', {S0: 0x1, R0: 0x2}), {S0: 0x2, R0: 0x2})
+        self.assertEqual(compute_t('VMOV R0, S0', {S0: 0x1, R0: 0x2}), {S0: 0x1, R0: 0x1})
+        self.assertEqual(compute_t('VMOV D0, R0, R1', {D0: 0x1, R0: 0x2, R1:0x3}), {D0: 0x2 | (0x3 << 32), R0: 0x2, R1: 0x3})
+        self.assertEqual(compute_t('VMOV R0, R1, D0', {D0: 0xfffffffcfffffffe, R0: 0x2, R1:0x3}), {D0: 0xfffffffcfffffffe, R0: 0xfffffffe, R1: 0xfffffffc})
+        self.assertEqual(compute_t('VSTR S0, [SP, 0x30]',
+        {S0: 0x10000, SP: 0x20000, ExprMem(ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), 32): 0x50}), 
+        {S0: 0x10000, SP: 0x20000, ExprMem(ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), 32): 0x10000})
+        self.assertEqual(compute_t('VSTR D0, [SP, 0x30]',
+        {D0: 0x1000000020000000, SP: 0x20000, ExprMem(ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), 32): 0x50      , ExprMem(ExprOp('+', ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), ExprInt(4, 32)), 32): 0x50}), 
+        {D0: 0x1000000020000000, SP: 0x20000, ExprMem(ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), 32): 0x20000000, ExprMem(ExprOp('+', ExprOp('preinc', ExprInt(0x20000, 32), ExprInt(0x30, 32)), ExprInt(4, 32)), 32): 0x10000000})
 
 if __name__ == '__main__':
     testsuite = unittest.TestLoader().loadTestsFromTestCase(TestARMSemantic)
