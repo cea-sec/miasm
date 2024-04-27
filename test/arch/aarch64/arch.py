@@ -67,6 +67,9 @@ reg_tests_aarch64 = [
     ("0000D5AC    NEG        W6, W6",
      "E603064B"),
 
+    ("XXXXXXXX    CMP        W11, W12 UXTB 0x0",
+     "7F012C6B"),
+
 
     ("004028B8    CMP        X0, XZR",
      "1F001FEB"),
