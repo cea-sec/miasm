@@ -457,11 +457,11 @@ test_args = [(0x401000, 0x40100d, ["EAX"], 1),
              (0x401000, 0x401025, ["EAX", "EBX"], 4),
              (0x401000, 0x401007, ["EBX"], 3),
 ]
-for i, test_args in enumerate(test_args):
+for i, test_arg in enumerate(test_args):
     test_dg = SemanticTestAsm("x86_32", "PE", ["dg_test_%.2d" % i])
     testset += test_dg
-    testset += TestDepgraph(i, False, *test_args, depends=[test_dg])
-    testset += TestDepgraph(i, True, *test_args, depends=[test_dg])
+    testset += TestDepgraph(i, False, *test_arg, depends=[test_dg])
+    testset += TestDepgraph(i, True, *test_arg, depends=[test_dg])
 
 ## Jitter
 for script in ["jitload.py",
@@ -881,8 +881,8 @@ class TestSequence(unittest.TestCase):
         executable = t.executable if t.executable else sys.executable
         print("Exec:    ", executable, "(explicit)" if t.executable else "(default)")
 
-        for t in t.depends:
-            assert "shellcode.py" in t.command_line[0], "At the moment, only dependencies on 'shellcode.py' are handled"
+        for d in t.depends:
+            assert "shellcode.py" in d.command_line[0], "At the moment, only dependencies on 'shellcode.py' are handled"
 
         subprocess.check_call(
             [executable] + t.command_line,

@@ -235,7 +235,7 @@ class Section(with_metaclass(Section_metaclass, object)):
 
     def get_infosection(self):
         # XXX info may not be in sh list ?!?
-        if not self.sh.info in self.parent:
+        if self.sh.info not in self.parent:
             return None
         return self.parent[self.sh.info]
 
@@ -406,7 +406,7 @@ class StrTable(Section):
     def mod_name(self, name, new_name):
         s = bytes(self.content)
         name_b = b'\x00%s\x00' % name.encode()
-        if not name_b in s:
+        if name_b not in s:
             raise ValueError('Unknown name %r' % name)
         self.content = s.replace(
             name_b,
@@ -666,7 +666,7 @@ class virt(object):
         self.parent = x
 
     def get_rvaitem(self, start, stop=None):
-        if stop == None:
+        if stop is None:
             s = self.parent.getsectionbyvad(start)
             if s:
                 start = start - s.sh.addr
@@ -725,7 +725,7 @@ class virt(object):
                 n_item = slice(n_item, n_item + 1, 1)
             start = n_item.start + s.ph.offset
             stop = n_item.stop + s.ph.offset
-            if n_item.step != None:
+            if n_item.step is not None:
                 step = n_item.step + s.ph.offset
             else:
                 step = None

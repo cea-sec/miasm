@@ -400,7 +400,7 @@ def simp_cond_op_int(_, expr):
 
 
     # x?a:b + x?c:d + e => x?(a+c+e:b+d+e)
-    if not expr.op in ["+", "|", "^", "&", "*", '<<', '>>', 'a>>']:
+    if expr.op not in ["+", "|", "^", "&", "*", '<<', '>>', 'a>>']:
         return expr
     if len(expr.args) < 2:
         return expr
@@ -428,7 +428,7 @@ def simp_cond_op_int(_, expr):
 
 def simp_cond_factor(e_s, expr):
     "Merge similar conditions"
-    if not expr.op in ["+", "|", "^", "&", "*", '<<', '>>', 'a>>']:
+    if expr.op not in ["+", "|", "^", "&", "*", '<<', '>>', 'a>>']:
         return expr
     if len(expr.args) < 2:
         return expr
@@ -448,7 +448,7 @@ def simp_cond_factor(e_s, expr):
             not_conds.append(arg)
             continue
         cond = arg.cond
-        if not cond in conds:
+        if cond not in conds:
             conds[cond] = []
         else:
             multi_cond = True
