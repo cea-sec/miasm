@@ -23,7 +23,7 @@ log.setLevel(logging.INFO)
 def get_block(lifter, ircfg, mdis, addr):
     """Get IRBlock at address @addr"""
     loc_key = ircfg.get_or_create_loc_key(addr)
-    if not loc_key in ircfg.blocks:
+    if loc_key not in ircfg.blocks:
         offset = mdis.loc_db.get_location_offset(loc_key)
         block = mdis.dis_block(offset)
         lifter.add_asmblock_to_ircfg(block, ircfg)

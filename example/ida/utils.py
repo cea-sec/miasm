@@ -51,7 +51,7 @@ def guess_machine(addr=None):
 
         is_bigendian = info.is_be()
         infos = (is_armt, size, is_bigendian)
-        if not infos in info2machine:
+        if infos not in info2machine:
             raise NotImplementedError('not fully functional')
         machine = Machine(info2machine[infos])
 

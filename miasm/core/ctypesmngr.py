@@ -664,7 +664,7 @@ class CAstTypes(object):
         """Return the CTypeBase of the @ast
         @ast: pycparser.c_ast instance"""
         cls = ast.__class__
-        if not cls in self.ast_to_typeid_rules:
+        if cls not in self.ast_to_typeid_rules:
             raise NotImplementedError("Strange type %r" % ast)
         return self.ast_to_typeid_rules[cls](ast)
 
@@ -746,7 +746,7 @@ class CAstTypes(object):
         @ast: parsed pycparser.c_ast object
         """
         cls = ast.__class__
-        if not cls in self.ast_parse_rules:
+        if cls not in self.ast_parse_rules:
             raise NotImplementedError("Strange declaration %r" % cls)
         return self.ast_parse_rules[cls](ast)
 

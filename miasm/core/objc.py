@@ -1566,7 +1566,7 @@ class CTypesManager(object):
         @size: CTypeOp or integer"""
         if isinstance(size, CTypeOp):
             assert len(size.args) == 2
-            arg0, arg1 = [self.size_to_int(arg) for arg in size.args]
+            arg0, arg1 = (self.size_to_int(arg) for arg in size.args)
             if size.operator == "+":
                 return arg0 + arg1
             elif size.operator == "-":

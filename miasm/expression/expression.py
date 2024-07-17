@@ -1698,7 +1698,7 @@ def test_set(expr, pattern, tks, result):
     @result : dictionary of ExprId -> Expr, current context
     """
 
-    if not pattern in tks:
+    if pattern not in tks:
         return expr == pattern
     if pattern in result and result[pattern] != expr:
         return False

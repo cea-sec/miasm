@@ -159,7 +159,7 @@ class TranslatorZ3(Translator):
         res = None
         for arg in expr.args:
             e = z3.Extract(arg.size-1, 0, self.from_expr(arg))
-            if res != None:
+            if res is not None:
                 res = z3.Concat(e, res)
             else:
                 res = e

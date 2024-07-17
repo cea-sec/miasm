@@ -24,7 +24,8 @@ def M(addr):
     return ExprMem(ExprInt(addr, 16), 16)
 
 
-def compute(asm, inputstate={}, debug=False):
+def compute(asm, inputstate=None, debug=False):
+    inputstate = inputstate or {}
     loc_db = LocationDB()
     sympool = dict(regs_init)
     sympool.update({k: ExprInt(v, k.size) for k, v in viewitems(inputstate)})

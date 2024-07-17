@@ -72,7 +72,7 @@ def get_optehdr_num(nthdr):
     entry_size = 8
     if parent.Coffhdr.sizeofoptionalheader < numberofrva * entry_size + len(parent.Opthdr):
         numberofrva = (parent.Coffhdr.sizeofoptionalheader - len(parent.Opthdr)) // entry_size
-        log.warn('Bad number of rva.. using default %d' % numberofrva)
+        log.warning('Bad number of rva.. using default %d' % numberofrva)
         numberofrva = 0x10
     return numberofrva
 
@@ -210,10 +210,10 @@ class SHList(CStruct):
         return section
 
     def align_sections(self, f_align=None, s_align=None):
-        if f_align == None:
+        if f_align is None:
             f_align = self.parent_head.NThdr.filealignment
             f_align = max(0x200, f_align)
-        if s_align == None:
+        if s_align is None:
             s_align = self.parent_head.NThdr.sectionalignment
             s_align = max(0x1000, s_align)
 
@@ -295,12 +295,12 @@ class struct_array(object):
         if not raw:
             return
 
-        while (num == None) or (num and i < num):
+        while (num is None) or (num and i < num):
             entry, length = cstr.unpack_l(raw, off,
                                           target_class.parent_head,
                                           target_class.parent_head._sex,
                                           target_class.parent_head._wsize)
-            if num == None:
+            if num is None:
                 if raw[off:off + length] == b'\x00' * length:
                     self.end = b'\x00' * length
                     break
@@ -532,9 +532,9 @@ class DirImport(CStruct):
                 if attr not in import_descriptor:
                     import_descriptor[attr] = 0
             entry = ImpDesc_e(self.parent_head, **import_descriptor)
-            if entry.firstthunk != None:
+            if entry.firstthunk is not None:
                 of1 = entry.firstthunk
-            elif of1 == None:
+            elif of1 is None:
                 raise RuntimeError("set fthunk")
             else:
                 entry.firstthunk = of1
@@ -617,7 +617,7 @@ class DirImport(CStruct):
 
     def get_funcvirt(self, dllname, funcname):
         rva = self.get_funcrva(dllname, funcname)
-        if rva == None:
+        if rva is None:
             return
         return self.parent_head.rva2virt(rva)
 
@@ -647,15 +647,15 @@ class DirExport(CStruct):
             return None, off
         off_sav = off
         if off >= len(raw):
-            log.warn("export dir malformed!")
+            log.warning("export dir malformed!")
             return None, off_o
         expdesc = ExpDesc_e.unpack(raw,
                                    off,
                                    self.parent_head)
-        if self.parent_head.rva2off(expdesc.addressoffunctions) == None or \
-                self.parent_head.rva2off(expdesc.addressofnames) == None or \
-                self.parent_head.rva2off(expdesc.addressofordinals) == None:
-            log.warn("export dir malformed!")
+        if self.parent_head.rva2off(expdesc.addressoffunctions) is None or \
+                self.parent_head.rva2off(expdesc.addressofnames) is None or \
+                self.parent_head.rva2off(expdesc.addressofordinals) is None:
+            log.warning("export dir malformed!")
             return None, off_o
         self.dlldescname = DescName.unpack(raw, expdesc.name, self.parent_head)
         try:
@@ -669,7 +669,7 @@ class DirExport(CStruct):
                                                expdesc.addressofordinals,
                                                Ordinal, expdesc.numberofnames)
         except RuntimeError:
-            log.warn("export dir malformed!")
+            log.warning("export dir malformed!")
             return None, off_o
         for func in self.f_names:
             func.name = DescName.unpack(raw, func.rva, self.parent_head)
@@ -697,7 +697,7 @@ class DirExport(CStruct):
         names = [func.name for func in self.f_names]
         names_ = names[:]
         if names != names_:
-            log.warn("unsorted export names, may bug")
+            log.warning("unsorted export names, may bug")
 
     def set_rva(self, rva, size=None):
         rva_size = self.parent_head._wsize // 8
@@ -791,7 +791,7 @@ class DirExport(CStruct):
         names_s = names[:]
         names_s.sort()
         if names_s != names:
-            log.warn('tab names was not sorted may bug')
+            log.warning('tab names was not sorted may bug')
         names.append(name)
         names.sort()
         index = names.index(name)
@@ -831,7 +831,7 @@ class DirExport(CStruct):
 
     def get_funcvirt(self, addr):
         rva = self.get_funcrva(addr)
-        if rva == None:
+        if rva is None:
             return
         return self.parent_head.rva2virt(rva)
 
@@ -861,7 +861,7 @@ class DirDelay(CStruct):
         out = []
         while off < ofend:
             if off >= len(raw):
-                log.warn('warning bad reloc offset')
+                log.warning('warning bad reloc offset')
                 break
 
             delaydesc, length = Delaydesc_e.unpack_l(raw,
@@ -1030,13 +1030,13 @@ class DirDelay(CStruct):
                 for funcname in new_functions
             ]
             for attr in ["attrs", "name", "hmod", "firstthunk", "originalfirstthunk", "boundiat", "unloadiat", "timestamp"]:
-                if not attr in import_descriptor:
+                if attr not in import_descriptor:
                     import_descriptor[attr] = 0
             entry = Delaydesc_e(self.parent_head, **import_descriptor)
             # entry.cstr.__dict__.update(import_descriptor)
-            if entry.firstthunk != None:
+            if entry.firstthunk is not None:
                 of1 = entry.firstthunk
-            elif of1 == None:
+            elif of1 is None:
                 raise RuntimeError("set fthunk")
             else:
                 entry.firstthunk = of1
@@ -1066,7 +1066,7 @@ class DirDelay(CStruct):
                 entry.originalfirstthunks.append(rva_ofirstt)
 
                 rva_func = Rva(self.parent_head)
-                if ibn != None:
+                if ibn is not None:
                     rva_func.rva = 0xDEADBEEF  # default func addr
                 else:
                     # ord ?XXX?
@@ -1114,7 +1114,7 @@ class DirDelay(CStruct):
 
     def get_funcvirt(self, addr):
         rva = self.get_funcrva(addr)
-        if rva == None:
+        if rva is None:
             return
         return self.parent_head.rva2virt(rva)
 
@@ -1153,18 +1153,18 @@ class DirReloc(CStruct):
         out = []
         while off < ofend:
             if off >= len(raw):
-                log.warn('warning bad reloc offset')
+                log.warning('warning bad reloc offset')
                 break
             reldesc, length = Rel.unpack_l(raw,
                                            off,
                                            self.parent_head)
             if reldesc.size == 0:
-                log.warn('warning null reldesc')
+                log.warning('warning null reldesc')
                 reldesc.size = length
                 break
             of2 = off + length
             if of2 + reldesc.size > len(self.parent_head.img_rva):
-                log.warn('relocation too big, skipping')
+                log.warning('relocation too big, skipping')
                 break
             reldesc.rels = struct_array(self, raw,
                                         of2,
@@ -1330,7 +1330,7 @@ class DirRes(CStruct):
                     # data dir
                     off = entry.offsettodata
                     if not 0 <= off < len(raw):
-                        log.warn('bad resource entry')
+                        log.warning('bad resource entry')
                         continue
                     data = ResDataEntry.unpack(raw,
                                                off,
@@ -1341,10 +1341,10 @@ class DirRes(CStruct):
                     continue
                 # subdir
                 if off in dir_done:
-                    log.warn('warning recusif subdir')
+                    log.warning('warning recusif subdir')
                     continue
                 if not 0 <= off < len(self.parent_head.img_rva):
-                    log.warn('bad resource entry')
+                    log.warning('bad resource entry')
                     continue
                 subdir, length = ResDesc_e.unpack_l(raw,
                                                     off,
@@ -1356,7 +1356,7 @@ class DirRes(CStruct):
                                                      ResEntry,
                                                      nbr)
                 except RuntimeError:
-                    log.warn('bad resource entry')
+                    log.warning('bad resource entry')
                     continue
 
                 entry.subdir = subdir
@@ -1409,7 +1409,7 @@ class DirRes(CStruct):
             for entry in my_dir.resentries:
                 if not entry.offsettosubdir:
                     continue
-                if not entry.subdir in dir_todo:
+                if entry.subdir not in dir_todo:
                     dir_todo.append(entry.subdir)
                 else:
                     raise RuntimeError("recursive dir")
@@ -1447,7 +1447,7 @@ class DirRes(CStruct):
             for entry in my_dir.resentries:
                 if not entry.offsettosubdir:
                     continue
-                if not entry.subdir in dir_todo:
+                if entry.subdir not in dir_todo:
                     dir_todo.append(entry.subdir)
                 else:
                     raise RuntimeError("recursive dir")
