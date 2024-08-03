@@ -1424,7 +1424,7 @@ class aarch64_immhi_page(aarch64_imm_32):
     def encode(self):
         v = int(self.expr)
         if v & (1 << 63):
-            v &= (1 << 33) - 1
+            v &= (1 << 21) - 1
         self.parent.immlo.value = v & 3
         v >>= 2
         if v > (1 << 19) - 1:
