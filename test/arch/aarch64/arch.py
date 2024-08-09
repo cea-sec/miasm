@@ -1846,7 +1846,10 @@ reg_tests_aarch64 = [
     ("XXXXXXXX    TLBI       0x0, c7, 0x0, XZR",
      "1F8708D5"),
     ("XXXXXXXX    YIELD      ",
-     "3F2003D5")
+     "3F2003D5"),
+
+    ("XXXXXXXX    ADR        X29, 0xFFFFFFFFFFFFFAC8",
+     "5DD6FF10"),
 ]
 
 
