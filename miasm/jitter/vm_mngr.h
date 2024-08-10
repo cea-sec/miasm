@@ -39,7 +39,7 @@
 #define __BYTE_ORDER __BYTE_ORDER__
 #define __BIG_ENDIAN BIG_ENDIAN
 #define __LITTLE_ENDIAN LITTLE_ENDIAN
-#elif defined(__NetBSD__) || defined(__OpenBSD__)
+#elif defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__)
 #define __BYTE_ORDER _BYTE_ORDER
 #define __BIG_ENDIAN _BIG_ENDIAN
 #define __LITTLE_ENDIAN _LITTLE_ENDIAN
