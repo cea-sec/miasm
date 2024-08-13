@@ -9,16 +9,16 @@ jitter = machine.jitter(loc_db, sys.argv[1])
 jitter.cpu.RAX = 16565615892967251934
 assert jitter.cpu.RAX == 16565615892967251934
 
-jitter.cpu.RAX = -1
+jitter.cpu.RAX = -1 & 0xffffffffffffffff
 assert jitter.cpu.RAX == 0xffffffffffffffff
 
-jitter.cpu.RAX = -2
+jitter.cpu.RAX = -2 & 0xffffffffffffffff
 assert jitter.cpu.RAX == 0xfffffffffffffffe
 
-jitter.cpu.EAX = -2
+jitter.cpu.EAX = -2 & 0xffffffff
 assert jitter.cpu.EAX == 0xfffffffe
 
-jitter.cpu.RAX = -0xffffffffffffffff
+jitter.cpu.RAX = -0xffffffffffffffff & 0xffffffffffffffff
 assert jitter.cpu.RAX == 1
 
 try:
@@ -35,10 +35,10 @@ except TypeError:
 else:
         raise Exception("Should see that 0x10000000000000000 is too big for RAX")
 
-jitter.cpu.EAX = -0xefffffff
+jitter.cpu.EAX = -0xefffffff & 0xffffffff
 assert jitter.cpu.EAX == 0x10000001
 
-jitter.cpu.EAX = -0xFFFFFFFF
+jitter.cpu.EAX = -0xFFFFFFFF & 0xffffffff
 assert jitter.cpu.EAX == 1
 
 try:
