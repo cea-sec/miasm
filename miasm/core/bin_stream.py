@@ -124,7 +124,10 @@ class bin_stream(object):
         if endianness is None:
             endianness = self.endianness
         data = self.getbytes(addr, 1)
-        return data
+        if endianness == LITTLE_ENDIAN:
+            return upck8le(data)
+        else:
+            return upck8be(data)
 
     def get_u16(self, addr, endianness=None):
         """
