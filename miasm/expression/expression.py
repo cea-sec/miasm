@@ -568,11 +568,11 @@ class Expr(object):
     def __sub__(self, other):
         return ExprOp('+', self, ExprOp('-', other))
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         return ExprOp('/', self, other)
 
     def __floordiv__(self, other):
-        return self.__div__(other)
+        return self.__truediv__(other)
 
     def __mod__(self, other):
         return ExprOp('%', self, other)

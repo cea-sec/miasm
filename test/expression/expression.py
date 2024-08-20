@@ -80,16 +80,22 @@ assert mem.get_r(mem_read=True) == set([mem, A])
 
 C = A+B
 D = C + A
+E = A / B
+F = A // B
+assert E is F
 
 assert A in A
 assert A in C
 assert B in C
 assert C in C
+assert E in E
 
 assert A in D
 assert B in D
 assert C in D
 assert D in D
+assert A in E
+assert B in E
 
 assert C not in A
 assert C not in B
