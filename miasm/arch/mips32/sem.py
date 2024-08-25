@@ -3,7 +3,7 @@ from miasm.ir.ir import Lifter, IRBlock, AssignBlock
 from miasm.arch.mips32.arch import mn_mips32
 from miasm.arch.mips32.regs import R_LO, R_HI, PC, RA, ZERO, exception_flags
 from miasm.core.sembuilder import SemBuilder
-from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_SOFT_BP
+from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_SOFT_BP, EXCEPT_SYSCALL
 
 
 # SemBuilder context
@@ -400,6 +400,11 @@ def break_(ir, instr):
     e.append(m2_expr.ExprAssign(exception_flags, m2_expr.ExprInt(EXCEPT_SOFT_BP, 32)))
     return e, []
 
+def syscall(ir, instr, code):
+    e = []
+    e.append(m2_expr.ExprAssign(exception_flags, m2_expr.ExprInt(EXCEPT_SYSCALL, 32)))
+    return e, []
+
 def ins(ir, instr, a, b, c, d):
     e = []
     pos = int(c)
@@ -611,6 +616,7 @@ mnemo_func.update(
         'break': break_,
         'sb': sb,
         'sh': sh,
+        'syscall': syscall,
     }
 )
 

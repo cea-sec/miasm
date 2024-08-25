@@ -7,15 +7,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['2.7', '3.6', '3.8']
+        python-version: ['3.8', '3.10']
 
     steps:
 
     - name: Git checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Use Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -25,11 +25,11 @@ jobs:
     - name: Install requirements
       run: pip install -r requirements.txt
 
+    - name: Install llvm 11 (llvmlite compatible)
+      run: sudo apt-get install llvm-11
+
     - name: Install optional requirements
       run: pip install -r optional_requirements.txt
-
-    - name: Install llvm
-      run: sudo apt-get install llvm
 
     - name: Install Miasm
       uses: ./.github/actions/install

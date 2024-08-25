@@ -89,7 +89,7 @@ op_propag_cst = ['+', '*', '^', '&', '|', '>>',
 def is_pure_int(e):
     """
     return True if expr is only composed with integers
-    /!\ ExprCond returns True is src1 and src2 are integers
+    [!] ExprCond returns True if src1 and src2 are integers
     """
     def modify_cond(e):
         if isinstance(e, m2_expr.ExprCond):
@@ -344,7 +344,7 @@ class ExprRandom(object):
     compose_max_layer = 5
     # Maximum size of memory address in bits
     memory_max_address_size = 32
-    # Re-use already generated elements to mimic a more realistic behavior
+    # Reuse already generated elements to mimic a more realistic behavior
     reuse_element = True
     generated_elements = {} # (depth, size) -> [Expr]
 
@@ -444,13 +444,13 @@ class ExprRandom(object):
         """Internal function for generating sub-expression according to options
         @size: (optional) Operation size
         @depth: (optional) Expression depth
-        /!\ @generated_elements is left modified
+        [!] @generated_elements is left modified
         """
         # Perfect tree handling
         if not cls.perfect_tree:
             depth = random.randint(max(0, depth - 2), depth)
 
-        # Element re-use
+        # Element reuse
         if cls.reuse_element and random.choice([True, False]) and \
                 (depth, size) in cls.generated_elements:
             return random.choice(cls.generated_elements[(depth, size)])

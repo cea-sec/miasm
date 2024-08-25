@@ -108,7 +108,7 @@ class IRATest(LifterModelCall):
 def bloc2graph(irgraph, label=False, lines=True):
     """Render dot graph of @blocks"""
 
-    escape_chars = re.compile('[' + re.escape('{}') + ']')
+    escape_chars = re.compile(r'[\{\}]')
     label_attr = 'colspan="2" align="center" bgcolor="grey"'
     edge_attr = 'label = "%s" color="%s" style="bold"'
     td_attr = 'align="left"'
@@ -179,7 +179,7 @@ def bloc2graph(irgraph, label=False, lines=True):
 def dg2graph(graph, label=False, lines=True):
     """Render dot graph of @blocks"""
 
-    escape_chars = re.compile('[' + re.escape('{}') + ']')
+    escape_chars = re.compile(r'[\{\}]')
     label_attr = 'colspan="2" align="center" bgcolor="grey"'
     edge_attr = 'label = "%s" color="%s" style="bold"'
     td_attr = 'align="left"'

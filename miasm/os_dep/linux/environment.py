@@ -13,7 +13,7 @@ from miasm.core.interval import interval
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
 
-REGEXP_T = type(re.compile(''))
+REGEXP_T = type(re.compile(r''))
 
 StatInfo = namedtuple("StatInfo", [
     "st_dev", "st_ino", "st_nlink", "st_mode", "st_uid", "st_gid", "st_rdev",
@@ -262,7 +262,7 @@ class FileSystem(object):
                             expr.flags,
                             exc_info=True,
                         )
-                        return re.compile('$X')
+                        return re.compile(r'$X')
                 return expr
 
         # Remove '../', etc.
@@ -708,6 +708,11 @@ class LinuxEnvironment_arml(LinuxEnvironment):
     # cmpxchg: __kuser_helper_version >= 2
     # memory_barrier: __kuser_helper_version >= 3
     kuser_helper_version = 3
+
+
+class LinuxEnvironment_mips32b(LinuxEnvironment):
+    platform_arch = b"mips32b"
+    sys_machine = b"mips32b"
 
 
 class AuxVec(object):

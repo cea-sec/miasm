@@ -2,6 +2,7 @@ from builtins import range
 from future.utils import viewitems, viewvalues
 
 from miasm.expression.expression import *
+from miasm.expression.simplifications import expr_simp
 from miasm.ir.ir import Lifter, IRBlock, AssignBlock
 from miasm.arch.arm.arch import mn_arm, mn_armt
 from miasm.arch.arm.regs import *
@@ -253,6 +254,15 @@ def update_flag_zn(a):
     return e
 
 
+# Instructions which use shifter's carry flag: ANDS, BICS, EORS, MOVS/RRX, MVNS, ORNS (TODO), ORRS, TEQ, TST
+def compute_rrx_carry(operation):
+    """
+    Returns a tuple (result, carry) corresponding to the RRX computation
+    @operation: The ExprOp operation
+    """
+    new_cf = operation.args[0][:1]
+    res = ExprCompose(operation.args[0][1:], cf)
+    return res, new_cf
 
 # XXX TODO: set cf if ROT imm in argument
 
@@ -272,12 +282,12 @@ def update_flag_add_of(op1, op2):
 
 
 def update_flag_sub_cf(op1, op2):
-    "Compote CF in @op1 - @op2"
+    "Compute CF in @op1 - @op2"
     return [ExprAssign(cf, ExprOp("FLAG_SUB_CF", op1, op2) ^ ExprInt(1, 1))]
 
 
 def update_flag_sub_of(op1, op2):
-    "Compote OF in @op1 - @op2"
+    "Compute OF in @op1 - @op2"
     return [ExprAssign(of, ExprOp("FLAG_SUB_OF", op1, op2))]
 
 
@@ -381,6 +391,9 @@ def update_flag_arith_subwc_co(arg1, arg2, arg3):
     e += update_flag_subwc_of(arg1, arg2, arg3)
     return e
 
+# Utility function for flag computation when it depends on the mode
+def isThumb(lifter):
+    return isinstance(lifter, (Lifter_Armtl, Lifter_Armtb))
 
 
 def get_dst(a):
@@ -395,6 +408,8 @@ def adc(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     r = b + c + cf.zeroExtend(32)
     if instr.name == 'ADCS' and a != PC:
@@ -411,6 +426,8 @@ def add(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     r = b + c
     if instr.name == 'ADDS' and a != PC:
@@ -424,11 +441,18 @@ def add(ir, instr, a, b, c=None):
 
 
 def l_and(ir, instr, a, b, c=None):
-    e = []
+    setflags = (instr.name == 'ANDS') and a != PC
     if c is None:
         b, c = a, b
+    if c.is_op():
+        e, extra_ir = _shift_rotate_tpl(ir, instr, a, c, onlyCarry=setflags)
+        # get back the result
+        c = e.pop(0).src
+    else:
+        e = []
+        extra_ir = []
     r = b & c
-    if instr.name == 'ANDS' and a != PC:
+    if setflags:
         e += [ExprAssign(zf, ExprOp('FLAG_EQ_AND', b, c))]
         e += update_flag_nf(r)
 
@@ -436,13 +460,14 @@ def l_and(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAssign(ir.IRDst, r))
-    return e, []
-
+    return e, extra_ir
 
 def sub(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b - c
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -455,6 +480,8 @@ def subs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     r = b - c
     e += update_flag_arith_sub_zn(arg1, arg2)
@@ -470,6 +497,8 @@ def eor(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b ^ c
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -479,9 +508,16 @@ def eor(ir, instr, a, b, c=None):
 
 
 def eors(ir, instr, a, b, c=None):
-    e = []
+    setflags = a != PC
     if c is None:
         b, c = a, b
+    if c.is_op():
+        e, extra_ir = _shift_rotate_tpl(ir, instr, a, c, onlyCarry=setflags)
+        # get back the result
+        c = e.pop(0).src
+    else:
+        e = []
+        extra_ir = []
     arg1, arg2 = b, c
     r = arg1 ^ arg2
 
@@ -492,13 +528,15 @@ def eors(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAssign(ir.IRDst, r))
-    return e, []
+    return e, extra_ir
 
 
 def rsb(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = c, b
     r = arg1 - arg2
     e.append(ExprAssign(a, r))
@@ -512,6 +550,8 @@ def rsbs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = c, b
     r = arg1 - arg2
     e += update_flag_arith_sub_zn(arg1, arg2)
@@ -527,6 +567,8 @@ def sbc(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     r = arg1 - (arg2 + (~cf).zeroExtend(32))
     e.append(ExprAssign(a, r))
@@ -540,6 +582,8 @@ def sbcs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     r = arg1 - (arg2 + (~cf).zeroExtend(32))
 
@@ -557,6 +601,8 @@ def rsc(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = c, b
     r = arg1 - (arg2 + (~cf).zeroExtend(32))
     e.append(ExprAssign(a, r))
@@ -570,6 +616,8 @@ def rscs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = c, b
     r = arg1 - (arg2 + (~cf).zeroExtend(32))
 
@@ -585,18 +633,32 @@ def rscs(ir, instr, a, b, c=None):
 
 
 def tst(ir, instr, a, b):
-    e = []
+    setflags = a != PC
+    if b.is_op():
+        e, extra_ir = _shift_rotate_tpl(ir, instr, a, b, onlyCarry=setflags)
+        # get back the result
+        b = e.pop(0).src
+    else:
+        e = []
+        extra_ir = []
     arg1, arg2 = a, b
     r = arg1 & arg2
 
     e += [ExprAssign(zf, ExprOp('FLAG_EQ_AND', arg1, arg2))]
     e += update_flag_nf(r)
 
-    return e, []
+    return e, extra_ir
 
 
 def teq(ir, instr, a, b, c=None):
-    e = []
+    setflags = a != PC
+    if b.is_op():
+        e, extra_ir = _shift_rotate_tpl(ir, instr, a, b, onlyCarry=setflags)
+        # get back the result
+        b = e.pop(0).src
+    else:
+        e = []
+        extra_ir = []
     if c is None:
         b, c = a, b
     arg1, arg2 = b, c
@@ -605,7 +667,7 @@ def teq(ir, instr, a, b, c=None):
     e += [ExprAssign(zf, ExprOp('FLAG_EQ_CMP', arg1, arg2))]
     e += update_flag_nf(r)
 
-    return e, []
+    return e, extra_ir
 
 
 def l_cmp(ir, instr, a, b, c=None):
@@ -622,6 +684,8 @@ def cmn(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     e += update_flag_arith_add_zn(arg1, arg2)
     e += update_flag_arith_add_co(arg1, arg2)
@@ -632,6 +696,8 @@ def orr(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b | c
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -644,6 +710,8 @@ def orn(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = ~(b | c)
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -653,9 +721,16 @@ def orn(ir, instr, a, b, c=None):
 
 
 def orrs(ir, instr, a, b, c=None):
-    e = []
+    setflags = a != PC
     if c is None:
         b, c = a, b
+    if c.is_op():
+        e, extra_ir = _shift_rotate_tpl(ir, instr, a, c, onlyCarry=setflags)
+        # get back the result
+        c = e.pop(0).src
+    else:
+        e = []
+        extra_ir = []
     arg1, arg2 = b, c
     r = arg1 | arg2
 
@@ -666,10 +741,13 @@ def orrs(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAssign(ir.IRDst, r))
-    return e, []
+    return e, extra_ir
 
 
 def mov(ir, instr, a, b):
+    if b.is_op():
+        return _shift_rotate_tpl(ir, instr, a, b, setflags=False)
+    # TODO handle cf
     e = [ExprAssign(a, b)]
     dst = get_dst(a)
     if dst is not None:
@@ -686,10 +764,78 @@ def movt(ir, instr, a, b):
     return e, []
 
 
+def _shift_rotate_tpl(ir, instr, dst, shift_operation, setflags=False, is_not=False, onlyCarry=False):
+    """
+    Template to generate a shift/rotate
+    A temporary basic block is generated to handle 0-shift
+    @dst: destination
+    @shift_operation: the shift/rotate operation (ExprOp)
+    @setflags: (optional) if set, flags are updated (ZNC)
+    @onlyCarry: (optional) if set, Z and N flags won't be updated except if setflags is set.
+    @is_not: (optional) if set, behaves as MVN/MVNS
+    """
+    op = shift_operation.op
+    # Compute carry (+ result for rrx)
+    if op == 'rrx':
+        res, new_cf = compute_rrx_carry(shift_operation)
+        shifter = ExprInt(1, 8)
+    elif op in ['<<', '>>', 'a>>']:
+        shifter = shift_operation.args[1]
+        if setflags or onlyCarry:
+            new_cf = ExprOp(op, shift_operation.args[0], shifter - ExprInt(1, size=shifter.size))
+            left = op[-1] == '<'
+            new_cf = new_cf.msb() if left else new_cf[:1]
+        res = shift_operation
+    elif op == '>>>':
+        shifter = shift_operation.args[1]
+        if setflags or onlyCarry:
+            new_cf = shift_operation.msb()
+        res = shift_operation
+    else:
+        raise NotImplementedError(f"Unknown shift / rotate operation : {op}")
+
+    # NOT the result and use it for ZN flags computations
+    if is_not:
+        res ^= ExprInt(-1, res.size)
+    # Build basic blocks
+    e_do = []
+    e = [ExprAssign(dst, res)]
+    if setflags:
+        e += update_flag_zn(res)
+    if setflags or onlyCarry:
+        e_do += [ExprAssign(cf, expr_simp(new_cf))]
+    # Don't generate conditional shifter on constant
+    if shifter.is_int():
+        if shifter.is_int(0):
+            # assignement + flags if setflags except cf
+            return (e, [])
+        else:
+            # assignement + flags if setflags
+            return (e + e_do, [])
+
+    loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_skip = ir.get_next_loc_key(instr)
+    loc_skip_expr = ExprLoc(loc_skip, ir.IRDst.size)
+    isPC = get_dst(dst)
+    if isPC is not None:
+        # Not really a Loc in this case
+        loc_skip_expr = res
+    e_do.append(ExprAssign(ir.IRDst, loc_skip_expr))
+    e.append(ExprAssign(
+        ir.IRDst, ExprCond(shifter, loc_do_expr, loc_skip_expr)))
+    return (e, [IRBlock(ir.loc_db, loc_do, [AssignBlock(e_do, instr)])])
+
+
+
 def movs(ir, instr, a, b):
     e = []
+    # handle shift / rotate
+    if b.is_op():
+        return _shift_rotate_tpl(ir, instr, a, b, setflags=a != PC)
+
+
     e.append(ExprAssign(a, b))
-    # XXX TODO check
+    # TODO handle cf
     e += [ExprAssign(zf, ExprOp('FLAG_EQ', b))]
     e += update_flag_nf(b)
 
@@ -700,7 +846,10 @@ def movs(ir, instr, a, b):
 
 
 def mvn(ir, instr, a, b):
+    if b.is_op():
+        return _shift_rotate_tpl(ir, instr, a, b, setflags=False, is_not=True)
     r = b ^ ExprInt(-1, 32)
+    # TODO handle cf
     e = [ExprAssign(a, r)]
     dst = get_dst(a)
     if dst is not None:
@@ -709,10 +858,12 @@ def mvn(ir, instr, a, b):
 
 
 def mvns(ir, instr, a, b):
+    if b.is_op():
+        return _shift_rotate_tpl(ir, instr, a, b, setflags= a != PC, is_not=True)
     e = []
     r = b ^ ExprInt(-1, 32)
     e.append(ExprAssign(a, r))
-    # XXX TODO check
+    # TODO handle cf
     e += [ExprAssign(zf, ExprOp('FLAG_EQ', r))]
     e += update_flag_nf(r)
 
@@ -765,6 +916,8 @@ def bic(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b & (c ^ ExprInt(-1, 32))
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -774,9 +927,16 @@ def bic(ir, instr, a, b, c=None):
 
 
 def bics(ir, instr, a, b, c=None):
-    e = []
+    setflags = a != PC
     if c is None:
         b, c = a, b
+    if c.is_op():
+        e, extra_ir = _shift_rotate_tpl(ir, instr, a, c, onlyCarry=setflags)
+        # get back the result
+        c = e.pop(0).src
+    else:
+        e = []
+        extra_ir = []
     tmp1, tmp2 = b, ~c
     r = tmp1 & tmp2
 
@@ -787,13 +947,15 @@ def bics(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAssign(ir.IRDst, r))
-    return e, []
+    return e, extra_ir
 
 
 def sdiv(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
 
     loc_div = ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
     loc_except = ExprId(ir.loc_db.add_location(), ir.IRDst.size)
@@ -825,6 +987,8 @@ def udiv(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
 
 
 
@@ -888,6 +1052,8 @@ def mul(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b * c
     e.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -900,6 +1066,8 @@ def muls(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = b * c
     e += update_flag_zn(r)
     e.append(ExprAssign(a, r))
@@ -1169,100 +1337,65 @@ def und(ir, instr, a, b):
     e = []
     return e, []
 
-# TODO XXX implement correct CF for shifters
 def lsr(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = b >> c
-    e.append(ExprAssign(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAssign(ir.IRDst, r))
-    return e, []
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
+    return _shift_rotate_tpl(ir, instr, a, b >> c, setflags=False)
 
 
 def lsrs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = b >> c
-    e.append(ExprAssign(a, r))
-
-    e += [ExprAssign(zf, ExprOp('FLAG_EQ', r))]
-    e += update_flag_nf(r)
-
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAssign(ir.IRDst, r))
-    return e, []
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
+    return _shift_rotate_tpl(ir, instr, a, b >> c, setflags= a != PC)
 
 def asr(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = ExprOp("a>>", b, c)
-    e.append(ExprAssign(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAssign(ir.IRDst, r))
-    return e, []
+    return _shift_rotate_tpl(ir, instr, a, r, setflags=False)
 
 def asrs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     r = ExprOp("a>>", b, c)
-    e.append(ExprAssign(a, r))
-
-    e += [ExprAssign(zf, ExprOp('FLAG_EQ', r))]
-    e += update_flag_nf(r)
-
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAssign(ir.IRDst, r))
-    return e, []
+    return _shift_rotate_tpl(ir, instr, a, r, setflags= a != PC)
 
 def lsl(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = b << c
-    e.append(ExprAssign(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAssign(ir.IRDst, r))
-    return e, []
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
+    return _shift_rotate_tpl(ir, instr, a, b << c, setflags=False)
+
 
 
 def lsls(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = b << c
-    e.append(ExprAssign(a, r))
-
-    e += [ExprAssign(zf, ExprOp('FLAG_EQ', r))]
-    e += update_flag_nf(r)
-
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAssign(ir.IRDst, r))
-    return e, []
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
+    return _shift_rotate_tpl(ir, instr, a, b << c, setflags= a != PC)
 
 
 def rors(ir, instr, a, b):
     e = []
     r = ExprOp(">>>", a, b)
-    e.append(ExprAssign(a, r))
+    return _shift_rotate_tpl(ir, instr, a, r, setflags= a != PC)
 
-    e += [ExprAssign(zf, ExprOp('FLAG_EQ', r))]
-    e += update_flag_nf(r)
-
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAssign(ir.IRDst, r))
-    return e, []
 
 
 def push(ir, instr, a):
@@ -1962,9 +2095,7 @@ class Lifter_Arml(Lifter):
         args = instr.args
         # ir = get_mnemo_expr(self, self.name.lower(), *args)
         if len(args) and isinstance(args[-1], ExprOp):
-            if args[-1].op == 'rrx':
-                args[-1] = ExprCompose(args[-1].args[0][1:], cf)
-            elif (args[-1].op in ['<<', '>>', '<<a', 'a>>', '<<<', '>>>'] and
+            if (args[-1].op in ['<<', '>>', '<<a', 'a>>', '<<<', '>>>'] and
                   isinstance(args[-1].args[-1], ExprId)):
                 args[-1] = ExprOp(args[-1].op,
                                   args[-1].args[0],

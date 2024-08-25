@@ -623,10 +623,10 @@ def kernel32_CreateFile(jitter, funcname, get_str):
     elif fname.upper() in ['NUL']:
         ret = winobjs.module_cur_hwnd
     else:
-        # sandox path
+        # sandbox path
         sb_fname = windows_to_sbpath(fname)
         if args.access & 0x80000000 or args.access == 1:
-            # read
+            # read and maybe write
             if args.dwcreationdisposition == 2:
                 # create_always
                 if os.access(sb_fname, os.R_OK):
@@ -642,7 +642,10 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                     if stat.S_ISDIR(s.st_mode):
                         ret = winobjs.handle_pool.add(sb_fname, 0x1337)
                     else:
-                        h = open(sb_fname, 'r+b')
+                        open_mode = 'rb'
+                        if (args.access & 0x40000000) or args.access == 2:
+                            open_mode = 'r+b'
+                        h = open(sb_fname, open_mode)
                         ret = winobjs.handle_pool.add(sb_fname, h)
                 else:
                     log.warning("FILE %r (%s) DOES NOT EXIST!", fname, sb_fname)
@@ -671,8 +674,8 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                     raise NotImplementedError("Untested case")
             else:
                 raise NotImplementedError("Untested case")
-        elif args.access & 0x40000000:
-            # write
+        elif (args.access & 0x40000000) or args.access == 2:
+            # write but not read
             if args.dwcreationdisposition == 3:
                 # open existing
                 if is_original_file:
@@ -684,7 +687,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                         # open dir
                         ret = winobjs.handle_pool.add(sb_fname, 0x1337)
                     else:
-                        h = open(sb_fname, 'r+b')
+                        h = open(sb_fname, 'wb')
                         ret = winobjs.handle_pool.add(sb_fname, h)
                 else:
                     raise NotImplementedError("Untested case")  # to test
@@ -2452,7 +2455,7 @@ def user32_GetKeyboardType(jitter):
 
     jitter.func_ret_stdcall(ret_ad, ret)
 
-    
+
 class startupinfo(object):
     """
         typedef struct _STARTUPINFOA {
@@ -2528,7 +2531,7 @@ def kernel32_GetStartupInfo(jitter, funcname, set_str):
 
         Retrieves the contents of the STARTUPINFO structure that was specified
         when the calling process was created.
-        
+
         https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getstartupinfow
 
     """

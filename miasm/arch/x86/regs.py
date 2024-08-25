@@ -26,7 +26,7 @@ regs16_str = ["AX", "CX", "DX", "BX", "SP", "BP", "SI", "DI"] + \
 regs16_expr = [ExprId(x, 16) for x in regs16_str]
 
 regs32_str = ["EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"] + \
-    ["R%dD" % (i + 8) for i in range(8)]
+    ["R%dD" % (i + 8) for i in range(8)] + ["EIP"]
 regs32_expr = [ExprId(x, 32) for x in regs32_str]
 
 regs64_str = ["RAX", "RCX", "RDX", "RBX", "RSP", "RBP", "RSI", "RDI",

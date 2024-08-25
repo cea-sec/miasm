@@ -21,7 +21,7 @@ def cb_arm_fix_call(mdis, cur_block, offsets_to_dis):
     if l2.name != "MOV":
         return
 
-    values = viewvalues(mdis.mn.pc)
+    values = viewvalues(mdis.arch.pc)
     if not l1.args[0] in values:
         return
     if not l2.args[1] in values:

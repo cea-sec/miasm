@@ -27,7 +27,7 @@ def check_instruction(mn_str, mn_hex, multi=None, offset=0):
     """Try to disassemble and assemble this instruction"""
 
     # Rename objdump registers names
-    mn_str = re.sub("\$([0-9]+)", lambda m: "R"+m.group(1), mn_str)
+    mn_str = re.sub(r"\$([0-9]+)", lambda m: "R"+m.group(1), mn_str)
     mn_str = mn_str.replace("$", "")
 
     # Disassemble

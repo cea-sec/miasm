@@ -2,6 +2,61 @@
 
 ## [Unreleased]
 
+## 0.1.5 - 2023-04-18
+### Fixed
+- header files for pip
+
+## 0.1.4 - 2023-04-04
+### Added
+- Support minimal PE/TLS
+- Added docstring by @williballenthin
+- Added remove_memory_page api by @carolineLe
+- Added minimalist linux env by @Frky
+- Documentation of expression
+- Documentation translation by @carolineLe
+- EXCEPT_SYSCALL by @Te-k
+- Use int(expr) instead of expr.arg.arg
+- IDAPython 7.4 porting by @nofiv
+- Fixed jitter on Windows by @jbgalet
+- Add trace api by @carolineLe
+- Add LocationDB documentation
+- Add Lifter documentation
+- Update to ida 7.x by @su-vikas
+- CI for python 3.10
+
+### Fixed
+- Str/bytes api by @WilliamBruneau
+- Fix pe loader by @carolineLe
+- Fix VirtualProtect when splitting access rights by @carolineLe
+- Bug in ms x86-64 calling convention by @Frky
+- Clean SSA api
+- fix MIPS/PPC/ARM by @IridiumXOR
+- Fix win/seh ListEntries by @carolineLe
+- Fix propagation expression algorithm
+- Replace api jitter.set_win_str by set_win_str(jitter...)
+- Fix Win api by @carolineLe
+- Llvm jitter by @aguinet
+- Fix Win api by @icecr4ck
+- Fix Win api by @Frky
+- Fix BitField by @w4kfu
+- Fix pe loader by @Ana06
+- Ida examples
+- Renamed *arch lifters
+- Docker by @clslgrnc
+- REX prefix by @KKomarov
+- Fix winapi by @tdrrdt
+- pyparsing dependency/setup.py by @P403n1x87
+- pop reg sp by @0xeb
+- Fix collections by @williambruneau
+- call back arm by @0xling
+- documentation by @CLOVIS-AI
+- many fixes by @CLOVIS-AI
+- really manu fixes by @CLOVIS-AI
+
+### Removed
+- asm_raw/asm_bloc/asm_bloc_bad old class (deprecated)
+- python 2.7 by @mrexodia
+
 ## 0.1.3 - 2019-12-12
 ### Added
 - Miasm can be installed with PIP (https://pypi.org/project/miasm/)

@@ -428,7 +428,7 @@ def offsize(p):
 
 
 def get_prefix(s):
-    g = re.search('(\S+)(\s+)', s)
+    g = re.search(r'(\S+)(\s+)', s)
     if not g:
         return None, s
     prefix, b = g.groups()
@@ -465,7 +465,6 @@ class additional_info(object):
 
 class instruction_x86(instruction):
     __slots__ = []
-    delayslot = 0
 
     def __init__(self, *args, **kargs):
         super(instruction_x86, self).__init__(*args, **kargs)

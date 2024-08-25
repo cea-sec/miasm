@@ -97,7 +97,6 @@ class additional_info(object):
 
 class instruction_msp430(instruction):
     __slots__ = []
-    delayslot = 0
 
     def dstflow(self):
         if self.name.startswith('j'):

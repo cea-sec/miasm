@@ -48,7 +48,7 @@ def _expr_loc_to_symb(expr, loc_db):
     return m2_expr.ExprId(name, expr.size)
 
 
-ESCAPE_CHARS = re.compile('[' + re.escape('{}') + '&|<>' + ']')
+ESCAPE_CHARS = re.compile(r'[\{\}&|<>]')
 
 class TranslatorHtml(Translator):
     __LANG__ = "custom_expr_color"

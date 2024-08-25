@@ -1,21 +1,20 @@
 from __future__ import print_function
-import sys
+
 import subprocess
+import sys
 from optparse import OptionParser
-from pdb import pm
 
 from future.utils import viewitems
 
-from miasm.analysis.machine import Machine
 from miasm.analysis.binary import Container
+from miasm.analysis.machine import Machine
+from miasm.core import parse_asm
+from miasm.core.locationdb import LocationDB
 from miasm.expression.expression import ExprInt, ExprCond, ExprId, \
     get_expr_ids, ExprAssign, ExprLoc
-from miasm.core.bin_stream import bin_stream_str
-from miasm.ir.symbexec import SymbolicExecutionEngine, get_block
 from miasm.expression.simplifications import expr_simp
-from miasm.core import parse_asm
-from miasm.ir.translators.translator  import Translator
-from miasm.core.locationdb import LocationDB
+from miasm.ir.symbexec import SymbolicExecutionEngine, get_block
+from miasm.ir.translators.translator import Translator
 
 machine = Machine("x86_32")
 
@@ -181,14 +180,14 @@ if __name__ == '__main__':
         out.append('(check-sat)')
         open('out.dot', 'w').write('\n'.join(out))
         try:
-            cases = subprocess.check_output(["/home/serpilliere/tools/stp/stp",
+            cases = subprocess.check_output(["stp",
                                              "-p", '--SMTLIB2',
                                              "out.dot"])
-        except OSError:
-            print("Cannot find stp binary!")
+        except OSError as e:
+            print("Cannot execute 'stp':", e.strerror)
             break
-        for c in cases.split('\n'):
-            if c.startswith('ASSERT'):
+        for c in cases.split(b'\n'):
+            if c.startswith(b'ASSERT'):
                 all_cases.add((addr, c))
 
     print('*' * 40, 'ALL COND', '*' * 40)

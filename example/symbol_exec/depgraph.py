@@ -12,7 +12,7 @@ from miasm.analysis.depgraph import DependencyGraph
 from miasm.expression.expression import ExprMem, ExprId, ExprInt
 from miasm.core.locationdb import LocationDB
 
-parser = ArgumentParser("Dependency grapher")
+parser = ArgumentParser(description="Dependency grapher")
 parser.add_argument("filename", help="Binary to analyse")
 parser.add_argument("func_addr", help="Function address")
 parser.add_argument("target_addr", help="Address to start")
@@ -79,16 +79,11 @@ dg = DependencyGraph(
 
 # Build information
 target_addr = int(args.target_addr, 0)
-current_loc_key = next(iter(ircfg.getby_offset(target_addr)))
-assignblk_index = 0
-current_block = ircfg.get_block(current_loc_key)
-for assignblk_index, assignblk in enumerate(current_block):
-    if assignblk.instr.offset == target_addr:
-        break
+target = dg.address_to_location(target_addr)
 
 # Enumerate solutions
 json_solutions = []
-for sol_nb, sol in enumerate(dg.get(current_block.loc_key, elements, assignblk_index, set())):
+for sol_nb, sol in enumerate(dg.get(target["loc_key"], elements, target["line_nb"], set())):
     fname = "sol_%d.dot" % sol_nb
     with open(fname, "w") as fdesc:
             fdesc.write(sol.graph.dot())

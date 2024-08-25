@@ -3,9 +3,9 @@ import warnings
 from functools import wraps
 from collections import namedtuple
 try:
-    from collections.abc import Sequence
+    from collections.abc import Sequence, Iterator
 except ImportError:
-    from collections import Sequence
+    from collections import Sequence, Iterator
 
 from future.utils import viewitems
 
@@ -294,13 +294,7 @@ class Jitter(object):
 
             return True
 
-        def exception_memory_breakpoint(jitter):
-            "Stop the execution and return an identifier"
-            return ExceptionHandle.memoryBreakpoint()
-
         self.add_exception_handler(EXCEPT_CODE_AUTOMOD, exception_automod)
-        self.add_exception_handler(EXCEPT_BREAKPOINT_MEMORY,
-                                   exception_memory_breakpoint)
 
     def add_breakpoint(self, addr, callback):
         """Add a callback associated with addr.
@@ -374,7 +368,7 @@ class Jitter(object):
         old_pc = self.pc
         for res in self.breakpoints_handler.call_callbacks(self.pc, self):
             if res is not True:
-                if isinstance(res, collections.Iterator):
+                if isinstance(res, Iterator):
                     # If the breakpoint is a generator, yield it step by step
                     for tmp in res:
                         yield tmp
@@ -385,7 +379,7 @@ class Jitter(object):
         exception_flag = self.get_exception()
         for res in self.exceptions_handler(exception_flag, self):
             if res is not True:
-                if isinstance(res, collections.Iterator):
+                if isinstance(res, Iterator):
                     for tmp in res:
                         yield tmp
                 else:
@@ -407,7 +401,7 @@ class Jitter(object):
         exception_flag = self.get_exception()
         for res in self.exceptions_handler(exception_flag, self):
             if res is not True:
-                if isinstance(res, collections.Iterator):
+                if isinstance(res, Iterator):
                     for tmp in res:
                         yield tmp
                 else:
@@ -482,7 +476,7 @@ class Jitter(object):
     def get_exception(self):
         return self.cpu.get_exception() | self.vm.get_exception()
 
-    # commun functions
+    # common functions
     def get_c_str(self, addr, max_char=None):
         """Get C str from vm.
         @addr: address in memory

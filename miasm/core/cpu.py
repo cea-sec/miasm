@@ -393,7 +393,7 @@ variable = pyparsing.Word(pyparsing.alphas + "_$.", pyparsing.alphanums + "_")
 variable.setParseAction(cb_parse_id)
 operand = str_int | variable
 
-base_expr = pyparsing.operatorPrecedence(operand,
+base_expr = pyparsing.infixNotation(operand,
                                [(notop,   1, pyparsing.opAssoc.RIGHT, cb_op_not),
                                 (andop, 2, pyparsing.opAssoc.RIGHT, cb_op_and),
                                 (xorop, 2, pyparsing.opAssoc.RIGHT, cb_op_xor),
@@ -408,7 +408,7 @@ default_prio = 0x1337
 
 
 def isbin(s):
-    return re.match('[0-1]+$', s)
+    return re.match(r'[0-1]+$', s)
 
 
 def int2bin(i, l):
@@ -987,6 +987,7 @@ class instruction(object):
         self.offset = None
         self.l = None
         self.b = None
+        self.delayslot = 0
 
     def gen_args(self, args):
         out = ', '.join([str(x) for x in args])
@@ -1300,7 +1301,7 @@ class cls_mn(with_metaclass(metamn, object)):
     @classmethod
     def fromstring(cls, text, loc_db, mode = None):
         global total_scans
-        name = re.search('(\S+)', text).groups()
+        name = re.search(r'(\S+)', text).groups()
         if not name:
             raise ValueError('cannot find name', text)
         name = name[0]

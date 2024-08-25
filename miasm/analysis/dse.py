@@ -234,7 +234,7 @@ class DSEEngine(object):
     def handle(self, cur_addr):
         r"""Handle destination
         @cur_addr: Expr of the next address in concrete execution
-        /!\ cur_addr may be a loc_key
+        [!] cur_addr may be a loc_key
 
         In this method, self.symb is in the "just before branching" state
         """
@@ -475,7 +475,7 @@ class DSEEngine(object):
         @cpu: (optional) if set, update registers' value
         @mem: (optional) if set, update memory value
 
-        /!\ all current states will be loss.
+        [!] all current states will be loss.
         This function is usually called when states are no more synchronized
         (at the beginning, returning from an unstubbed syscall, ...)
         """

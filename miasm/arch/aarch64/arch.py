@@ -316,7 +316,6 @@ class aarch64_arg(m_arg):
 
 class instruction_aarch64(instruction):
     __slots__ = []
-    delayslot = 0
 
     def __init__(self, *args, **kargs):
         super(instruction_aarch64, self).__init__(*args, **kargs)
@@ -1425,7 +1424,7 @@ class aarch64_immhi_page(aarch64_imm_32):
     def encode(self):
         v = int(self.expr)
         if v & (1 << 63):
-            v &= (1 << 33) - 1
+            v &= (1 << 21) - 1
         self.parent.immlo.value = v & 3
         v >>= 2
         if v > (1 << 19) - 1:
@@ -1910,6 +1909,10 @@ adsu_name = {'ADD': 0, 'SUB': 1}
 bs_adsu_name = bs_name(l=1, name=adsu_name)
 
 
+adsus_name = {'ADDS': 0, 'SUBS': 1}
+bs_adsus_name = bs_name(l=1, name=adsus_name)
+
+
 offs19 = bs(l=19, cls=(aarch64_offs,), fname='off')
 offs19pc = bs(l=19, cls=(aarch64_offs_pc,), fname='off')
 
@@ -1940,8 +1943,9 @@ aarch64op("CMN", [sf, bs('0'), bs('1'), bs('01011'), shift, bs('0'), rm_sft, imm
 
 aarch64op("cmp", [sf, bs('1'), bs('1'), bs('01011'), shift, bs('0'), rm_sft, imm6, rn, bs('11111')], [rn, rm_sft], alias=True)
 # add/sub (reg ext)
-aarch64op("addsub", [sf, bs_adsu_name, modf, bs('01011'), bs('00'), bs('1'), rm_ext, option, imm3, rn, rd], [rd, rn, rm_ext])
-#aarch64op("cmp",    [sf, bs('1'), bs('1'), bs('01011'), bs('00'), bs('1'), rm_ext, option, imm3, rn, bs('11111')], [rn, rm_ext], alias=True)
+aarch64op("addsub", [sf, bs_adsu_name, bs('0'), bs('01011'), bs('00'), bs('1'), rm_ext, option, imm3, rn, rd], [rd, rn, rm_ext])
+aarch64op("addssubs", [sf, bs_adsus_name, bs('1'), bs('01011'), bs('00'), bs('1'), rm_ext, option, imm3, rn, rd_nosp], [rd_nosp, rn, rm_ext])
+aarch64op("cmp",    [sf, bs('1'), bs('1'), bs('01011'), bs('00'), bs('1'), rm_ext, option, imm3, rn, bs('11111')], [rn, rm_ext], alias=True)
 
 
 aarch64op("neg", [sf, bs('1'), modf, bs('01011'), shift, bs('0'), rm_sft, imm6, bs('11111'), rd], [rd, rm_sft], alias=True)

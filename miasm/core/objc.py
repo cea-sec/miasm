@@ -156,7 +156,7 @@ class ObjCInt(ObjC):
     """C integer"""
 
     def __init__(self):
-        super(ObjCInt, self).__init__(None, None)
+        super(ObjCInt, self).__init__(None, 0)
 
     def __str__(self):
         return 'int'

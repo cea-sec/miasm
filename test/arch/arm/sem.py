@@ -81,7 +81,7 @@ class TestARMSemantic(unittest.TestCase):
         self.assertEqual(
             compute('MOV R4, R4 LSR 31', {R4: 0xDEADBEEF, }), {R4: 0x00000001, })
         self.assertEqual(
-            compute('MOV R4, R4 LSR 32', {R4: 0xDEADBEEF, }), {R4: 0xDEADBEEF, })
+            compute('MOV R4, R4 LSR 32', {R4: 0xDEADBEEF, }), {R4: 0x0, })
         self.assertRaises(ValueError, compute, 'MOV R4, R4 LSR 33')
         self.assertEqual(
             compute('MOV R4, R4 LSR R5', {R4: 0xDEADBEEF, R5: 0xBADBAD01, }), {R4: 0x6F56DF77, R5: 0xBADBAD01, })
@@ -93,7 +93,7 @@ class TestARMSemantic(unittest.TestCase):
         self.assertEqual(
             compute('MOV R4, R4 ASR 31', {R4: 0xDEADBEEF, }), {R4: 0xFFFFFFFF, })
         self.assertEqual(
-            compute('MOV R4, R4 ASR 32', {R4: 0xDEADBEEF, }), {R4: 0xDEADBEEF, })
+            compute('MOV R4, R4 ASR 32', {R4: 0xDEADBEEF, }), {R4: 0xFFFFFFFF, })
         self.assertRaises(ValueError, compute, 'MOV R4, R4 ASR 33')
         self.assertEqual(
             compute('MOV R4, R4 ASR R5', {R4: 0xDEADBEEF, R5: 0xBADBAD01, }), {R4: 0xEF56DF77, R5: 0xBADBAD01, })
@@ -111,6 +111,57 @@ class TestARMSemantic(unittest.TestCase):
                          cf: 0, R4: 0x6F56DF77, })
         self.assertEqual(compute('MOV R4, R4 RRX   ', {cf: 1, R4: 0xDEADBEEF, }), {
                          cf: 1, R4: 0xEF56DF77, })
+        # S
+        self.assertEqual(
+            compute('MOVS R4, R4       ', {R4: 0xDEADBEEF, }), {R4: 0xDEADBEEF, nf: 1, zf: 0,})
+        self.assertRaises(ValueError, compute, 'MOVS R4, R4 LSL  0')
+        self.assertEqual(
+            compute('MOVS R4, R4 LSL  1', {R4: 0xDEADBEEF, }), {R4: 0xBD5B7DDE, nf: 1, zf: 0, cf: 1,})
+        self.assertEqual(
+            compute('MOVS R4, R4 LSL 16', {R4: 0xDEADBEEF, }), {R4: 0xBEEF0000, nf: 1, zf: 0, cf: 1,})
+        self.assertEqual(
+            compute('MOVS R4, R4 LSL 31', {R4: 0xDEADBEEF, }), {R4: 0x80000000, nf: 1, zf: 0, cf: 1,})
+        self.assertRaises(ValueError, compute, 'MOVS R4, R4 LSL 32')
+        self.assertEqual(
+            compute('MOVS R4, R4 LSL R5', {R4: 0xDEADBEEF, R5: 0xBADBAD01, }), {R4: 0xBD5B7DDE, R5: 0xBADBAD01, nf: 1, zf: 0, cf: 1,})
+        self.assertRaises(ValueError, compute, 'MOVS R4, R4 LSR  0')
+        self.assertEqual(
+            compute('MOVS R4, R4 LSR  1', {R4: 0xDEADBEEF, }), {R4: 0x6F56DF77, nf: 0, zf: 0, cf: 1,})
+        self.assertEqual(
+            compute('MOVS R4, R4 LSR 16', {R4: 0xDEADBEEF, }), {R4: 0x0000DEAD, nf: 0, zf: 0, cf: 1,})
+        self.assertEqual(
+            compute('MOVS R4, R4 LSR 31', {R4: 0xDEADBEEF, }), {R4: 0x00000001, nf: 0, zf: 0, cf: 1,})
+        self.assertEqual(
+            compute('MOVS R4, R4 LSR 32', {R4: 0xDEADBEEF, }), {R4: 0x0, nf: 0, zf: 1, cf: 1,})
+        self.assertRaises(ValueError, compute, 'MOVS R4, R4 LSR 33')
+        self.assertEqual(
+            compute('MOVS R4, R4 LSR R5', {R4: 0xDEADBEEF, R5: 0xBADBAD01, }), {R4: 0x6F56DF77, R5: 0xBADBAD01, nf: 0, zf: 0, cf: 1,})
+        self.assertRaises(ValueError, compute, 'MOVS R4, R4 ASR  0')
+        self.assertEqual(
+            compute('MOVS R4, R4 ASR  1', {R4: 0xDEADBEEF, }), {R4: 0xEF56DF77, nf: 1, zf: 0, cf: 1,})
+        self.assertEqual(
+            compute('MOVS R4, R4 ASR 16', {R4: 0xDEADBEEF, }), {R4: 0xFFFFDEAD, nf: 1, zf: 0, cf: 1,})
+        self.assertEqual(
+            compute('MOVS R4, R4 ASR 31', {R4: 0xDEADBEEF, }), {R4: 0xFFFFFFFF, nf: 1, zf: 0, cf: 1,})
+        self.assertEqual(
+            compute('MOVS R4, R4 ASR 32', {R4: 0xDEADBEEF, }), {R4: 0xFFFFFFFF, nf: 1, zf: 0, cf: 1,})
+        self.assertRaises(ValueError, compute, 'MOVS R4, R4 ASR 33')
+        self.assertEqual(
+            compute('MOVS R4, R4 ASR R5', {R4: 0xDEADBEEF, R5: 0xBADBAD01, }), {R4: 0xEF56DF77, R5: 0xBADBAD01, nf: 1, zf: 0, cf: 1,})
+        self.assertRaises(ValueError, compute, 'MOVS R4, R4 ROR  0')
+        self.assertEqual(
+            compute('MOVS R4, R4 ROR  1', {R4: 0xDEADBEEF, }), {R4: 0xEF56DF77, nf: 1, zf: 0, cf: 1,})
+        self.assertEqual(
+            compute('MOVS R4, R4 ROR 16', {R4: 0xDEADBEEF, }), {R4: 0xBEEFDEAD, nf: 1, zf: 0, cf: 1,})
+        self.assertEqual(
+            compute('MOVS R4, R4 ROR 31', {R4: 0xDEADBEEF, }), {R4: 0xBD5B7DDF, nf: 1, zf: 0, cf: 1,})
+        self.assertRaises(ValueError, compute, 'MOVS R4, R4 ROR 32')
+        self.assertEqual(
+            compute('MOVS R4, R4 ROR R5', {R4: 0xDEADBEEF, R5: 0xBADBAD01, }), {R4: 0xEF56DF77, R5: 0xBADBAD01, nf: 1, zf: 0, cf: 1,})
+        self.assertEqual(compute('MOVS R4, R4 RRX   ', {cf: 0, R4: 0xDEADBEEF, }), {
+                        cf: 1, R4: 0x6F56DF77, zf: 0, nf: 0})
+        self.assertEqual(compute('MOVS R4, R4 RRX   ', {cf: 1, R4: 0xDEADBEEF, }), {
+                        cf: 1, R4: 0xEF56DF77, zf: 0, nf: 1})
 
     def test_ADC(self):
         # §A8.8.1:                 ADC{S}{<c>}{<q>} {<Rd>,} <Rn>, #<const>

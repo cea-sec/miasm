@@ -67,6 +67,9 @@ reg_tests_aarch64 = [
     ("0000D5AC    NEG        W6, W6",
      "E603064B"),
 
+    ("XXXXXXXX    CMP        W11, W12 UXTB 0x0",
+     "7F012C6B"),
+
 
     ("004028B8    CMP        X0, XZR",
      "1F001FEB"),
@@ -1843,7 +1846,10 @@ reg_tests_aarch64 = [
     ("XXXXXXXX    TLBI       0x0, c7, 0x0, XZR",
      "1F8708D5"),
     ("XXXXXXXX    YIELD      ",
-     "3F2003D5")
+     "3F2003D5"),
+
+    ("XXXXXXXX    ADR        X29, 0xFFFFFFFFFFFFFAC8",
+     "5DD6FF10"),
 ]
 
 
