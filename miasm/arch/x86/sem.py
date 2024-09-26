@@ -898,7 +898,7 @@ def dec(_, instr, dst):
 
 def push_gen(ir, instr, src, size):
     e = []
-    if not size in [16, 32, 64]:
+    if size not in [16, 32, 64]:
         raise ValueError('bad size stacker!')
     if src.size < size:
         src = src.zeroExtend(size)
@@ -924,13 +924,13 @@ def pushw(ir, instr, src):
 
 def pop_gen(ir, instr, src, size):
     e = []
-    if not size in [16, 32, 64]:
+    if size not in [16, 32, 64]:
         raise ValueError('bad size stacker!')
 
     sp = mRSP[instr.mode]
     new_sp = sp + m2_expr.ExprInt(src.size // 8, sp.size)
     # Don't generate SP/ESP/RSP incrementation on POP SP/ESP/RSP
-    if not (src in mRSP.values()):
+    if src not in mRSP.values():
         e.append(m2_expr.ExprAssign(sp, new_sp))
     # XXX FIX XXX for pop [esp]
     if isinstance(src, m2_expr.ExprMem):
@@ -2088,7 +2088,7 @@ def movsd_dispatch(ir, instr, dst=None, src=None):
 
 
 def float_prev(flt, popcount=1):
-    if not flt in float_list:
+    if flt not in float_list:
         return None
     i = float_list.index(flt)
     if i < popcount:
@@ -5801,7 +5801,7 @@ class Lifter_X86_16(Lifter):
                     args[i] = self.ExprMem(m2_expr.ExprOp('segm', my_ss,
                                                           a.ptr), a.size)
 
-        if not instr.name.lower() in mnemo_func:
+        if instr.name.lower() not in mnemo_func:
             raise NotImplementedError(
                 "Mnemonic %s not implemented" % instr.name)
 
@@ -5810,7 +5810,7 @@ class Lifter_X86_16(Lifter):
         self.mod_pc(instr, instr_ir, extra_ir)
         instr.additional_info.except_on_instr = False
         if instr.additional_info.g1.value & 14 == 0 or \
-                not instr.name in repeat_mn:
+                instr.name not in repeat_mn:
             return instr_ir, extra_ir
         if instr.name == "MOVSD" and len(instr.args) == 2:
             return instr_ir, extra_ir

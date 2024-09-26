@@ -1835,7 +1835,7 @@ def is_pc_written(ir, instr_ir):
 def add_condition_expr(ir, instr, cond, instr_ir, extra_ir):
     if cond == COND_AL:
         return instr_ir, extra_ir
-    if not cond in tab_cond:
+    if cond not in tab_cond:
         raise ValueError('unknown condition %r' % cond)
     cond = tab_cond[cond]
 
@@ -2050,7 +2050,7 @@ def split_expr_dst(ir, instr_ir):
 
 
 def get_mnemo_expr(ir, instr, *args):
-    if not instr.name.lower() in mnemo_func_cond:
+    if instr.name.lower() not in mnemo_func_cond:
         raise ValueError('unknown mnemo %s' % instr)
     cond, mf = mnemo_func_cond[instr.name.lower()]
     instr_ir, extra_ir = mf(ir, instr, *args)

@@ -54,7 +54,7 @@ def intra_block_flow_symb(lifter, _, flow_graph, irblock, in_nodes, out_nodes):
                     node_n_r = current_nodes[n_r]
                 else:
                     node_n_r = get_node_name(irblock.loc_key, i, n_r)
-                if not n_r in in_nodes:
+                if n_r not in in_nodes:
                     in_nodes[n_r] = node_n_r
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
@@ -68,7 +68,7 @@ def intra_block_flow_symb(lifter, _, flow_graph, irblock, in_nodes, out_nodes):
                 node_n_r = current_nodes[n_r]
             else:
                 node_n_r = get_node_name(irblock.loc_key, 0, n_r)
-            if not n_r in in_nodes:
+            if n_r not in in_nodes:
                 in_nodes[n_r] = node_n_r
 
             flow_graph.add_node(node_n_r)

@@ -140,7 +140,7 @@ class GraphMiasmIR(idaapi.GraphViewer):
             for dst in all_dst:
                 if not dst.is_loc():
                     continue
-                if not dst.loc_key in self.ircfg.blocks:
+                if dst.loc_key not in self.ircfg.blocks:
                     continue
                 node1 = addr_id[loc_key]
                 node2 = addr_id[dst.loc_key]
