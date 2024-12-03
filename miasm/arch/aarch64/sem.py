@@ -1355,6 +1355,15 @@ def ldrsh(ir, instr, arg1, arg2):
 def ldrsw(ir, instr, arg1, arg2):
     return ldrs_size(ir, instr, arg1, arg2, 32)
 
+def ldaxr(ir, instr, arg1, arg2):
+    # TODO XXX no memory lock implemented
+    assert arg2.is_op('preinc')
+    assert len(arg2.args) == 1
+    ptr = arg2.args[0]
+    e = []
+    e.append(ExprAssign(arg1, ExprMem(ptr, arg1.size).zeroExtend(arg1.size)))
+    return e, []
+
 def ldaxrb(ir, instr, arg1, arg2):
     # TODO XXX no memory lock implemented
     assert arg2.is_op('preinc')
@@ -2212,6 +2221,7 @@ mnemo_func.update({
     'ldar': ldr, # TODO memory barrier
     'ldarb': ldrb,
 
+    'ldaxr': ldaxr,
     'ldaxrb': ldaxrb,
     'stlxrb': stlxrb,
 
