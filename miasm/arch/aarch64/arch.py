@@ -16,6 +16,7 @@ from miasm.core.modint import mod_size2int
 from miasm.core.asm_ast import AstInt, AstId, AstMem, AstOp
 from miasm.ir.ir import color_expr_html
 from miasm.core import utils
+from miasm.core.utils import BRACKET_O, BRACKET_C
 
 log = logging.getLogger("aarch64dis")
 console_handler = logging.StreamHandler()
@@ -394,30 +395,21 @@ class instruction_aarch64(instruction):
             )
         elif isinstance(expr, m2_expr.ExprOp) and expr.op == "postinc":
             if int(expr.args[1]) != 0:
-                return "[%s], %s" % (
-                    color_expr_html(expr.args[0], loc_db),
-                    color_expr_html(expr.args[1], loc_db)
-                )
+                return BRACKET_O + color_expr_html(expr.args[0], loc_db) + BRACKET_C + ", " + color_expr_html(expr.args[1], loc_db)
             else:
-                return "[%s]" % (color_expr_html(expr.args[0], loc_db))
+                return BRACKET_O + color_expr_html(expr.args[0], loc_db) + BRACKET_C
         elif isinstance(expr, m2_expr.ExprOp) and expr.op == "preinc_wb":
             if int(expr.args[1]) != 0:
-                return "[%s, %s]!" % (
-                    color_expr_html(expr.args[0], loc_db),
-                    color_expr_html(expr.args[1], loc_db)
-                )
+                return BRACKET_O + color_expr_html(expr.args[0], loc_db) + ", " + color_expr_html(expr.args[1], loc_db) + BRACKET_C + '!'
             else:
-                return "[%s]" % (color_expr_html(expr.args[0], loc_db))
+                return BRACKET_O + color_expr_html(expr.args[0], loc_db) + BRACKET_C
         elif isinstance(expr, m2_expr.ExprOp) and expr.op == "preinc":
             if len(expr.args) == 1:
-                return "[%s]" % (color_expr_html(expr.args[0], loc_db))
+                return BRACKET_O + color_expr_html(expr.args[0], loc_db) + BRACKET_C
             elif not isinstance(expr.args[1], m2_expr.ExprInt) or int(expr.args[1]) != 0:
-                return "[%s, %s]" % (
-                    color_expr_html(expr.args[0], loc_db),
-                    color_expr_html(expr.args[1], loc_db)
-                )
+                return BRACKET_O + color_expr_html(expr.args[0], loc_db) + ", " + color_expr_html(expr.args[1], loc_db) + BRACKET_C
             else:
-                return "[%s]" % color_expr_html(expr.args[0], loc_db)
+                return BRACKET_O + color_expr_html(expr.args[0], loc_db) + BRACKET_C
         elif isinstance(expr, m2_expr.ExprOp) and expr.op == 'segm':
             arg = expr.args[1]
             if isinstance(arg, m2_expr.ExprId):
@@ -430,7 +422,7 @@ class instruction_aarch64(instruction):
                     utils.set_html_text_color(arg.op, utils.COLOR_OP),
                     color_expr_html(arg.args[1], loc_db)
                 )
-            return '[%s, %s]' % (color_expr_html(expr.args[0], loc_db), arg)
+            return BRACKET_O + color_expr_html(expr.args[0], loc_db) + ', ' +  arg + BRACKET_C
 
         else:
             raise NotImplementedError("bad op")
