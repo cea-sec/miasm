@@ -26,7 +26,9 @@ COLOR_OP = "black"
 
 COLOR_MNEMO = "blue1"
 
-ESCAPE_CHARS = re.compile(r'[\{\}&|<>]')
+ESCAPE_CHARS = re.compile('[' + re.escape('{}[]') + '&|<>' + ']')
+
+
 
 def set_html_text_color(text, color):
     return '<font color="%s">%s</font>' % (color, text)
@@ -38,6 +40,9 @@ def _fix_chars(token):
 
 def fix_html_chars(text):
     return ESCAPE_CHARS.sub(_fix_chars, str(text))
+
+BRACKET_O = fix_html_chars('[')
+BRACKET_C = fix_html_chars(']')
 
 upck8 = lambda x: struct.unpack('B', x)[0]
 upck16 = lambda x: struct.unpack('H', x)[0]

@@ -15,6 +15,7 @@ import miasm.arch.x86.regs as regs_module
 from miasm.arch.x86.regs import *
 from miasm.core.asm_ast import AstNode, AstInt, AstId, AstMem, AstOp
 from miasm.ir.ir import color_expr_html
+from miasm.core.utils import BRACKET_O, BRACKET_C
 
 
 log = logging.getLogger("x86_arch")
@@ -624,7 +625,7 @@ class instruction_x86(instruction):
                 s = str(expr).replace('(', '').replace(')', '')
             else:
                 s = str(expr)
-            o = prefix + sz + ' PTR %s[%s]' % (segm, s)
+            o = prefix + sz + ' PTR ' + str(segm) + '[%s]' % s
         elif isinstance(expr, ExprOp) and expr.op == 'segm':
             o = "%s:%s" % (expr.args[0], expr.args[1])
         else:
@@ -655,7 +656,7 @@ class instruction_x86(instruction):
                 s = color_expr_html(expr, loc_db)#.replace('(', '').replace(')', '')
             else:
                 s = color_expr_html(expr, loc_db)
-            o = prefix + sz + ' PTR %s[%s]' % (segm, s)
+            o = prefix + sz + ' PTR ' + str(segm) + BRACKET_O + str(s) + BRACKET_C
         elif isinstance(expr, ExprOp) and expr.op == 'segm':
             o = "%s:%s" % (
                 color_expr_html(expr.args[0], loc_db),

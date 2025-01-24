@@ -14,6 +14,7 @@ from miasm.arch.arm.regs import *
 from miasm.core.asm_ast import AstInt, AstId, AstMem, AstOp
 from miasm.ir.ir import color_expr_html
 from miasm.core import utils
+from miasm.core.utils import BRACKET_O, BRACKET_C
 
 # A1 encoding
 
@@ -413,15 +414,14 @@ class instruction_arm(instruction):
             )
 
         if isinstance(expr, ExprOp) and expr.op == 'postinc':
-            o = '[%s]' % r
+            o = '[' + str(r) + ']'
             if s and not (isinstance(s, ExprInt) and int(s) == 0):
                 o += ', %s' % s
         else:
             if s and not (isinstance(s, ExprInt) and int(s) == 0):
-                o = '[%s, %s]' % (r, s)
+                o = '[' + ("%s, %s" % (r, s)) + ']'
             else:
-                o = '[%s]' % (r)
-
+                o = '[' + str(r) + ']'
 
         if wb:
             o += "!"
@@ -492,15 +492,14 @@ class instruction_arm(instruction):
             s_html = color_expr_html(s, loc_db)
 
         if isinstance(expr, ExprOp) and expr.op == 'postinc':
-            o = '[%s]' % color_expr_html(r, loc_db)
+            o = BRACKET_O + color_expr_html(r, loc_db) + BRACKET_C
             if s and not (isinstance(s, ExprInt) and int(s) == 0):
                 o += ', %s' % s_html
         else:
             if s and not (isinstance(s, ExprInt) and int(s) == 0):
-                o = '[%s, %s]' % (color_expr_html(r, loc_db), s_html)
+                o = BRACKET_O + color_expr_html(r, loc_db) + ", " + s_html + BRACKET_C
             else:
-                o = '[%s]' % color_expr_html(r, loc_db)
-
+                o = BRACKET_O + color_expr_html(r, loc_db) + BRACKET_C
 
         if wb:
             o += "!"
