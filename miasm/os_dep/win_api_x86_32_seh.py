@@ -338,7 +338,7 @@ def fix_InLoadOrderModuleList(jitter, modules_info):
     ntdll_pe = modules_info.name2module.get("ntdll.dll", None)
     special_modules = [main_pe, kernel32_pe, ntdll_pe]
     if not all(special_modules):
-        log.warn(
+        log.warning(
             'No main pe, ldr data will be unconsistant %r', special_modules)
         loaded_modules = modules_info.modules
     else:
@@ -365,7 +365,7 @@ def fix_InMemoryOrderModuleList(jitter, modules_info):
     ntdll_pe = modules_info.name2module.get("ntdll.dll", None)
     special_modules = [main_pe, kernel32_pe, ntdll_pe]
     if not all(special_modules):
-        log.warn('No main pe, ldr data will be unconsistant')
+        log.warning('No main pe, ldr data will be unconsistant')
         loaded_modules = modules_info.modules
     else:
         loaded_modules = [module for module in modules_info.modules
@@ -392,7 +392,7 @@ def fix_InInitializationOrderModuleList(jitter, modules_info):
     ntdll_pe = modules_info.name2module.get("ntdll.dll", None)
     special_modules = [main_pe, kernel32_pe, ntdll_pe]
     if not all(special_modules):
-        log.warn('No main pe, ldr data will be unconsistant')
+        log.warning('No main pe, ldr data will be unconsistant')
         loaded_modules = modules_info.modules
     else:
         loaded_modules = [module for module in modules_info.modules

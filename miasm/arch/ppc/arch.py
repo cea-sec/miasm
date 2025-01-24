@@ -480,7 +480,7 @@ def ppc_bo_bi_to_mnemo(bo, bi, prefer_taken=True, default_taken=True):
     bi2cond = { 0b00: 'LT', 0b01: 'GT', 0b10: 'EQ', 0b11: 'SO' }
     bi2ncond = { 0b00: 'GE', 0b01: 'LE', 0b10: 'NE', 0b11: 'NS' }
     n = bo & 0b11110
-    if not n in bo2mnemo:
+    if n not in bo2mnemo:
         raise NotImplementedError("Unknown BO field")
     mnem = 'B' + bo2mnemo[n]
     if mnem[-1] == 'T':

@@ -600,9 +600,9 @@ class aarch64_gpreg_noarg(reg_noarg):
     def encode(self):
         if not test_set_sf(self.parent, self.expr.size):
             return False
-        if not self.expr.size in self.gpregs_info:
+        if self.expr.size not in self.gpregs_info:
             return False
-        if not self.expr in self.gpregs_info[self.expr.size].expr:
+        if self.expr not in self.gpregs_info[self.expr.size].expr:
             return False
         self.value = self.gpregs_info[self.expr.size].expr.index(self.expr)
         return True
@@ -621,9 +621,9 @@ class aarch64_gpreg_noarg_nosp(aarch64_gpreg_noarg):
     def encode(self):
         if not test_set_sf(self.parent, self.expr.size):
             return False
-        if not self.expr.size in self.gpregs_info:
+        if self.expr.size not in self.gpregs_info:
             return False
-        if not self.expr in self.gpregs_info[self.expr.size].expr:
+        if self.expr not in self.gpregs_info[self.expr.size].expr:
             return False
         if self.expr not in self.gpregs_info[self.expr.size].expr:
             return False
@@ -643,9 +643,9 @@ class aarch64_simdreg(reg_noarg, aarch64_arg):
         return True
 
     def encode(self):
-        if not self.expr.size in self.simd_size:
+        if self.expr.size not in self.simd_size:
             return False
-        if not self.expr in simds_info[self.expr.size].expr:
+        if self.expr not in simds_info[self.expr.size].expr:
             return False
         self.value = simds_info[self.expr.size].expr.index(self.expr)
         self.parent.size.value = self.simd_size.index(self.expr.size)
@@ -692,7 +692,7 @@ class aarch64_gpreg_isf(reg_noarg, aarch64_arg):
         return True
 
     def encode(self):
-        if not self.expr in gpregs_info[self.expr.size].expr:
+        if self.expr not in gpregs_info[self.expr.size].expr:
             return False
         self.value = gpregs_info[self.expr.size].expr.index(self.expr)
         self.parent.sf.value = 1 if self.expr.size == 32 else 0
@@ -738,11 +738,11 @@ class aarch64_gpreg0(bsi, aarch64_arg):
                 self.value = 0x1F
                 return True
             return False
-        if not self.expr.size in self.gpregs_info:
+        if self.expr.size not in self.gpregs_info:
             return False
         if not test_set_sf(self.parent, self.expr.size):
             return False
-        if not self.expr in self.gpregs_info[self.expr.size].expr:
+        if self.expr not in self.gpregs_info[self.expr.size].expr:
             return False
         self.value = self.gpregs_info[self.expr.size].expr.index(self.expr)
         return True
@@ -969,7 +969,7 @@ class aarch64_gpreg_ext(reg_noarg, aarch64_arg):
             return False
         reg, amount = self.expr.args
 
-        if not reg in gpregsz_info[self.expr.size].expr:
+        if reg not in gpregsz_info[self.expr.size].expr:
             return False
         self.value = gpregsz_info[self.expr.size].expr.index(reg)
         option = extend_lst.index(self.expr.op)
@@ -1021,7 +1021,7 @@ class aarch64_gpreg_ext2(reg_noarg, aarch64_arg):
             return True
         if not (isinstance(self.expr, m2_expr.ExprOp) and self.expr.op == 'segm'):
             return False
-        if not arg0 in self.parent.rn.reg_info.expr:
+        if arg0 not in self.parent.rn.reg_info.expr:
             return False
         self.parent.rn.value = self.parent.rn.reg_info.expr.index(arg0)
         is_reg = False
@@ -1088,7 +1088,7 @@ class aarch64_gpreg_ext2_128(aarch64_gpreg_ext2):
 def test_set_sf(parent, size):
     if not hasattr(parent, 'sf'):
         return False
-    if parent.sf.value == None:
+    if parent.sf.value is None:
         parent.sf.value = 1 if size == 64 else 0
         return True
     psize = 64 if parent.sf.value else 32
@@ -1104,9 +1104,9 @@ class aarch64_gpreg_sftimm(reg_noarg, aarch64_arg):
         if not test_set_sf(self.parent, size):
             return False
         if isinstance(self.expr, m2_expr.ExprId):
-            if not size in gpregs_info:
+            if size not in gpregs_info:
                 return False
-            if not self.expr in self.reg_info[size].expr:
+            if self.expr not in self.reg_info[size].expr:
                 return False
             self.parent.shift.value = 0
             self.parent.imm.value = 0
@@ -1115,10 +1115,10 @@ class aarch64_gpreg_sftimm(reg_noarg, aarch64_arg):
 
         if not isinstance(self.expr, m2_expr.ExprOp):
             return False
-        if not self.expr.op in shift_expr:
+        if self.expr.op not in shift_expr:
             return False
         args = self.expr.args
-        if not args[0] in self.reg_info[size].expr:
+        if args[0] not in self.reg_info[size].expr:
             return False
         if not isinstance(args[1], m2_expr.ExprInt):
             return False
@@ -1483,7 +1483,7 @@ class aarch64_imm_hw_sc(aarch64_arg):
             return False
         if set_imm_to_size(self.parent.args[0].expr.size, self.expr.args[1]) is None:
             return False
-        arg, amount = [int(arg) for arg in self.expr.args]
+        arg, amount = (int(arg) for arg in self.expr.args)
         if arg > 0xFFFF:
             return False
         if amount % 16 or amount // 16 > 4:
@@ -1599,7 +1599,7 @@ class aarch64_deref(aarch64_arg):
         expr = self.expr
         if not isinstance(expr, m2_expr.ExprOp):
             return False
-        if not expr.op in ['postinc', 'preinc_wb', 'preinc']:
+        if expr.op not in ['postinc', 'preinc_wb', 'preinc']:
             return False
         if hasattr(self.parent, "postpre"):
             if expr.op == 'postinc':
@@ -1609,7 +1609,7 @@ class aarch64_deref(aarch64_arg):
         if len(expr.args) != 2:
             return False
         reg, off = expr.args
-        if not reg in gpregs64_info.expr:
+        if reg not in gpregs64_info.expr:
             return False
         if not isinstance(off, m2_expr.ExprInt):
             return False
@@ -1664,7 +1664,7 @@ class aarch64_deref_nooff(aarch64_deref):
         else:
             return False
 
-        if not reg in gpregs64_info.expr:
+        if reg not in gpregs64_info.expr:
             return False
         self.value = gpregs64_info.expr.index(reg)
         return True
@@ -1679,7 +1679,7 @@ class aarch64_sf_scale(aarch64_deref):
 
     def encode_w_size(self, off):
         size = self.parent.args[0].expr.size
-        if not size in self.size2scale:
+        if size not in self.size2scale:
             return False
         scale = self.size2scale[size]
         off = int(mod_size2int[size](off) >> scale)

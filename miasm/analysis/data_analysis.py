@@ -34,7 +34,7 @@ def intra_block_flow_raw(lifter, ircfg, flow_graph, irb, in_nodes, out_nodes):
 
             for n in all_mems:
                 node_n_w = get_node_name(irb.loc_key, i, n)
-                if not n in nodes_r:
+                if n not in nodes_r:
                     continue
                 o_r = n.ptr.get_r(mem_read=False, cst_read=True)
                 for n_r in o_r:
@@ -71,13 +71,13 @@ def inter_block_flow_link(lifter, ircfg, flow_graph, irb_in_nodes, irb_out_nodes
     current_nodes = dict(current_nodes)
 
     # link current nodes to block in_nodes
-    if not lbl in ircfg.blocks:
+    if lbl not in ircfg.blocks:
         print("cannot find block!!", lbl)
         return set()
     irb = ircfg.blocks[lbl]
     to_del = set()
     for n_r, node_n_r in viewitems(irb_in_nodes[irb.loc_key]):
-        if not n_r in current_nodes:
+        if n_r not in current_nodes:
             continue
         flow_graph.add_uniq_edge(current_nodes[n_r], node_n_r)
         to_del.add(n_r)
@@ -86,7 +86,7 @@ def inter_block_flow_link(lifter, ircfg, flow_graph, irb_in_nodes, irb_out_nodes
     if link_exec_to_data:
         for n_x_r in exec_nodes:
             for n_r, node_n_r in viewitems(irb_in_nodes[irb.loc_key]):
-                if not n_x_r in current_nodes:
+                if n_x_r not in current_nodes:
                     continue
                 if isinstance(n_r, ExprInt):
                     continue
@@ -115,7 +115,7 @@ def create_implicit_flow(lifter, flow_graph, irb_in_nodes, irb_out_nodes):
         lbl = todo.pop()
         irb = lifter.blocks[lbl]
         for lbl_son in lifter.graph.successors(irb.loc_key):
-            if not lbl_son in lifter.blocks:
+            if lbl_son not in lifter.blocks:
                 print("cannot find block!!", lbl)
                 continue
             irb_son = lifter.blocks[lbl_son]
@@ -127,7 +127,7 @@ def create_implicit_flow(lifter, flow_graph, irb_in_nodes, irb_out_nodes):
 
                 node_n_w = irb.loc_key, len(irb), n_r
                 irb_out_nodes[irb.loc_key][n_r] = node_n_w
-                if not n_r in irb_in_nodes[irb.loc_key]:
+                if n_r not in irb_in_nodes[irb.loc_key]:
                     irb_in_nodes[irb.loc_key][n_r] = irb.loc_key, 0, n_r
                 node_n_r = irb_in_nodes[irb.loc_key][n_r]
                 for lbl_p in lifter.graph.predecessors(irb.loc_key):

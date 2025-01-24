@@ -90,9 +90,9 @@ class DiGraph(object):
             self.del_edge(node, succ)
 
     def add_edge(self, src, dst):
-        if not src in self._nodes:
+        if src not in self._nodes:
             self.add_node(src)
-        if not dst in self._nodes:
+        if dst not in self._nodes:
             self.add_node(dst)
         self._edges.append((src, dst))
         self._nodes_succ[src].append(dst)
@@ -115,7 +115,7 @@ class DiGraph(object):
             self.del_edge(src, dst)
 
     def predecessors_iter(self, node):
-        if not node in self._nodes_pred:
+        if node not in self._nodes_pred:
             return
         for n_pred in self._nodes_pred[node]:
             yield n_pred
@@ -124,7 +124,7 @@ class DiGraph(object):
         return [x for x in self.predecessors_iter(node)]
 
     def successors_iter(self, node):
-        if not node in self._nodes_succ:
+        if node not in self._nodes_succ:
             return
         for n_suc in self._nodes_succ[node]:
             yield n_suc
@@ -428,7 +428,7 @@ class DiGraph(object):
             # Compute intersection of all predecessors'dominators
             new_dom = None
             for pred in prev_cb(node):
-                if not pred in nodes:
+                if pred not in nodes:
                     continue
                 if new_dom is None:
                     new_dom = set(dominators[pred])

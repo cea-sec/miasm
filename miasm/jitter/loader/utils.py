@@ -38,7 +38,7 @@ class libimp(object):
     def lib_get_add_base(self, name):
         assert isinstance(name, basestring)
         name = name.lower().strip(' ')
-        if not "." in name:
+        if "." not in name:
             log.warning('warning adding .dll to modulename')
             name += '.dll'
             log.warning(name)
@@ -57,7 +57,7 @@ class libimp(object):
         return ad
 
     def lib_get_add_func(self, libad, imp_ord_or_name, dst_ad=None):
-        if not libad in viewvalues(self.name2off):
+        if libad not in viewvalues(self.name2off):
             raise ValueError('unknown lib base!', hex(libad))
 
         # test if not ordinatl
@@ -66,7 +66,7 @@ class libimp(object):
         #    imp_ord_or_name = imp_ord_or_name[:imp_ord_or_name.find('\x00')]
 
         #[!] can have multiple dst ad
-        if not imp_ord_or_name in self.lib_imp2dstad[libad]:
+        if imp_ord_or_name not in self.lib_imp2dstad[libad]:
             self.lib_imp2dstad[libad][imp_ord_or_name] = set()
         if dst_ad is not None:
             self.lib_imp2dstad[libad][imp_ord_or_name].add(dst_ad)
