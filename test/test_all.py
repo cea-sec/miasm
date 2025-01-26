@@ -855,7 +855,7 @@ testset += ExampleJitter(["trace.py", Example.get_sample("md5_arm"), "-a",
 ## Toshiba MeP
 testset += RegressionTest(["launch.py"], base_dir="arch/mep/asm")
 testset += RegressionTest(["launch.py"], base_dir="arch/mep/ir")
-testset += RegressionTest(["launch.py"], base_dir="arch/mep/jit")
+testset += RegressionTest(["launch.py"], base_dir="arch/mep/jit", tags=[TAGS["gcc"]])
 
 
 # region Unittest compatibility

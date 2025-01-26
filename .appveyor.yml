@@ -1,4 +1,4 @@
-version: 1.{build}
+image: Visual Studio 2022
 
 configuration:
   - Release
@@ -7,38 +7,29 @@ clone_folder: c:\projects\miasm
 
 environment:
   matrix:
-    - platform: Win32
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      PLATFORM_TOOLSET: v141
-      PYTHON: c:\Python38
-      PYTHON_VERSION: "3.8.x"
+    - PYTHON: "C:\\Python312-x64"
+      PYTHON_VERSION: "3.12.x"
+      PYTHON_ARCH: "64"
 
-    - platform: x64
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      PLATFORM_TOOLSET: v141
-      PYTHON: c:\Python38-x64
-      PYTHON_VERSION: "3.8.x"
-      # on_finish:
-      #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+init:
+  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
 install:
   - cmd: cd c:\projects\miasm
-  - cmd: "%PYTHON%\\python.exe -m pip install -r requirements.txt"
-  - cmd: "%PYTHON%\\python.exe -m pip install -r optional_requirements.txt"
+  - cmd: "python.exe -m pip install -r requirements.txt"
+  - cmd: "python.exe -m pip install -r optional_requirements.txt"
 
 build_script:
-  - cmd: if "%platform%"=="Win32" call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86
-  - cmd: if "%platform%"=="x64" call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64
   - "%PYTHON%\\python.exe setup.py build"
   - "%PYTHON%\\python.exe setup.py install"
 
 test_script:
   - cmd: cd c:\projects\miasm\test
-  - "%PYTHON%\\python.exe -W error test_all.py"
+  - "%PYTHON%\\python.exe -W error test_all.py -t gcc"
 
 after_test:
   - cmd: chdir
-  - cmd: set plat
   - cmd: if "%platform%"=="Win32" 7z a -t7z ..\miasm.x86.release.7z c:\projects\miasm\build\*lib*
   - cmd: if "%platform%"=="X64" 7z a -t7z ..\miasm.x64.release.7z c:\projects\miasm\build\*lib*
 
