@@ -5,7 +5,6 @@ import os
 import tempfile
 import platform
 import sysconfig
-from distutils.sysconfig import get_python_inc
 
 from miasm.jitter.jitcore import JitCore
 from miasm.core.utils import keydefaultdict
@@ -95,7 +94,7 @@ class JitCore_Cc_Base(JitCore):
 
         include_files = [
             os.path.dirname(__file__),
-            get_python_inc()
+            sysconfig.get_paths()['include'],
         ]
         self.include_files = include_files
         self.libs = libs

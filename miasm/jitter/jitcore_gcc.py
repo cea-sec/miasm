@@ -8,7 +8,6 @@ import _ctypes
 import platform
 import sysconfig
 from subprocess import check_call
-from distutils.sysconfig import get_python_inc
 from miasm.jitter import Jitgcc
 from miasm.jitter.jitcore_cc_base import JitCore_Cc_Base, gen_core
 
@@ -68,7 +67,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
             if is_win:
                 libs.append(
                     os.path.join(
-                        get_python_inc(),
+                        sysconfig.get_paths()['include'],
                         "..",
                         "libs",
                         "python%d%d.lib" % (sys.version_info.major, sys.version_info.minor)

@@ -7,14 +7,13 @@ from distutils.util import get_platform
 from distutils.sysconfig import get_python_lib, get_config_vars
 from distutils.dist import DistributionMetadata
 from distutils.command.install_data import install_data
-from distutils.spawn import find_executable
 import subprocess
 from tempfile import TemporaryFile
 import fnmatch
 import io
 import os
 import platform
-from shutil import copy2, copyfile, rmtree
+from shutil import copy2, copyfile, rmtree, which
 import sys
 import tempfile
 import atexit
@@ -58,7 +57,7 @@ def win_find_clang_path():
             return winreg.QueryValueEx(rkey, None)[0]
     except FileNotFoundError:
         # Visual Studio ships with an optional Clang distribution, try to detect it
-        clang_cl = find_executable("clang-cl")
+        clang_cl = which("clang-cl")
         if clang_cl is None:
             return None
         return os.path.abspath(os.path.join(os.path.dirname(clang_cl), "..", ".."))
@@ -93,7 +92,7 @@ def win_use_clang():
 
     # If you run the installation from a Visual Studio command prompt link.exe will already exist
     # Fall back to LLVM's lld-link.exe which is compatible with link's command line
-    if find_executable("link") is None:
+    if True:#which("link") is None:
         # LLVM >= 14.0.0 started supporting the /LTCG flag
         # Earlier versions will error during the linking phase so bail out now
         if clang_version[0] < 14:
@@ -110,7 +109,7 @@ build_extensions = True
 build_warnings = []
 win_force_clang = False
 if is_win:
-    if is_64bit or find_executable("cl") is None:
+    if is_64bit or which("cl") is None:
         # We do not change to clang if under 32 bits, because even with Clang we
         # do not use uint128_t with the 32 bits ABI. Regardless we can try to
         # find it when building in 32-bit mode if cl.exe was not found in the PATH.
@@ -119,8 +118,8 @@ if is_win:
             build_warnings.append("Could not find a suitable Clang/LLVM installation. You can download LLVM from https://releases.llvm.org")
             build_warnings.append("Alternatively you can select the 'C++ Clang-cl build tools' in the Visual Studio Installer")
             build_extensions = False
-    cl = find_executable("cl")
-    link = find_executable("link")
+    cl = which("cl")
+    link = which("link")
     if cl is None or link is None:
         build_warnings.append("Could not find cl.exe and/or link.exe in the PATH, try building miasm from a Visual Studio command prompt")
         build_warnings.append("More information at: https://wiki.python.org/moin/WindowsCompilers")
@@ -314,7 +313,7 @@ def build_all():
         try:
             s = setup(
                 name = "miasm",
-                version = __import__("miasm").VERSION,
+                version = "0.1.5",
                 packages = packages,
                 data_files=[("", ["README.md"])],
                 package_data = {
