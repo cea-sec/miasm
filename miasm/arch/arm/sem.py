@@ -807,10 +807,10 @@ def _shift_rotate_tpl(ir, instr, dst, shift_operation, setflags=False, is_not=Fa
     # Don't generate conditional shifter on constant
     if shifter.is_int():
         if shifter.is_int(0):
-            # assignement + flags if setflags except cf
+            # assignment + flags if setflags except cf
             return (e, [])
         else:
-            # assignement + flags if setflags
+            # assignment + flags if setflags
             return (e + e_do, [])
 
     loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
