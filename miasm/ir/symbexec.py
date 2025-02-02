@@ -973,14 +973,15 @@ class SymbolicExecutionEngine(object):
                     continue
                 yield mem, value
 
-    def dump(self, ids=True, mems=True):
+    def dump(self,init_state_engine=None, ids=True, mems=True):
         """
         Display modififed variables
+        @init_state_engine: StateEngine instance
         @ids: display modified ids
         @mems: display modified memory
         """
 
-        for variable, value in self.modified(None, ids, mems):
+        for variable, value in self.modified(dict(init_state_engine if init_state_engine is not None else {}), ids, mems):
             print("%-18s" % variable, "=", "%s" % value)
 
     def eval_assignblk(self, assignblk):
