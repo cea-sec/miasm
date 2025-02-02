@@ -51,6 +51,21 @@ gpregs_nosp = reg_info(regs_str[:13] + [str(reg_dum), regs_str[14], regs_str[15]
                        regs_expr[:13] + [reg_dum, regs_expr[14], regs_expr[15]])
 
 
+# Single-Precision
+spregs_str = ['S%d' % r for r in range(32)]
+spregs_expr = [ExprId(x, 32) for x in spregs_str]
+spregs = reg_info(spregs_str, spregs_expr)
+
+# Double-Precision
+dpregs_str = ['D%d' % r for r in range(32)]
+dpregs_expr = [ExprId(x, 64) for x in dpregs_str]
+dpregs = reg_info(dpregs_str, dpregs_expr)
+
+# Quadword
+qpregs_str = ['Q%d' % r for r in range(16)]
+qpregs_expr = [ExprId(x, 128) for x in qpregs_str]
+qpregs = reg_info(qpregs_str, qpregs_expr)
+
 # psr
 sr_flags = "cxsf"
 cpsr_regs_str = []
@@ -1833,6 +1848,7 @@ armop("pld", [bs8(0xF5), bs_addi, bs_rw, bs('01'), mem_rn_imm, bs('1111'), imm12
 
 armop("dsb", [bs('111101010111'), bs('1111'), bs('1111'), bs('0000'), bs('0100'), barrier_option])
 armop("isb", [bs('111101010111'), bs('1111'), bs('1111'), bs('0000'), bs('0110'), barrier_option])
+armop("dmb", [bs('111101010111'), bs('1111'), bs('1111'), bs('0000'), bs('0101'), barrier_option])
 armop("nop", [bs8(0xE3), bs8(0x20), bs8(0xF0), bs8(0)])
 
 class arm_widthm1(arm_imm, m_arg):
@@ -2126,6 +2142,13 @@ class arm_off8sppc(arm_imm):
     def encodeval(self, v):
         return v >> 2
 
+class arm_off8(arm_imm):
+
+    def decodeval(self, v):
+        return v << 2
+
+    def encodeval(self, v):
+        return v >> 2
 
 class arm_off7(arm_imm):
 
@@ -2136,11 +2159,16 @@ class arm_off7(arm_imm):
         return v >> 2
 
 class arm_deref_reg_imm(arm_arg):
+    reg_info = gpregs
     parser = deref_reg_imm
 
     def decode(self, v):
         v = v & self.lmask
-        rbase = regs_expr[v]
+        # We should not use regs_expr direct
+        # subclass overwrite reg_info in some case
+        if regs_expr[v] not in self.reg_info.expr:
+            return False
+        rbase = self.reg_info.expr[v]
         e = ExprOp('preinc', rbase, self.parent.off.expr)
         self.expr = ExprMem(e, 32)
         return True
@@ -2163,9 +2191,6 @@ class arm_deref_reg_imm(arm_arg):
             log.debug('cannot encode off %r', off)
             return False
         self.value = gpregs.expr.index(e.args[0])
-        if self.value >= 1 << self.l:
-            log.debug('cannot encode reg %r', off)
-            return False
         return True
 
 class arm_derefl(arm_deref_reg_imm):
@@ -2439,8 +2464,9 @@ class arm_sp(arm_reg):
 
 off5 = bs(l=5, cls=(arm_imm,), fname="off")
 off3 = bs(l=3, cls=(arm_imm,), fname="off")
-off8 = bs(l=8, cls=(arm_imm,), fname="off")
+imm8 = bs(l=8, cls=(arm_imm,), fname="off")
 off7 = bs(l=7, cls=(arm_off7,), fname="off")
+off8 = bs(l=8, cls=(arm_off8,), fname="off", order=-1)
 
 rdl = bs(l=3, cls=(arm_gpreg_l,), fname="rd")
 rnl = bs(l=3, cls=(arm_gpreg_l,), fname="rn")
@@ -2542,7 +2568,7 @@ bs_br_name = bs_name(l=4, name=br_name)
 armtop("mshift", [bs('000'), bs_mshift_name, off5, rsl, rdl], [rdl, rsl, off5])
 armtop("addsubr", [bs('000110'),  bs_addsub_name, rnl, rsl, rdl], [rdl, rsl, rnl])
 armtop("addsubi", [bs('000111'),  bs_addsub_name, off3, rsl, rdl], [rdl, rsl, off3])
-armtop("mcas", [bs('001'), bs_mov_cmp_add_sub_name, rnl, off8])
+armtop("mcas", [bs('001'), bs_mov_cmp_add_sub_name, rnl, imm8])
 armtop("alu", [bs('010000'), bs_alu_name, rsl, rdl], [rdl, rsl])
   # should not be used ??
 armtop("hiregop00", [bs('010001'), bs_hiregop_name, bs('00'), rsl, rdl], [rdl, rsl])
@@ -3435,9 +3461,69 @@ armtop("strd", [bs('1110100'), ppi, updown, bs('1'), wback_no_t, bs('0'), rn_nop
 armtop("ldrd", [bs('1110100'), ppi, updown, bs('1'), wback_no_t, bs('1'), rn_nopc_noarg, rt, rt2, deref_immpuw00], [rt, rt2, deref_immpuw00])
 
 
-armtop("ldr",  [bs('111110001101'), rn_deref, rt, off12], [rt, rn_deref])
-armtop("ldr",  [bs('111110000101'), rn_noarg, rt, bs('1'), ppi, updown, wback_no_t, deref_immpuw], [rt, deref_immpuw])
-armtop("ldr",  [bs('111110000101'), rn_noarg, rt, bs('000000'), imm2_noarg, rm_deref_reg], [rt, rm_deref_reg])
+class armt_rn_deref_up(arm_arg):
+    parser = deref_reg_imm
+
+    def decode(self, v):
+        v = v & self.lmask
+        rbase = regs_expr[v]
+        e = None
+        if self.parent.updown.value == 1:
+            e = ExprOp('preinc', rbase, self.parent.off.expr)
+        else:
+            e = ExprOp('preinc', rbase, -self.parent.off.expr)
+        self.expr = ExprMem(e, 32)
+        return True
+
+    def encode(self):
+        self.parent.off.expr = None
+        e = self.expr
+        if not isinstance(e, ExprMem):
+            return False
+        e = e.ptr
+        if not (isinstance(e, ExprOp) and e.op == 'preinc'):
+            log.debug('cannot encode %r', e)
+            return False
+        off = e.args[1]
+
+        if not isinstance(off, ExprInt):
+            log.debug('cannot encode off %r', off)
+            return False
+        
+        v = int(off)
+
+        if v < 0 or v & (1 << 31):
+            self.parent.updown.value = 0
+            v = (-v) & 0xFFFFFFFF
+        else:
+            self.parent.updown.value = 1
+
+        self.parent.off.expr = ExprInt(v, 32)
+        self.value = gpregs.expr.index(e.args[0])
+        return True
+
+class arm_gpreg_nopc_noarg(reg_noarg):
+    reg_info = gpregs_nopc
+    parser = reg_info.parser
+
+class arm_nopc_deref(arm_deref_reg_imm):
+    reg_info = gpregs_nopc
+
+class armt_pc_deref_up(armt_rn_deref_up):
+    parser = deref_pc
+
+class armt_nopc_deref_up(armt_rn_deref_up):
+    pass
+
+rn_nopc_noarg = bs(l=4, cls=(arm_gpreg_nopc_noarg,), fname="rn")
+rn_nopc_deref = bs(l=4, cls=(arm_nopc_deref,), fname="rt")
+rn_nopc_deref_up = bs(l=4, cls=(armt_nopc_deref_up,))
+pc_deref_up = bs("1111", l=4, cls=(armt_pc_deref_up,))
+
+armtop("ldr",  [bs('11111000'), updown, bs('101'), pc_deref_up, rt, off12], [rt, pc_deref_up])
+armtop("ldr",  [bs('111110001101'), rn_nopc_deref, rt, off12], [rt, rn_nopc_deref])
+armtop("ldr",  [bs('111110000101'), rn_nopc_noarg, rt, bs('1'), ppi, updown, wback_no_t, deref_immpuw], [rt, deref_immpuw])
+armtop("ldr",  [bs('111110000101'), rn_nopc_noarg, rt, bs('000000'), imm2_noarg, rm_deref_reg], [rt, rm_deref_reg])
 armtop("ldrb", [bs('111110000001'), rn_noarg, rt, bs('000000'), imm2_noarg, rm_deref_reg], [rt, rm_deref_reg])
 armtop("ldrb", [bs('111110000001'), rn_noarg, rt, bs('1'), ppi, updown, wback_no_t, deref_immpuw], [rt, deref_immpuw])
 armtop("ldrb", [bs('111110001001'), rn_deref, rt_nopc, off12], [rt_nopc, rn_deref])
@@ -3455,3 +3541,106 @@ armtop("tbh",  [bs('111010001101'), rn_noarg, bs('11110000000'), bs('1'), bs_der
 armtop("dsb",  [bs('111100111011'), bs('1111'), bs('1000'), bs('1111'), bs('0100'), barrier_option])
 
 armtop("adr", [bs('11110'), imm12_1, bs('100000'), bs('1111'), bs('0'), imm12_3, rd, imm12_8_t4], [rd, imm12_8_t4])
+
+class arm_dpregs_1_4(reg_noarg):
+    reg_info = dpregs
+    parser = reg_info.parser
+
+
+    def decode(self, v):
+        v = v & self.lmask
+        v = self.parent.dpregs_1_x.value << 4 | v
+        self.expr = self.reg_info.expr[v]
+        return True
+
+    def encode(self):
+        if not self.expr in self.reg_info.expr:
+            log.debug("cannot encode reg %r", self.expr)
+            return False
+        self.value = self.reg_info.expr.index(self.expr)
+        self.parent.dpregs_1_x.value = self.value >> 4 & self.parent.dpregs_1_x.lmask
+        return True
+
+
+class arm_spregs_4_1(reg_noarg):
+    reg_info = spregs
+    parser = reg_info.parser
+
+
+    def decode(self, v):
+        v = v & self.lmask
+        v = self.parent.spregs_x_1.value | (v << 1)
+        self.expr = self.reg_info.expr[v]
+        return True
+
+    def encode(self):
+        if not self.expr in self.reg_info.expr:
+            log.debug("cannot encode reg %r", self.expr)
+            return False
+        self.value = self.reg_info.expr.index(self.expr)
+        self.parent.spregs_x_1.value =  self.value & self.parent.spregs_x_1.lmask
+        return True
+
+class arm_dpregs_4_1:
+    reg_info = dpregs
+    parser = reg_info.parser
+    
+    def decode(self, v):
+        v = v & self.lmask
+        v = self.parent.dpregs_x_1.value | v << 1
+        self.expr = self.reg_info.expr[v]
+        return True
+
+    def encode(self):
+        if not self.expr in self.reg_info.expr:
+            log.debug("cannot encode reg %r", self.expr)
+            return False
+        self.value = self.reg_info.expr.index(self.expr)
+        self.parent.dpregs_x_1.value =  self.value & self.parent.dpregs_x_1.lmask
+        return True
+
+
+sn_4_1 = bs(l=4, cls=(arm_spregs_4_1, arm_arg))
+sn_x_1 = bs(l=1, fname="spregs_x_1", order=-1)
+sm_4_1 = bs(l=4, cls=(arm_spregs_4_1, arm_arg))
+sm_x_1 = bs(l=1, fname="spregs_x_1", order=-1)
+dn_1_4 = bs(l=4, cls=(arm_dpregs_1_4, arm_arg))
+dn_1_x = bs(l=1, fname="dpregs_1_x", order=-1)
+dm_4_1 = bs(l=4, cls=(arm_dpregs_4_1, arm_arg))
+dm_x_1 = bs(l=1, fname="dpregs_x_1", order=-1)
+round_zero = bs('1', l=1, fname="round_zero")
+vunsigned = bs(l=1, fname="unsigned")
+
+rt2_nopc = bs(l=4, cls=(arm_gpreg_nopc, arm_arg), fname="rt")
+rn_sp_nowb = bs("1101", cls=(arm_gpreg,), fname='rnsp')
+
+armtop("dmb",  [bs('111100111011'), bs('1111'), bs('1000'), bs('1111'), bs('0101'), barrier_option])
+armtop("teq",  [bs('111010101001'), rn_nosppc, bs('0'), imm5_3, bs('1111'), imm5_2, imm_stype, rm_sh])
+
+armtop("btransfersp", [bs('1110100010'), wback, bs_tbtransfer_name, rn_wb, pc_in, lr_in, bs('0'), trlist13pclr])
+armtop("add", [bs('11110'), imm12_1, bs('10000'), bs('0'), rn_sp_nowb, bs('0'), imm12_3, rd, imm12_8_t4], [rd, rn_sp_nowb, imm12_8_t4])
+armtop("strb", [bs('111110000000'), rn_noarg, rt, bs('000000'), imm2_noarg, rm_deref_reg], [rt, rm_deref_reg])
+armtop("strex", [bs('111010000100'), rn_deref, rt, rd, off8], [rd, rt, rn_deref])
+armtop("ldrex",[bs('111010000101'), rn_deref, rt, bs('1111'), off8], [rt, rn_deref])
+
+# DDI0406C.d, A8.8.344
+armtop("vmov", [bs('11101110000'), bs('1'), sn_4_1, rt_nopc, bs('1010'), sn_x_1, bs('0010000')], [rt_nopc, sn_4_1])
+armtop("vmov", [bs('11101110000'), bs('0'), sn_4_1, rt_nopc, bs('1010'), sn_x_1, bs('0010000')], [sn_4_1, rt_nopc])
+
+# DDI0406C.d, A8.8.346
+armtop("vmov", [bs('11101100010'), bs('1'), rt2_nopc, rt_nopc, bs('101100'), dn_1_x, bs('1'), dn_1_4], [rt_nopc, rt2_nopc, dn_1_4])
+armtop("vmov", [bs('11101100010'), bs('0'), rt2_nopc, rt_nopc, bs('101100'), dn_1_x, bs('1'), dn_1_4], [dn_1_4, rt_nopc, rt2_nopc])
+
+# DDI0406C.d, A8.8.310
+armtop("vcvt", [bs('111011101'), sn_x_1, bs('111'), bs("101"), sn_4_1, bs('101'), bs('1'), round_zero, bs('1'), dn_1_x, bs('0'), dn_1_4], [sn_4_1, dn_1_4])
+armtop("vcvt", [bs('111011101'), sn_x_1, bs('111'), bs("101"), sn_4_1, bs('101'), bs('0'), round_zero, bs('1'), sm_x_1, bs('0'), sm_4_1], [sn_4_1, sm_4_1])
+armtop("vcvt", [bs('111011101'), sn_x_1, bs('111'), bs("100"), sn_4_1, bs('101'), bs('1'), round_zero, bs('1'), dn_1_x, bs('0'), dn_1_4], [sn_4_1, dn_1_4])
+armtop("vcvt", [bs('111011101'), sn_x_1, bs('111'), bs("100"), sn_4_1, bs('101'), bs('0'), round_zero, bs('1'), sm_x_1, bs('0'), sm_4_1], [sn_4_1, sm_4_1])
+armtop("vcvt", [bs('111011101'), dn_1_x, bs('111'), bs("000"), dn_1_4, bs('101'), bs('1'), bs('1'), bs('1'), sm_x_1, bs('0'), sm_4_1], [dn_1_4, sm_4_1])
+armtop("vcvt", [bs('111011101'), dn_1_x, bs('111'), bs("000"), dn_1_4, bs('101'), bs('1'), bs('0'), bs('1'), sm_x_1, bs('0'), sm_4_1], [dn_1_4, sm_4_1])
+armtop("vcvt", [bs('111011101'), sn_x_1, bs('111'), bs("000"), sn_4_1, bs('101'), bs('0'), bs('1'), bs('1'), sm_x_1, bs('0'), sm_4_1], [sn_4_1, sm_4_1])
+armtop("vcvt", [bs('111011101'), sn_x_1, bs('111'), bs("000"), sn_4_1, bs('101'), bs('0'), bs('0'), bs('1'), sm_x_1, bs('0'), sm_4_1], [sn_4_1, sm_4_1])
+
+# DDI0406C.d, A8.8.414
+armtop("vstr", [bs('11101101'), updown, dn_1_x, bs('00'), rn_nopc_deref_up, dn_1_4, bs('1011'), off8], [dn_1_4, rn_nopc_deref_up])
+armtop("vstr", [bs('11101101'), updown, sn_x_1, bs('00'), rn_nopc_deref_up, sn_4_1, bs('1010'), off8], [sn_4_1, rn_nopc_deref_up])
