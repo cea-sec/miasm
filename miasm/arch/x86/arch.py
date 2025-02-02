@@ -1598,7 +1598,7 @@ def gen_modrm_form():
 
             if sib_rez in [sib_s08_ebp, sib_u32_ebp, sib_u32]:
                 tmp = i
-                if not tmp in sib_rez[index]:
+                if tmp not in sib_rez[index]:
                     sib_rez[index][tmp] = 0  # 1 << ss
                 sib_rez[index][tmp] += 1 << ss
             else:
@@ -1607,7 +1607,7 @@ def gen_modrm_form():
                         tmp = i + 8 * rex_x
                         if i == 0b100 and rex_x == 0:
                             continue
-                        if not tmp in sib_rez[rex_x][rex_b][index]:
+                        if tmp not in sib_rez[rex_x][rex_b][index]:
                             sib_rez[rex_x][rex_b][index][tmp] = 0  # 1 << ss
                         sib_rez[rex_x][rex_b][index][tmp] += 1 << ss
 
@@ -1865,7 +1865,7 @@ def expr2modrm(expr, parent, w8, sx=0, xmm=0, mm=0, bnd=0):
             else:
                 size2reg = SIZE2XMMREG
             selreg = size2reg[expr.size]
-            if not expr in selreg.expr:
+            if expr not in selreg.expr:
                 return None, None, False
             i = selreg.expr.index(expr)
             dct_expr[i] = 1
@@ -1924,14 +1924,14 @@ def expr2modrm(expr, parent, w8, sx=0, xmm=0, mm=0, bnd=0):
                 parent.rex_p.value = 0
                 parent.rex_x.value = 0
                 r = size2gpregs[8]
-            if not expr in r.expr:
+            if expr not in r.expr:
                 return None, None, False
             i = r.expr.index(expr)
             dct_expr[i] = 1
             return [dct_expr], None, True
         if opmode != expr.size:
             return None, None, False
-        if not expr in size2gpregs[opmode].expr:
+        if expr not in size2gpregs[opmode].expr:
             return None, None, False
         i = size2gpregs[opmode].expr.index(expr)
         if i > 7:
@@ -2014,7 +2014,7 @@ class x86_rm_arg(x86_arg):
         p = self.parent
         admode = p.v_admode()
 
-        if not admode in [16, 32, 64]:
+        if admode not in [16, 32, 64]:
             raise ValueError('strange admode %r', admode)
         v = setmodrm(p.mod.value, 0, p.rm.value)
         v |= p.rex_b.value << 8
@@ -2040,7 +2040,7 @@ class x86_rm_arg(x86_arg):
         return self.expr is not None
 
     def gen_cand(self, v_cand, admode):
-        if not admode in modrm2byte:
+        if admode not in modrm2byte:
             # XXX TODO: 64bit
             return
         if not v_cand:
@@ -2075,7 +2075,7 @@ class x86_rm_arg(x86_arg):
             # We only need sort for determinism
             v = tuple(sorted(viewitems(v), key=str))
             admode = 64 if p.mode == 64 else admode
-            if not v in modrm2byte[admode]:
+            if v not in modrm2byte[admode]:
                 continue
             xx = modrm2byte[admode][v]
 
@@ -2273,7 +2273,7 @@ class x86_rm_sd(x86_rm_arg):
         if isinstance(self.expr, ExprInt):
             return
         p = self.parent
-        if not self.expr.size in [32, 64]:
+        if self.expr.size not in [32, 64]:
             return
         self.set_s_value(0)
         v_cand, segm, ok = expr2modrm(self.expr, p, 1)

@@ -492,7 +492,7 @@ class mips32_cpr(mips32_arg):
         return True
     def encode(self):
         e = self.expr
-        if not e in regs.regs_cpr0_expr:
+        if e not in regs.regs_cpr0_expr:
             return False
         index = regs.regs_cpr0_expr.index(e)
         self.value = index & 7
