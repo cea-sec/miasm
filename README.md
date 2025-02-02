@@ -555,12 +555,26 @@ To use the jitter, GCC or LLVM is recommended
   * Debian (testing/unstable): Not tested
   * Debian stable/Ubuntu/Kali/whatever: `pip install llvmlite` or install from [llvmlite](https://github.com/numba/llvmlite)
   * Windows: Not tested
-* Build and install Miasm:
+* Build and install Miasm on Linux:
 ```pycon
 $ cd miasm_directory
 $ python setup.py build
 $ sudo python setup.py install
 ```
+* Build and install Miasm on Windows:
+
+And then, open the visual studio command prompt and type:
+
+```bat
+call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64
+python.exe -m pip install -r requirements.txt
+python.exe -m pip install -r optional_requirements.txt
+python setup.py build
+python setup.py install
+```
+
+Very important Warning: 
+You must open the visual studio command prompt. You must not use the powershell or the batch terminal. If you do not use visual studio command prompt, the program will not compile.
 
 If something goes wrong during one of the jitter modules compilation, Miasm will
 skip the error and disable the corresponding module (see the compilation
