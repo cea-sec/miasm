@@ -71,6 +71,64 @@ priorities_list = [
     [ '-' ],	# Unary '-', associativity with + not handled
 ]
 
+COND_EQ = 0
+COND_NE = 1
+COND_CS = 2
+COND_CC = 3
+COND_MI = 4
+COND_PL = 5
+COND_VS = 6
+COND_VC = 7
+COND_HI = 8
+COND_LS = 9
+COND_GE = 10
+COND_LT = 11
+COND_GT = 12
+COND_LE = 13
+COND_AL = 14
+COND_NV = 15
+
+cond_dct = {
+    COND_EQ: "EQ",
+    COND_NE: "NE",
+    COND_CS: "CS",
+    COND_CC: "CC",
+    COND_MI: "MI",
+    COND_PL: "PL",
+    COND_VS: "VS",
+    COND_VC: "VC",
+    COND_HI: "HI",
+    COND_LS: "LS",
+    COND_GE: "GE",
+    COND_LT: "LT",
+    COND_GT: "GT",
+    COND_LE: "LE",
+    COND_AL: "AL",
+    # COND_NV: "NV",
+}
+
+cond_dct_inv = dict((name, num) for num, name in viewitems(cond_dct))
+
+
+"""
+Code            Meaning (for cmp or subs)                                  Flags Tested
+eq              Equal.                                                     Z==1
+ne              Not equal.                                                 Z==0
+cs or hs        Unsigned higher or same (or carry set).                    C==1
+cc or lo        Unsigned lower (or carry clear).                           C==0
+mi              Negative. The mnemonic stands for "minus".                 N==1
+pl              Positive or zero. The mnemonic stands for "plus".          N==0
+vs              Signed overflow. The mnemonic stands for "V set".          V==1
+vc              No signed overflow. The mnemonic stands for "V clear".     V==0
+hi              Unsigned higher.                                           (C==1) && (Z==0)
+ls              Unsigned lower or same.                                    (C==0) || (Z==1)
+ge              Signed greater than or equal.                              N==V
+lt              Signed less than.                                          N!=V
+gt              Signed greater than.                                       (Z==0) && (N==V)
+le              Signed less than or equal.                                 (Z==1) || (N!=V)
+al (or omitted) Always executed.        None tested.
+"""
+
 # dictionary from 'op' to priority, derived from above
 priorities = dict((op, prio)
                   for prio, l in enumerate(priorities_list)
