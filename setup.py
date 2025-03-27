@@ -312,10 +312,7 @@ def build_all():
         print("build with", repr(name))
         try:
             s = setup(
-                name = "miasm",
-                version = "0.1.5",
                 packages = packages,
-                data_files=[("", ["README.md"])],
                 package_data = {
                     "miasm": [
                         "jitter/*.h",
@@ -324,31 +321,8 @@ def build_all():
                         "VERSION"
                     ]
                 },
-                install_requires=["future", "pyparsing>=2.4.1"],
                 cmdclass={"install_data": smart_install_data},
                 ext_modules = ext_modules,
-                # Metadata
-                author = "Fabrice Desclaux",
-                author_email = "serpilliere@droid-corp.org",
-                description = "Machine code manipulation library",
-                license = "GPLv2",
-                long_description=long_description,
-                long_description_content_type=long_description_content_type,
-                keywords = [
-                    "reverse engineering",
-                    "disassembler",
-                    "emulator",
-                    "symbolic execution",
-                    "intermediate representation",
-                    "assembler",
-                ],
-                classifiers=[
-                    "Programming Language :: Python :: 2",
-                    "Programming Language :: Python :: 3",
-                    "Programming Language :: Python :: 2.7",
-                    "Programming Language :: Python :: 3.6",
-                ],
-                url = "http://miasm.re",
             )
         except SystemExit as e:
             print(repr(e))

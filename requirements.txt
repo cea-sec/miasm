@@ -1,3 +1,0 @@
-setuptools
-pyparsing>=2.4.1
-future

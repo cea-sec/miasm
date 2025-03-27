@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version"]
+name="miasm"
+dependencies = [
+  "pyparsing>=2.4.1",
+  "future",
+]
+license = {file = "LICENSE"}
+readme = "README.md"
+description = "Machine code manipulation library"
+authors = [{name="Fabrice Desclaux", email="serpilliere@droid-corp.org"}]
+keywords = ["reverse engineering", "disassembler", "emulator", "symbolic execution", "intermediate representation", "assembler"]
+classifiers=[
+  "Programming Language :: Python :: 2",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 2.7",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13"
+]
+
+[project.urls]
+Homepage="http://miasm.re"
+
+
+[project.optional-dependencies]
+z3 = ["z3-solver"]
+pycparser = ["pycparser"]
+llvmlite=["llvmlite==0.38.0"]
+parameterized=["parameterized~=0.8.1"]
+
+[tool.setuptools.dynamic]
+version = {attr = "miasm.VERSION"}
