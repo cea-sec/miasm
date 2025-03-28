@@ -9,7 +9,7 @@ dependencies = [
   "pyparsing>=2.4.1",
   "future",
 ]
-license = {file = "LICENSE"}
+license-files = ["LICENSE"]
 readme = "README.md"
 description = "Machine code manipulation library"
 authors = [{name="Fabrice Desclaux", email="serpilliere@droid-corp.org"}]
@@ -33,10 +33,7 @@ Homepage="http://miasm.re"
 
 
 [project.optional-dependencies]
-z3 = ["z3-solver"]
-pycparser = ["pycparser"]
-llvmlite=["llvmlite==0.38.0"]
-parameterized=["parameterized~=0.8.1"]
+full = ["pycparser", "z3-solver", "llvmlite==0.44.0", "parameterized~=0.8.1"]
 
 [tool.setuptools.dynamic]
 version = {attr = "miasm.VERSION"}
