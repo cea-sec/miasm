@@ -1,5 +1,4 @@
 pycparser
-setuptools
-z3-solver==4.8.7.0
+z3-solver==4.16.0.0
 llvmlite==0.44.0
 parameterized~=0.8.1
