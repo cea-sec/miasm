@@ -22,9 +22,9 @@ def cb_arm_fix_call(mdis, cur_block, offsets_to_dis):
         return
 
     values = viewvalues(mdis.arch.pc)
-    if not l1.args[0] in values:
+    if l1.args[0] not in values:
         return
-    if not l2.args[1] in values:
+    if l2.args[1] not in values:
         return
     loc_key_cst = mdis.loc_db.get_or_create_offset_location(l1.offset + 4)
     cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)

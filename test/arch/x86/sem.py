@@ -43,7 +43,8 @@ def symb_exec(lbl, lifter, ircfg, inputstate, debug):
         if k not in EXCLUDE_REGS and regs_init.get(k, None) != v
     }
 
-def compute(Lifter, mode, asm, inputstate={}, debug=False):
+def compute(Lifter, mode, asm, inputstate=None, debug=False):
+    inputstate = inputstate or {}
     loc_db = LocationDB()
     instr = mn.fromstring(asm, loc_db, mode)
     code = mn.asm(instr)[0]
@@ -52,10 +53,11 @@ def compute(Lifter, mode, asm, inputstate={}, debug=False):
     lifter = Lifter(loc_db)
     ircfg = lifter.new_ircfg()
     lbl = lifter.add_instr_to_ircfg(instr, ircfg)
-    return symb_exec(lbl, lifter, ircfg, inputstate, debug)
+    return symb_exec(lbl, lifter, ircfg, inputstate or dict(), debug)
 
 
-def compute_txt(Lifter, mode, txt, inputstate={}, debug=False):
+def compute_txt(Lifter, mode, txt, inputstate=None, debug=False):
+    inputstate = inputstate or {}
     loc_db = LocationDB()
     asmcfg = parse_asm.parse_txt(mn, mode, txt, loc_db)
     loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)

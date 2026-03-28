@@ -2279,7 +2279,7 @@ mnemo_func.update({
 
 
 def get_mnemo_expr(ir, instr, *args):
-    if not instr.name.lower() in mnemo_func:
+    if instr.name.lower() not in mnemo_func:
         raise NotImplementedError('unknown mnemo %s' % instr)
     instr, extra_ir = mnemo_func[instr.name.lower()](ir, instr, *args)
     return instr, extra_ir

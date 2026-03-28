@@ -219,7 +219,7 @@ class sh4_dgpregpinc(sh4_arg):
         if not res:
             return False
         r = res[jra]
-        if not r in gpregs.expr:
+        if r not in gpregs.expr:
             return False
         v = gpregs.expr.index(r)
         self.value = v
@@ -262,7 +262,7 @@ class sh4_dgpreg_imm(sh4_dgpreg):
                 return False
             d = int(res[jrb])
             p.disp.value = d // (s // 8)
-            if not res[jra] in gpregs.expr:
+            if res[jra] not in gpregs.expr:
                 return False
             v = gpregs.expr.index(res[jra])
         else:
@@ -580,7 +580,7 @@ class bs_dr0gp(sh4_dgpreg):
         if not res:
             return False
         r = res[jra]
-        if not r in gpregs.expr:
+        if r not in gpregs.expr:
             return False
         self.value = gpregs.expr.index(r)
         return True

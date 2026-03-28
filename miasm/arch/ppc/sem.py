@@ -63,7 +63,7 @@ def mn_compute_flags(rvalue, overflow_expr=None):
                                          ExprInt(0, 1)) & ~rvalue.msb())))
     ret.append(ExprAssign(CR0_EQ, ExprCond(rvalue, ExprInt(0, 1),
                                         ExprInt(1, 1))))
-    if overflow_expr != None:
+    if overflow_expr is not None:
         ret.append(ExprAssign(CR0_SO, XER_SO | overflow_expr))
     else:
         ret.append(ExprAssign(CR0_SO, XER_SO))

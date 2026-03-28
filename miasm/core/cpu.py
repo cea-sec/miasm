@@ -461,7 +461,7 @@ class bs(object):
         if cls:
             for b in cls:
                 if 'flen' in b.__dict__:
-                    flen = getattr(b, 'flen')
+                    flen = b.flen
 
         self.strbits = strbits
         self.l = l
@@ -734,7 +734,7 @@ class reg_noarg(object):
         return True
 
     def encode(self):
-        if not self.expr in self.reg_info.expr:
+        if self.expr not in self.reg_info.expr:
             log.debug("cannot encode reg %r", self.expr)
             return False
         self.value = self.reg_info.expr.index(self.expr)
@@ -890,10 +890,10 @@ def add_candidate_to_tree(tree, c):
             continue
         node = f.l, f.fmask, f.fbits, f.fname, f.flen
 
-        if not node in branch:
+        if node not in branch:
             branch[node] = {}
         branch = branch[node]
-    if not 'mn' in branch:
+    if 'mn' not in branch:
         branch['mn'] = set()
     branch['mn'].add(c)
 
@@ -924,7 +924,7 @@ class metamn(type):
         alias = dct.get('alias', False)
 
         fields = bases[0].mod_fields(dct['fields'])
-        if not 'name' in dct:
+        if 'name' not in dct:
             dct["name"] = bases[0].getmn(name)
         if 'args' in dct:
             # special case for permuted arguments
@@ -1103,7 +1103,7 @@ class cls_mn(with_metaclass(metamn, object)):
                 offset_b += l
                 if v & fmask != fbits:
                     continue
-                if fname is not None and not fname in fname_values:
+                if fname is not None and fname not in fname_values:
                     fname_values[fname] = v
             for nb, v in viewitems(vals):
                 if 'mn' in nb:
@@ -1240,7 +1240,7 @@ class cls_mn(with_metaclass(metamn, object)):
                         bs_o.leave_atomic_mode()
                         raise
                     offset_b += l
-                    if not f.fname in fname_values:
+                    if f.fname not in fname_values:
                         fname_values[f.fname] = bv
                     todo[i] = bv
                 else:
@@ -1306,7 +1306,7 @@ class cls_mn(with_metaclass(metamn, object)):
             raise ValueError('cannot find name', text)
         name = name[0]
 
-        if not name in cls.all_mn_name:
+        if name not in cls.all_mn_name:
             raise ValueError('unknown name', name)
         clist = [x for x in cls.all_mn_name[name]]
         out = []

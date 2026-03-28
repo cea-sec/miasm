@@ -533,7 +533,7 @@ def advapi32_CryptHashData(jitter):
     ret_ad, args = jitter.func_args_stdcall(["hhash", "pbdata", "dwdatalen",
                                              "dwflags"])
 
-    if not args.hhash in winobjs.cryptcontext:
+    if args.hhash not in winobjs.cryptcontext:
         raise ValueError("unknown crypt context")
 
     data = jitter.vm.get_mem(args.pbdata, args.dwdatalen)
@@ -547,7 +547,7 @@ def advapi32_CryptGetHashParam(jitter):
     ret_ad, args = jitter.func_args_stdcall(["hhash", "param", "pbdata",
                                              "dwdatalen", "dwflags"])
 
-    if not args.hhash in winobjs.cryptcontext:
+    if args.hhash not in winobjs.cryptcontext:
         raise ValueError("unknown crypt context")
 
     if args.param == 2:
@@ -793,7 +793,7 @@ def kernel32_VirtualProtect(jitter):
                                              'lpfloldprotect'])
     # XXX mask hpart
     flnewprotect = args.flnewprotect & 0xFFF
-    if not flnewprotect in ACCESS_DICT:
+    if flnewprotect not in ACCESS_DICT:
         raise ValueError('unknown access dw!')
 
     if args.lpfloldprotect:
@@ -812,7 +812,7 @@ def kernel32_VirtualProtect(jitter):
         size = jitter.vm.get_all_memory()[addr]["size"]
         # Page is included in Protect area
         if (paddr <= addr < addr + size <= paddr + psize):
-            log.warn("set page %x %x", addr, ACCESS_DICT[flnewprotect])
+            log.warning("set page %x %x", addr, ACCESS_DICT[flnewprotect])
             jitter.vm.set_mem_access(addr, ACCESS_DICT[flnewprotect])
             continue
 
@@ -844,7 +844,7 @@ def kernel32_VirtualProtect(jitter):
             for split_addr, split_access, split_data in splits:
                 if not split_data:
                     continue
-                log.warn("create page %x %x", split_addr,
+                log.warning("create page %x %x", split_addr,
                          ACCESS_DICT[flnewprotect])
                 jitter.vm.add_memory_page(
                     split_addr, split_access, split_data,
@@ -858,7 +858,7 @@ def kernel32_VirtualAlloc(jitter):
                                              'alloc_type', 'flprotect'])
 
 
-    if not args.flprotect in ACCESS_DICT:
+    if args.flprotect not in ACCESS_DICT:
         raise ValueError('unknown access dw!')
 
     if args.lpvoid == 0:
@@ -1186,7 +1186,7 @@ def cryptdll_MD5Update(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ad_ctx", "ad_input", "inlen"])
 
     index = jitter.vm.get_u32(args.ad_ctx)
-    if not index in winobjs.cryptdll_md5_h:
+    if index not in winobjs.cryptdll_md5_h:
         raise ValueError('unknown h context', index)
 
     data = jitter.vm.get_mem(args.ad_input, args.inlen)
@@ -1200,7 +1200,7 @@ def cryptdll_MD5Final(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ad_ctx"])
 
     index = jitter.vm.get_u32(args.ad_ctx)
-    if not index in winobjs.cryptdll_md5_h:
+    if index not in winobjs.cryptdll_md5_h:
         raise ValueError('unknown h context', index)
     h = winobjs.cryptdll_md5_h[index].digest()
     jitter.vm.set_mem(args.ad_ctx + 88, h)
@@ -1420,7 +1420,7 @@ def ntoskrnl_IoAllocateMdl(jitter):
 def ntoskrnl_MmProbeAndLockPages(jitter):
     ret_ad, args = jitter.func_args_stdcall(["p_mdl", "access_mode", "op"])
 
-    if not ad2mdl(args.p_mdl) in winobjs.nt_mdl:
+    if ad2mdl(args.p_mdl) not in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(args.p_mdl))
     jitter.func_ret_stdcall(ret_ad, 0)
 
@@ -1430,7 +1430,7 @@ def ntoskrnl_MmMapLockedPagesSpecifyCache(jitter):
                                              "cache_type", "base_ad",
                                              "bugcheckonfailure",
                                              "priority"])
-    if not ad2mdl(args.p_mdl) in winobjs.nt_mdl:
+    if ad2mdl(args.p_mdl) not in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(args.p_mdl))
 
     jitter.func_ret_stdcall(ret_ad, winobjs.nt_mdl[ad2mdl(args.p_mdl)].ad)
@@ -1438,7 +1438,7 @@ def ntoskrnl_MmMapLockedPagesSpecifyCache(jitter):
 
 def ntoskrnl_MmProtectMdlSystemAddress(jitter):
     ret_ad, args = jitter.func_args_stdcall(["p_mdl", "prot"])
-    if not ad2mdl(args.p_mdl) in winobjs.nt_mdl:
+    if ad2mdl(args.p_mdl) not in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(args.p_mdl))
 
     jitter.func_ret_stdcall(ret_ad, 0)
@@ -1446,7 +1446,7 @@ def ntoskrnl_MmProtectMdlSystemAddress(jitter):
 
 def ntoskrnl_MmUnlockPages(jitter):
     ret_ad, args = jitter.func_args_stdcall(['p_mdl'])
-    if not ad2mdl(args.p_mdl) in winobjs.nt_mdl:
+    if ad2mdl(args.p_mdl) not in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(args.p_mdl))
 
     jitter.func_ret_stdcall(ret_ad, 0)
@@ -1454,7 +1454,7 @@ def ntoskrnl_MmUnlockPages(jitter):
 
 def ntoskrnl_IoFreeMdl(jitter):
     ret_ad, args = jitter.func_args_stdcall(['p_mdl'])
-    if not ad2mdl(args.p_mdl) in winobjs.nt_mdl:
+    if ad2mdl(args.p_mdl) not in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(args.p_mdl))
     del(winobjs.nt_mdl[ad2mdl(args.p_mdl)])
     jitter.func_ret_stdcall(ret_ad, 0)
@@ -1821,7 +1821,7 @@ def my_CreateEvent(jitter, funcname, get_str):
                                              "binitialstate",
                                              "lpname"])
     s = get_str(args.lpname) if args.lpname else None
-    if not s in winobjs.events_pool:
+    if s not in winobjs.events_pool:
         winobjs.events_pool[s] = (args.bmanualreset, args.binitialstate)
     else:
         log.warning('WARNING: known event')
@@ -1908,7 +1908,7 @@ def ntdll_ZwProtectVirtualMemory(jitter):
     # XXX mask hpart
     flnewprotect = args.flnewprotect & 0xFFF
 
-    if not flnewprotect in ACCESS_DICT:
+    if flnewprotect not in ACCESS_DICT:
         raise ValueError('unknown access dw!')
     jitter.vm.set_mem_access(ad, ACCESS_DICT[flnewprotect])
 
@@ -1927,7 +1927,7 @@ def ntdll_ZwAllocateVirtualMemory(jitter):
     # ad = upck32(jitter.vm.get_mem(args.lppvoid, 4))
     dwsize = jitter.vm.get_u32(args.pdwsize)
 
-    if not args.flprotect in ACCESS_DICT:
+    if args.flprotect not in ACCESS_DICT:
         raise ValueError('unknown access dw!')
 
     alloc_addr = winobjs.heap.next_addr(dwsize)
@@ -2250,7 +2250,7 @@ def msvcrt_fprintf(jitter):
     log.info("fprintf(%x, '%s') = '%s'" % (args.file, lambda addr:get_win_str_a(jitter, addr)(args.fmt), output))
 
     fd = jitter.vm.get_u32(args.file + 0x10)
-    if not fd in winobjs.handle_pool:
+    if fd not in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
     winobjs.handle_pool[fd].info.write(output)
 
@@ -2439,7 +2439,7 @@ def kernel32_TlsSetValue(jitter):
 
 def kernel32_TlsGetValue(jitter):
     ret_ad, args = jitter.func_args_stdcall(["tlsindex"])
-    if not args.tlsindex in winobjs.tls_values:
+    if args.tlsindex not in winobjs.tls_values:
         raise ValueError("unknown tls val", repr(args.tlsindex))
     jitter.func_ret_stdcall(ret_ad, winobjs.tls_values[args.tlsindex])
 
@@ -2658,7 +2658,7 @@ def kernel32_CreateFileMapping(jitter, funcname, get_str):
 
         ret = winobjs.handle_pool.add('filemapping', hmap_handle)
     else:
-        if not args.hfile in winobjs.handle_pool:
+        if args.hfile not in winobjs.handle_pool:
             raise ValueError('unknown handle')
         ret = winobjs.handle_pool.add('filemapping', args.hfile)
     jitter.func_ret_stdcall(ret_ad, ret)
@@ -2678,10 +2678,10 @@ def kernel32_MapViewOfFile(jitter):
                                              "dwfileoffsetlow",
                                              "length"])
 
-    if not args.hfile in winobjs.handle_pool:
+    if args.hfile not in winobjs.handle_pool:
         raise ValueError('unknown handle')
     hmap = winobjs.handle_pool[args.hfile]
-    if not hmap.info in winobjs.handle_pool:
+    if hmap.info not in winobjs.handle_pool:
         raise ValueError('unknown file handle')
 
     hfile_o = winobjs.handle_pool[hmap.info]
@@ -2692,7 +2692,7 @@ def kernel32_MapViewOfFile(jitter):
 
     log.debug('MapViewOfFile len: %x', len(data))
 
-    if not args.flprotect in ACCESS_DICT:
+    if args.flprotect not in ACCESS_DICT:
         raise ValueError('unknown access dw!')
 
     alloc_addr = winobjs.heap.alloc(jitter, len(data))
@@ -2707,7 +2707,7 @@ def kernel32_MapViewOfFile(jitter):
 def kernel32_UnmapViewOfFile(jitter):
     ret_ad, args = jitter.func_args_stdcall(['ad'])
 
-    if not args.ad in winobjs.handle_mapped:
+    if args.ad not in winobjs.handle_mapped:
         raise NotImplementedError("Untested case")
     """
     hfile_o, dwfileoffsethigh, dwfileoffsetlow, length = winobjs.handle_mapped[ad]
@@ -2942,7 +2942,7 @@ def msvcrt_fseek(jitter):
     ret_ad, args = jitter.func_args_cdecl(['stream', 'offset', 'orig'])
     fd = jitter.vm.get_u32(args.stream + 0x10)
 
-    if not fd in winobjs.handle_pool:
+    if fd not in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
     o = winobjs.handle_pool[fd]
     o.info.seek(args.offset, args.orig)
@@ -2953,7 +2953,7 @@ def msvcrt_ftell(jitter):
     ret_ad, args = jitter.func_args_cdecl(["stream"])
     fd = jitter.vm.get_u32(args.stream + 0x10)
 
-    if not fd in winobjs.handle_pool:
+    if fd not in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
     o = winobjs.handle_pool[fd]
     off = o.info.tell()
@@ -2963,7 +2963,7 @@ def msvcrt_ftell(jitter):
 def msvcrt_rewind(jitter):
     ret_ad, args = jitter.func_args_cdecl(["stream"])
     fd = jitter.vm.get_u32(args.stream + 0x10)
-    if not fd in winobjs.handle_pool:
+    if fd not in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
     o = winobjs.handle_pool[fd]
     # off = o.info.seek(0, 0)
@@ -2973,7 +2973,7 @@ def msvcrt_rewind(jitter):
 def msvcrt_fread(jitter):
     ret_ad, args = jitter.func_args_cdecl(["buf", "size", "nmemb", "stream"])
     fd = jitter.vm.get_u32(args.stream + 0x10)
-    if not fd in winobjs.handle_pool:
+    if fd not in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
 
     data = winobjs.handle_pool[fd].info.read(args.size * args.nmemb)
@@ -2984,7 +2984,7 @@ def msvcrt_fread(jitter):
 def msvcrt_fwrite(jitter):
     ret_ad, args = jitter.func_args_cdecl(["buf", "size", "nmemb", "stream"])
     fd = jitter.vm.get_u32(args.stream + 0x10)
-    if not fd in winobjs.handle_pool:
+    if fd not in winobjs.handle_pool:
         raise NotImplementedError("Unknown file handle!")
 
     data = jitter.vm.get_mem(args.buf, args.size*args.nmemb)
@@ -2996,7 +2996,7 @@ def msvcrt_fclose(jitter):
     ret_ad, args = jitter.func_args_cdecl(['stream'])
     fd = jitter.vm.get_u32(args.stream + 0x10)
 
-    if not fd in winobjs.handle_pool:
+    if fd not in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
     o = winobjs.handle_pool[fd]
     # off = o.info.close()
@@ -3216,7 +3216,7 @@ def msvcrt__ultow(jitter):
     ret_ad, args = jitter.func_args_cdecl(["value", "p", "radix"])
 
     value = args.value & 0xFFFFFFFF
-    if not args.radix in [10, 16, 20]:
+    if args.radix not in [10, 16, 20]:
         raise ValueError("Not tested")
     s = int2base(value, args.radix)
     set_win_str_w(jitter, args.p, s)
