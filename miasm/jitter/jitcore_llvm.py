@@ -25,6 +25,7 @@ class JitCore_LLVM(jitcore.JitCore):
         "msp430": "JitCore_msp430",
         "mips32": "JitCore_mips32",
         "aarch64": "JitCore_aarch64",
+        "riscv": "JitCore_riscv",
         "ppc32": "JitCore_ppc32",
     }
 

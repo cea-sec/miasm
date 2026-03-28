@@ -65,7 +65,7 @@ testset += RegressionTest(["sh4/arch.py"], base_dir="arch")
 testset += RegressionTest(["msp430/arch.py"], base_dir="arch")
 testset += RegressionTest(["mips32/arch.py"], base_dir="arch")
 testset += RegressionTest(["ppc32/arch.py"], base_dir="arch")
-
+testset += RegressionTest(["riscv/arch.py"], base_dir="arch")
 
 
 ### ArchUnit regression tests

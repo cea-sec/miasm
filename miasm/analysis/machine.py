@@ -12,7 +12,7 @@ class Machine(object):
     __gdbserver = None    # GdbServer handler
 
     __available = ["arml", "armb", "armtl", "armtb", "sh4", "x86_16", "x86_32",
-                   "x86_64", "msp430", "mips32b", "mips32l",
+                   "x86_64", "msp430", "mips32b", "mips32l", "riscv",
                    "aarch64l", "aarch64b", "ppc32b", "mepl", "mepb"]
 
 
@@ -51,6 +51,17 @@ class Machine(object):
             mn = arch.mn_arm
             from miasm.arch.arm.lifter_model_call import LifterModelCallArmb as lifter_model_call
             from miasm.arch.arm.sem import Lifter_Armb as lifter
+        elif machine_name == "riscv":
+            from miasm.arch.riscv.disasm import dis_riscv64 as dis_engine
+            from miasm.arch.riscv import arch
+            try:
+                from miasm.arch.riscv import jit
+                jitter = jit.jitter_riscv64
+            except ImportError:
+                pass
+            mn = arch.mn_riscv
+            from miasm.arch.riscv.lifter_model_call import LifterModelCallRiscv64 as lifter_model_call
+            from miasm.arch.riscv.sem import Lifter_Riscv64 as lifter
         elif machine_name == "aarch64l":
             from miasm.arch.aarch64.disasm import dis_aarch64l as dis_engine
             from miasm.arch.aarch64 import arch

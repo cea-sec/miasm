@@ -135,6 +135,7 @@ def build_all():
         "miasm/arch/x86",
         "miasm/arch/arm",
         "miasm/arch/aarch64",
+        "miasm/arch/riscv",
         "miasm/arch/msp430",
         "miasm/arch/mep",
         "miasm/arch/sh4",
@@ -181,6 +182,17 @@ def build_all():
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
                 "miasm/jitter/arch/JitCore_arm.c"
+            ]
+        ),
+        Extension(
+            "miasm.jitter.arch.JitCore_riscv",
+            [
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_riscv.c"
             ]
         ),
         Extension(

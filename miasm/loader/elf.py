@@ -189,6 +189,7 @@ EM_ST100 =       60              # STMicroelectronic ST100 processor
 EM_TINYJ =       61              # Advanced Logic Corp. Tinyj emb.fam*/
 EM_X86_64 =      62              # AMD x86-64 architecture
 EM_AARCH64 =     183             # Aarch64 architecture
+EM_RISCV =       243             # RISC-V 64/32 architecture
 EM_PDSP =        63              # Sony DSP Processor
 
 EM_FX66 =        66              # Siemens FX66 microcontroller
