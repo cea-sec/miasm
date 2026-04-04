@@ -1877,7 +1877,7 @@ class State(object):
     The state is represented using equivalence classes
 
     Each assignment can create/destroy equivalence classes. Interferences
-    between expression is computed using `may_interfer` function
+    between expression is computed using `may_interfere` function
     """
 
     def __init__(self):
@@ -1909,6 +1909,14 @@ class State(object):
         return not self == other
 
     def may_interfer(self, dsts, src):
+        warnings.warn(
+            "This function is deprecated, use `may_interfere` instead", 
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.may_interfere(dsts, src)
+
+    def may_interfere(self, dsts, src):
         """
         Return True if @src may interfere with expressions in @dsts
         @dsts: Set of Expressions
@@ -2084,7 +2092,7 @@ class State(object):
         # Remove interfering known classes
         to_del = set()
         for node in list(classes.nodes()):
-            if self.may_interfer(dsts, node):
+            if self.may_interfere(dsts, node):
                 # Interfere with known equivalence class
                 self.equivalence_classes.del_element(node)
                 if node.is_id() or node.is_mem():
@@ -2104,8 +2112,8 @@ class State(object):
                 if node.is_id() or node.is_mem():
                     self.undefined.add(node)
 
-            # Don't create equivalence if self interfer
-            if self.may_interfer(dsts, src):
+            # Don't create equivalence if self interfere
+            if self.may_interfere(dsts, src):
                 if dst in self.equivalence_classes.nodes():
                     self.equivalence_classes.del_element(dst)
                     if dst.is_id() or dst.is_mem():
