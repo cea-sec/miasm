@@ -3,6 +3,8 @@ from collections import defaultdict
 
 from future.utils import viewitems
 
+from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
 from miasm.loader import cstruct
 from miasm.loader import *
 import miasm.loader.elf as elf_csts
@@ -32,7 +34,7 @@ def get_import_address_elf(e):
     return import2addr
 
 
-def preload_elf(vm, e, runtime_lib, patch_vm_imp=True, loc_db=None):
+def preload_elf(vm, e, runtime_lib, patch_vm_imp=True, loc_db=None, elf_base_addr: int = 0):
     # XXX quick hack
     fa = get_import_address_elf(e)
     dyn_funcs = {}
@@ -47,11 +49,11 @@ def preload_elf(vm, e, runtime_lib, patch_vm_imp=True, loc_db=None):
             libname_s = canon_libname_libfunc(libname, libfunc)
             dyn_funcs[libname_s] = ad_libfunc
             if patch_vm_imp:
-                log.debug('patch 0x%x 0x%x %s', ad, ad_libfunc, libfunc)
+                log.debug('patch 0x%x 0x%x %s', ad + elf_base_addr, ad_libfunc, libfunc)
                 set_endianness = { elf_csts.ELFDATA2MSB: ">",
                                    elf_csts.ELFDATA2LSB: "<",
                                    elf_csts.ELFDATANONE: "" }[e.sex]
-                vm.set_mem(ad,
+                vm.set_mem(ad + elf_base_addr,
                            struct.pack(set_endianness +
                                        cstruct.size2type[e.size],
                                        ad_libfunc))
@@ -163,7 +165,7 @@ def fill_loc_db_with_symbols(elf, loc_db, base_addr=0):
                 loc_db.add_location(name=name, offset=vaddr)
 
 
-def apply_reloc_x86(elf, vm, section, base_addr, loc_db):
+def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB):
     """Apply relocation for x86 ELF contained in the section @section
     @elf: miasm.loader's ELF instance
     @vm: VmMngr instance
@@ -206,14 +208,20 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db):
                 (32, elf_csts.R_386_RELATIVE),
                 (32, elf_csts.R_386_IRELATIVE),
         ]:
-            # B + A
-            addr = base_addr + r_addend
+
             where = base_addr + r_offset
+            addr = int.from_bytes(elf.get_virt().get(r_offset, r_offset + elf.size // 8), byteorder="little")
+            ifunc_syms = [s for s in elf.sh.symtab.symtab if s.value == addr and s.info & elf_csts.STT_GNU_IFUNC == elf_csts.STT_GNU_IFUNC]
+            if len(ifunc_syms) > 0:
+                is_ifunc = True
+            else:
+                # B + A
+                addr = base_addr + r_addend
         elif reloc.type == elf_csts.R_X86_64_64:
             # S + A
-            addr_symb = loc_db.get_name_offset(symbol_entry.name)
+            addr_symb = loc_db.get_name_offset(symbol_entry.name.decode())
             if addr_symb is None:
-                log.warning("Unable to find symbol %r" % symbol_entry.name)
+                log.warning("Unable to find symbol %r" % symbol_entry.name.decode())
                 continue
             addr = addr_symb + r_addend
             where = base_addr + r_offset
@@ -232,7 +240,7 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db):
                 (32, elf_csts.R_386_GLOB_DAT),
         ]:
             # S
-            addr = loc_db.get_name_offset(symbol_entry.name)
+            addr = loc_db.get_name_offset(symbol_entry.name.decode())
             if addr is None:
                 log.warning("Unable to find symbol %r" % symbol_entry.name)
                 continue
@@ -244,13 +252,28 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db):
                                                       reloc)
             )
         if is_ifunc:
-            # Resolve at runtime - not implemented for now
-            log.warning("Relocation for %r (at %x, currently pointing on %x) "
-                        "has to be resolved at runtime",
-                        name, where, sym_addr)
-            continue
+            # TODO: only relevant for statically and dynamically linked programs, cf. https://sourceware.org/glibc/manual/latest/html_node/Indirect-Functions.html#When-IFUNC-Resolvers-Run
+            ifunc_machine = Machine(guess_arch(elf))
+            ifunc_jitter = ifunc_machine.jitter(loc_db)
 
-        log.debug("Write %x at %x", addr, where)
+            for map_addr, map_mem in vm.get_all_memory().items():
+                ifunc_jitter.vm.add_memory_page(map_addr, map_mem["access"], map_mem["data"])
+
+            ifunc_jitter.init_stack()
+            end_addr = 0x1337beef
+            def _code_sentinelle(jitter):
+                jitter.running = False
+                return False
+            ifunc_jitter.add_breakpoint(end_addr, _code_sentinelle)
+            if elf.size == 32:
+                ifunc_jitter.push_uint32_t(end_addr)
+            elif elf.size == 64:
+                ifunc_jitter.push_uint64_t(end_addr)
+
+            ifunc_jitter.run(addr)
+            addr = getattr(ifunc_jitter.cpu, ifunc_machine.lifter_model_call(loc_db).ret_reg.name)
+
+        log.debug(f"Write {addr:x} at {where:x}")
         addr_writer(where, addr)
 
 
