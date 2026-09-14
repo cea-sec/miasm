@@ -141,6 +141,13 @@ assert list(asmcfg.get_bad_blocks_predecessors(strict=False)) == [my_block.loc_k
 assert len(list(asmcfg.get_bad_blocks_predecessors(strict=True))) == 0
 
 ## Sanity check
+flag = False
+try:
+    asmcfg.sanity_check()
+except RuntimeError:
+    flag = True
+assert flag
+my_block.lines = [first_block.lines[0]]
 asmcfg.sanity_check()
 ### Next on itself
 testlabel_nextitself = loc_db.get_or_create_name_location("testlabel_nextitself")
