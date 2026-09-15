@@ -1604,7 +1604,10 @@ class DelDummyPhi(object):
                     # Don't propagate call
                     continue
                 # We have an equivalence of nodes
-                to_del = set(defined)
+                to_del = {
+                    dst for dst in defined
+                    if ids_to_src[dst].is_op('Phi')
+                }
                 assert len(to_del & handled_phis) == 0
                 handled_phis |= to_del
                 # Remove all implicated phis
