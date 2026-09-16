@@ -1899,8 +1899,7 @@ class State(object):
         if self.__class__ is not other.__class__:
             return False
         return (
-            set(self.equivalence_classes.nodes()) == set(other.equivalence_classes.nodes()) and
-            sorted(self.equivalence_classes.edges()) == sorted(other.equivalence_classes.edges()) and
+            self.equivalence_classes == other.equivalence_classes and
             self.undefined == other.undefined
         )
 
