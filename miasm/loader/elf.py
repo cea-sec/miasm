@@ -223,6 +223,22 @@ EM_XTENSA =      94              # Tensilica Xtensa Architecture
 
 EM_ALPHA =       0x9026
 
+# Special section indices.
+
+SHN_UNDEF = 	0				# Undefined section
+SHN_LORESERVE =	0xff00			# Start of reserved indices
+SHN_LOPROC = 	0xff00			# Start of processor-specific
+SHN_BEFORE = 	0xff00		 	# Order section before allothers (Solaris).
+SHN_AFTER = 	0xff01		 	# Order section after allothers (Solaris).
+SHN_HIPROC = 	0xff1f		 	# End of processor-specific
+SHN_LOOS = 	    0xff20		 	# Start of OS-specific
+SHN_HIOS = 	    0xff3f		 	# End of OS-specific
+SHN_ABS = 		0xfff1		 	# Associated symbol is absolute
+SHN_COMMON = 	0xfff2		 	# Associated symbol is common
+SHN_XINDEX = 	0xffff		 	# Index is in extra table.
+SHN_HIRESERVE = 0xffff		 	# End of reserved indices
+
+
 # Legal values for sh_type (section type).
 
 SHT_NULL =          0             # Section header table entry unused

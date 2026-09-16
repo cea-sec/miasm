@@ -87,7 +87,7 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         )
 
     def mem_write(self, dest, data):
-        """Memory read wrapper for symbolic execution
+        """Memory write wrapper for symbolic execution
         @dest: ExprMem instance
         @data: Expr instance"""
 
