@@ -269,6 +269,10 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB):
                 ifunc_jitter.push_uint32_t(end_addr)
             elif elf.size == 64:
                 ifunc_jitter.push_uint64_t(end_addr)
+            else:
+                raise ValueError(
+                    f"Cannot apply ifunc relocations on an ELF with {elf.size=}"
+                )
 
             ifunc_jitter.run(addr)
             addr = getattr(ifunc_jitter.cpu, ifunc_machine.lifter_model_call(loc_db).ret_reg.name)
