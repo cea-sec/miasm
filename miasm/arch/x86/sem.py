@@ -1280,7 +1280,8 @@ def compose_eflag(s=32):
             m2_expr.ExprInt(0, 1), zf, nf, tf, i_f, df, of, iopl]
 
     if s == 32:
-        args += [nt, m2_expr.ExprInt(0, 1), rf, vm, ac, vif, vip, i_d]
+        # RF and VM are cleared by pushf[dq]. 
+        args += [nt, m2_expr.ExprInt(0, 1), m2_expr.ExprInt(0, 1), m2_expr.ExprInt(0, 1), ac, vif, vip, i_d]
     elif s == 16:
         args += [nt, m2_expr.ExprInt(0, 1)]
     else:
