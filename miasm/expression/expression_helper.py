@@ -74,6 +74,19 @@ def merge_sliceto_slice(expr):
                     out_args[-1] = value[last_value.start:arg.stop]
                     continue
 
+            # Merge consecutive mem/slice(mem)
+            elif (isinstance(arg, m2_expr.ExprSlice) and
+                  isinstance(last_value, m2_expr.ExprMem)):
+                args_arg = arg.arg
+                if (isinstance(args_arg, m2_expr.ExprMem) and
+                    args_arg.ptr == last_value.ptr and
+                    arg.start == last_value.size):
+                    if args_arg.size == arg.stop:
+                        out_args[-1] = args_arg
+                    else:
+                        out_args[-1] = args_arg[0:arg.stop]
+                    continue
+
         # Unmergeable
         last_index = index
         out_args.append(arg)
