@@ -738,7 +738,7 @@ def sys_x86_64_readlink(jitter, linux_env):
         # Not a link
         jitter.cpu.RAX = -1
     else:
-        data = link[:bufsize - 1] + b"\x00"
+        data = link[:bufsize - 1].encode() + b"\x00"
         jitter.vm.set_mem(buf, data)
         jitter.cpu.RAX = len(data) - 1
 
