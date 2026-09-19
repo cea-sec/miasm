@@ -367,7 +367,7 @@ class TranslatorC(Translator):
                 return out
 
             elif expr.op == "segm":
-                return "segm2addr(jitcpu, %s, %s)" % (
+                return f"(segm2addr(jitcpu, %s, %s) & {(1 << expr.size) - 1}ULL)" % (
                     self.from_expr(expr.args[0]),
                     self.from_expr(expr.args[1])
                 )
