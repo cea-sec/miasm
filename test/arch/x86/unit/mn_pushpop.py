@@ -2,7 +2,7 @@
 
 import sys
 
-from asm_test import Asm_Test_16, Asm_Test_32
+from asm_test import Asm_Test_16, Asm_Test_32, Asm_Test_64
 from miasm.core.utils import pck16, pck32
 
 
@@ -216,6 +216,138 @@ class Test_PUSH_mode16_32(Asm_Test_16):
         buf = self.myjit.vm.get_mem(self.myjit.cpu.ESP, 0x4)
         assert(buf == self.buf)
 
+class Test_PUSHFW(Asm_Test_16):
+    MYSTRING = "test pushfw"
+
+    def prepare(self):
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
+
+    def test_init(self):
+        init_regs(self)
+        self.myjit.cpu.cf = 1
+        self.myjit.cpu.zf = 1
+
+    TXT = '''
+    main:
+       PUSHFW
+       JMP lbl_ret
+    '''
+
+    def check(self):
+        assert self.myjit.cpu.SP == self.stk_origin - 0x2
+        buf = self.myjit.vm.get_mem(self.myjit.cpu.SP, 0x2)
+        flags = int.from_bytes(buf, byteorder="little")
+
+        assert(flags & 1 == 1)       # CF
+        assert(flags & 0x40 == 0x40) # ZF
+
+class Test_PUSHFD(Asm_Test_32):
+    MYSTRING = "test pushfd"
+
+    def prepare(self):
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
+
+    def test_init(self):
+        init_regs(self)
+        self.myjit.cpu.cf = 1
+        self.myjit.cpu.zf = 1
+
+    TXT = '''
+    main:
+       PUSHFD
+       JMP lbl_ret
+    '''
+
+    def check(self):
+        assert self.myjit.cpu.ESP == self.stk_origin - 0x4
+        buf = self.myjit.vm.get_mem(self.myjit.cpu.ESP, 0x4)
+        eflags = int.from_bytes(buf, byteorder="little")
+
+        assert(eflags & 1 == 1)       # CF
+        assert(eflags & 0x40 == 0x40) # ZF
+
+class Test_PUSHFQ(Asm_Test_64):
+    MYSTRING = "test pushfq"
+
+    def prepare(self):
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
+
+    def test_init(self):
+        init_regs(self)
+        self.myjit.cpu.cf = 1
+        self.myjit.cpu.zf = 1
+
+    TXT = '''
+    main:
+       PUSHFQ
+       JMP lbl_ret
+    '''
+
+    def check(self):
+        assert self.myjit.cpu.RSP == self.stk_origin - 0x8
+        buf = self.myjit.vm.get_mem(self.myjit.cpu.RSP, 0x8)
+        rflags = int.from_bytes(buf, byteorder="little")
+
+        assert(rflags & 1 == 1)       # CF
+        assert(rflags & 0x40 == 0x40) # ZF
+
+class Test_PUSHFD_clears_VM_RF(Asm_Test_32):
+    MYSTRING = "test pushfd clears VM and RF"
+
+    def prepare(self):
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
+
+    def test_init(self):
+        init_regs(self)
+        # VM + RF + IF + ZF + 0b10 (Reserved) + CF
+        eflags = 0b0000_0011_0000_0010_0100_0011
+        self.myjit.push_uint32_t(eflags)
+
+    TXT = '''
+    main:
+       POPFD
+       PUSHFD
+       JMP lbl_ret
+    '''
+
+    def check(self):
+        assert self.myjit.cpu.RSP == self.stk_origin - 0x4
+        buf = self.myjit.vm.get_mem(self.myjit.cpu.RSP, 0x4)
+        eflags = int.from_bytes(buf, byteorder="little")
+
+        assert(eflags & 1 == 1)           # CF
+        assert(eflags & 0x40 == 0x40)     # ZF
+        assert(eflags & 0x0001_0000 == 0) # RF
+        assert(eflags & 0x0002_0000 == 0) # VM
+
+class Test_PUSHFQ_clears_VM_RF(Asm_Test_64):
+    MYSTRING = "test pushfq clears VM and RF"
+
+    def prepare(self):
+        self.loc_db.add_location("lbl_ret", self.ret_addr)
+
+    def test_init(self):
+        init_regs(self)
+        # VM + RF + IF + ZF + 0b10 (Reserved) + CF
+        rflags = 0b0000_0011_0000_0010_0100_0011
+        self.myjit.push_uint64_t(rflags)
+
+    TXT = '''
+    main:
+       POPFQ
+       PUSHFQ
+       JMP lbl_ret
+    '''
+
+    def check(self):
+        assert self.myjit.cpu.RSP == self.stk_origin - 0x8
+        buf = self.myjit.vm.get_mem(self.myjit.cpu.RSP, 0x8)
+        rflags = int.from_bytes(buf, byteorder="little")
+
+        assert(rflags & 1 == 1)           # CF
+        assert(rflags & 0x40 == 0x40)     # ZF
+        assert(rflags & 0x0001_0000 == 0) # RF
+        assert(rflags & 0x0002_0000 == 0) # VM
 
 class Test_POP_mode32_32(Asm_Test_32):
     MYSTRING = "test pop mode32 32"
@@ -317,5 +449,10 @@ if __name__ == "__main__":
                                         Test_POP_mode32_16,
                                         Test_POP_mode16_16,
                                         Test_POP_mode16_32,
+                                        Test_PUSHFW,
+                                        Test_PUSHFD,
+                                        Test_PUSHFQ,
+                                        Test_PUSHFD_clears_VM_RF,
+                                        Test_PUSHFQ_clears_VM_RF,
                                         ]
     ]
