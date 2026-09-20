@@ -755,6 +755,14 @@ class mn_arm(cls_mn):
     def get_symbol_size(self, symbol, loc_db, mode):
         return 32
 
+    def cond_to_branch(self, cond_name):
+        """
+        returns branch which is alternative to IR @cond_name
+        """
+        raise RuntimeError("Not implemented")
+        assert cond_name in cond_dct_inv, "Unknown cond name"
+        cond_num = cond_dct_inv[cond_name]
+        return cond_to_br[cond_num]
 
 class mn_armt(cls_mn):
     name = "armt"
@@ -862,6 +870,14 @@ class mn_armt(cls_mn):
     def get_symbol_size(self, symbol, loc_db, mode):
         return 32
 
+    def cond_to_branch(self, cond_name):
+        """
+        returns branch which is alternative to IR @cond_name
+        """
+        raise RuntimeError("Not implemented")
+        assert cond_name in cond_dct_inv, "Unknown cond name"
+        cond_num = cond_dct_inv[cond_name]
+        return cond_to_br[cond_num]
 
 class arm_arg(m_arg):
     def asm_ast_to_expr(self, arg, loc_db):
