@@ -180,7 +180,7 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB | None, run_
         addr_writer = lambda vaddr, addr: vm.set_mem(vaddr,
                                                      struct.pack("<I", addr))
     else:
-        raise ValueError("Unsupported elf size %d" % elf.size)
+        raise ValueError(f"Unsupported elf size {elf.size}")
 
     symb_section = section.linksection
     for reloc in section.reltab:
@@ -196,8 +196,10 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB | None, run_
 
         is_ifunc = False
         symbol_entry = None
+        symbol_name = None
         if r_info_sym > 0:
             symbol_entry = symb_section.symtab[r_info_sym]
+            symbol_name = symbol_entry.name.decode()
 
         r_offset = reloc.offset
         r_addend = reloc.cstr.sym
@@ -219,9 +221,9 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB | None, run_
                 addr = base_addr + r_addend
         elif reloc.type == elf_csts.R_X86_64_64:
             # S + A
-            addr_symb = loc_db.get_name_offset(symbol_entry.name.decode())
+            addr_symb = loc_db.get_name_offset(symbol_name)
             if addr_symb is None:
-                log.warning("Unable to find symbol %r" % symbol_entry.name.decode())
+                log.warning(f"Unable to find symbol {symbol_name}")
                 continue
             addr = addr_symb + r_addend
             where = base_addr + r_offset
@@ -231,7 +233,7 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB | None, run_
                 (32, elf_csts.R_386_TLS_TPOFF),
         ]:
             # Thread dependent, ignore for now
-            log.debug("Skip relocation TPOFF64 %r", reloc)
+            log.debug(f"Skip relocation TPOFF64 {reloc}")
             continue
         elif (elf.size, reloc.type) in [
                 (64, elf_csts.R_X86_64_GLOB_DAT),
@@ -240,17 +242,14 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB | None, run_
                 (32, elf_csts.R_386_GLOB_DAT),
         ]:
             # S
-            addr = loc_db.get_name_offset(symbol_entry.name.decode())
+            addr = loc_db.get_name_offset(symbol_name)
             if addr is None:
-                log.warning("Unable to find symbol %r" % symbol_entry.name)
+                log.warning(f"Unable to find symbol {symbol_name}")
                 continue
             is_ifunc = symbol_entry.info & 0xF == elf_csts.STT_GNU_IFUNC
             where = base_addr + r_offset
         else:
-            raise ValueError(
-                "Unknown relocation type: %d (%r)" % (reloc.type,
-                                                      reloc)
-            )
+            raise ValueError(f"Unknown relocation type: {reloc.type} ({reloc})")
         if is_ifunc and run_ifuncs:
             # TODO: only relevant for statically and dynamically linked programs, cf. https://sourceware.org/glibc/manual/latest/html_node/Indirect-Functions.html#When-IFUNC-Resolvers-Run
             ifunc_machine = Machine(guess_arch(elf))
