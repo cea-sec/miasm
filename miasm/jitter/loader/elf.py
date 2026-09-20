@@ -165,7 +165,7 @@ def fill_loc_db_with_symbols(elf, loc_db, base_addr=0):
                 loc_db.add_location(name=name, offset=vaddr)
 
 
-def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB):
+def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB | None, run_ifuncs=False):
     """Apply relocation for x86 ELF contained in the section @section
     @elf: miasm.loader's ELF instance
     @vm: VmMngr instance
@@ -251,7 +251,7 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB):
                 "Unknown relocation type: %d (%r)" % (reloc.type,
                                                       reloc)
             )
-        if is_ifunc:
+        if is_ifunc and run_ifuncs:
             # TODO: only relevant for statically and dynamically linked programs, cf. https://sourceware.org/glibc/manual/latest/html_node/Indirect-Functions.html#When-IFUNC-Resolvers-Run
             ifunc_machine = Machine(guess_arch(elf))
             ifunc_jitter = ifunc_machine.jitter(loc_db)
@@ -282,11 +282,14 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB):
 
 
 def vm_load_elf(vm, fdata, name="", base_addr=0, loc_db=None, apply_reloc=False,
-                **kargs):
+                run_ifuncs=False, **kargs):
     """
     Very dirty elf loader
     TODO XXX: implement real loader
     """
+    if run_ifuncs and not apply_reloc:
+        log.warning("vm_load_elf was called with run_ifuncs=True but they won't be run nor applied since apply_reloc=False.")
+
     elf = elf_init.ELF(fdata, **kargs)
     i = interval()
     all_data = {}
@@ -335,7 +338,7 @@ def vm_load_elf(vm, fdata, name="", base_addr=0, loc_db=None, apply_reloc=False,
             sections.append(section)
         for section in sections:
             if arch in ["x86_64", "x86_32"]:
-                apply_reloc_x86(elf, vm, section, base_addr, loc_db)
+                apply_reloc_x86(elf, vm, section, base_addr, loc_db, run_ifuncs)
             else:
                 log.debug("Unsupported relocation for arch %r" % arch)
 
