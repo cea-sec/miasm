@@ -5,6 +5,7 @@ from miasm.ir.ir import IRBlock, AssignBlock
 from miasm.analysis.ssa import get_phi_sources_parent_block, \
     irblock_has_phi
 
+import logging
 
 class Varinfo(object):
     """Store liveness information for a variable"""
@@ -61,7 +62,8 @@ class UnSSADiGraph(object):
         """
         ircfg = self.ssa.graph
 
-        for irblock in list(viewvalues(ircfg.blocks)):
+        for block_loc in list(ircfg.blocks.keys()):
+            irblock = ircfg.get_block(block_loc)
             if not irblock_has_phi(irblock):
                 continue
 
@@ -87,7 +89,13 @@ class UnSSADiGraph(object):
             for parent, parallel_copies in viewitems(parent_to_parallel_copies):
                 parent = ircfg.blocks[parent]
                 assignblks = list(parent)
-                assignblks.append(AssignBlock(parallel_copies, parent[-1].instr))
+                # insert before IRDst, TODO: might need to check for interference as mentioned in the paper
+                # sanity checks for now:
+                jmp_block = parent[-1]
+                for jmp_src in jmp_block.values():
+                    jmp_read_values = set(filter(lambda expr: expr.is_id(), jmp_src.get_r(mem_read=True)))
+                    assert len(jmp_read_values & set(parallel_copies.keys())) == 0, "Interference between jmp instruction read set and parallel copy write set"
+                assignblks.insert(-1, AssignBlock(parallel_copies, jmp_block.instr))
                 new_irblock = IRBlock(parent.loc_db, parent.loc_key, assignblks)
                 ircfg.blocks[parent.loc_key] = new_irblock
 
