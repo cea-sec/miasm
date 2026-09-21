@@ -61,6 +61,7 @@ class UnSSADiGraph(object):
         """
         ircfg = self.ssa.graph
 
+        # Note: iterating over loc_keys to avoid lost update problem (GH #1521)
         for block_loc in list(ircfg.blocks.keys()):
             irblock = ircfg.get_block(block_loc)
             if not irblock_has_phi(irblock):
