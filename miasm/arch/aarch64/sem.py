@@ -282,7 +282,7 @@ system_regs = {
     (3, 1, 0, 0, 7): AIDR_EL1,
 
     (3, 2, 0, 0, 0): CSSELR_EL1,
-    (3, 0, 0, 0, 1): CTR_EL0,
+    (3, 3, 0, 0, 1): CTR_EL0,
 
     (3, 3, 0, 0, 7): DCZID_EL0,
 
@@ -1902,6 +1902,17 @@ def rev16(ir, instr, arg1, arg2):
     e.append(ExprAssign(arg1, result))
     return e, []
 
+def rbit(ir, instr, arg1, arg2):
+    out = []
+    for i in range(0, arg2.size):
+        out.append(arg2[i:i+1])
+
+    out.reverse()
+    e = []
+    result = ExprCompose(*out)
+    e.append(ExprAssign(arg1, result))
+    return e, []
+
 
 @sbuild.parse
 def extr(arg1, arg2, arg3, arg4):
@@ -2237,6 +2248,8 @@ mnemo_func.update({
     'extr': extr,
     'rev': rev,
     'rev16': rev16,
+
+    'rbit': rbit,
 
     'msr': msr,
     'mrs': mrs,
