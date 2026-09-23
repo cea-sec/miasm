@@ -390,7 +390,7 @@ class AssignBlock(object):
         @dst: Expr instance"""
         return m2_expr.ExprAssign(dst, self[dst])
 
-    def simplify(self, simplifier):
+    def simplify(self, simplifier, rewrite_mem=False, arch_size=0):
         """
         Return a new AssignBlock with expression simplified
 
@@ -398,10 +398,17 @@ class AssignBlock(object):
         """
         new_assignblk = {}
         for dst, src in viewitems(self):
-            if dst == src:
-                continue
-            new_src = simplifier(src)
-            new_dst = simplifier(dst)
+            if rewrite_mem:
+                e = self.dst2ExprAssign(dst)
+                rewritten = simplifier(e, arch_size)
+                new_src = rewritten.src
+                new_dst = rewritten.dst
+            else:
+                if dst == src:
+                    continue
+                new_src = simplifier(src)
+                new_dst = simplifier(dst)
+
             new_assignblk[new_dst] = new_src
         return AssignBlock(irs=new_assignblk, instr=self.instr)
 
@@ -742,7 +749,7 @@ class IRCFG(DiGraph):
         return out
 
 
-    def simplify(self, simplifier):
+    def simplify(self, simplifier, rewrite_mem=False):
         """
         Simplify expressions in each irblocks
         @simplifier: ExpressionSimplifier instance
@@ -751,7 +758,7 @@ class IRCFG(DiGraph):
         for loc_key, block in list(viewitems(self.blocks)):
             assignblks = []
             for assignblk in block:
-                new_assignblk = assignblk.simplify(simplifier)
+                new_assignblk = assignblk.simplify(simplifier, rewrite_mem, self._irdst.size)
                 if assignblk != new_assignblk:
                     modified = True
                 assignblks.append(new_assignblk)
