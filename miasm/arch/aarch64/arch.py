@@ -2136,12 +2136,12 @@ datap0_name = {'RBIT': 0b000000, 'REV16': 0b000001,
               'REV': 0b000010,
               'CLZ': 0b000100, 'CLS': 0b000101}
 bs_datap0_name = bs_name(l=6, name=datap0_name)
-aarch64op("ldstp", [bs('0', fname='sf'), bs('1'), modf, bs('11010110'), bs('00000'), bs_datap0_name, rn, rd])
+aarch64op("ldstp", [bs('0', fname='sf'), bs('1'), modf, bs('11010110'), bs('00000'), bs_datap0_name, rn, rd], [rd, rn])
 datap1_name = {'RBIT': 0b000000, 'REV16': 0b000001,
                'REV32': 0b000010, 'REV': 0b000011,
               'CLZ': 0b000100, 'CLS': 0b000101}
 bs_datap1_name = bs_name(l=6, name=datap1_name)
-aarch64op("ldstp", [bs('1', fname='sf'), bs('1'), modf, bs('11010110'), bs('00000'), bs_datap1_name, rn, rd])
+aarch64op("ldstp", [bs('1', fname='sf'), bs('1'), modf, bs('11010110'), bs('00000'), bs_datap1_name, rn, rd], [rd, rn])
 
 
 # conditional branch p.132
