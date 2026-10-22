@@ -637,8 +637,8 @@ def _rotate_tpl(ir, instr, dst, src, op, left=False):
         op, dst, shifter - m2_expr.ExprInt(1, size=shifter.size))
     new_cf = new_cf.msb() if left else new_cf[:1]
 
-    # OF is defined only for @b == 1
-    new_of = m2_expr.ExprCond(src - m2_expr.ExprInt(1, size=src.size),
+    # OF is defined only for a masked count of 1
+    new_of = m2_expr.ExprCond(shifter - m2_expr.ExprInt(1, size=shifter.size),
                               m2_expr.ExprInt(0, size=of.size),
                               res.msb() ^ new_cf if left else (dst ^ res).msb())
 
@@ -690,8 +690,8 @@ def rotate_with_carry_tpl(ir, instr, op, dst, src):
         of_value = result_trunc.msb() ^ new_cf
     else:
         of_value = (dst ^ result_trunc).msb()
-    # OF is defined only for @b == 1
-    new_of = m2_expr.ExprCond(src - m2_expr.ExprInt(1, size=src.size),
+    # OF is defined only for a masked count of 1
+    new_of = m2_expr.ExprCond(shifter - m2_expr.ExprInt(1, size=shifter.size),
                               m2_expr.ExprInt(0, size=of.size),
                               of_value)
 
