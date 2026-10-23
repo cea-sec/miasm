@@ -1859,7 +1859,7 @@ def simp_flag_cst(expr_simp, expr):
             "FLAG_SUBWC_OF", "FLAG_ADDWC_CF", "FLAG_SUBWC_CF", "FLAG_SIGN_ADDWC",
             "FLAG_SIGN_SUBWC", "FLAG_EQ_SUBWC",
             "CC_U<=", "CC_U>=", "CC_S<", "CC_S>", "CC_S<=", "CC_S>=", "CC_U>",
-            "CC_U<", "CC_NEG", "CC_EQ", "CC_NE", "CC_POS"
+            "CC_U<", "CC_NEG", "CC_EQ", "CC_NE", "CC_POS", "CC_sOVR", "CC_sNOOVR"
     ]:
         return expr
     if not all(arg.is_int() for arg in expr.args):
