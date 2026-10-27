@@ -248,54 +248,35 @@ class UnSSADiGraph(object):
             # Defined in the same AssignBlock -> interfere
             return True
 
+        # Virtual copies are defined in their predecessors, not at the Phi.
+        if node_a in self.new_var_to_srcs_parents:
+            return self.ssa_def_is_live_at(node_a, node_b, parent)
+        if node_b in self.new_var_to_srcs_parents:
+            return self.ssa_def_is_live_at(node_b, node_a, parent)
+
         if self.var_to_varinfo[node_a].live_index < self.var_to_varinfo[node_b].live_index:
             return self.ssa_def_is_live_at(node_a, node_b, parent)
         return self.ssa_def_is_live_at(node_b, node_a, parent)
 
     def merge_sets_interfere(self, merge_a, merge_b, parent):
         """
-        Return True if no variable in @merge_a and @merge_b interferes.
+        Return True if a variable in @merge_a interferes with one in @merge_b.
 
-        Implementation of "Algorithm 2: Check intersection in a set of variables"
+        Virtual phi copies can be defined in several predecessor blocks, so
+        checking only adjacent variables in dominance order can miss conflicts.
 
-        @merge_a: a dom ordered list of equivalent variables
-        @merge_b: a dom ordered list of equivalent variables
+        @merge_a: a set of equivalent variables
+        @merge_b: a set of equivalent variables
         @parent: Optional parent location of the phi source for liveness tests
         """
         if merge_a == merge_b:
             # No need to consider interference if equal
             return False
 
-        merge_a_list = self.merge_set_sort(merge_a)
-        merge_b_list = self.merge_set_sort(merge_b)
-        dom = []
-        while merge_a_list or merge_b_list:
-            if not merge_a_list:
-                _, current = merge_b_list.pop(0)
-            elif not merge_b_list:
-                _, current = merge_a_list.pop(0)
-            else:
-                # compare live_indexes (standing for dominance)
-                if merge_a_list[-1] < merge_b_list[-1]:
-                    _, current = merge_a_list.pop(0)
-                else:
-                    _, current = merge_b_list.pop(0)
-            while dom and not self.ssa_def_dominates(dom[-1], current):
-                dom.pop()
-
-            # Don't test node in same merge_set
-            if (
-                    # Is stack not empty?
-                    dom and
-                    # Trivial non-interference if dom.top() and current come
-                    # from the same merge set
-                    not (dom[-1] in merge_a and current in merge_a) and
-                    not (dom[-1] in merge_b and current in merge_b) and
-                    # Actually test for interference
-                    self.merge_nodes_interfere(current, dom[-1], parent)
-            ):
+        for node_a in merge_a:
+            for node_b in merge_b:
+                if self.merge_nodes_interfere(node_a, node_b, parent):
                     return True
-            dom.append(current)
         return False
 
     def aggressive_coalesce_parallel_copy(self, parallel_copies, parent):
