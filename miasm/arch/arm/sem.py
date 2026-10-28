@@ -674,6 +674,8 @@ def l_cmp(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    if c.is_op('rrx'):
+        c, _ = compute_rrx_carry(c)
     arg1, arg2 = b, c
     e += update_flag_arith_sub_zn(arg1, arg2)
     e += update_flag_arith_sub_co(arg1, arg2)
@@ -756,7 +758,7 @@ def mov(ir, instr, a, b):
 
 
 def movt(ir, instr, a, b):
-    r = a | b << ExprInt(16, 32)
+    r = ExprCompose(a[:16], b[:16])
     e = [ExprAssign(a, r)]
     dst = get_dst(a)
     if dst is not None:
