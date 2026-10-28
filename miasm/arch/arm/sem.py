@@ -958,7 +958,7 @@ def sdiv(ir, instr, a, b, c=None):
         c, _ = compute_rrx_carry(c)
 
     loc_div = ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
-    loc_except = ExprId(ir.loc_db.add_location(), ir.IRDst.size)
+    loc_except = ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
     loc_next = ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
 
     e.append(ExprAssign(ir.IRDst, ExprCond(c, loc_div, loc_except)))
