@@ -1,12 +1,18 @@
 """ Test cases for dead code elimination"""
+from itertools import permutations, product
+
 from future.utils import viewvalues
 
 from miasm.expression.expression import ExprId, ExprInt, ExprAssign, ExprMem, \
-    ExprCond, ExprLoc
+    ExprCond, ExprLoc, ExprOp
 from miasm.core.locationdb import LocationDB
+from miasm.analysis.data_flow import DiGraphLivenessSSA
+from miasm.analysis.outofssa import UnSSADiGraph
 from miasm.analysis.simplifier import IRCFGSimplifierSSA
+from miasm.analysis.ssa import SSADiGraph
 from miasm.ir.analysis import LifterModelCall
 from miasm.ir.ir import IRCFG, IRBlock, AssignBlock
+from miasm.ir.symbexec import SymbolicExecutionEngine
 
 loc_db = LocationDB()
 
@@ -619,3 +625,46 @@ for test_nb, ircfg in enumerate(
     open('final_%d.dot' % test_nb, 'w').write(ircfg.dot())
 
     # XXX TODO: add real regression test
+
+
+# Issue #1535: merging phi copies must preserve simultaneously live values.
+ssa_vars = [ExprId("v%d" % index, 32) for index in range(5)]
+blocks = [
+    (LBL0, [
+        [ExprAssign(ssa_vars[0], CST0)],
+        [ExprAssign(IRDst, ExprCond(x, ExprLoc(LBL1, 32), ExprLoc(LBL2, 32)))]
+    ]),
+    (LBL1, [
+        [ExprAssign(ssa_vars[1], CST1)],
+        [ExprAssign(ssa_vars[3], CST3)],
+        [ExprAssign(IRDst, ExprCond(y, ExprLoc(LBL2, 32), ExprLoc(LBL3, 32)))]
+    ]),
+    (LBL2, [
+        [ExprAssign(ssa_vars[2], ExprOp("Phi", ssa_vars[0], ssa_vars[1]))],
+        [ExprAssign(IRDst, ExprLoc(LBL3, 32))]
+    ]),
+    (LBL3, [
+        [ExprAssign(ssa_vars[4], ExprOp("Phi", ssa_vars[2], ssa_vars[3]))],
+        [ExprAssign(r, ssa_vars[4])],
+        [ExprAssign(IRDst, END)]
+    ])
+]
+for block_order in permutations(blocks):
+    ircfg = IRA.new_ircfg()
+    for label, assignments in block_order:
+        ircfg.add_irblock(gen_irblock(label, assignments))
+
+    ssa = SSADiGraph(ircfg)
+    ssa.immutable_ids.add(IRDst)
+    cfg_liveness = DiGraphLivenessSSA(ircfg)
+    cfg_liveness.init_var_info(IRA)
+    cfg_liveness.compute_liveness()
+    unssa = UnSSADiGraph(ssa, LBL0, cfg_liveness)
+    assert not unssa.merge_sets_interfere(set([ssa_vars[0]]), set([r]), None)
+
+    for x_value, y_value in product([0, 1], repeat=2):
+        state = {x: ExprInt(x_value, 32), y: ExprInt(y_value, 32)}
+        symbexec = SymbolicExecutionEngine(IRA, state)
+        symbexec.run_at(ircfg, LBL0)
+        expected = CST0 if not x_value else CST1 if y_value else CST3
+        assert symbexec.eval_expr(r) == expected
