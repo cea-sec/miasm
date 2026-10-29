@@ -59,8 +59,8 @@ ld_path = linux_env.filesystem.resolve_path(ld_path)
 cont_ld = Container.from_stream(
     open(ld_path, "rb"),
     vm=jitter.vm,
+    loc_db=loc_db,
     addr=0x80000000,
-    apply_reloc=True
 )
 # Load the target ELF in memory, without applying reloc
 loc_db = cont_ld.loc_db
