@@ -2437,7 +2437,25 @@ class arm_sp(arm_reg):
     reg_info = gpregs_sp
     parser = reg_info.parser
 
+class armt_shift_imm5(arm_imm):
+    # LSRS/ASRS #32 is encoded with a zero shift field
+    def decodeval(self, v):
+        if v == 0 and self.parent.name in ['LSRS', 'ASRS']:
+            return 32
+        return v
+
+    def encodeval(self, v):
+        if self.parent.name in ['LSRS', 'ASRS']:
+            if not 0 < v <= 32:
+                return False
+            return v & 0x1f
+        if not 0 <= v < 32:
+            return False
+        return v
+
+
 off5 = bs(l=5, cls=(arm_imm,), fname="off")
+off5_shift = bs(l=5, cls=(armt_shift_imm5,), fname="off")
 off3 = bs(l=3, cls=(arm_imm,), fname="off")
 off8 = bs(l=8, cls=(arm_imm,), fname="off")
 off7 = bs(l=7, cls=(arm_off7,), fname="off")
@@ -2539,7 +2557,7 @@ br_name = {'BEQ': 0, 'BNE': 1, 'BCS': 2, 'BCC': 3, 'BMI': 4,
 bs_br_name = bs_name(l=4, name=br_name)
 
 
-armtop("mshift", [bs('000'), bs_mshift_name, off5, rsl, rdl], [rdl, rsl, off5])
+armtop("mshift", [bs('000'), bs_mshift_name, off5_shift, rsl, rdl], [rdl, rsl, off5_shift])
 armtop("addsubr", [bs('000110'),  bs_addsub_name, rnl, rsl, rdl], [rdl, rsl, rnl])
 armtop("addsubi", [bs('000111'),  bs_addsub_name, off3, rsl, rdl], [rdl, rsl, off3])
 armtop("mcas", [bs('001'), bs_mov_cmp_add_sub_name, rnl, off8])
@@ -2585,7 +2603,11 @@ armtop("uxtah", [bs('111110100'), bs('001'), rn_nopc, bs('1111'), rd, bs('10'), 
 #
 # ARM Architecture Reference Manual Thumb-2 Supplement
 
-armt_gpreg_shift_off = (gpregs_nosppc.parser + allshifts_t_armt + (gpregs.parser | int_1_31)).setParseAction(cb_shift)
+armt_gpreg_shift_off = (gpregs_nosppc.parser + (
+    (all_binaryop_1_31_shifts_t + (gpregs.parser | int_1_31)) |
+    (all_binaryop_1_32_shifts_t + (gpregs.parser | int_1_32)) |
+    (all_unaryop_shifts_t + (gpregs.parser | int_1_31))
+)).setParseAction(cb_shift)
 
 
 armt_gpreg_shift_off |= gpregs_nosppc.parser
@@ -2622,6 +2644,9 @@ class armt_gpreg_rm_shift_off(arm_reg):
             shift = allshifts_armt[self.parent.stype.value]
         else:
             shift = allshifts_armt[4]
+        # LSR/ASR #32 is encoded with a zero shift field
+        if i == 0 and shift in ['>>', 'a>>']:
+            i = 32
         self.expr = ExprOp(shift, r, ExprInt(i, 32))
         return True
 
@@ -2649,6 +2674,12 @@ class armt_gpreg_rm_shift_off(arm_reg):
             self.parent.imm5_2.value = 0
             self.parent.stype.value = 3
             return True
+        if shift in ['>>', 'a>>']:
+            if not 0 < i <= 32:
+                return False
+            i &= 0x1f
+        elif not 0 <= i < 32:
+            return False
         self.parent.stype.value = allshifts_armt.index(shift)
         self.parent.imm5_2.value = i & 3
         self.parent.imm5_3.value = i >> 2
@@ -3340,8 +3371,8 @@ bs_deref_reg_reg = bs(l=4, cls=(armt_deref_reg_reg,))
 bs_deref_reg_reg_lsl_1 = bs(l=4, cls=(armt_deref_reg_reg_lsl_1,))
 
 
-armtop("adc", [bs('11110'),  imm12_1, bs('0'), bs('1010'), scc, rn_nosppc, bs('0'), imm12_3, rd_nosppc, imm12_8])
-armtop("adc", [bs('11101'),  bs('01'), bs('1010'), scc, rn_nosppc, bs('0'), imm5_3, rd_nosppc, imm5_2, imm_stype, rm_sh])
+armtop("adc", [bs('11110'),  imm12_1, bs('0'), bs('1010'), scc, rn_nosppc, bs('0'), imm12_3, rd_nosppc, imm12_8], [rd_nosppc, rn_nosppc, imm12_8])
+armtop("adc", [bs('11101'),  bs('01'), bs('1010'), scc, rn_nosppc, bs('0'), imm5_3, rd_nosppc, imm5_2, imm_stype, rm_sh], [rd_nosppc, rn_nosppc, rm_sh])
 armtop("bl", [bs('11110'), tsign, timm10H, bs('11'), tj1, bs('1'), tj2, timm11L])
 armtop("blx", [bs('11110'), tsign, timm10H, bs('11'), tj1, bs('0'), tj2, timm10L, bs('0')])
 armtop("cbz", [bs('101100'), imm1, bs('1'), imm5_off, rnl], [rnl, imm5_off])
@@ -3381,7 +3412,7 @@ armtop("mov", [bs('11101010010'), scc, bs('1111'), bs('0'), imm5_3, rd_nosppc, i
 armtop("mov", [bs('11101010010'), scc, bs('1111'), bs('0'), imm5_3, rd_nosppc, imm5_2, imm_stype_11, rm_sh], [rd_nosppc, rm_sh] )
 
 
-armtop("orr", [bs('11110'), imm12_1, bs('00010'), scc, rn_nosppc, bs('0'), imm12_3, rd, imm12_8] )
+armtop("orr", [bs('11110'), imm12_1, bs('00010'), scc, rn_nosppc, bs('0'), imm12_3, rd, imm12_8], [rd, rn_nosppc, imm12_8])
 armtop("add", [bs('11110'), imm12_1, bs('01000'), bs('0'), rn, bs('0'), imm12_3, rd_nopc, imm12_8], [rd_nopc, rn, imm12_8])
 armtop("adds",[bs('11110'), imm12_1, bs('01000'), bs('1'), rn, bs('0'), imm12_3, rd_nopc, imm12_8], [rd_nopc, rn, imm12_8])
 armtop("bic", [bs('11110'), imm12_1, bs('00001'), scc, rn_nosppc, bs('0'), imm12_3, rd, imm12_8], [rd, rn_nosppc, imm12_8])
