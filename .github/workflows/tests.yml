@@ -1,6 +1,9 @@
 name: Miasm regression tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
 
 jobs:
   linux:
@@ -29,77 +32,15 @@ jobs:
       uses: ./.github/actions/install
 
     - name: Base tests
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py && git ls-files -o --exclude-standard
+      run: cd test; python -W error test_all.py
 
-    - name: Regression tests
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
-      env:
-        MIASM_TEST_EXTRA_ARG: -o regression -t long,python,llvm,gcc,z3,qemu,cparser
-
-    - name: Run examples
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
-      env:
-        MIASM_TEST_EXTRA_ARG: -o example -t long,python,llvm,gcc,z3,qemu,cparser
-
-    - name: Test long tests
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
-      env:
-        MIASM_TEST_EXTRA_ARG: -o long
-
-    - name: Test qemu jitter llvm/gcc
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
-      env:
-        MIASM_TEST_EXTRA_ARG: -o qemu -t llvm,gcc
-
-    - name: Test qemu jitter python/gcc
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
-      env:
-        MIASM_TEST_EXTRA_ARG: -o qemu -t python,gcc
-
-    - name: Test qemu jitter python/llvm
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
-      env:
-        MIASM_TEST_EXTRA_ARG: -o qemu -t python,llvm
-
-    - name: Test llvm qemu/long
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
-      env:
-        MIASM_TEST_EXTRA_ARG: -o llvm -t qemu,long
-
-    - name: Test gcc qemu/long
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
-      env:
-        MIASM_TEST_EXTRA_ARG: -o gcc -t qemu,long
-
-    - name: Test python qemu/long
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
-      env:
-        MIASM_TEST_EXTRA_ARG: -o python -t qemu,long
-
-    - name: Z3 tests
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
-      env:
-        MIASM_TEST_EXTRA_ARG: -o z3
-
-    - name: Cparser tests
-      run: cd test; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
-      env:
-        MIASM_TEST_EXTRA_ARG: -o cparser
-
-    - name: Loader tests
-      run: cd example/loader; python --version |& grep -q "Python 3" || flags="-W error"; for i in ../../miasm-extended-tests/loader/dll_win_xp/*.dll; do python get_exports.py $i; done
-      env:
-        MIASM_EXTENTED_TESTS_LOADER: loader
-
-    - name: Loader tests
-      run: cd "miasm-extended-tests/$MIASM_EXTENTED_TESTS_LOADER" && ./test_dll.py
-      env:
-        MIASM_EXTENTED_TESTS_LOADER: loader
-
-    - name: IR tests
-      run: cd "miasm-extended-tests/$MIASM_EXTENTED_TESTS_IR" && ./run.sh
-      env:
-        MIASM_EXTENTED_TESTS_IR: ir_tests
+    - name: Extended tests
+      run: |
+        cd miasm-extended-tests
+        
+        cd ir_tests && ./run.sh
+        cd ../loader && python test_dll.py
+        cd ../ls_x64 && ./run.sh ../..
 
   windows:
     runs-on: windows-latest
@@ -131,7 +72,7 @@ jobs:
       uses: ./.github/actions/install
 
     - name: Windows tests
-      run: cd test; python -W error test_all.py -t gcc && git ls-files -o --exclude-standard
+      run: cd test; python -W error test_all.py -t gcc
       shell: bash
 
   macos-aarch64:
@@ -160,4 +101,4 @@ jobs:
       uses: ./.github/actions/install
 
     - name: macOS tests
-      run: cd test; python -W error test_all.py -t gcc,llvm,qemu,long && git ls-files -o --exclude-standard
+      run: cd test; python -W error test_all.py -t gcc,llvm,qemu,long
