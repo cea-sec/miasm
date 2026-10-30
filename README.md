@@ -1,6 +1,4 @@
 [![Miasm tests](https://github.com/cea-sec/miasm/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/cea-sec/miasm/actions/workflows/tests.yml?branch=master)
-[![Code Climate](https://codeclimate.com/github/cea-sec/miasm/badges/gpa.svg)](https://codeclimate.com/github/cea-sec/miasm)
-[![Join the chat at https://gitter.im/cea-sec/miasm](https://badges.gitter.im/cea-sec/miasm.svg)](https://gitter.im/cea-sec/miasm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 <p align="center">
 <img src="https://raw.githubusercontent.com/cea-sec/miasm/master/doc/logo_miasm.png">
@@ -12,7 +10,7 @@ What is Miasm?
 
 Miasm is a free and open source (GPLv2) reverse engineering framework.
 Miasm aims to analyze / modify / generate binary programs. Here is
-a non exhaustive list of features:
+a non-exhaustive list of features:
 
 * Opening / modifying / generating PE / ELF 32 / 64 LE / BE
 * Assembling / Disassembling X86 / ARM / MIPS / SH4 / MSP430
@@ -514,7 +512,7 @@ instance to emulate library functions effects.
 Documentation
 =============
 
-Some documentation ressources are available in the [doc](doc) folder.
+Some documentation resources are available in the [doc](doc) folder.
 
 An auto-generated documentation is available:
 * [Doxygen](http://miasm.re/miasm_doxygen)
@@ -598,7 +596,7 @@ A quick way to have them working is to add:
 * `pyparsing.py` to `C:\...\IDA\python\` or `pip install pyparsing`
 * `miasm/miasm` directory to `C:\...\IDA\python\`
 
-All features excepting JITter related ones will be available. For a more complete installation, please refer to above paragraphs.
+All features excepting jitter related ones will be available. For a more complete installation, please refer to above paragraphs.
 
 Testing
 =======
@@ -644,8 +642,6 @@ Blog posts / papers / conferences
 
 * [Deobfuscation: recovering an OLLVM-protected program](http://blog.quarkslab.com/deobfuscation-recovering-an-ollvm-protected-program.html)
 * [Taming a Wild Nanomite-protected MIPS Binary With Symbolic Execution: No Such Crackme](https://doar-e.github.io/blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/)
-* [Génération rapide de DGA avec Miasm](https://www.lexsi.com/securityhub/generation-rapide-de-dga-avec-miasm/): Quick computation of DGA (French article)
-* [Enabling Client-Side Crash-Resistance to Overcome Diversification and Information Hiding](https://www.internetsociety.org/sites/default/files/blogs-media/enabling-client-side-crash-resistance-overcome-diversification-information-hiding.pdf): Detect undirected call potential arguments
 * [Miasm: Framework de reverse engineering](https://www.sstic.org/2012/presentation/miasm_framework_de_reverse_engineering/) (French)
 * [Tutorial miasm](https://www.sstic.org/2014/presentation/Tutorial_miasm/) (French video)
 * [Graphes de dépendances : Petit Poucet style](https://www.sstic.org/2016/presentation/graphes_de_dpendances__petit_poucet_style/): DepGraph (French)
@@ -653,5 +649,5 @@ Blog posts / papers / conferences
 Books
 -----
 
-* [Practical Reverse Engineering: X86, X64, Arm, Windows Kernel, Reversing Tools, and Obfuscation](http://eu.wiley.com/WileyCDA/WileyTitle/productCd-1118787315,subjectCd-CSJ0.html): Introduction to Miasm (Chapter 5 "Obfuscation")
+* [Practical Reverse Engineering: X86, X64, Arm, Windows Kernel, Reversing Tools, and Obfuscation](https://www.wiley.com/en-us/shop/general-introductory-computer-science/practical-reverse-engineering-x86-x64-arm-windows-kernel-reversing-tools-and-obfuscation-p-9781118787311): Introduction to Miasm (Chapter 5 "Obfuscation")
 * [BlackHat Python - Appendix](https://github.com/oreilly-japan/black-hat-python-jp-support/tree/master/appendix-A): Japan security book's samples
