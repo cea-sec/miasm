@@ -549,7 +549,7 @@ Optional Python features are grouped as extras:
 | --- | --- | --- | --- |
 | `cparser` | `pycparser>=2.17` | C type parsing and C-like expression access helpers | `miasm/core/ctypesmngr.py`, `miasm/core/objc.py` |
 | `z3` | `z3-solver==4.16.0.0` | Z3 expression translation, solver-backed dependency graph, DSE constraints, and range tests | `miasm/ir/translators/z3_ir.py`, `miasm/analysis/depgraph.py`, `miasm/analysis/dse.py` |
-| `llvm` | `llvmlite==0.44.0` | LLVM JIT backend and LLVM IR export | `miasm/jitter/jitcore_llvm.py`, `miasm/jitter/llvmconvert.py`, `example/expression/export_llvm.py` |
+| `llvm` | `llvmlite==0.50.0` | LLVM JIT backend and LLVM IR export | `miasm/jitter/jitcore_llvm.py`, `miasm/jitter/llvmconvert.py`, `example/expression/export_llvm.py` |
 | `graph` | `graphviz` | Python Graphviz object export from Miasm graphs | `miasm/core/graph.py` (`DiGraph.graphviz`) |
 | `crypto` | `pycryptodome` | Windows API crypto/hash emulation | `miasm/os_dep/win_api_x86_32.py` |
 | `all` | runtime extras above | All optional runtime features | Convenience alias for users |

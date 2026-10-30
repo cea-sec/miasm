@@ -11,6 +11,7 @@ import re
 import subprocess
 import sysconfig
 import tempfile
+import pathlib
 from shutil import copy2, copyfile, rmtree, which
 
 
@@ -173,9 +174,11 @@ def make_ext_modules(optional):
             [
                 "miasm/jitter/Jitllvm.c",
                 "miasm/jitter/bn.c",
-                "miasm/runtime/udivmodti4.c",
-                "miasm/runtime/divti3.c",
-                "miasm/runtime/udivti3.c",
+
+                # This is needed for the LLVM jitter.
+                # Some LLVM IR instructions lowers to compiler_rt library calls.
+                # llvmlite does not include the runtime, so we ship (part of) it instead.
+                *pathlib.Path("miasm/runtime").glob("*.c")
             ],
             optional=optional,
         ),
