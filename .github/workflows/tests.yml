@@ -25,9 +25,6 @@ jobs:
     - name: Update pip
       run: pip install pip --upgrade
 
-    - name: Install llvm 15 (llvmlite compatible)
-      run: sudo apt-get install llvm-15
-
     - name: Install Miasm
       uses: ./.github/actions/install
 
@@ -61,12 +58,6 @@ jobs:
     - name: Update pip
       run: python -m pip install pip --upgrade
       shell: bash
-
-    - name: Install LLVM/Clang
-      run: |
-        choco install llvm -y --no-progress
-        "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      shell: pwsh
 
     - name: Install Miasm
       uses: ./.github/actions/install
