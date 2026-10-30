@@ -11,13 +11,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "int_lib.h"
-#include "export.h"
 
 #ifdef CRT_HAS_128BIT
 
 // Returns: a / b
 
-_MIASM_EXPORT tu_int __udivti3(tu_int a, tu_int b) {
+COMPILER_RT_ABI tu_int __udivti3(tu_int a, tu_int b) {
   return __udivmodti4(a, b, 0);
 }
 
