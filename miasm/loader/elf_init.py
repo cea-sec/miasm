@@ -489,6 +489,28 @@ class RelTable(Section):
 class RelATable(RelTable):
     sht = elf.SHT_RELA
 
+    def parse_content(self, sex, size):
+        self.sex, self.size = sex, size
+        if size == 32:
+            WRela = WRela32
+        elif size == 64:
+            WRela = WRela64
+        else:
+            ValueError('unknown size')
+        c = self.content
+        self.relatab = []
+        self.rela = {}
+        sz = self.sh.entsize
+
+        idx = 0
+        while len(c) > sz*idx:
+            s = c[sz*idx:sz*(idx+1)]
+            idx += 1
+            rela = WRela(self, sex, size, s)
+            self.relatab.append(rela)
+            if rela.parent.linksection != self.parent.shlist[0]:
+                self.rela[rela.sym] = rela
+
 # Section List
 
 

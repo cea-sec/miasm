@@ -831,7 +831,8 @@ for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
                       "l", "-a", "0"], [test_arml]),
                     (["sandbox_call.py", Example.get_sample("md5_arm")], []),
                     (["sandbox_pe_x86_32.py", Example.get_sample("x86_32_automod_2.bin")],
-                          [test_x86_32_automod_2])
+                          [test_x86_32_automod_2]),
+                    (["resolve_ifunc.py", Example.get_sample("ifunc")], []),
                     ] + [(["sandbox_pe_x86_32.py",
                            Example.get_sample("x86_32_" + name + ".bin")],
                           [test_box[name]])
