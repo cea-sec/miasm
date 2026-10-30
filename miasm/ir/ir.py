@@ -1,5 +1,3 @@
-#-*- coding:utf-8 -*-
-
 #
 # Copyright (C) 2013 Fabrice Desclaux
 #
@@ -17,20 +15,19 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-from builtins import zip
+import re
 import warnings
-
+from functools import reduce
 from itertools import chain
-from future.utils import viewvalues, viewitems
+
+from future.utils import viewitems, viewvalues
 
 import miasm.expression.expression as m2_expr
-from miasm.expression.expression_helper import get_missing_interval
+from miasm.core import utils
 from miasm.core.asmblock import AsmBlock, AsmBlockBad, AsmConstraint
 from miasm.core.graph import DiGraph
+from miasm.expression.expression_helper import get_missing_interval
 from miasm.ir.translators import Translator
-from functools import reduce
-from miasm.core import utils
-import re
 
 
 def _expr_loc_to_symb(expr, loc_db):
@@ -44,78 +41,82 @@ def _expr_loc_to_symb(expr, loc_db):
             name = loc_db.pretty_str(expr.loc_key)
         else:
             # Use only one name for readability
-            name = sorted(names)[0]
+            name = min(names)
     return m2_expr.ExprId(name, expr.size)
 
 
-ESCAPE_CHARS = re.compile('[' + re.escape('{}[]') + '&|<>' + ']')
+ESCAPE_CHARS = re.compile("[" + re.escape("{}[]") + "&|<>" + "]")
+
 
 class TranslatorHtml(Translator):
     __LANG__ = "custom_expr_color"
 
     @staticmethod
     def _fix_chars(token):
-        return "&#%04d;" % ord(token.group())
+        return f"&#{ord(token.group()):04};"
 
     def __init__(self, loc_db=None, **kwargs):
-        super(TranslatorHtml, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.loc_db = loc_db
 
     def str_protected_child(self, child, parent):
-        return ("(%s)" % (
-            self.from_expr(child)) if m2_expr.should_parenthesize_child(child, parent)
-                else self.from_expr(child)
+        return (
+            f"({self.from_expr(child)})"
+            if m2_expr.should_parenthesize_child(child, parent)
+            else self.from_expr(child)
         )
 
     def from_ExprInt(self, expr):
         out = str(expr)
-        out = '<font color="%s">%s</font>' % (utils.COLOR_INT, out)
+        out = f'<font color="{utils.COLOR_INT}">{out}</font>'
         return out
 
     def from_ExprId(self, expr):
         out = str(expr)
-        out = '<font color="%s">%s</font>' % (utils.COLOR_ID, out)
+        out = f'<font color="{utils.COLOR_ID}">{out}</font>'
         return out
 
     def from_ExprLoc(self, expr):
 
         if self.loc_db is None:
-            name = ESCAPE_CHARS.sub(self._fix_chars, str((expr)))
+            name = ESCAPE_CHARS.sub(self._fix_chars, str(expr))
         else:
             names = self.loc_db.get_location_names(expr.loc_key)
             if not names:
                 name = self.loc_db.pretty_str(expr.loc_key)
             else:
                 # Use only one name for readability
-                name = sorted(names)[0]
+                name = min(names)
         name = ESCAPE_CHARS.sub(self._fix_chars, name)
-        out = '<font color="%s">%s</font>' % (utils.COLOR_LOC, name)
+        out = f'<font color="{utils.COLOR_LOC}">{name}</font>'
         return out
 
     def from_ExprMem(self, expr):
         ptr = self.from_expr(expr.ptr)
-        size = '@' + str(expr.size)
-        size = '<font color="%s">%s</font>' % (utils.COLOR_MEM, size)
-        bracket_left = ESCAPE_CHARS.sub(self._fix_chars, '[')
-        bracket_right = ESCAPE_CHARS.sub(self._fix_chars, ']')
-        out = '%s%s%s%s' % (size, bracket_left, ptr, bracket_right)
+        size = "@" + str(expr.size)
+        size = f'<font color="{utils.COLOR_MEM}">{size}</font>'
+        bracket_left = ESCAPE_CHARS.sub(self._fix_chars, "[")
+        bracket_right = ESCAPE_CHARS.sub(self._fix_chars, "]")
+        out = f"{size}{bracket_left}{ptr}{bracket_right}"
         return out
 
     def from_ExprSlice(self, expr):
         base = self.from_expr(expr.arg)
         start = str(expr.start)
         stop = str(expr.stop)
-        bracket_left = ESCAPE_CHARS.sub(self._fix_chars, '[')
-        bracket_right = ESCAPE_CHARS.sub(self._fix_chars, ']')
-        out = "(%s)%s%s:%s%s" % (base, bracket_left, start, stop, bracket_right)
+        bracket_left = ESCAPE_CHARS.sub(self._fix_chars, "[")
+        bracket_right = ESCAPE_CHARS.sub(self._fix_chars, "]")
+        out = f"({base}){bracket_left}{start}:{stop}{bracket_right}"
         return out
 
     def from_ExprCompose(self, expr):
         out = ESCAPE_CHARS.sub(self._fix_chars, "{")
-        out += ", ".join(["%s, %s, %s" % (self.from_expr(subexpr),
-                                          str(idx),
-                                          str(idx + subexpr.size))
-                          for idx, subexpr in expr.iter_args()])
+        out += ", ".join(
+            [
+                f"{self.from_expr(subexpr)}, {idx}, {idx + subexpr.size}"
+                for idx, subexpr in expr.iter_args()
+            ]
+        )
         out += ESCAPE_CHARS.sub(self._fix_chars, "}")
         return out
 
@@ -123,38 +124,37 @@ class TranslatorHtml(Translator):
         cond = self.str_protected_child(expr.cond, expr)
         src1 = self.from_expr(expr.src1)
         src2 = self.from_expr(expr.src2)
-        out = "%s?(%s,%s)" % (cond, src1, src2)
+        out = f"{cond}?({src1},{src2})"
         return out
 
     def from_ExprOp(self, expr):
         op = ESCAPE_CHARS.sub(self._fix_chars, expr._op)
-        if expr._op == '-':		# Unary minus
-            return '-' + self.str_protected_child(expr._args[0], expr)
+        if expr._op == "-":  # Unary minus
+            return "-" + self.str_protected_child(expr._args[0], expr)
         if expr.is_associative() or expr.is_infix():
-            return (' ' + op + ' ').join([self.str_protected_child(arg, expr)
-                                          for arg in expr._args])
+            return (" " + op + " ").join(
+                [self.str_protected_child(arg, expr) for arg in expr._args]
+            )
 
-        op = '<font color="%s">%s</font>' % (utils.COLOR_OP_FUNC, op)
-        return (op + '(' +
-                ', '.join(
-                    self.from_expr(arg)
-                    for arg in expr._args
-                ) + ')')
+        op = f'<font color="{utils.COLOR_OP_FUNC}">{op}</font>'
+        return op + "(" + ", ".join(self.from_expr(arg) for arg in expr._args) + ")"
 
     def from_ExprAssign(self, expr):
-        return "%s = %s" % tuple(map(expr.from_expr, (expr.dst, expr.src)))
+        lhs = expr.from_expr(expr.dst)
+        rhs = expr.from_expr(expr.src)
+        return f"{lhs} = {rhs}"
 
 
 def color_expr_html(expr, loc_db):
     translator = TranslatorHtml(loc_db=loc_db)
     return translator.from_expr(expr)
 
+
 def slice_rest(expr):
     "Return the completion of the current slice"
     size = expr.arg.size
     if expr.start >= size or expr.stop > size:
-        raise ValueError('bad slice rest %s %s %s' %
-                         (size, expr.start, expr.stop))
+        raise ValueError(f"bad slice rest {size} {expr.start} {expr.stop}")
 
     if expr.start == expr.stop:
         return [(0, size)]
@@ -168,8 +168,7 @@ def slice_rest(expr):
     return rest
 
 
-
-class AssignBlock(object):
+class AssignBlock:
     """Represent parallel IR assignment, such as:
     EAX = EBX
     EBX = EAX
@@ -182,6 +181,7 @@ class AssignBlock(object):
     Also provides common manipulation on this assignments.
 
     """
+
     __slots__ = ["_assigns", "_instr"]
 
     def __init__(self, irs=None, instr=None):
@@ -194,7 +194,7 @@ class AssignBlock(object):
         if irs is None:
             irs = []
         self._instr = instr
-        self._assigns = {} # ExprAssign.dst -> ExprAssign.src
+        self._assigns = {}  # ExprAssign.dst -> ExprAssign.src
 
         # Concurrent assignments are handled in _set
         if hasattr(irs, "items"):
@@ -217,14 +217,17 @@ class AssignBlock(object):
         """
         if dst.size != src.size:
             raise RuntimeError(
-                "sanitycheck: args must have same size! %s" %
-                ([(str(arg), arg.size) for arg in [dst, src]]))
+                "sanitycheck: args must have same size! %s"
+                % ([(str(arg), arg.size) for arg in [dst, src]])
+            )
 
         if isinstance(dst, m2_expr.ExprSlice):
             # Complete the source with missing slice parts
             new_dst = dst.arg
-            rest = [(m2_expr.ExprSlice(dst.arg, r[0], r[1]), r[0], r[1])
-                    for r in slice_rest(dst)]
+            rest = [
+                (m2_expr.ExprSlice(dst.arg, r[0], r[1]), r[0], r[1])
+                for r in slice_rest(dst)
+            ]
             all_a = [(src, dst.start, dst.stop)] + rest
             all_a.sort(key=lambda x: x[1])
             args = [expr for (expr, _, _) in all_a]
@@ -234,34 +237,30 @@ class AssignBlock(object):
 
         if new_dst in self._assigns and isinstance(new_src, m2_expr.ExprCompose):
             if not isinstance(self[new_dst], m2_expr.ExprCompose):
-                # prev_RAX = 0x1122334455667788
-                # input_RAX[0:8] = 0x89
-                # final_RAX -> ? (assignment are in parallel)
                 raise RuntimeError("Concurrent access on same bit not allowed")
 
             # Consider slice grouping
-            expr_list = [(new_dst, new_src),
-                         (new_dst, self[new_dst])]
+            expr_list = [(new_dst, new_src), (new_dst, self[new_dst])]
             # Find collision
-            e_colision = reduce(lambda x, y: x.union(y),
-                                (self.get_modified_slice(dst, src)
-                                 for (dst, src) in expr_list),
-                                set())
+            e_colision = reduce(
+                lambda x, y: x.union(y),
+                (self.get_modified_slice(dst, src) for (dst, src) in expr_list),
+                set(),
+            )
 
             # Sort interval collision
             known_intervals = sorted([(x[1], x[2]) for x in e_colision])
 
             for i, (_, stop) in enumerate(known_intervals[:-1]):
                 if stop > known_intervals[i + 1][0]:
-                    raise RuntimeError(
-                        "Concurrent access on same bit not allowed")
+                    raise RuntimeError("Concurrent access on same bit not allowed")
 
             # Fill with missing data
             missing_i = get_missing_interval(known_intervals, 0, new_dst.size)
-            remaining = ((m2_expr.ExprSlice(new_dst, *interval),
-                          interval[0],
-                          interval[1])
-                         for interval in missing_i)
+            remaining = (
+                (m2_expr.ExprSlice(new_dst, *interval), interval[0], interval[1])
+                for interval in missing_i
+            )
 
             # Build the merging expression
             args = list(e_colision.union(remaining))
@@ -273,12 +272,12 @@ class AssignBlock(object):
 
         # Sanity check
         if not isinstance(new_dst, (m2_expr.ExprId, m2_expr.ExprMem)):
-            raise TypeError("Destination cannot be a %s" % type(new_dst))
+            raise TypeError(f"Destination cannot be a {type(new_dst)}")
 
         self._assigns[new_dst] = new_src
 
     def __setitem__(self, dst, src):
-        raise RuntimeError('AssignBlock is immutable')
+        raise RuntimeError("AssignBlock is immutable")
 
     def __getitem__(self, key):
         return self._assigns[key]
@@ -287,15 +286,13 @@ class AssignBlock(object):
         return key in self._assigns
 
     def iteritems(self):
-        for dst, src in viewitems(self._assigns):
-            yield dst, src
+        yield from viewitems(self._assigns)
 
     def items(self):
         return [(dst, src) for dst, src in viewitems(self._assigns)]
 
     def itervalues(self):
-        for src in viewvalues(self._assigns):
-            yield src
+        yield from viewvalues(self._assigns)
 
     def keys(self):
         return list(self._assigns)
@@ -304,14 +301,13 @@ class AssignBlock(object):
         return list(viewvalues(self._assigns))
 
     def __iter__(self):
-        for dst in self._assigns:
-            yield dst
+        yield from self._assigns
 
     def __delitem__(self, _):
-        raise RuntimeError('AssignBlock is immutable')
+        raise RuntimeError("AssignBlock is immutable")
 
     def update(self, _):
-        raise RuntimeError('AssignBlock is immutable')
+        raise RuntimeError("AssignBlock is immutable")
 
     def __eq__(self, other):
         if set(self.keys()) != set(other.keys()):
@@ -332,15 +328,17 @@ class AssignBlock(object):
         """Return an Expr list of extra expressions needed during the
         object instantiation"""
         if not isinstance(src, m2_expr.ExprCompose):
-            raise ValueError("Get mod slice not on expraff slice", str(src))
+            raise TypeError("Get mod slice not on expraff slice", str(src))
         modified_s = []
         for index, arg in src.iter_args():
-            if not (isinstance(arg, m2_expr.ExprSlice) and
-                    arg.arg == dst and
-                    index == arg.start and
-                    index+arg.size == arg.stop):
+            if not (
+                isinstance(arg, m2_expr.ExprSlice)
+                and arg.arg == dst
+                and index == arg.start
+                and index + arg.size == arg.stop
+            ):
                 # If x is not the initial expression
-                modified_s.append((arg, index, index+arg.size))
+                modified_s.append((arg, index, index + arg.size))
         return modified_s
 
     def get_w(self):
@@ -358,8 +356,7 @@ class AssignBlock(object):
             src_read = src.get_r(mem_read=mem_read, cst_read=cst_read)
             if isinstance(dst, m2_expr.ExprMem) and mem_read:
                 # Read on destination happens only with ExprMem
-                src_read.update(dst.ptr.get_r(mem_read=mem_read,
-                                              cst_read=cst_read))
+                src_read.update(dst.ptr.get_r(mem_read=mem_read, cst_read=cst_read))
             out[dst] = src_read
         return out
 
@@ -370,19 +367,14 @@ class AssignBlock(object):
         """
         return set(
             chain.from_iterable(
-                viewvalues(
-                    self.get_rw(
-                        mem_read=mem_read,
-                        cst_read=cst_read
-                    )
-                )
+                viewvalues(self.get_rw(mem_read=mem_read, cst_read=cst_read))
             )
         )
 
     def __str__(self):
         out = []
         for dst, src in sorted(viewitems(self._assigns)):
-            out.append("%s = %s" % (dst, src))
+            out.append(f"{dst} = {src}")
         return "\n".join(out)
 
     def dst2ExprAssign(self, dst):
@@ -408,22 +400,30 @@ class AssignBlock(object):
     def to_string(self, loc_db=None):
         out = []
         for dst, src in viewitems(self):
-            new_src = src.visit(lambda expr:_expr_loc_to_symb(expr, loc_db))
-            new_dst = dst.visit(lambda expr:_expr_loc_to_symb(expr, loc_db))
-            line = "%s = %s" % (new_dst, new_src)
+            new_src = src.visit(lambda expr: _expr_loc_to_symb(expr, loc_db))
+            new_dst = dst.visit(lambda expr: _expr_loc_to_symb(expr, loc_db))
+            line = f"{new_dst} = {new_src}"
             out.append(line)
             out.append("")
         return "\n".join(out)
 
-class IRBlock(object):
+
+class IRBlock:
     """Intermediate representation block object.
 
     Stand for an intermediate representation  basic block.
     """
 
-    __slots__ = ["_loc_db", "_loc_key", "_assignblks", "_dst", "_dst_linenb"]
+    __slots__ = [
+        "_assignblks",
+        "_dst",
+        "_dst_linenb",
+        "_loc_db",
+        "_loc_key",
+        "color",
+    ]
 
-    def __init__(self, loc_db, loc_key, assignblks):
+    def __init__(self, loc_db, loc_key, assignblks, color=None):
         """
         @loc_key: LocKey of the IR basic block
         @assignblks: list of AssignBlock
@@ -437,6 +437,7 @@ class IRBlock(object):
         self._assignblks = tuple(assignblks)
         self._dst = None
         self._dst_linenb = None
+        self.color = color
 
     def __eq__(self, other):
         if self.__class__ is not other.__class__:
@@ -459,8 +460,8 @@ class IRBlock(object):
         warnings.warn('DEPRECATION WARNING: use ".loc_key" instead of ".label"')
         return self.loc_key
 
-    loc_key = property(lambda self:self._loc_key)
-    loc_db = property(lambda self:self._loc_db)
+    loc_key = property(lambda self: self._loc_key)
+    loc_db = property(lambda self: self._loc_db)
     label = property(get_label)
 
     @property
@@ -469,7 +470,9 @@ class IRBlock(object):
 
     @property
     def irs(self):
-        warnings.warn('DEPRECATION WARNING: use "irblock.assignblks" instead of "irblock.irs"')
+        warnings.warn(
+            'DEPRECATION WARNING: use "irblock.assignblks" instead of "irblock.irs"'
+        )
         return self._assignblks
 
     def __iter__(self):
@@ -494,7 +497,7 @@ class IRBlock(object):
             for dst, src in viewitems(assignblk):
                 if dst.is_id("IRDst"):
                     if final_dst is not None:
-                        raise ValueError('Multiple destinations!')
+                        raise ValueError("Multiple destinations!")
                     final_dst = src
                     final_linenb = linenb
         self._dst = final_dst
@@ -535,14 +538,14 @@ class IRBlock(object):
         out = []
         names = self.loc_db.get_location_names(self.loc_key)
         if not names:
-            node_name = "%s:" % self.loc_db.pretty_str(self.loc_key)
+            node_name = f"{self.loc_db.pretty_str(self.loc_key)}:"
         else:
-            node_name = "".join("%s:\n" % name for name in names)
+            node_name = "".join(f"{name}:\n" for name in names)
         out.append(node_name)
 
         for assignblk in self:
             out.append(assignblk.to_string(self.loc_db))
-        return '\n'.join(out)
+        return "\n".join(out)
 
     def __str__(self):
         return self.to_string()
@@ -556,9 +559,9 @@ class IRBlock(object):
         """
 
         if mod_dst is None:
-            mod_dst = lambda expr:expr
+            mod_dst = lambda expr: expr
         if mod_src is None:
-            mod_src = lambda expr:expr
+            mod_src = lambda expr: expr
 
         assignblks = []
         for assignblk in self:
@@ -591,12 +594,10 @@ class irbloc(IRBlock):
 
     def __init__(self, loc_key, irs, lines=None):
         warnings.warn('DEPRECATION WARNING: use "IRBlock" instead of "irblock"')
-        super(irbloc, self).__init__(loc_key, irs)
-
+        super().__init__(loc_key, irs)
 
 
 class IRCFG(DiGraph):
-
     """DiGraph for IR instances"""
 
     def __init__(self, irdst, loc_db, blocks=None, *args, **kwargs):
@@ -609,7 +610,7 @@ class IRCFG(DiGraph):
             blocks = {}
         self._blocks = blocks
         self._irdst = irdst
-        super(IRCFG, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @property
     def IRDst(self):
@@ -640,25 +641,24 @@ class IRCFG(DiGraph):
     def node2lines(self, node):
         node_name = self.loc_db.pretty_str(node)
         yield self.DotCellDescription(
-            text="%s" % node_name,
+            text=node_name,
             attr={
-                'align': 'center',
-                'colspan': 2,
-                'bgcolor': 'grey',
-            }
+                "align": "center",
+                "colspan": 2,
+                "bgcolor": "grey",
+            },
         )
         if node not in self._blocks:
-            yield [self.DotCellDescription(text="NOT PRESENT", attr={'bgcolor': 'red'})]
+            yield [self.DotCellDescription(text="NOT PRESENT", attr={"bgcolor": "red"})]
             return
         for i, assignblk in enumerate(self._blocks[node]):
             for dst, src in viewitems(assignblk):
-                line = "%s = %s" % (
-                    color_expr_html(dst, self.loc_db),
-                    color_expr_html(src, self.loc_db)
-                )
+                line = f"{color_expr_html(dst, self.loc_db)} = {color_expr_html(src, self.loc_db)}"
                 if self._dot_offset:
-                    yield [self.DotCellDescription(text="%-4d" % i, attr={}),
-                           self.DotCellDescription(text=line, attr={})]
+                    yield [
+                        self.DotCellDescription(text=f"{i:<4d}", attr={}),
+                        self.DotCellDescription(text=line, attr={}),
+                    ]
                 else:
                     yield self.DotCellDescription(text=line, attr={})
             yield self.DotCellDescription(text="", attr={})
@@ -674,11 +674,17 @@ class IRCFG(DiGraph):
                 edge_color = "limegreen"
             elif src2.is_loc(dst):
                 edge_color = "red"
+        elif not isinstance(src_irdst, m2_expr.ExprLoc):
+            # This is an indirect jump.
+            edge_color = "magenta1"
         return {"color": edge_color}
 
     def node_attr(self, node):
         if node not in self._blocks:
-            return {'style': 'filled', 'fillcolor': 'red'}
+            return {"style": "filled", "fillcolor": "red"}
+        color = self.get_block(node).color
+        if color is not None:
+            return {"style": "filled", "fillcolor": color}
         return {}
 
     def dot(self, offset=False):
@@ -687,7 +693,7 @@ class IRCFG(DiGraph):
         node
         """
         self._dot_offset = offset
-        return super(IRCFG, self).dot()
+        return super().dot()
 
     def get_loc_key(self, addr):
         """Transforms an ExprId/ExprInt/loc_key/int into a loc_key
@@ -704,7 +710,6 @@ class IRCFG(DiGraph):
             return None
 
         return self.loc_db.get_offset_location(addr)
-
 
     def get_or_create_loc_key(self, addr):
         """Transforms an ExprId/ExprInt/loc_key/int into a loc_key
@@ -741,7 +746,6 @@ class IRCFG(DiGraph):
                     out.add(irb.loc_key)
         return out
 
-
     def simplify(self, simplifier):
         """
         Simplify expressions in each irblocks
@@ -766,9 +770,7 @@ class IRCFG(DiGraph):
         out = set()
         while todo:
             dst = todo.pop()
-            if dst.is_loc():
-                done.add(dst)
-            elif dst.is_mem() or dst.is_int():
+            if dst.is_loc() or dst.is_mem() or dst.is_int():
                 done.add(dst)
             elif dst.is_cond():
                 todo.add(dst.src1)
@@ -784,7 +786,7 @@ class IRCFG(DiGraph):
         Naive backtracking of IRDst
         @irb: irbloc instance
         """
-        todo = set([irb.dst])
+        todo = {irb.dst}
         done = set()
 
         for assignblk in reversed(irb):
@@ -815,7 +817,7 @@ class DiGraphIR(IRCFG):
         raise NotImplementedError("Deprecated")
 
 
-class Lifter(object):
+class Lifter:
     """
     Intermediate representation object
 
@@ -879,9 +881,11 @@ class Lifter(object):
 
     def gen_pc_update(self, assignments, instr):
         offset = m2_expr.ExprInt(instr.offset, self.pc.size)
-        assignments.append(AssignBlock({self.pc:offset}, instr))
+        assignments.append(AssignBlock({self.pc: offset}, instr))
 
-    def add_instr_to_current_state(self, instr, block, assignments, ir_blocks_all, gen_pc_updt):
+    def add_instr_to_current_state(
+        self, instr, block, assignments, ir_blocks_all, gen_pc_updt
+    ):
         """
         Add the IR effects of an instruction to the current state.
 
@@ -901,9 +905,7 @@ class Lifter(object):
         assignblk, ir_blocks_extra = self.instr2ir(instr)
         assignments.append(assignblk)
         ir_blocks_all += ir_blocks_extra
-        if ir_blocks_extra:
-            return True
-        return False
+        return bool(ir_blocks_extra)
 
     def add_asmblock_to_ircfg(self, block, ircfg, gen_pc_updt=False):
         """
@@ -925,8 +927,7 @@ class Lifter(object):
                 assignments = []
                 loc_key = self.get_loc_key_for_instr(instr)
             split = self.add_instr_to_current_state(
-                instr, block, assignments,
-                ir_blocks_all, gen_pc_updt
+                instr, block, assignments, ir_blocks_all, gen_pc_updt
             )
             if split:
                 ir_blocks_all.append(IRBlock(self.loc_db, loc_key, assignments))
@@ -1005,7 +1006,9 @@ class Lifter(object):
                 if block.lines:
                     line = block.lines[-1]
                     if line.offset is not None:
-                        loc_key = self.loc_db.get_or_create_offset_location(line.offset + line.l)
+                        loc_key = self.loc_db.get_or_create_offset_location(
+                            line.offset + line.l
+                        )
                 if loc_key is None:
                     loc_key = self.loc_db.add_location()
                 block.add_cst(loc_key, AsmConstraint.c_next)
@@ -1017,7 +1020,9 @@ class Lifter(object):
             else:
                 instr = None
             assignblk = AssignBlock({self.IRDst: dst}, instr)
-            ir_blocks[index] = IRBlock(self.loc_db, irblock.loc_key, list(irblock.assignblks) + [assignblk])
+            ir_blocks[index] = IRBlock(
+                self.loc_db, irblock.loc_key, list(irblock.assignblks) + [assignblk]
+            )
 
     def post_add_asmblock_to_ircfg(self, block, ircfg, ir_blocks):
         self.set_empty_dst_to_next(block, ir_blocks)
@@ -1037,8 +1042,10 @@ class IntermediateRepresentation(Lifter):
     """
 
     def __init__(self, arch, attrib, loc_db):
-        warnings.warn('DEPRECATION WARNING: use "Lifter" instead of "IntermediateRepresentation"')
-        super(IntermediateRepresentation, self).__init__(arch, attrib, loc_db)
+        warnings.warn(
+            'DEPRECATION WARNING: use "Lifter" instead of "IntermediateRepresentation"'
+        )
+        super().__init__(arch, attrib, loc_db)
 
 
 class ir(Lifter):
@@ -1049,4 +1056,4 @@ class ir(Lifter):
 
     def __init__(self, loc_key, irs, lines=None):
         warnings.warn('DEPRECATION WARNING: use "Lifter" instead of "ir"')
-        super(ir, self).__init__(loc_key, irs, lines)
+        super().__init__(loc_key, irs, lines)
