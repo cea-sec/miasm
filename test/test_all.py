@@ -702,6 +702,7 @@ testset += ExampleExpression(["constant_propagation.py",
                               Example.get_sample("simple_test.bin"), "-s", "0"],
                              products=["%s.propag.dot" % Example.get_sample("simple_test.bin")])
 testset += ExampleExpression(["export_llvm.py", "-a", "x86_32", Example.get_sample("simple_test.bin"), "0"],
+                             tags=[TAGS["llvm"]],
                              products=["out.ll"])
 
 
