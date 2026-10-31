@@ -115,17 +115,17 @@ class JitCore_LLVM(jitcore.JitCore):
             func.from_asmblock(block)
 
             # Verify
-            if self.options["safe_mode"] is True:
+            if self.options["safe_mode"]:
                 func.verify()
 
             # Optimise
-            if self.options["optimise"] is True:
+            if self.options["optimise"]:
                 func.optimise()
 
             # Log
-            if self.options["log_func"] is True:
+            if self.options["log_func"]:
                 print(func)
-            if self.options["log_assembly"] is True:
+            if self.options["log_assembly"]:
                 print(func.get_assembly())
 
             # Use propagate the cache filename

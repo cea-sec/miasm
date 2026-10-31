@@ -129,26 +129,26 @@ def cb_deref_pc_nooff(tokens):
         return result
     raise ValueError('bad string')
 
-all_binaryop_lsl_t = literal_list(shift_str).setParseAction(cb_shift)
+all_binaryop_lsl_t = literal_list(shift_str).set_parse_action(cb_shift)
 
-all_binaryop_shiftleft_t = literal_list(["LSL"]).setParseAction(cb_shift)
+all_binaryop_shiftleft_t = literal_list(["LSL"]).set_parse_action(cb_shift)
 
 extend_lst = ['UXTB', 'UXTH', 'UXTW', 'UXTX', 'SXTB', 'SXTH', 'SXTW', 'SXTX']
 extend2_lst = ['UXTW', 'LSL', 'SXTW', 'SXTX']
 
-all_extend_t = literal_list(extend_lst).setParseAction(cb_extreg)
-all_extend2_t = literal_list(extend2_lst).setParseAction(cb_extreg)
+all_extend_t = literal_list(extend_lst).set_parse_action(cb_extreg)
+all_extend2_t = literal_list(extend2_lst).set_parse_action(cb_extreg)
 
 
-gpregz32_extend = (gpregsz32_info.parser + Optional(all_extend_t + base_expr)).setParseAction(cb_extend)
-gpregz64_extend = (gpregsz64_info.parser + Optional(all_extend_t + base_expr)).setParseAction(cb_extend)
+gpregz32_extend = (gpregsz32_info.parser + Optional(all_extend_t + base_expr)).set_parse_action(cb_extend)
+gpregz64_extend = (gpregsz64_info.parser + Optional(all_extend_t + base_expr)).set_parse_action(cb_extend)
 
 
-shift32_off = (gpregsz32_info.parser + Optional(all_binaryop_lsl_t + base_expr)).setParseAction(cb_shiftreg)
-shift64_off = (gpregsz64_info.parser + Optional(all_binaryop_lsl_t + base_expr)).setParseAction(cb_shiftreg)
+shift32_off = (gpregsz32_info.parser + Optional(all_binaryop_lsl_t + base_expr)).set_parse_action(cb_shiftreg)
+shift64_off = (gpregsz64_info.parser + Optional(all_binaryop_lsl_t + base_expr)).set_parse_action(cb_shiftreg)
 
 
-shiftimm_imm_sc = (base_expr + all_binaryop_shiftleft_t + base_expr).setParseAction(cb_shift_sc)
+shiftimm_imm_sc = (base_expr + all_binaryop_shiftleft_t + base_expr).set_parse_action(cb_shift_sc)
 
 shiftimm_off_sc = shiftimm_imm_sc | base_expr
 
@@ -222,16 +222,16 @@ RBRACK = Suppress("]")
 COMMA = Suppress(",")
 POSTINC = Suppress("!")
 
-deref_nooff = (LBRACK + gpregs64_info.parser + RBRACK).setParseAction(cb_deref_nooff)
-deref_off_post = (LBRACK + gpregs64_info.parser + RBRACK + COMMA + base_expr).setParseAction(cb_deref_post)
-deref_off_pre = (LBRACK + gpregs64_info.parser + COMMA + base_expr + RBRACK).setParseAction(cb_deref_pre)
-deref_off_pre_wb = (LBRACK + gpregs64_info.parser + COMMA + base_expr + RBRACK + POSTINC).setParseAction(cb_deref_pre_wb)
+deref_nooff = (LBRACK + gpregs64_info.parser + RBRACK).set_parse_action(cb_deref_nooff)
+deref_off_post = (LBRACK + gpregs64_info.parser + RBRACK + COMMA + base_expr).set_parse_action(cb_deref_post)
+deref_off_pre = (LBRACK + gpregs64_info.parser + COMMA + base_expr + RBRACK).set_parse_action(cb_deref_pre)
+deref_off_pre_wb = (LBRACK + gpregs64_info.parser + COMMA + base_expr + RBRACK + POSTINC).set_parse_action(cb_deref_pre_wb)
 
 deref = (deref_off_post | deref_off_pre_wb | deref_off_pre | deref_nooff)
 
 
-deref_pc_off = (LBRACK + Literal("PC") + COMMA + base_expr + RBRACK).setParseAction(cb_deref_pc_off)
-deref_pc_nooff = (LBRACK + Literal("PC") + RBRACK).setParseAction(cb_deref_pc_nooff)
+deref_pc_off = (LBRACK + Literal("PC") + COMMA + base_expr + RBRACK).set_parse_action(cb_deref_pc_off)
+deref_pc_nooff = (LBRACK + Literal("PC") + RBRACK).set_parse_action(cb_deref_pc_nooff)
 
 deref_pc = (deref_pc_off | deref_pc_nooff)
 
@@ -245,7 +245,7 @@ def cb_deref_ext2op(t):
 
     raise ValueError("cad deref")
 
-deref_ext2 = (LBRACK + gpregs_32_64 + COMMA + gpregs_32_64 + Optional(all_extend2_t + base_expr) + RBRACK).setParseAction(cb_deref_ext2op)
+deref_ext2 = (LBRACK + gpregs_32_64 + COMMA + gpregs_32_64 + Optional(all_extend2_t + base_expr) + RBRACK).set_parse_action(cb_deref_ext2op)
 
 
 class additional_info(object):
@@ -2136,12 +2136,12 @@ datap0_name = {'RBIT': 0b000000, 'REV16': 0b000001,
               'REV': 0b000010,
               'CLZ': 0b000100, 'CLS': 0b000101}
 bs_datap0_name = bs_name(l=6, name=datap0_name)
-aarch64op("ldstp", [bs('0', fname='sf'), bs('1'), modf, bs('11010110'), bs('00000'), bs_datap0_name, rn, rd])
+aarch64op("ldstp", [bs('0', fname='sf'), bs('1'), modf, bs('11010110'), bs('00000'), bs_datap0_name, rn, rd], [rd, rn])
 datap1_name = {'RBIT': 0b000000, 'REV16': 0b000001,
                'REV32': 0b000010, 'REV': 0b000011,
               'CLZ': 0b000100, 'CLS': 0b000101}
 bs_datap1_name = bs_name(l=6, name=datap1_name)
-aarch64op("ldstp", [bs('1', fname='sf'), bs('1'), modf, bs('11010110'), bs('00000'), bs_datap1_name, rn, rd])
+aarch64op("ldstp", [bs('1', fname='sf'), bs('1'), modf, bs('11010110'), bs('00000'), bs_datap1_name, rn, rd], [rd, rn])
 
 
 # conditional branch p.132

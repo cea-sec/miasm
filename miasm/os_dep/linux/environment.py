@@ -889,7 +889,7 @@ def _arml__kuser_cmpxchg(jitter):
         jitter.cpu.R0 = 0
         jitter.cpu.cf = 1
     else:
-        jitter.cpu.R0 = -1
+        jitter.cpu.R0 = -1 & 0xFFFF_FFFF
         jitter.cpu.cf = 0
 
     jitter.pc = jitter.cpu.LR

@@ -426,10 +426,7 @@ def mov(_, instr, dst, src):
 
 
 def movq(_, instr, dst, src):
-    src_final = (src.zeroExtend(dst.size)
-                 if dst.size >= src.size else
-                 src[:dst.size])
-    return [m2_expr.ExprAssign(dst, src_final)], []
+    return [m2_expr.ExprAssign(dst, src[:64].zeroExtend(dst.size))], []
 
 
 @sbuild.parse

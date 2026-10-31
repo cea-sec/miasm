@@ -469,7 +469,7 @@ def sys_x86_64_statfs(jitter, linux_env):
 
     # Stub
     if not linux_env.filesystem.exists(rpathname):
-        jitter.cpu.RAX = -1
+        jitter.cpu.RAX = -1 & 0xFFFF_FFFF_FFFF_FFFF
     else:
         info = linux_env.filesystem.statfs()
         raise RuntimeError("Not implemented")
@@ -606,7 +606,7 @@ def sys_x86_64_newlstat(jitter, linux_env):
     # Stub
     if not linux_env.filesystem.exists(rpathname):
         # ENOENT (No such file or directory)
-        jitter.cpu.RAX = -1
+        jitter.cpu.RAX = -1 & 0xFFFF_FFFF_FFFF_FFFF
     else:
         info = linux_env.lstat(rpathname)
         data = _dump_struct_stat_x86_64(info)
@@ -624,7 +624,7 @@ def sys_arml_lstat64(jitter, linux_env):
     # Stub
     if not linux_env.filesystem.exists(rpathname):
         # ENOENT (No such file or directory)
-        jitter.cpu.R0 = -1
+        jitter.cpu.R0 = -1 & 0xFFFF_FFFF
     else:
         info = linux_env.lstat(rpathname)
         data = _dump_struct_stat_arml(info)
@@ -682,7 +682,7 @@ def sys_x86_64_connect(jitter, linux_env):
 
     # Stub
     # Always refuse the connection
-    jitter.cpu.RAX = -1
+    jitter.cpu.RAX = -1 & 0xFFFF_FFFF_FFFF_FFFF
 
 
 def sys_x86_64_clock_gettime(jitter, linux_env):
@@ -736,7 +736,7 @@ def sys_x86_64_readlink(jitter, linux_env):
     link = linux_env.filesystem.readlink(rpath)
     if link is None:
         # Not a link
-        jitter.cpu.RAX = -1
+        jitter.cpu.RAX = -1 & 0xFFFF_FFFF_FFFF_FFFF
     else:
         data = link[:bufsize - 1] + b"\x00"
         jitter.vm.set_mem(buf, data)

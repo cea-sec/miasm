@@ -13,5 +13,17 @@ main:
         assert self.myjit.cpu.RAX == 0x7F7
         assert self.myjit.cpu.RDX == 0x440
 
+class Test_IDIV(Asm_Test_64):
+    TXT = '''
+main:
+        MOV RAX, 0x8877665544332211
+        MOV RBX, 0x11223344556677
+        IDIV RBX
+        RET
+    '''
+    def check(self):
+        assert self.myjit.cpu.RAX == 0x7F7
+        assert self.myjit.cpu.RDX == 0x440
+
 if __name__ == "__main__":
-    [test(*sys.argv[1:])() for test in [Test_DIV]]
+    [test(*sys.argv[1:])() for test in [Test_DIV, Test_IDIV]]

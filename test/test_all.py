@@ -121,6 +121,9 @@ for script in ["x86/sem.py",
         tags = [TAGS[jitter]] if jitter in TAGS else []
         if (not is_64bit) and script.endswith("mn_div.py"):
             continue
+        if script.endswith("mn_div.py"):
+            # XXX
+            tags.append(TAGS["linux"])
         testset += ArchUnitTest(script, jitter, base_dir="arch", tags=tags)
 
 testset += ArchUnitTest("x86/unit/access_xmm.py", "python", base_dir="arch", tags=[TAGS["python"]])
@@ -705,6 +708,7 @@ testset += ExampleExpression(["constant_propagation.py",
                               Example.get_sample("simple_test.bin"), "-s", "0"],
                              products=["%s.propag.dot" % Example.get_sample("simple_test.bin")])
 testset += ExampleExpression(["export_llvm.py", "-a", "x86_32", Example.get_sample("simple_test.bin"), "0"],
+                             tags=[TAGS["llvm"]],
                              products=["out.ll"])
 
 
