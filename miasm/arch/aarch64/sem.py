@@ -1023,6 +1023,7 @@ def bics(ir, instr, arg1, arg2, arg3):
 
     e += [ExprAssign(zf, ExprOp('FLAG_EQ_AND', tmp1, tmp2))]
     e += update_flag_nf(res)
+    e += [ExprAssign(cf, ExprInt(0, 1)), ExprAssign(of, ExprInt(0, 1))]
 
     e.append(ExprAssign(arg1, res))
     return e, []
@@ -1086,6 +1087,7 @@ def ands(ir, instr, arg1, arg2, arg3):
 
     e += [ExprAssign(zf, ExprOp('FLAG_EQ_AND', arg2, arg3))]
     e += update_flag_nf(res)
+    e += [ExprAssign(cf, ExprInt(0, 1)), ExprAssign(of, ExprInt(0, 1))]
 
     e.append(ExprAssign(arg1, res))
     return e, []
@@ -1097,6 +1099,7 @@ def tst(ir, instr, arg1, arg2):
 
     e += [ExprAssign(zf, ExprOp('FLAG_EQ_AND', arg1, arg2))]
     e += update_flag_nf(res)
+    e += [ExprAssign(cf, ExprInt(0, 1)), ExprAssign(of, ExprInt(0, 1))]
 
     return e, []
 
@@ -1665,19 +1668,19 @@ def msub(arg1, arg2, arg3, arg4):
 
 @sbuild.parse
 def udiv(arg1, arg2, arg3):
+    # Division by zero does not trap on AArch64, the result is 0
     if arg3:
         arg1 = ExprOp('udiv', arg2, arg3)
     else:
-        exception_flags = ExprInt(EXCEPT_DIV_BY_ZERO,
-                                          exception_flags.size)
+        arg1 = ExprInt(0, arg1.size)
 
 @sbuild.parse
 def sdiv(arg1, arg2, arg3):
+    # Division by zero does not trap on AArch64, the result is 0
     if arg3:
         arg1 = ExprOp('sdiv', arg2, arg3)
     else:
-        exception_flags = ExprInt(EXCEPT_DIV_BY_ZERO,
-                                          exception_flags.size)
+        arg1 = ExprInt(0, arg1.size)
 
 
 
@@ -1916,7 +1919,8 @@ def rbit(ir, instr, arg1, arg2):
 
 @sbuild.parse
 def extr(arg1, arg2, arg3, arg4):
-    compose = ExprCompose(arg2, arg3)
+    # Rn is the high part, Rm the low part
+    compose = ExprCompose(arg3, arg2)
     arg1 = compose[int(arg4):int(arg4)+arg1.size]
 
 
