@@ -74,7 +74,7 @@ class MiasmTransformer(ast.NodeTransformer):
                         args=[self.visit(node.test),
                               self.visit(node.body),
                               self.visit(node.orelse)],
-                        keywords=[], starargs=None, kwargs=None)
+                        keywords=[])
         return call
 
     def visit_Set(self, node):
@@ -88,15 +88,13 @@ class MiasmTransformer(ast.NodeTransformer):
         return ast.Call(func=ast.Name(id='ExprCompose',
                                       ctx=ast.Load()),
                                args=node.elts,
-                               keywords=[],
-                               starargs=None,
-                               kwargs=None)
+                               keywords=[])
 
 if PY3:
     def get_arg_name(name):
         return name.arg
     def gen_arg(name, ctx):
-        return ast.arg(arg=name, ctx=ctx)
+        return ast.arg(arg=name)
 else:
     def get_arg_name(name):
         return name.id
@@ -184,9 +182,7 @@ class SemBuilder(object):
                 res = ast.Call(func=ast.Name(id='ExprAssign',
                                              ctx=ast.Load()),
                                args=[dst, src],
-                               keywords=[],
-                               starargs=None,
-                               kwargs=None)
+                               keywords=[])
 
                 blocks[-1][-1].append(res)
 
@@ -210,9 +206,7 @@ class SemBuilder(object):
                                args=[cond,
                                      loc_if,
                                      loc_else],
-                               keywords=[],
-                               starargs=None,
-                               kwargs=None)
+                               keywords=[])
 
                 if (isinstance(cond, ast.UnaryOp) and
                     isinstance(cond.op, ast.Not)):
@@ -229,9 +223,7 @@ class SemBuilder(object):
                 blocks[-1][-1].append(ast.Call(func=ast.Name(id='ExprAssign',
                                                              ctx=ast.Load()),
                                                args=[IRDst, dst],
-                                               keywords=[],
-                                               starargs=None,
-                                               kwargs=None))
+                                               keywords=[]))
 
                 # Create the new blocks
                 elements = [(statement.body, 'loc_if')]
@@ -247,9 +239,7 @@ class SemBuilder(object):
                     jmp_end = ast.Call(func=ast.Name(id='ExprAssign',
                                                      ctx=ast.Load()),
                                        args=[IRDst, loc_end],
-                                       keywords=[],
-                                       starargs=None,
-                                       kwargs=None)
+                                       keywords=[])
                     sub_blocks[-1][-1].append(jmp_end)
 
 
@@ -259,9 +249,7 @@ class SemBuilder(object):
                     assignblk = ast.Call(func=ast.Name(id='AssignBlock',
                                                        ctx=ast.Load()),
                                          args=[effects, instr],
-                                         keywords=[],
-                                         starargs=None,
-                                         kwargs=None)
+                                         keywords=[])
 
 
                     ## Replace the block with a call to 'IRBlock'
@@ -277,9 +265,7 @@ class SemBuilder(object):
                                                   loc_if_name,
                                                   assignblks
                                               ],
-                                              keywords=[],
-                                              starargs=None,
-                                              kwargs=None)
+                                              keywords=[])
                     blocks += sub_blocks
                     real_body += sub_body
 

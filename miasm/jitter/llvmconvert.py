@@ -5,7 +5,7 @@
 # - JiT                                                                        #
 #
 # Requires:                                                                    #
-# - llvmlite (tested on v0.15)                                                 #
+# - llvmlite (tested on v0.50.0)                                               #
 #
 # Authors : Fabrice DESCLAUX (CEA/DAM), Camille MOUGEY (CEA/DAM)               #
 #
@@ -84,7 +84,6 @@ class LLVMContext(object):
     def __init__(self, name="mod"):
         "Initialize a context with a module named 'name'"
         # Initialize llvm
-        llvm.initialize()
         llvm.initialize_native_target()
         llvm.initialize_native_asmprinter()
 
@@ -110,10 +109,9 @@ class LLVMContext(object):
         """
 
         # Set up the optimiser pipeline
-        pmb = llvm.create_pass_manager_builder()
-        pmb.opt_level = level
-        pm = llvm.create_module_pass_manager()
-        pmb.populate(pm)
+        pto = llvm.create_pipeline_tuning_options(speed_level=level)
+        pm = llvm.create_new_module_pass_manager()
+        self.pass_builder = llvm.create_pass_builder(self.target_machine, pto)
         self.pass_manager = pm
 
     def init_exec_engine(self):
@@ -436,8 +434,8 @@ class LLVMContext_JIT(LLVMContext):
         if os.access(fname_out, os.R_OK):
             # No need to overwrite
             return
-
-        open(fname_out, "wb").write(buffer)
+        with open(fname_out, "wb") as f:
+            f.write(buffer)
 
     @staticmethod
     def cache_getbuffer(module):
@@ -447,7 +445,8 @@ class LLVMContext_JIT(LLVMContext):
 
         fname_out = module.fname_out
         if os.access(fname_out, os.R_OK):
-            return open(fname_out, "rb").read()
+            with open(fname_out, "rb") as f:
+                return f.read()
         return None
 
     def enable_cache(self):
@@ -1821,7 +1820,7 @@ class LLVMFunction(object):
 
     def optimise(self):
         "Optimise the function in place"
-        return self.llvm_context.pass_manager.run(self.as_llvm_mod())
+        return self.llvm_context.pass_manager.run(self.as_llvm_mod(), self.llvm_context.pass_builder)
 
     def __call__(self, *args):
         "Eval the function with arguments args"

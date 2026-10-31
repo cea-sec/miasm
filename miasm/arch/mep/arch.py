@@ -563,10 +563,10 @@ def deref2expr(s, l, parse_results):
         return AstMem(parse_results[1], 32)  # 0 == "(" and 2 == ")"
 
 
-deref_reg_parser = Group(LPARENTHESIS + gpr_infos.parser + RPARENTHESIS).setParseAction(deref2expr)
-deref_inc_reg_parser = Group(LPARENTHESIS + gpr_infos.parser + PLUSSIGN + RPARENTHESIS).setParseAction(deref2expr)
-abs24_deref_parser = Group(LPARENTHESIS + HEX_INTEGER + RPARENTHESIS).setParseAction(deref2expr)
-offset_deref_reg_parser = Group(HEX_INTEGER + LPARENTHESIS + gpr_infos.parser + RPARENTHESIS).setParseAction(deref2expr)
+deref_reg_parser = Group(LPARENTHESIS + gpr_infos.parser + RPARENTHESIS).set_parse_action(deref2expr)
+deref_inc_reg_parser = Group(LPARENTHESIS + gpr_infos.parser + PLUSSIGN + RPARENTHESIS).set_parse_action(deref2expr)
+abs24_deref_parser = Group(LPARENTHESIS + HEX_INTEGER + RPARENTHESIS).set_parse_action(deref2expr)
+offset_deref_reg_parser = Group(HEX_INTEGER + LPARENTHESIS + gpr_infos.parser + RPARENTHESIS).set_parse_action(deref2expr)
 
 # Define registers decoders and encoders
 

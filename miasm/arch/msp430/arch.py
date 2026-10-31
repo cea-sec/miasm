@@ -54,10 +54,10 @@ RPARENT = Suppress(")")
 
 PINC = Suppress("+")
 
-deref_nooff = (ARO + base_expr).setParseAction(cb_deref_nooff)
-deref_pinc = (ARO + base_expr + PINC).setParseAction(cb_deref_pinc)
-deref_off = (base_expr + LPARENT + gpregs.parser + RPARENT).setParseAction(cb_deref_off)
-sreg_p = (deref_pinc | deref_nooff | deref_off | base_expr).setParseAction(cb_expr)
+deref_nooff = (ARO + base_expr).set_parse_action(cb_deref_nooff)
+deref_pinc = (ARO + base_expr + PINC).set_parse_action(cb_deref_pinc)
+deref_off = (base_expr + LPARENT + gpregs.parser + RPARENT).set_parse_action(cb_deref_off)
+sreg_p = (deref_pinc | deref_nooff | deref_off | base_expr).set_parse_action(cb_expr)
 
 
 

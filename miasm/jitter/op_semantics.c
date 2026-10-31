@@ -40,6 +40,52 @@ const uint8_t parity_table[256] = {
     0, CC_P, CC_P, 0, CC_P, 0, 0, CC_P,
 };
 
+uint8_t bcdadd_8(uint8_t a, uint8_t b)
+{
+	int carry = 0;
+	int i,j = 0;
+	uint8_t res = 0;
+	int nib_a, nib_b;
+	for (i = 0; i < 8; i += 4) {
+		nib_a = (a  >> i) & (0xF);
+		nib_b = (b >> i) & (0xF);
+
+		j = (carry + nib_a + nib_b);
+		if (j >= 10) {
+			carry = 1;
+			j -= 10;
+			j &=0xf;
+		}
+		else {
+			carry = 0;
+		}
+		res += j << i;
+	}
+	return res;
+}
+
+uint8_t bcdadd_cf_8(uint8_t a, uint8_t b)
+{
+	int carry = 0;
+	int i,j = 0;
+	int nib_a, nib_b;
+	for (i = 0; i < 8; i += 4) {
+		nib_a = (a >> i) & (0xF);
+		nib_b = (b >> i) & (0xF);
+
+		j = (carry + nib_a + nib_b);
+		if (j >= 10) {
+			carry = 1;
+			j -= 10;
+			j &=0xf;
+		}
+		else {
+			carry = 0;
+		}
+	}
+	return carry;
+}
+
 uint16_t bcdadd_16(uint16_t a, uint16_t b)
 {
 	int carry = 0;

@@ -38,8 +38,8 @@ def cb_deref_nooff(tokens):
 
 base_expr = cpu.base_expr
 
-deref_off = (Optional(base_expr) + LPARENTHESIS + gpregs.parser + RPARENTHESIS).setParseAction(cb_deref)
-deref_nooff = (LPARENTHESIS + gpregs.parser + RPARENTHESIS).setParseAction(cb_deref_nooff)
+deref_off = (Optional(base_expr) + LPARENTHESIS + gpregs.parser + RPARENTHESIS).set_parse_action(cb_deref)
+deref_nooff = (LPARENTHESIS + gpregs.parser + RPARENTHESIS).set_parse_action(cb_deref_nooff)
 deref = deref_off | deref_nooff
 
 

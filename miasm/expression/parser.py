@@ -2,15 +2,15 @@ import pyparsing
 from miasm.expression.expression import ExprInt, ExprId, ExprLoc, ExprSlice, \
     ExprMem, ExprCond, ExprCompose, ExprOp, ExprAssign, LocKey
 
-integer = pyparsing.Word(pyparsing.nums).setParseAction(lambda t:
+integer = pyparsing.Word(pyparsing.nums).set_parse_action(lambda t:
                                                         int(t[0]))
 hex_word = pyparsing.Literal('0x') + pyparsing.Word(pyparsing.hexnums)
-hex_int = pyparsing.Combine(hex_word).setParseAction(lambda t:
+hex_int = pyparsing.Combine(hex_word).set_parse_action(lambda t:
                                                      int(t[0], 16))
 
 str_int_pos = (hex_int | integer)
 str_int_neg = (pyparsing.Suppress('-') + \
-                   (hex_int | integer)).setParseAction(lambda t: -t[0])
+                   (hex_int | integer)).set_parse_action(lambda t: -t[0])
 
 str_int = str_int_pos | str_int_neg
 
@@ -61,15 +61,15 @@ def parse_loc_key(t):
     loc_key, size = LocKey(t[0]), t[1]
     return ExprLoc(loc_key, size)
 
-expr_int.setParseAction(lambda t: ExprInt(*t))
-expr_id.setParseAction(lambda t: ExprId(*t))
-expr_loc.setParseAction(parse_loc_key)
-expr_slice.setParseAction(lambda t: ExprSlice(*t))
-expr_mem.setParseAction(lambda t: ExprMem(*t))
-expr_cond.setParseAction(lambda t: ExprCond(*t))
-expr_compose.setParseAction(lambda t: ExprCompose(*t))
-expr_op.setParseAction(lambda t: ExprOp(*t))
-expr_aff.setParseAction(lambda t: ExprAssign(*t))
+expr_int.set_parse_action(lambda t: ExprInt(*t))
+expr_id.set_parse_action(lambda t: ExprId(*t))
+expr_loc.set_parse_action(parse_loc_key)
+expr_slice.set_parse_action(lambda t: ExprSlice(*t))
+expr_mem.set_parse_action(lambda t: ExprMem(*t))
+expr_cond.set_parse_action(lambda t: ExprCond(*t))
+expr_compose.set_parse_action(lambda t: ExprCompose(*t))
+expr_op.set_parse_action(lambda t: ExprOp(*t))
+expr_aff.set_parse_action(lambda t: ExprAssign(*t))
 
 
 def str_to_expr(str_in):
@@ -77,7 +77,7 @@ def str_to_expr(str_in):
     @str_in: repr string of an Expression"""
 
     try:
-        value = expr.parseString(str_in)
+        value = expr.parse_string(str_in)
     except:
         raise RuntimeError("Cannot parse expression %s" % str_in)
     assert len(value) == 1
