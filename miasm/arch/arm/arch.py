@@ -142,10 +142,10 @@ def check_values(values, value):
     else:
         raise ValueError('shift operator immediate value out of bound')
 
-int_1_31 = str_int.copy().setParseAction(lambda v: check_bounds(1, 31, v[0]))
-int_1_32 = str_int.copy().setParseAction(lambda v: check_bounds(1, 32, v[0]))
+int_1_31 = str_int.copy().set_parse_action(lambda v: check_bounds(1, 31, v[0]))
+int_1_32 = str_int.copy().set_parse_action(lambda v: check_bounds(1, 32, v[0]))
 
-int_8_16_24 = str_int.copy().setParseAction(lambda v: check_values([8, 16, 24], v[0]))
+int_8_16_24 = str_int.copy().set_parse_action(lambda v: check_values([8, 16, 24], v[0]))
 
 
 def cb_reglistparse(tokens):
@@ -168,27 +168,27 @@ def op_shift2expr(tokens):
     return shift2expr_dct[tokens[0]]
 
 reg_duo = Group(gpregs.parser + MINUS +
-                gpregs.parser).setParseAction(cb_tok_reg_duo)
+                gpregs.parser).set_parse_action(cb_tok_reg_duo)
 reg_or_duo = reg_duo | gpregs.parser
 gpreg_list = Group(LACC + delimitedList(
     reg_or_duo, delim=',') + RACC + Optional(CIRCUNFLEX))
-gpreg_list.setParseAction(cb_reglistparse)
+gpreg_list.set_parse_action(cb_reglistparse)
 
 LBRACK = Suppress("[")
 RBRACK = Suppress("]")
 COMMA = Suppress(",")
 all_binaryop_1_31_shifts_t = literal_list(
-    ['LSL', 'ROR']).setParseAction(op_shift2expr)
+    ['LSL', 'ROR']).set_parse_action(op_shift2expr)
 all_binaryop_1_32_shifts_t = literal_list(
-    ['LSR', 'ASR']).setParseAction(op_shift2expr)
-all_unaryop_shifts_t = literal_list(['RRX']).setParseAction(op_shift2expr)
+    ['LSR', 'ASR']).set_parse_action(op_shift2expr)
+all_unaryop_shifts_t = literal_list(['RRX']).set_parse_action(op_shift2expr)
 
-ror_shifts_t = literal_list(['ROR']).setParseAction(op_shift2expr)
-shl_shifts_t = literal_list(['SHL']).setParseAction(op_shift2expr)
+ror_shifts_t = literal_list(['ROR']).set_parse_action(op_shift2expr)
+shl_shifts_t = literal_list(['SHL']).set_parse_action(op_shift2expr)
 
 
 allshifts_t_armt = literal_list(
-    ['LSL', 'LSR', 'ASR', 'ROR', 'RRX']).setParseAction(op_shift2expr)
+    ['LSL', 'LSR', 'ASR', 'ROR', 'RRX']).set_parse_action(op_shift2expr)
 
 gpreg_p = gpregs.parser
 
@@ -210,13 +210,13 @@ shift_off = (gpregs.parser + Optional(
     (all_unaryop_shifts_t) |
     (all_binaryop_1_31_shifts_t + (gpregs.parser | int_1_31)) |
     (all_binaryop_1_32_shifts_t + (gpregs.parser | int_1_32))
-)).setParseAction(cb_shift)
+)).set_parse_action(cb_shift)
 shift_off |= base_expr
 
 
 rot2_expr = (gpregs.parser + Optional(
     (ror_shifts_t + (int_8_16_24))
-)).setParseAction(cb_shift)
+)).set_parse_action(cb_shift)
 
 
 rot5_expr = shift_off
@@ -238,14 +238,14 @@ def cb_deref_reg_reg_lsl_1(tokens):
     return ret
 
 
-deref_reg_reg = (LBRACK + gpregs.parser + COMMA + gpregs.parser + RBRACK).setParseAction(cb_deref_reg_reg)
-deref_reg_reg_lsl_1 = (LBRACK + gpregs.parser + COMMA + gpregs.parser + OP_LSL + base_expr + RBRACK).setParseAction(cb_deref_reg_reg_lsl_1)
+deref_reg_reg = (LBRACK + gpregs.parser + COMMA + gpregs.parser + RBRACK).set_parse_action(cb_deref_reg_reg)
+deref_reg_reg_lsl_1 = (LBRACK + gpregs.parser + COMMA + gpregs.parser + OP_LSL + base_expr + RBRACK).set_parse_action(cb_deref_reg_reg_lsl_1)
 
 
 
 (gpregs.parser + Optional(
     (ror_shifts_t + (int_8_16_24))
-)).setParseAction(cb_shift)
+)).set_parse_action(cb_shift)
 
 
 
@@ -288,15 +288,15 @@ def cb_deref_wb(tokens):
         return AstMem(AstOp('wback', *tokens[:-1]), 32)
     return AstMem(tokens[0], 32)
 
-# shift_off.setParseAction(deref_off)
+# shift_off.set_parse_action(deref_off)
 deref_nooff = Group(
-    LBRACK + gpregs.parser + RBRACK).setParseAction(deref2expr_nooff)
+    LBRACK + gpregs.parser + RBRACK).set_parse_action(deref2expr_nooff)
 deref_pre = Group(LBRACK + gpregs.parser + Optional(
-    COMMA + shift_off) + RBRACK).setParseAction(cb_deref_preinc)
+    COMMA + shift_off) + RBRACK).set_parse_action(cb_deref_preinc)
 deref_post = Group(LBRACK + gpregs.parser + RBRACK +
-                   COMMA + shift_off).setParseAction(cb_deref_post)
+                   COMMA + shift_off).set_parse_action(cb_deref_post)
 deref = Group((deref_post | deref_pre | deref_nooff)
-              + Optional('!')).setParseAction(cb_deref_wb)
+              + Optional('!')).set_parse_action(cb_deref_wb)
 
 
 def cb_gpreb_wb(tokens):
@@ -306,7 +306,7 @@ def cb_gpreb_wb(tokens):
         return AstOp('wback', *tokens[:-1])
     return tokens[0]
 
-gpregs_wb = Group(gpregs.parser + Optional('!')).setParseAction(cb_gpreb_wb)
+gpregs_wb = Group(gpregs.parser + Optional('!')).set_parse_action(cb_gpreb_wb)
 
 
 cond_list_full = ['EQ', 'NE', 'CS', 'CC', 'MI', 'PL', 'VS', 'VC',
@@ -2005,16 +2005,16 @@ gpregs_sppc = reg_info(regs_str[-1:] + regs_str[13:14],
                        regs_expr[-1:] + regs_expr[13:14])
 
 deref_reg_imm = Group(LBRACK + gpregs.parser + Optional(
-    COMMA + shift_off) + RBRACK).setParseAction(cb_deref_pre_mem)
+    COMMA + shift_off) + RBRACK).set_parse_action(cb_deref_pre_mem)
 deref_low = Group(LBRACK + gpregs_l.parser + Optional(
-    COMMA + shift_off) + RBRACK).setParseAction(cb_deref_pre_mem)
+    COMMA + shift_off) + RBRACK).set_parse_action(cb_deref_pre_mem)
 deref_pc = Group(LBRACK + gpregs_pc.parser + Optional(
-    COMMA + shift_off) + RBRACK).setParseAction(cb_deref_pre_mem)
+    COMMA + shift_off) + RBRACK).set_parse_action(cb_deref_pre_mem)
 deref_sp = Group(LBRACK + gpregs_sp.parser + COMMA +
-                 shift_off + RBRACK).setParseAction(cb_deref_pre_mem)
+                 shift_off + RBRACK).set_parse_action(cb_deref_pre_mem)
 
 gpregs_l_wb = Group(
-    gpregs_l.parser + Optional('!')).setParseAction(cb_gpreb_wb)
+    gpregs_l.parser + Optional('!')).set_parse_action(cb_gpreb_wb)
 
 
 gpregs_l_13 = reg_info(regs_str[:13], regs_expr[:13])
@@ -2585,7 +2585,7 @@ armtop("uxtah", [bs('111110100'), bs('001'), rn_nopc, bs('1111'), rd, bs('10'), 
 #
 # ARM Architecture Reference Manual Thumb-2 Supplement
 
-armt_gpreg_shift_off = (gpregs_nosppc.parser + allshifts_t_armt + (gpregs.parser | int_1_31)).setParseAction(cb_shift)
+armt_gpreg_shift_off = (gpregs_nosppc.parser + allshifts_t_armt + (gpregs.parser | int_1_31)).set_parse_action(cb_shift)
 
 
 armt_gpreg_shift_off |= gpregs_nosppc.parser

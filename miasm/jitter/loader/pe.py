@@ -686,8 +686,8 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
 
 # machine -> arch
 PE_machine = {
-    0x14c: "x86_32",
-    0x8664: "x86_64",
+    pe.IMAGE_FILE_MACHINE_I386: "x86_32",
+    pe.IMAGE_FILE_MACHINE_AMD64: "x86_64",
 }
 
 

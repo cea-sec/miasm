@@ -98,7 +98,7 @@ class reg_info(object):
     def __init__(self, reg_str, reg_expr):
         self.str = reg_str
         self.expr = reg_expr
-        self.parser = literal_list(reg_str).setParseAction(self.cb_parse)
+        self.parser = literal_list(reg_str).set_parse_action(self.cb_parse)
 
     def cb_parse(self, tokens):
         assert len(tokens) == 1
@@ -122,7 +122,7 @@ class reg_info_dct(object):
         self.dct_expr = reg_expr
         self.dct_expr_inv = dict((v, k) for k, v in viewitems(reg_expr))
         reg_str = [v.name for v in viewvalues(reg_expr)]
-        self.parser = literal_list(reg_str).setParseAction(self.cb_parse)
+        self.parser = literal_list(reg_str).set_parse_action(self.cb_parse)
 
     def cb_parse(self, tokens):
         assert len(tokens) == 1
@@ -237,22 +237,22 @@ def neg_int(tokens):
     return x
 
 
-integer = pyparsing.Word(pyparsing.nums).setParseAction(lambda tokens: int(tokens[0]))
+integer = pyparsing.Word(pyparsing.nums).set_parse_action(lambda tokens: int(tokens[0]))
 hex_word = pyparsing.Literal('0x') + pyparsing.Word(pyparsing.hexnums)
-hex_int = pyparsing.Combine(hex_word).setParseAction(lambda tokens: int(tokens[0], 16))
+hex_int = pyparsing.Combine(hex_word).set_parse_action(lambda tokens: int(tokens[0], 16))
 
 # str_int = (Optional('-') + (hex_int | integer))
 str_int_pos = (hex_int | integer)
 str_int_neg = (pyparsing.Suppress('-') + \
-                   (hex_int | integer)).setParseAction(neg_int)
+                   (hex_int | integer)).set_parse_action(neg_int)
 
 str_int = str_int_pos | str_int_neg
-str_int.setParseAction(int2expr)
+str_int.set_parse_action(int2expr)
 
-logicop = pyparsing.oneOf('& | ^ >> << <<< >>>')
-signop = pyparsing.oneOf('+ -')
-multop = pyparsing.oneOf('* / %')
-plusop = pyparsing.oneOf('+ -')
+logicop = pyparsing.one_of('& | ^ >> << <<< >>>')
+signop = pyparsing.one_of('+ -')
+multop = pyparsing.one_of('* / %')
+plusop = pyparsing.one_of('+ -')
 
 
 ##########################
@@ -368,32 +368,32 @@ def cb_op_mul(tokens):
     return result
 
 
-integer = pyparsing.Word(pyparsing.nums).setParseAction(lambda tokens: int(tokens[0]))
+integer = pyparsing.Word(pyparsing.nums).set_parse_action(lambda tokens: int(tokens[0]))
 hex_word = pyparsing.Literal('0x') + pyparsing.Word(pyparsing.hexnums)
-hex_int = pyparsing.Combine(hex_word).setParseAction(lambda tokens: int(tokens[0], 16))
+hex_int = pyparsing.Combine(hex_word).set_parse_action(lambda tokens: int(tokens[0], 16))
 
 str_int_pos = (hex_int | integer)
 
 str_int = str_int_pos
-str_int.setParseAction(cb_int)
+str_int.set_parse_action(cb_int)
 
-notop = pyparsing.oneOf('!')
-andop = pyparsing.oneOf('&')
-orop = pyparsing.oneOf('|')
-xorop = pyparsing.oneOf('^')
-shiftop = pyparsing.oneOf('>> <<')
-rotop = pyparsing.oneOf('<<< >>>')
-signop = pyparsing.oneOf('+ -')
-mulop = pyparsing.oneOf('*')
-plusop = pyparsing.oneOf('+ -')
-divop = pyparsing.oneOf('/')
+notop = pyparsing.one_of('!')
+andop = pyparsing.one_of('&')
+orop = pyparsing.one_of('|')
+xorop = pyparsing.one_of('^')
+shiftop = pyparsing.one_of('>> <<')
+rotop = pyparsing.one_of('<<< >>>')
+signop = pyparsing.one_of('+ -')
+mulop = pyparsing.one_of('*')
+plusop = pyparsing.one_of('+ -')
+divop = pyparsing.one_of('/')
 
 
 variable = pyparsing.Word(pyparsing.alphas + "_$.", pyparsing.alphanums + "_")
-variable.setParseAction(cb_parse_id)
+variable.set_parse_action(cb_parse_id)
 operand = str_int | variable
 
-base_expr = pyparsing.infixNotation(operand,
+base_expr = pyparsing.infix_notation(operand,
                                [(notop,   1, pyparsing.opAssoc.RIGHT, cb_op_not),
                                 (andop, 2, pyparsing.opAssoc.RIGHT, cb_op_and),
                                 (xorop, 2, pyparsing.opAssoc.RIGHT, cb_op_xor),
@@ -681,7 +681,7 @@ class m_arg(object):
             self.expr = e
             return start, stop
         try:
-            v, start, stop = next(self.parser.scanString(text))
+            v, start, stop = next(self.parser.scan_string(text))
         except StopIteration:
             return None, None
         arg = v[0]
@@ -718,7 +718,7 @@ class reg_noarg(object):
             self.expr = e
             return start, stop
         try:
-            v, start, stop = next(self.parser.scanString(text))
+            v, start, stop = next(self.parser.scan_string(text))
         except StopIteration:
             return None, None
         arg = v[0]
@@ -1333,7 +1333,7 @@ class cls_mn(with_metaclass(metamn, object)):
                             continue
                         try:
                             total_scans += 1
-                            v, start, stop = next(p.scanString(args_str))
+                            v, start, stop = next(p.scan_string(args_str))
                         except StopIteration:
                             v, start, stop = [None], None, None
                         if start != 0:
@@ -1592,7 +1592,7 @@ class imm_noarg(object):
             e, start, stop = parser_result[self.parser]
         else:
             try:
-                e, start, stop = next(self.parser.scanString(text))
+                e, start, stop = next(self.parser.scan_string(text))
             except StopIteration:
                 return None, None
         if e == [None]:

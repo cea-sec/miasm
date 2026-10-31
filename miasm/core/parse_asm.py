@@ -143,7 +143,7 @@ def parse_txt(mnemo, attrib, txt, loc_db):
 
                 for element in data_raw:
                     element = element.strip()
-                    element_parsed = base_expr.parseString(element)[0]
+                    element_parsed = base_expr.parse_string(element)[0]
                     element_expr = asm_ast_to_expr_with_size(element_parsed, loc_db, size)
                     expr_list.append(element_expr)
 

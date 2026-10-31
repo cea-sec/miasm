@@ -189,7 +189,7 @@ class jitter_x86_32(Jitter):
 
     def syscall_ret_systemv(self, value):
         # Documentation: http://man7.org/linux/man-pages/man2/syscall.2.html
-        self.cpu.EAX = value
+        self.cpu.EAX = value & 0xFFFF_FFFF
 
 
 class jitter_x86_64(Jitter):
@@ -293,4 +293,4 @@ class jitter_x86_64(Jitter):
         return args
 
     def syscall_ret_systemv(self, value):
-        self.cpu.RAX = value
+        self.cpu.RAX = value & 0xFFFF_FFFF_FFFF_FFFF
