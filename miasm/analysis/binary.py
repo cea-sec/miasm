@@ -3,6 +3,7 @@ import warnings
 
 from miasm.core.bin_stream import bin_stream_str, bin_stream_elf, bin_stream_pe
 from miasm.jitter.csts import PAGE_READ
+from miasm.loader.elf import ET_EXEC
 
 
 log = logging.getLogger("binary")
@@ -163,15 +164,16 @@ class ContainerPE(Container):
 class ContainerELF(Container):
     "Container abstraction for ELF"
 
-    def parse(self, data, vm=None, addr=0, apply_reloc=False, **kwargs):
+    def parse(self, data, vm=None, addr=0, apply_reloc=False, reloc_options=None, **kwargs):
         """Load an ELF from @data
         @data: bytes containing the ELF bytes
         @vm (optional): VmMngr instance. If set, load the ELF in virtual memory
         @addr (optional): base address the ELF in virtual memory
         @apply_reloc (optional): if set, apply relocation during ELF loading
+        @reloc_options (optional): see miasm.jitter.loader.elf.RelocOptions
 
-        @addr and @apply_reloc are only meaningful in the context of a
-        non-empty @vm
+        @addr, @apply_reloc and @reloc_options are only meaningful in the context
+        of a non-empty @vm
         """
         from miasm.jitter.loader.elf import vm_load_elf, guess_arch, \
             fill_loc_db_with_symbols
@@ -189,7 +191,8 @@ class ContainerELF(Container):
                     data,
                     loc_db=self.loc_db,
                     base_addr=addr,
-                    apply_reloc=apply_reloc
+                    apply_reloc=apply_reloc,
+                    reloc_options=reloc_options,
                 )
             else:
                 self._executable = elf_init.ELF(data)
@@ -202,6 +205,9 @@ class ContainerELF(Container):
         # Build the bin_stream instance and set the entry point
         try:
             self._bin_stream = bin_stream_elf(self._executable)
+            if addr != 0 and self._executable.Ehdr.type == ET_EXEC:
+                addr = 0
+                log.warning("This elf has Ehdr.type == ET_EXEC meaning it isn't relocatable. Using 0 as the base address.")
             self._entry_point = self._executable.Ehdr.entry + addr
         except Exception as error:
             raise ContainerParsingException('Cannot read ELF: %s' % error)
