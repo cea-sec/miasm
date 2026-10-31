@@ -434,8 +434,8 @@ class LLVMContext_JIT(LLVMContext):
         if os.access(fname_out, os.R_OK):
             # No need to overwrite
             return
-
-        open(fname_out, "wb").write(buffer)
+        with open(fname_out, "wb") as f:
+            f.write(buffer)
 
     @staticmethod
     def cache_getbuffer(module):
@@ -445,7 +445,8 @@ class LLVMContext_JIT(LLVMContext):
 
         fname_out = module.fname_out
         if os.access(fname_out, os.R_OK):
-            return open(fname_out, "rb").read()
+            with open(fname_out, "rb") as f:
+                return f.read()
         return None
 
     def enable_cache(self):

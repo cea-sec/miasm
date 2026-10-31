@@ -40,9 +40,9 @@ def cb_pcandimmimm(tokens):
 
 
 
-ref_pc = (LPARENT + reg_info_pc.parser + COMMA + base_expr + RPARENT).setParseAction(cb_deref_pcimm)
-ref_pcandimm = (LPARENT + reg_info_pc.parser + AND + base_expr + COMMA + base_expr + RPARENT).setParseAction(cb_pcandimmimm)
-pcdisp = (reg_info_pc.parser + AND + base_expr + PLUS + base_expr).setParseAction(cb_pcandimmimm)
+ref_pc = (LPARENT + reg_info_pc.parser + COMMA + base_expr + RPARENT).set_parse_action(cb_deref_pcimm)
+ref_pcandimm = (LPARENT + reg_info_pc.parser + AND + base_expr + COMMA + base_expr + RPARENT).set_parse_action(cb_pcandimmimm)
+pcdisp = (reg_info_pc.parser + AND + base_expr + PLUS + base_expr).set_parse_action(cb_pcandimmimm)
 
 PTR = Suppress('PTR')
 
@@ -77,25 +77,25 @@ def cb_regreg(tokens):
     return result
 
 
-deref_pc = (DEREF + ref_pc).setParseAction(cb_deref_mem)
-deref_pcimm = (DEREF + ref_pcandimm).setParseAction(cb_deref_mem)
+deref_pc = (DEREF + ref_pc).set_parse_action(cb_deref_mem)
+deref_pcimm = (DEREF + ref_pcandimm).set_parse_action(cb_deref_mem)
 
-dgpregs_base = (DEREF + gpregs.parser).setParseAction(cb_deref_mem)
-dgpregs_predec = (DEREF + MINUS + gpregs.parser).setParseAction(cb_predec)
-dgpregs_postinc = (DEREF + gpregs.parser + PLUS).setParseAction(cb_postinc)
+dgpregs_base = (DEREF + gpregs.parser).set_parse_action(cb_deref_mem)
+dgpregs_predec = (DEREF + MINUS + gpregs.parser).set_parse_action(cb_predec)
+dgpregs_postinc = (DEREF + gpregs.parser + PLUS).set_parse_action(cb_postinc)
 
 dgpregs = dgpregs_base | dgpregs_predec | dgpregs_postinc
 
-d_gpreg_gpreg = (DEREF + LPARENT + gpregs.parser + COMMA + gpregs.parser + RPARENT).setParseAction(cb_regdisp)
+d_gpreg_gpreg = (DEREF + LPARENT + gpregs.parser + COMMA + gpregs.parser + RPARENT).set_parse_action(cb_regdisp)
 dgpregs_p = dgpregs_predec | dgpregs_postinc
 
 
-dgpregs_ir = (DEREF + LPARENT + gpregs.parser + COMMA + base_expr + RPARENT).setParseAction(cb_regdisp)
+dgpregs_ir = (DEREF + LPARENT + gpregs.parser + COMMA + base_expr + RPARENT).set_parse_action(cb_regdisp)
 dgpregs_ir |= d_gpreg_gpreg
 
-dgbr_imm = (DEREF + LPARENT + reg_info_gbr.parser + COMMA + base_expr + RPARENT).setParseAction(cb_regdisp)
+dgbr_imm = (DEREF + LPARENT + reg_info_gbr.parser + COMMA + base_expr + RPARENT).set_parse_action(cb_regdisp)
 
-dgbr_reg = (DEREF + LPARENT + reg_info_gbr.parser + COMMA + gpregs.parser + RPARENT).setParseAction(cb_regreg)
+dgbr_reg = (DEREF + LPARENT + reg_info_gbr.parser + COMMA + gpregs.parser + RPARENT).set_parse_action(cb_regreg)
 
 
 class sh4_arg(m_arg):

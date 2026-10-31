@@ -29,8 +29,8 @@ def cb_deref_imm_reg(tokens):
         raise NotImplementedError('len(tokens) > 2')
 
 
-deref_reg_disp = (Optional(base_expr) + LPARENTHESIS + gpregs.parser +  RPARENTHESIS).setParseAction(cb_deref_imm_reg)
-deref_reg = (LPARENTHESIS + gpregs.parser +  RPARENTHESIS).setParseAction(cb_deref_imm_reg)
+deref_reg_disp = (Optional(base_expr) + LPARENTHESIS + gpregs.parser +  RPARENTHESIS).set_parse_action(cb_deref_imm_reg)
+deref_reg = (LPARENTHESIS + gpregs.parser +  RPARENTHESIS).set_parse_action(cb_deref_imm_reg)
 
 deref = deref_reg | deref_reg_disp
 

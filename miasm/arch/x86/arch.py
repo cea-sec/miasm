@@ -210,9 +210,9 @@ def cb_deref_base_expr(tokens):
     return addr
 
 
-deref_mem_ad = (LBRACK + base_expr + RBRACK).setParseAction(cb_deref_base_expr)
+deref_mem_ad = (LBRACK + base_expr + RBRACK).set_parse_action(cb_deref_base_expr)
 
-deref_ptr = (base_expr + COLON + base_expr).setParseAction(cb_deref_segmoff)
+deref_ptr = (base_expr + COLON + base_expr).set_parse_action(cb_deref_segmoff)
 
 
 PTR = Suppress('PTR')
@@ -243,7 +243,7 @@ def cb_deref_mem(tokens):
     raise ValueError('len(tokens) > 3')
 
 mem_size = (BYTE | DWORD | QWORD | WORD | TBYTE | XMMWORD)
-deref_mem = (mem_size + PTR + Optional((base_expr + COLON))+ deref_mem_ad).setParseAction(cb_deref_mem)
+deref_mem = (mem_size + PTR + Optional((base_expr + COLON))+ deref_mem_ad).set_parse_action(cb_deref_mem)
 
 
 rmarg = (
@@ -2538,7 +2538,7 @@ class x86_rm_reg_noarg(object):
                 self.parent.w8.value = 0
             return start, stop
         try:
-            result, start, stop = next(self.parser.scanString(text))
+            result, start, stop = next(self.parser.scan_string(text))
         except StopIteration:
             return None, None
         expr = self.asm_ast_to_expr(result[0], loc_db)
@@ -2825,7 +2825,7 @@ class bs_cond_imm(bs_cond_scale, x86_arg):
             expr, start, stop = parser_result[self.parser]
         else:
             try:
-                expr, start, stop = next(self.parser.scanString(text))
+                expr, start, stop = next(self.parser.scan_string(text))
             except StopIteration:
                 expr = None
         self.expr = expr
@@ -2952,7 +2952,7 @@ class bs_rel_off(bs_cond_imm):
             expr, start, stop = parser_result[self.parser]
         else:
             try:
-                expr, start, stop = next(self.parser.scanString(text))
+                expr, start, stop = next(self.parser.scan_string(text))
             except StopIteration:
                 expr = None
         self.expr = expr
@@ -3099,7 +3099,7 @@ class bs_movoff(x86_arg):
                 return None, None
             return start, stop
         try:
-            v, start, stop = next(self.parser.scanString(text))
+            v, start, stop = next(self.parser.scan_string(text))
         except StopIteration:
             return None, None
         if not isinstance(e, ExprMem):
@@ -3164,7 +3164,7 @@ class bs_msegoff(x86_arg):
                 return None, None
             return start, stop
         try:
-            v, start, stop = next(self.parser.scanString(text))
+            v, start, stop = next(self.parser.scan_string(text))
         except StopIteration:
             return None, None
         self.expr = v[0]

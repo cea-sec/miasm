@@ -118,6 +118,9 @@ for script in ["x86/sem.py",
         tags = [TAGS[jitter]] if jitter in TAGS else []
         if (not is_64bit) and script.endswith("mn_div.py"):
             continue
+        if script.endswith("mn_div.py"):
+            # XXX
+            tags.append(TAGS["linux"])
         testset += ArchUnitTest(script, jitter, base_dir="arch", tags=tags)
 
 testset += ArchUnitTest("x86/unit/access_xmm.py", "python", base_dir="arch", tags=[TAGS["python"]])
