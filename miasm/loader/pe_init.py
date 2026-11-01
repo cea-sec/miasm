@@ -263,9 +263,9 @@ class PE(object):
 
             self.NTsig.signature = 0x4550
             if wsize == 32:
-                self.Coffhdr.machine = 0x14c
+                self.Coffhdr.machine = pe.IMAGE_FILE_MACHINE_I386
             elif wsize == 64:
-                self.Coffhdr.machine = 0x8664
+                self.Coffhdr.machine = pe.IMAGE_FILE_MACHINE_AMD64
             else:
                 raise ValueError('unknown pe size %r' % wsize)
             if wsize == 32:

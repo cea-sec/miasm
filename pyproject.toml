@@ -41,13 +41,13 @@ dependencies = [
 [project.optional-dependencies]
 cparser = ["pycparser>=2.17"]
 z3 = ["z3-solver==4.16.0.0"]
-llvm = ["llvmlite==0.44.0"]
+llvm = ["llvmlite==0.50.0"]
 graph = ["graphviz"]
 crypto = ["pycryptodome"]
 all = [
   "pycparser>=2.17",
   "z3-solver==4.16.0.0",
-  "llvmlite==0.44.0",
+  "llvmlite==0.50.0",
   "graphviz",
   "pycryptodome",
 ]
