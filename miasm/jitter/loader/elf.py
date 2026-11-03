@@ -1,8 +1,11 @@
 import struct
 from collections import defaultdict
 
+from typing import Literal
 from future.utils import viewitems
 
+from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
 from miasm.loader import cstruct
 from miasm.loader import *
 import miasm.loader.elf as elf_csts
@@ -22,17 +25,20 @@ log.setLevel(logging.CRITICAL)
 
 
 def get_import_address_elf(e):
+    # TODO: rely on DT_NEEDED and/or .dynsym rather than relocs ?
     import2addr = defaultdict(set)
     for sh in e.sh:
-        if not hasattr(sh, 'rel'):
-            continue
-        for k, v in viewitems(sh.rel):
+        rel = []
+        if hasattr(sh, 'rel'):
+            rel += sh.rel.items()
+        if hasattr(sh, 'rela'):
+            rel += sh.rela.items()
+        for k, v in rel:
             k = force_str(k)
             import2addr[('xxx', k)].add(v.offset)
     return import2addr
 
-
-def preload_elf(vm, e, runtime_lib, patch_vm_imp=True, loc_db=None):
+def preload_elf(vm, e, runtime_lib, patch_vm_imp=True, loc_db=None, elf_base_addr: int = 0):
     # XXX quick hack
     fa = get_import_address_elf(e)
     dyn_funcs = {}
@@ -47,11 +53,11 @@ def preload_elf(vm, e, runtime_lib, patch_vm_imp=True, loc_db=None):
             libname_s = canon_libname_libfunc(libname, libfunc)
             dyn_funcs[libname_s] = ad_libfunc
             if patch_vm_imp:
-                log.debug('patch 0x%x 0x%x %s', ad, ad_libfunc, libfunc)
+                log.debug('patch 0x%x 0x%x %s', ad + elf_base_addr, ad_libfunc, libfunc)
                 set_endianness = { elf_csts.ELFDATA2MSB: ">",
                                    elf_csts.ELFDATA2LSB: "<",
                                    elf_csts.ELFDATANONE: "" }[e.sex]
-                vm.set_mem(ad,
+                vm.set_mem(ad + elf_base_addr,
                            struct.pack(set_endianness +
                                        cstruct.size2type[e.size],
                                        ad_libfunc))
@@ -162,27 +168,84 @@ def fill_loc_db_with_symbols(elf, loc_db, base_addr=0):
             else:
                 loc_db.add_location(name=name, offset=vaddr)
 
+class RelocOptions():
+    def __init__(self, run_ifuncs: bool = False, ifunc_jitter_engine: Literal["python", "gcc", "llvm"] | None = None, ifunc_jitter = None) -> None:
+        """@run_ifuncs: whether or not to run, resolve and apply ifuncs
+        @ifunc_jitter_engine: set to "gcc" by default, unless @ifunc_jitter is used. The engine to use for the default ifunc jitter.
+        @ifunc_jitter: a user-provided jitter to run/resolve ifuncs with. Needs to have an initialized stack. Overrides the default ifunc jitter.
 
-def apply_reloc_x86(elf, vm, section, base_addr, loc_db):
+        WARNING: @ifunc_jitter_engine and @ifunc_jitter are mutually exclusive.
+        """
+        if ifunc_jitter_engine is not None and ifunc_jitter is not None:
+            raise ValueError("ifunc_jitter_engine and ifunc_jitter are mutually exclusive")
+        self.run_ifuncs = run_ifuncs
+        if ifunc_jitter_engine is None:
+            if ifunc_jitter is None:
+                self.ifunc_jitter_engine = "gcc"
+        else:
+            self.ifunc_jitter_engine = ifunc_jitter_engine
+
+        if ifunc_jitter is not None:
+            self.ifunc_jitter = ifunc_jitter
+
+def apply_reloc_x86(elf, vm, section, base_addr, loc_db: LocationDB | None, reloc_options: RelocOptions | None = None):
     """Apply relocation for x86 ELF contained in the section @section
     @elf: miasm.loader's ELF instance
     @vm: VmMngr instance
     @section: elf's section containing relocation to perform
     @base_addr: addr to reloc to
     @loc_db: LocationDB used to retrieve symbols'offset
+    @reloc_options: Options for which reloc to process and how to process them
     """
-    if elf.size == 64:
-        addr_writer = lambda vaddr, addr: vm.set_mem(vaddr,
-                                                     struct.pack("<Q", addr))
-    elif elf.size == 32:
-        addr_writer = lambda vaddr, addr: vm.set_mem(vaddr,
-                                                     struct.pack("<I", addr))
-    else:
-        raise ValueError("Unsupported elf size %d" % elf.size)
+    if reloc_options is None:
+        reloc_options = RelocOptions()
+
+    if reloc_options.run_ifuncs and elf.Ehdr.type == elf_csts.ET_EXEC:
+        log.warning("Running ifuncs as a part of the loading process is only accurate for dynamically-linked executables, as they are normally ran during glibc initialization for static and static-pie executables. See GNU C Library Reference Manual, version 2.44, chapter/section 37.4.2 When IFUNC Resolvers Run.")
+
+    log.debug(f"Applying relocations for section {section}")
 
     symb_section = section.linksection
-    for reloc in section.reltab:
+    if hasattr(section, "reltab"):
+        table = section.reltab
+    elif hasattr(section, "relatab"):
+        table = section.relatab
+    else:
+        raise ValueError(f"Trying to apply reloc on section without RelTable or RelATable.")
 
+    if reloc_options.run_ifuncs:
+        if hasattr(reloc_options, "ifunc_jitter"):
+            ifunc_jitter = reloc_options.ifunc_jitter
+        else:
+            ifunc_machine = Machine(guess_arch(elf))
+            ifunc_jitter = ifunc_machine.jitter(loc_db, reloc_options.ifunc_jitter_engine)
+
+            last_addr = 0x100
+            stack_base_found = False
+            ifunc_jitter.stack_size = 0x100
+            for map_addr, map_mem in vm.get_all_memory().items():
+                map_data = map_mem["data"]
+                # find somewhere for our stack to go
+                if map_addr - last_addr > ifunc_jitter.stack_size:
+                    ifunc_jitter.stack_base = last_addr
+                    last_addr = float("inf")
+                    stack_base_found = True
+                else:
+                    last_addr = map_addr + len(map_data)
+
+                # and copy the memory already mapped by the loader
+                ifunc_jitter.vm.add_memory_page(map_addr, map_mem["access"], map_data)
+
+            if not stack_base_found and last_addr + ifunc_jitter.stack_size < 1 << elf.size:
+                ifunc_jitter.stack_base = last_addr
+                stack_base_found = True
+
+            if stack_base_found:
+                ifunc_jitter.init_stack()
+            else:
+                raise ValueError("Couldn't find enough space to allocate our ifunc runner's stack")
+
+    for reloc in table:
         # Parse relocation info
         r_info = reloc.info
         if elf.size == 64:
@@ -191,31 +254,46 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db):
         elif elf.size == 32:
             r_info_sym = (r_info >> 8) & 0xFFFFFF
             r_info_type = r_info & 0xFF
+        else:
+            raise ValueError(
+                f"Cannot parse relocations on an ELF with {elf.size=}"
+            )
 
         is_ifunc = False
         symbol_entry = None
+        symbol_name = None
         if r_info_sym > 0:
             symbol_entry = symb_section.symtab[r_info_sym]
+            symbol_name = symbol_entry.name.decode()
 
         r_offset = reloc.offset
-        r_addend = reloc.cstr.sym
+        if hasattr(reloc, "addend"):
+            addend = reloc.addend
+        else:
+            addend = int.from_bytes(elf.get_virt().get(r_offset, r_offset + elf.size // 8), byteorder="little")
 
         if (elf.size, reloc.type) in [
                 (64, elf_csts.R_X86_64_RELATIVE),
-                (64, elf_csts.R_X86_64_IRELATIVE),
                 (32, elf_csts.R_386_RELATIVE),
-                (32, elf_csts.R_386_IRELATIVE),
         ]:
             # B + A
-            addr = base_addr + r_addend
             where = base_addr + r_offset
+            addr = base_addr + addend
+        elif (elf.size, reloc.type) in [
+                (64, elf_csts.R_X86_64_IRELATIVE),
+                (32, elf_csts.R_386_IRELATIVE),
+        ]:
+            # indirect B + A (indirect as in ifunc)
+            where = base_addr + r_offset
+            addr = base_addr + addend
+            is_ifunc = True
         elif reloc.type == elf_csts.R_X86_64_64:
             # S + A
-            addr_symb = loc_db.get_name_offset(symbol_entry.name)
+            addr_symb = loc_db.get_name_offset(symbol_name)
             if addr_symb is None:
-                log.warning("Unable to find symbol %r" % symbol_entry.name)
+                log.warning(f"Unable to find symbol {symbol_name}")
                 continue
-            addr = addr_symb + r_addend
+            addr = addr_symb + addend
             where = base_addr + r_offset
         elif (elf.size, reloc.type) in [
                 (64, elf_csts.R_X86_64_TPOFF64),
@@ -223,7 +301,7 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db):
                 (32, elf_csts.R_386_TLS_TPOFF),
         ]:
             # Thread dependent, ignore for now
-            log.debug("Skip relocation TPOFF64 %r", reloc)
+            log.debug(f"Skip relocation TPOFF64 {reloc}")
             continue
         elif (elf.size, reloc.type) in [
                 (64, elf_csts.R_X86_64_GLOB_DAT),
@@ -232,37 +310,43 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db):
                 (32, elf_csts.R_386_GLOB_DAT),
         ]:
             # S
-            addr = loc_db.get_name_offset(symbol_entry.name)
+            addr = loc_db.get_name_offset(symbol_name)
             if addr is None:
-                log.warning("Unable to find symbol %r" % symbol_entry.name)
+                log.warning(f"Unable to find symbol {symbol_name}")
                 continue
-            is_ifunc = symbol_entry.info & 0xF == elf_csts.STT_GNU_IFUNC
             where = base_addr + r_offset
         else:
-            raise ValueError(
-                "Unknown relocation type: %d (%r)" % (reloc.type,
-                                                      reloc)
-            )
-        if is_ifunc:
-            # Resolve at runtime - not implemented for now
-            log.warning("Relocation for %r (at %x, currently pointing on %x) "
-                        "has to be resolved at runtime",
-                        name, where, sym_addr)
-            continue
+            raise ValueError(f"Unknown relocation type: {reloc.type} ({reloc})")
+        if is_ifunc and reloc_options.run_ifuncs:
+            addr = _resolve_ifunc_x86(addr, elf, ifunc_jitter)
 
-        log.debug("Write %x at %x", addr, where)
-        addr_writer(where, addr)
+        log.debug(f"Write {addr:x} at {where:x}")
+        if elf.size == 64:
+            return vm.set_u64(where, addr)
+        elif elf.size == 32:
+            return vm.set_u32(where, addr)
+        else:
+            raise ValueError(f"Unsupported elf size {elf.size}")
 
 
 def vm_load_elf(vm, fdata, name="", base_addr=0, loc_db=None, apply_reloc=False,
-                **kargs):
+                reloc_options=None, **kargs):
     """
     Very dirty elf loader
     TODO XXX: implement real loader
     """
+    if reloc_options is None:
+        reloc_options = RelocOptions()
+
+    if reloc_options.run_ifuncs and not apply_reloc:
+        log.warning("vm_load_elf was called with reloc_options.run_ifuncs=True but they won't be run nor applied since apply_reloc=False.")
+
     elf = elf_init.ELF(fdata, **kargs)
     i = interval()
     all_data = {}
+    if elf.Ehdr.type == elf_csts.ET_EXEC and base_addr != 0:
+        log.warning("This elf has Ehdr.type == ET_EXEC meaning it isn't relocatable. Reversing base_addr to 0.")
+        base_addr = 0
 
     for p in elf.ph.phlist:
         if p.ph.type != elf_csts.PT_LOAD:
@@ -296,7 +380,7 @@ def vm_load_elf(vm, fdata, name="", base_addr=0, loc_db=None, apply_reloc=False,
         arch = guess_arch(elf)
         sections = []
         for section in elf.sh:
-            if not hasattr(section, 'reltab'):
+            if not (hasattr(section, 'reltab') or hasattr(section, 'relatab')):
                 continue
             if isinstance(section, elf_init.RelATable):
                 pass
@@ -308,12 +392,101 @@ def vm_load_elf(vm, fdata, name="", base_addr=0, loc_db=None, apply_reloc=False,
             sections.append(section)
         for section in sections:
             if arch in ["x86_64", "x86_32"]:
-                apply_reloc_x86(elf, vm, section, base_addr, loc_db)
+                apply_reloc_x86(elf, vm, section, base_addr, loc_db, reloc_options)
             else:
                 log.debug("Unsupported relocation for arch %r" % arch)
 
     return elf
 
+def get_ifuncs_x86(elf, base_addr, with_syms=False):
+    """
+    Returns all ifunc resolvers found in @elf along with their GOT entry and their associated symbols if they exist and @with_syms == True
+
+    @elf: miasm.loader.elf_init.ELF
+    @return: list[(to_reloc: int, resolver: int, list[miasm.loader.elf_init.WSym(32|64)] if with_syms)]
+    """
+    res = []
+    explicit_addend = False
+    for sh in elf.sh:
+        if hasattr(sh, "reltab"):
+            table = sh.reltab
+        elif hasattr(sh, "relatab"):
+            table = sh.relatab
+            explicit_addend = True
+        else:
+            continue
+        for reloc in table:
+            if (elf.size, reloc.type) in [
+                    (64, elf_csts.R_X86_64_IRELATIVE),
+                    (32, elf_csts.R_386_IRELATIVE),
+            ]:
+                addend = reloc.addend if explicit_addend else int.from_bytes(elf.get_virt().get(reloc.offset, reloc.offset + elf.size // 8), byteorder="little")
+
+                # indirect B + A (indirect as in ifunc)
+                to_reloc = base_addr + reloc.offset
+                resolver = base_addr + addend
+                if with_syms:
+                    ifunc_syms = [s for s in elf.sh.symtab.symtab if s.value == resolver and s.info & elf_csts.STT_GNU_IFUNC == elf_csts.STT_GNU_IFUNC]
+                    res.append((to_reloc, resolver, ifunc_syms))
+                else:
+                    res.append((to_reloc, resolver))
+    return res
+
+def _resolve_ifunc_x86(resolver_addr, elf, run_jitter):
+    """
+    WARNING: this is only accurate for dynamically-linked binaries. Static and static-pie executables' ifuncs are loaded at runtime during glibc initialization.
+    WARNING: this requires the jitter to have an initialized stack
+    Runs provided ifunc resolver
+
+    @reloc_addr: int - the address where we want to apply our reloc
+    @resolver_addr: int - the address of the ifunc resolver
+    @elf: miasm.loader.elf_init.ELF
+    @run_jitter: Jitter to run the ifunc resolver on
+    @return: None
+    """
+    end_addr = 0x1337beef
+    def _code_sentinelle(j):
+        j.running = False
+        return False
+    run_jitter.add_breakpoint(end_addr, _code_sentinelle)
+    if elf.size == 32:
+        run_jitter.push_uint32_t(end_addr)
+    elif elf.size == 64:
+        run_jitter.push_uint64_t(end_addr)
+    else:
+        raise ValueError(
+            f"Cannot resolve ifunc on an ELF with unsupported size {elf.size}"
+        )
+
+    run_jitter.run(resolver_addr)
+    resolved_funcaddr = getattr(run_jitter.cpu, "RAX" if elf.size == 64 else "EAX")
+    return resolved_funcaddr
+
+def apply_ifunc_x86(reloc_addr, resolver_addr, elf, jitter, run_jitter=None):
+    """
+    WARNING: this is only accurate for dynamically-linked binaries. Static and static-pie executables' ifuncs are loaded at runtime during glibc initialization.
+    WARNING: this requires the jitter or run_jitter (if present) to have an initialized stack
+    Runs and applies provided ifunc resolver
+
+    @reloc_addr: int - the address where we want to apply our reloc
+    @resolver_addr: int - the address of the ifunc resolver
+    @elf: miasm.loader.elf_init.ELF
+    @jitter: Jitter instance to apply the reloc to
+    @run_jitter: (optional) Jitter to run the ifunc resolver on in place of @jitter
+    @return: None
+    """
+    if run_jitter is None:
+        run_jitter = jitter
+
+    resolved_funcaddr = _resolve_ifunc_x86(resolver_addr, elf, run_jitter)
+
+    log.debug(f"Write {resolved_funcaddr:x} at {reloc_addr:x}")
+    if elf.size == 64:
+        return jitter.vm.set_u64(reloc_addr, resolved_funcaddr)
+    elif elf.size == 32:
+        return jitter.vm.set_u32(reloc_addr, resolved_funcaddr)
+    else:
+        raise ValueError(f"Unsupported elf size {elf.size}")
 
 class libimp_elf(libimp):
     pass
