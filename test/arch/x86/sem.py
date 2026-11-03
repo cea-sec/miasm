@@ -157,6 +157,19 @@ class TestX86Semantic(unittest.TestCase):
         self.mmx_logical_op("PAND", op_and, MMX_V0, MMX_V1)
         self.sse_logical_op("PAND", op_and, SSE_V0, SSE_V1)
 
+    def test_ROTATE_OF_masked_count(self):
+        # The count is masked to 5 bits: CL = 0x21 rotates by 1, so OF is defined
+        for name, value, ref, of_ref in (("ROL", 0x7fffffff, 0xfffffffe, 1),
+                                         ("ROR", 0x1, 0x80000000, 1),
+                                         ("RCL", 0x7fffffff, 0xfffffffe, 1),
+                                         ("RCR", 0x80000000, 0x40000000, 1)):
+            sem = compute(Lifter_X86_32, m32, '%s EAX, CL' % name,
+                          {EAX: ExprInt(value, 32), ECX: ExprInt(0x21, 32),
+                           cf: ExprInt(0, 1), of: ExprInt(0, 1)},
+                          False)
+            self.assertEqual(sem[EAX], ExprInt(ref, 32), name)
+            self.assertEqual(sem.get(of, ExprInt(0, 1)), ExprInt(of_ref, 1), name)
+
 
 
 if __name__ == '__main__':
