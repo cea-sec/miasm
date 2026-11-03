@@ -546,6 +546,19 @@ class TestARMSemantic(unittest.TestCase):
         self.assertEqual(compute('SMLAL R2, R3, R4, R5', {R2: 0xffffffff, R3: 0x0, R4: 0x12345678, R5: 0x87654321}), {R2: 0x70b88d77, R3: 0xf76c768e, R4: 0x12345678, R5: 0x87654321})
         self.assertEqual(compute('SMLAL R2, R3, R4, R5', {R2: 0xffffffff, R3: 0x00000002, R4: 0x12345678, R5: 0x87654321}), {R2: 0x70b88d77, R3: 0xf76c7690, R4: 0x12345678, R5: 0x87654321})
 
+    def test_rotated_imm_carry(self):
+        # A rotated modified immediate sets C to bit 31 of the value, an unrotated one leaves C unchanged
+        self.assertEqual(compute('ANDS   R2, R3, 0xFF000000', {R3: 0x0, cf: 0x0}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0x0, cf: 0x1})
+        self.assertEqual(compute('ANDS   R2, R3, 0x00FF0000', {R3: 0x0, cf: 0x1}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0x0, cf: 0x0})
+        self.assertEqual(compute('ANDS   R2, R3, 0xFF', {R3: 0x0, cf: 0x1}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0x0, cf: 0x1})
+        self.assertEqual(compute('EORS   R2, R3, 0xFF000000', {R3: 0x0, cf: 0x0}), {zf: 0x0, R2: 0xff000000, nf: 0x1, R3: 0x0, cf: 0x1})
+        self.assertEqual(compute('ORRS   R2, R3, 0xFF000000', {R3: 0x0, cf: 0x0}), {zf: 0x0, R2: 0xff000000, nf: 0x1, R3: 0x0, cf: 0x1})
+        self.assertEqual(compute('BICS   R2, R3, 0xFF000000', {R3: 0xffffffff, cf: 0x0}), {zf: 0x0, R2: 0x00ffffff, nf: 0x0, R3: 0xffffffff, cf: 0x1})
+        self.assertEqual(compute('MOVS   R2, 0x80000000', {cf: 0x0}), {zf: 0x0, R2: 0x80000000, nf: 0x1, cf: 0x1})
+        self.assertEqual(compute('MVNS   R2, 0x80000000', {cf: 0x0}), {zf: 0x0, R2: 0x7fffffff, nf: 0x0, cf: 0x1})
+        self.assertEqual(compute('TST    R3, 0xFF000000', {R3: 0xff000000, cf: 0x0}), {zf: 0x0, nf: 0x1, R3: 0xff000000, cf: 0x1})
+        self.assertEqual(compute('TEQ    R3, 0xFF000000', {R3: 0x0, cf: 0x0}), {zf: 0x0, nf: 0x1, R3: 0x0, cf: 0x1})
+
 if __name__ == '__main__':
     testsuite = unittest.TestLoader().loadTestsFromTestCase(TestARMSemantic)
     report = unittest.TextTestRunner(verbosity=2).run(testsuite)

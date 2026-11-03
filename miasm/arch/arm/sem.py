@@ -264,7 +264,29 @@ def compute_rrx_carry(operation):
     res = ExprCompose(operation.args[0][1:], cf)
     return res, new_cf
 
-# XXX TODO: set cf if ROT imm in argument
+
+def imm_carry(ir, instr, imm):
+    """
+    Carry out of a modified immediate operand (ARMExpandImm_C, ThumbExpandImm_C):
+    bit 31 of the value when its encoding rotates it, otherwise the carry flag
+    is unchanged. The operand already holds the expanded value, so the rotation
+    is read from the encoding: imm12[11:8] in A32, i:imm3[2] in a 32-bit T32
+    instruction. 16-bit T32 immediates are never rotated.
+    """
+    if not imm.is_int() or instr.b is None:
+        return []
+    order = "big" if instr.mode == "b" else "little"
+    if isThumb(ir):
+        if len(instr.b) != 4:
+            return []
+        hw1 = int.from_bytes(instr.b[:2], order)
+        hw2 = int.from_bytes(instr.b[2:], order)
+        rotated = (hw1 >> 10) & 1 or (hw2 >> 14) & 1
+    else:
+        rotated = (int.from_bytes(instr.b, order) >> 8) & 0xf
+    if not rotated:
+        return []
+    return [ExprAssign(cf, imm.msb())]
 
 
 def check_ops_msb(a, b, c):
@@ -449,7 +471,7 @@ def l_and(ir, instr, a, b, c=None):
         # get back the result
         c = e.pop(0).src
     else:
-        e = []
+        e = imm_carry(ir, instr, c) if setflags else []
         extra_ir = []
     r = b & c
     if setflags:
@@ -516,7 +538,7 @@ def eors(ir, instr, a, b, c=None):
         # get back the result
         c = e.pop(0).src
     else:
-        e = []
+        e = imm_carry(ir, instr, c) if setflags else []
         extra_ir = []
     arg1, arg2 = b, c
     r = arg1 ^ arg2
@@ -639,7 +661,7 @@ def tst(ir, instr, a, b):
         # get back the result
         b = e.pop(0).src
     else:
-        e = []
+        e = imm_carry(ir, instr, b) if setflags else []
         extra_ir = []
     arg1, arg2 = a, b
     r = arg1 & arg2
@@ -657,7 +679,7 @@ def teq(ir, instr, a, b, c=None):
         # get back the result
         b = e.pop(0).src
     else:
-        e = []
+        e = imm_carry(ir, instr, b) if setflags else []
         extra_ir = []
     if c is None:
         b, c = a, b
@@ -729,7 +751,7 @@ def orrs(ir, instr, a, b, c=None):
         # get back the result
         c = e.pop(0).src
     else:
-        e = []
+        e = imm_carry(ir, instr, c) if setflags else []
         extra_ir = []
     arg1, arg2 = b, c
     r = arg1 | arg2
@@ -835,7 +857,8 @@ def movs(ir, instr, a, b):
 
 
     e.append(ExprAssign(a, b))
-    # TODO handle cf
+    if a != PC:
+        e += imm_carry(ir, instr, b)
     e += [ExprAssign(zf, ExprOp('FLAG_EQ', b))]
     e += update_flag_nf(b)
 
@@ -863,7 +886,8 @@ def mvns(ir, instr, a, b):
     e = []
     r = b ^ ExprInt(-1, 32)
     e.append(ExprAssign(a, r))
-    # TODO handle cf
+    if a != PC:
+        e += imm_carry(ir, instr, b)
     e += [ExprAssign(zf, ExprOp('FLAG_EQ', r))]
     e += update_flag_nf(r)
 
@@ -935,7 +959,7 @@ def bics(ir, instr, a, b, c=None):
         # get back the result
         c = e.pop(0).src
     else:
-        e = []
+        e = imm_carry(ir, instr, c) if setflags else []
         extra_ir = []
     tmp1, tmp2 = b, ~c
     r = tmp1 & tmp2
