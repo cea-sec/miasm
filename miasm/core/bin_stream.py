@@ -263,7 +263,10 @@ class bin_stream_container(bin_stream):
 
     def _getbytes(self, start, l=1):
         try:
-            return self.bin.virt.get(start, start + l)
+            res = self.bin.virt.get(start, start + l)
+            if res == b"": # happens when we read from a section with SHT_NOBITS
+                raise IOError("cannot get bytes")
+            return res
         except ValueError:
             raise IOError("cannot get bytes")
 
