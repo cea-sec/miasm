@@ -157,6 +157,33 @@ class TestX86Semantic(unittest.TestCase):
         self.mmx_logical_op("PAND", op_and, MMX_V0, MMX_V1)
         self.sse_logical_op("PAND", op_and, SSE_V0, SSE_V1)
 
+    def test_MMX_MOVQ_64(self):
+        # 48 0f 6e c0 = movq mm0, rax  (the #1580 case)
+        rax = ExprInt(0xdeadbeefdeadbeef, 64)
+        mm0v = ExprInt(0x0001020304050607, 64)
+        sem = compute(Lifter_X86_64, m64, 'MOVD MM0, RAX',
+                      {RAX: rax, mm0: mm0v}, False)
+        self.assertEqual(sem.get(mm0), ExprInt(0xdeadbeefdeadbeef, 64)); self.assertEqual(sem.get(RAX), rax)
+        # 48 0f 7e c0 = movq rax, mm0
+        sem = compute(Lifter_X86_64, m64, 'MOVD RAX, MM0',
+                      {mm0: ExprInt(0xcafebabedeadbeef, 64)}, False)
+        self.assertEqual(sem.get(RAX), ExprInt(0xcafebabedeadbeef, 64))
+        # 66 48 0f 6e c0 = movq xmm0, rax
+        sem = compute(Lifter_X86_64, m64, 'MOVQ XMM0, RAX',
+                      {RAX: rax, mm0: mm0v}, False)
+        self.assertEqual(sem.get(XMM0), ExprInt(0xdeadbeefdeadbeef, 128))
+        # 66 48 0f 7e c0 = movq rax, xmm0
+        sem = compute(Lifter_X86_64, m64, 'MOVQ RAX, XMM0',
+                      {XMM0: ExprInt(0x0000000000000000cafebabedeadbeef, 128)}, False)
+        self.assertEqual(sem.get(RAX), ExprInt(0xcafebabedeadbeef, 64))
+        # 32-bit tails of the same instructions remain legal
+        sem = compute(Lifter_X86_64, m64, 'MOVD MM0, EAX',
+                      {RAX: ExprInt(0x0000000012345678, 64), mm0: mm0v}, False)
+        self.assertEqual(sem.get(mm0), ExprInt(0x0000000012345678, 64))
+        sem = compute(Lifter_X86_64, m64, 'MOVD XMM0, EAX',
+                      {RAX: ExprInt(0x0000000012345678, 64), mm0: mm0v}, False)
+        self.assertEqual(sem.get(XMM0), ExprInt(0x12345678, 128))
+
 
 
 if __name__ == '__main__':
