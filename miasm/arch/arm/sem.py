@@ -2279,8 +2279,9 @@ class Lifter_Armtl(Lifter_Arml):
 
 
     def mod_pc(self, instr, instr_ir, extra_ir):
-        # fix PC (+4 for thumb)
-        pc_fixed = {self.pc: ExprInt(instr.offset + 4, 32)}
+        # fix PC (+4 for thumb; Arm ARM: reads of PC in Thumb state see
+        # AlignDown(addr + 4, 4), i.e. the instruction address aligned to 4)
+        pc_fixed = {self.pc: ExprInt((instr.offset + 4) & ~0x3, 32)}
 
         for i, expr in enumerate(instr_ir):
             dst, src = expr.dst, expr.src
