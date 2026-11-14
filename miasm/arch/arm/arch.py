@@ -613,7 +613,7 @@ class instruction_armt(instruction_arm):
     def breakflow(self):
         if self.name in conditional_branch + unconditional_branch +["CBZ", "CBNZ", 'TBB', 'TBH']:
             return True
-        if self.name.startswith("LDM") and PC in self.args[1].args:
+        if self.name.startswith(("LDM", "POP")) and self.args and PC in self.args[0].args:
             return True
         if self.args and PC in self.args[0].get_r():
             return True
@@ -626,6 +626,12 @@ class instruction_armt(instruction_arm):
 
     def splitflow(self):
         if self.name in conditional_branch + ['BL', 'BLX', 'CBZ', 'CBNZ']:
+            return True
+        if self.additional_info.cond != 14 and self.breakflow():
+            # Inside an IT block the instruction carries no condition
+            # field; the condition comes from the IT instruction. A PC
+            # writer there executes only if the IT condition passes, so
+            # the fallthrough edge must be kept.
             return True
         return False
 
@@ -771,6 +777,33 @@ class mn_armt(cls_mn):
     instruction = instruction_armt
     max_instruction_len = 4
     alignment = 4
+    # IT-block state threaded through the linear decode. An IT instruction
+    # makes the following instructions conditional (same condition, or the
+    # inverse for an E hint). Stored per class because the disassembler
+    # decodes one instruction at a time via the singleton class.
+    _it_state = None
+
+    @classmethod
+    def dis(cls, bs, attrib=None, offset=0):
+        state = cls._it_state
+        cls._it_state = None
+        instr = super().dis(bs, attrib, offset)
+        if state is not None:
+            cond, hints = state
+            # T hint: keep the IT condition; E hint: use its inverse
+            # (condition codes invert pairwise by flipping bit 0).
+            instr.additional_info.cond = cond if not hints[0] else cond ^ 1
+            hints = hints[1:]
+            cls._it_state = (cond, hints) if hints else None
+        if instr.name.startswith('IT'):
+            # The IT instruction name carries the hint letters
+            # ('IT', 'ITT', 'ITE', 'ITEE', 'ITTTE', ...), args[0] the
+            # condition of the first predicated instruction.
+            cond = dict((x[1], x[0]) for x in enumerate(cond_list) if x[1]).get(instr.args[0].name)
+            hints = [0 if c == 'T' else 1 for c in instr.name[1:]]
+            if cond is not None and hints:
+                cls._it_state = (cond, hints)
+        return instr
 
     @classmethod
     def getpc(cls, attrib = None):
