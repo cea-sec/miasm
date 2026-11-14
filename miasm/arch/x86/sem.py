@@ -3690,14 +3690,19 @@ def l_str(_, instr, dst):
 
 def movd(_, instr, dst, src):
     e = []
-    if dst in regs_mm_expr:
+    # size-aware zero-extension/truncation: 
+    # destination widths are 64-bit (MMX) or 128-bit (XMM) or 32/64 (GPR).
+    # Pad with zeros on the high side; truncate on the low side if the
+    # source is wider than the destination.
+    dsz = dst.size
+    ssz = src.size
+    if ssz == dsz:
+        e.append(m2_expr.ExprAssign(dst, src))
+    elif ssz < dsz:
         e.append(m2_expr.ExprAssign(
-            dst, m2_expr.ExprCompose(src, m2_expr.ExprInt(0, 32))))
-    elif dst in regs_xmm_expr:
-        e.append(m2_expr.ExprAssign(
-            dst, m2_expr.ExprCompose(src, m2_expr.ExprInt(0, 96))))
+            dst, m2_expr.ExprCompose(src, m2_expr.ExprInt(0, dsz - ssz))))
     else:
-        e.append(m2_expr.ExprAssign(dst, src[:32]))
+        e.append(m2_expr.ExprAssign(dst, src[:dsz]))
     return e, []
 
 
