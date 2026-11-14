@@ -3474,10 +3474,10 @@ def addop(name, fields, args=None, alias=False):
 class ia32_aaa(mn_x86):
     fields = [bs8(0x37)]
 """
-addop("aaa", [bs8(0x37)])
-addop("aas", [bs8(0x3F)])
-addop("aad", [bs8(0xd5), u08])
-addop("aam", [bs8(0xd4), u08])
+addop("aaa", [bs8(0x37), bs_modeno64])
+addop("aas", [bs8(0x3F), bs_modeno64])
+addop("aad", [bs8(0xd5), u08, bs_modeno64])
+addop("aam", [bs8(0xd4), u08, bs_modeno64])
 
 addop("adc", [bs("0001010"), w8, d_eax, d_imm])
 addop("adc", [bs("100000"), se, w8] + rmmod(d2, rm_arg_w8) + [d_imm])
@@ -3571,8 +3571,8 @@ addop("cdq", [bs8(0x99), bs_opmode32])
 addop("cqo", [bs8(0x99), bs_opmode64])
 
 
-addop("daa", [bs8(0x27)])
-addop("das", [bs8(0x2f)])
+addop("daa", [bs8(0x27), bs_modeno64])
+addop("das", [bs8(0x2f), bs_modeno64])
 addop("dec", [bs('1111111'), w8] + rmmod(d1, rm_arg_w8))
 addop("dec", [bs('01001'), reg, bs_modeno64])
 addop("div", [bs('1111011'), w8] + rmmod(d6, rm_arg_w8))
@@ -3760,7 +3760,7 @@ addop("insd", [bs8(0x6d), bs_opmode64])
 
 addop("int", [bs8(0xcc), u08_3])
 addop("int", [bs8(0xcd), u08])
-addop("into", [bs8(0xce)])
+addop("into", [bs8(0xce), bs_modeno64])
 addop("invd", [bs8(0x0f), bs8(0x08)])
 addop("invlpg", [bs8(0x0f), bs8(0x01)] + rmmod(d7))
 
@@ -3934,9 +3934,9 @@ addop("pop", [bs8(0x0f), stk, bs8(0xa9), d_gs, bs_opmode32])
 
 addop("pop", [bs8(0x8f), stk, bs_opmode64] + rmmod(d0))
 addop("pop", [bs("01011"), stk, reg, bs_opmode64])
-addop("pop", [bs8(0x1f), stk, d_ds, bs_opmode64])
-addop("pop", [bs8(0x07), stk, d_es, bs_opmode64])
-addop("pop", [bs8(0x17), stk, d_ss, bs_opmode64])
+addop("pop", [bs8(0x1f), stk, d_ds, bs_opmode64, bs_modeno64])
+addop("pop", [bs8(0x07), stk, d_es, bs_opmode64, bs_modeno64])
+addop("pop", [bs8(0x17), stk, d_ss, bs_opmode64, bs_modeno64])
 addop("pop", [bs8(0x0f), stk, bs8(0xa1), d_fs, bs_opmode64])
 addop("pop", [bs8(0x0f), stk, bs8(0xa9), d_gs, bs_opmode64])
 
@@ -3980,10 +3980,10 @@ addop("push", [bs8(0xff), stk, bs_opmode64] + rmmod(d6))
 addop("push", [bs("01010"), stk, reg, bs_opmode64])
 addop("push", [bs8(0x6a), s08, stk, bs_opmode64])
 addop("push", [bs8(0x68), d_imm, stk, bs_opmode64])
-addop("push", [bs8(0x0e), stk, d_cs, bs_opmode64])
-addop("push", [bs8(0x16), stk, d_ss, bs_opmode64])
-addop("push", [bs8(0x1e), stk, d_ds, bs_opmode64])
-addop("push", [bs8(0x06), stk, d_es, bs_opmode64])
+addop("push", [bs8(0x0e), stk, d_cs, bs_opmode64, bs_modeno64])
+addop("push", [bs8(0x16), stk, d_ss, bs_opmode64, bs_modeno64])
+addop("push", [bs8(0x1e), stk, d_ds, bs_opmode64, bs_modeno64])
+addop("push", [bs8(0x06), stk, d_es, bs_opmode64, bs_modeno64])
 addop("push", [bs8(0x0f), stk, bs8(0xa0), d_fs, bs_opmode64])
 addop("push", [bs8(0x0f), stk, bs8(0xa8), d_gs, bs_opmode64])
 
