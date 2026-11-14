@@ -2206,9 +2206,24 @@ class Lifter_Arml(Lifter):
                 it_instr_irblocks = new_irblocks
 
             irblocks += it_instr_irblocks
-            dst = ExprAssign(self.IRDst, ExprLoc(loc_next, 32))
-            dst_blk = AssignBlock([dst], instr)
-            assignments.append(dst_blk)
+            # Do not append a fallthrough jump when the predicated
+            # instruction itself already branched: when it writes IRDst
+            # (e.g. a BX/B at the end of an IT block), the taken path is
+            # the branch target and the fallthrough is handled by the
+            # head ExprCond. Appending here duplicates IRDst in one block
+            # ("Multiple destinations!") and mispredicts the taken edge.
+            instr_sets_dst = False
+            for assignment in assignments:
+                for dst, src in viewitems(assignment):
+                    if dst.is_id("IRDst"):
+                        instr_sets_dst = True
+                        break
+                if instr_sets_dst:
+                    break
+            if not instr_sets_dst:
+                dst = ExprAssign(self.IRDst, ExprLoc(loc_next, 32))
+                dst_blk = AssignBlock([dst], instr)
+                assignments.append(dst_blk)
             irblock = IRBlock(self.loc_db, loc, assignments)
             irblocks.append(irblock)
             loc = loc_next
