@@ -2172,6 +2172,24 @@ class arm_derefl(arm_deref_reg_imm):
     parser = deref_low
 
 
+class armt_deref_pc_neg(arm_arg):
+    parser = deref_reg_imm
+
+    """Thumb LDR/LDRB (literal, T2 with U=0): Rd, [PC, #-imm].
+
+    Decoder only, by design: Miasm cannot encode ANY [PC, #imm] string today
+    (positive forms fail identically), so widening the encoder here is out of
+    scope. Matches the ARM ARM T2 form `if Rn == '1111' then See("LDR (literal)")`.
+    """
+
+    def decode(self, v):
+        v = v & self.lmask
+        rbase = regs_expr[v]
+        e = ExprOp('preinc', rbase, ExprInt(-int(self.parent.off.expr), 32))
+        self.expr = ExprMem(e, 32)
+        return True
+
+
 class arm_offbw(imm_noarg):
 
     def decode(self, v):
@@ -2482,6 +2500,7 @@ sppc = bs(l=1, cls=(arm_sppc,))
 
 off12 = bs(l=12, cls=(arm_off,), fname="off", order=-1)
 rn_deref = bs(l=4, cls=(arm_deref_reg_imm,), fname="rt")
+rn_pc_neg = bs(l=4, cls=(armt_deref_pc_neg,), fname="rt")
 
 
 
@@ -3466,16 +3485,18 @@ armtop("strd", [bs('1110100'), ppi, updown, bs('1'), wback_no_t, bs('0'), rn_nop
 armtop("ldrd", [bs('1110100'), ppi, updown, bs('1'), wback_no_t, bs('1'), rn_nopc_noarg, rt, rt2, deref_immpuw00], [rt, rt2, deref_immpuw00])
 
 
+armtop("ldr",  [bs('111110000101'), rn_pc_neg, rt, off12], [rt, rn_pc_neg])
 armtop("ldr",  [bs('111110001101'), rn_deref, rt, off12], [rt, rn_deref])
-armtop("ldr",  [bs('111110000101'), rn_noarg, rt, bs('1'), ppi, updown, wback_no_t, deref_immpuw], [rt, deref_immpuw])
-armtop("ldr",  [bs('111110000101'), rn_noarg, rt, bs('000000'), imm2_noarg, rm_deref_reg], [rt, rm_deref_reg])
-armtop("ldrb", [bs('111110000001'), rn_noarg, rt, bs('000000'), imm2_noarg, rm_deref_reg], [rt, rm_deref_reg])
-armtop("ldrb", [bs('111110000001'), rn_noarg, rt, bs('1'), ppi, updown, wback_no_t, deref_immpuw], [rt, deref_immpuw])
+armtop("ldr",  [bs('111110000101'), rn_nopc, rt, bs('1'), ppi, updown, wback_no_t, deref_immpuw], [rt, deref_immpuw])
+armtop("ldr",  [bs('111110000101'), rn_nopc, rt, bs('000000'), imm2_noarg, rm_deref_reg], [rt, rm_deref_reg])
+armtop("ldrb", [bs('111110000001'), rn_nopc, rt, bs('000000'), imm2_noarg, rm_deref_reg], [rt, rm_deref_reg])
+armtop("ldrb", [bs('111110000001'), rn_nopc, rt, bs('1'), ppi, updown, wback_no_t, deref_immpuw], [rt, deref_immpuw])
+armtop("ldrb", [bs('111110000001'), rn_pc_neg, rt, off12], [rt, rn_pc_neg])
 armtop("ldrb", [bs('111110001001'), rn_deref, rt_nopc, off12], [rt_nopc, rn_deref])
 armtop("ldrsb",[bs('111110011001'), rn_deref, rt, off12], [rt, rn_deref])
 armtop("ldrsh",[bs('111110011011'), rn_deref, rt, off12], [rt, rn_deref])
 armtop("ldrh", [bs('111110001011'), rn_deref, rt, off12], [rt, rn_deref])
-armtop("ldrh", [bs('111110000011'), rn_noarg, rt, bs('1'), ppi, updown, wback_no_t, deref_immpuw], [rt, deref_immpuw])
+armtop("ldrh", [bs('111110000011'), rn_nopc, rt, bs('1'), ppi, updown, wback_no_t, deref_immpuw], [rt, deref_immpuw])
 
 armtop("pld",  [bs('111110001001'), rn_deref, bs('1111'), off12], [rn_deref])
 armtop("pldw", [bs('111110001011'), rn_deref, bs('1111'), off12], [rn_deref])
