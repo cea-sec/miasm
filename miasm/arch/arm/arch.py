@@ -2530,7 +2530,9 @@ alu_name = {'ANDS': 0, 'EORS': 1, 'LSLS': 2, 'LSRS': 3,
             'ORRS': 12, 'MULS': 13, 'BICS': 14, 'MVNS': 15}
 bs_alu_name = bs_name(l=4, name=alu_name)
 
-hiregop_name = {'ADDS': 0, 'CMP': 1, 'MOV': 2}
+# Arm T2 ADD (register, high reg) and ADD (SP plus register) have
+# setflags = FALSE: there is no ADDS form. The opcode 00 must be ADD.
+hiregop_name = {'ADD': 0, 'CMP': 1, 'MOV': 2}
 bs_hiregop_name = bs_name(l=2, name=hiregop_name)
 
 ldr_str_name = {'STR': 0, 'LDR': 1}
