@@ -2,7 +2,7 @@
 
 from miasm.ir.analysis import LifterModelCall
 from miasm.ir.ir import IRBlock
-from miasm.arch.arm.sem import Lifter_Arml, Lifter_Armtl, Lifter_Armb, Lifter_Armtb, tab_cond
+from miasm.arch.arm.sem import Lifter_Arml, Lifter_Armtl, Lifter_Armb, Lifter_Armtb, Lifter_Armbe8, tab_cond
 from miasm.expression.expression import ExprAssign, ExprOp, ExprLoc, ExprCond
 from miasm.ir.ir import AssignBlock
 
@@ -92,6 +92,12 @@ class LifterModelCallArmb(LifterModelCallArmbBase, LifterModelCallArml):
 
     def __init__(self, loc_db):
         LifterModelCallArmbBase.__init__(self, loc_db)
+        self.ret_reg = self.arch.regs.R0
+
+
+class LifterModelCallArmbe8(LifterModelCallArml):
+    def __init__(self, loc_db):
+        Lifter_Armbe8.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.R0
 
 

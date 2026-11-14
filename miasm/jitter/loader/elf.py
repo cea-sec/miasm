@@ -336,4 +336,10 @@ ELF_machine = {(elf_csts.EM_ARM, 32, elf_csts.ELFDATA2LSB): "arml",
 def guess_arch(elf):
     """Return the architecture specified by the ELF container @elf.
     If unknown, return None"""
-    return ELF_machine.get((elf.Ehdr.machine, elf.size, elf.sex), None)
+    key = (elf.Ehdr.machine, elf.size, elf.sex)
+    if (key == (elf_csts.EM_ARM, 32, elf_csts.ELFDATA2MSB)
+            and getattr(elf.Ehdr, 'flags', 0) & elf_csts.EF_ARM_BE8):
+        # Armv6+ big-endian with EF_ARM_BE8: little-endian instructions in a
+        # big-endian image (AAELF32). miasm has a dedicated machine for it.
+        return "armbe8"
+    return ELF_machine.get(key, None)

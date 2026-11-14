@@ -2268,6 +2268,18 @@ class Lifter_Armb(Lifter_Arml):
         self.IRDst = ExprId('IRDst', 32)
         self.addrsize = 32
 
+class Lifter_Armbe8(Lifter_Arml):
+    # Arm BE8: instruction semantics are identical to arml (instructions
+    # are little-endian); the BE-8-ness affects the image format, not the
+    # IR. Data accesses must be interpreted big-endian by the jitter /
+    # container, not by the lifter.
+    def __init__(self, loc_db):
+        Lifter.__init__(self, mn_arm, "l", loc_db)
+        self.pc = PC
+        self.sp = SP
+        self.IRDst = ExprId('IRDst', 32)
+        self.addrsize = 32
+
 
 class Lifter_Armtl(Lifter_Arml):
     def __init__(self, loc_db):
