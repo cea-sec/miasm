@@ -50,6 +50,11 @@ class dis_arml(disasmEngine):
         super(dis_arml, self).__init__(mn_arm, self.attrib, bs, **kwargs)
         self.dis_block_callback = cb_arm_disasm
 
+class dis_armbe8(dis_arml):
+    """Arm BE8: instructions are little-endian in a big-endian (ELFDATA2MSB)
+    image with the EF_ARM_BE8 flag (AAELF32). Data remains big-endian."""
+    pass
+
 class dis_armtb(disasmEngine):
     attrib = 'b'
     def __init__(self, bs=None, **kwargs):

@@ -3,7 +3,7 @@ import logging
 
 from miasm.jitter.jitload import Jitter, named_arguments
 from miasm.core.utils import pck32, upck32
-from miasm.arch.arm.sem import Lifter_Armb, Lifter_Arml, Lifter_Armtl, Lifter_Armtb, cond_dct_inv, tab_cond
+from miasm.arch.arm.sem import Lifter_Armb, Lifter_Armbe8, Lifter_Arml, Lifter_Armtl, Lifter_Armtb, cond_dct_inv, tab_cond
 from miasm.jitter.codegen import CGen
 from miasm.expression.expression import ExprId, ExprAssign, ExprCond
 from miasm.ir.ir import IRBlock, AssignBlock
@@ -133,6 +133,16 @@ class jitter_armb(jitter_arml):
 
     def __init__(self, loc_db, *args, **kwargs):
         Jitter.__init__(self, Lifter_Armb(loc_db), *args, **kwargs)
+        self.vm.set_big_endian()
+
+
+class jitter_armbe8(jitter_arml):
+    # Arm BE8: VM is big-endian for data; instructions are decoded
+    # little-endian by the lifter/disassembler.
+    C_Gen = arm_CGen
+
+    def __init__(self, loc_db, *args, **kwargs):
+        Jitter.__init__(self, Lifter_Armbe8(loc_db), *args, **kwargs)
         self.vm.set_big_endian()
 
 

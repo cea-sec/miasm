@@ -11,7 +11,7 @@ class Machine(object):
     __jitter = None       # Jit engine
     __gdbserver = None    # GdbServer handler
 
-    __available = ["arml", "armb", "armtl", "armtb", "sh4", "x86_16", "x86_32",
+    __available = ["arml", "armb", "armbe8", "armtl", "armtb", "sh4", "x86_16", "x86_32",
                    "x86_64", "msp430", "mips32b", "mips32l",
                    "aarch64l", "aarch64b", "ppc32b", "mepl", "mepb"]
 
@@ -51,6 +51,17 @@ class Machine(object):
             mn = arch.mn_arm
             from miasm.arch.arm.lifter_model_call import LifterModelCallArmb as lifter_model_call
             from miasm.arch.arm.sem import Lifter_Armb as lifter
+        elif machine_name == "armbe8":
+            from miasm.arch.arm.disasm import dis_armbe8 as dis_engine
+            from miasm.arch.arm import arch
+            try:
+                from miasm.arch.arm import jit
+                jitter = jit.jitter_armbe8
+            except ImportError:
+                pass
+            mn = arch.mn_arm
+            from miasm.arch.arm.lifter_model_call import LifterModelCallArmbe8 as lifter_model_call
+            from miasm.arch.arm.sem import Lifter_Armbe8 as lifter
         elif machine_name == "aarch64l":
             from miasm.arch.aarch64.disasm import dis_aarch64l as dis_engine
             from miasm.arch.aarch64 import arch

@@ -166,6 +166,7 @@ EM_FR20 =        37              # Fujitsu FR20
 EM_RH32 =        38              # TRW RH-32
 EM_RCE =         39              # Motorola RCE
 EM_ARM =         40              # ARM
+EF_ARM_BE8 =     0x00800000      # EF_ARM_BE8: big-endian image with little-endian ARM instructions
 EM_FAKE_ALPHA =  41              # Digital Alpha
 EM_SH =          42              # Hitachi SH
 EM_SPARCV9 =     43              # SPARC v9 64-bit
