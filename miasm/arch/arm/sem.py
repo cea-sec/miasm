@@ -6,6 +6,7 @@ from miasm.expression.simplifications import expr_simp
 from miasm.ir.ir import Lifter, IRBlock, AssignBlock
 from miasm.arch.arm.arch import mn_arm, mn_armt
 from miasm.arch.arm.regs import *
+from miasm.arch.arm.arch import regs_expr
 
 from miasm.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_INT_XX
 
@@ -1139,6 +1140,60 @@ def blx(ir, instr, a):
     e.append(ExprAssign(LR, l))
     return e, []
 
+def vmov(ir, instr, a, b, c=None):
+    e = []
+    if c is None:
+        if a not in spregs_expr and b not in spregs_expr:
+            raise NotImplementedError('Not implemented')
+        e.append(ExprAssign(a, b))
+    else:
+        if a in dpregs_expr:
+            # two gp to one dp
+            # a[:32] = b
+            # a[32:] = c
+            e.append(ExprAssign(a, (c.zeroExtend(a.size) << ExprInt(32, 64) | b.zeroExtend(a.size))))
+        elif a in regs_expr:
+            # one dp to two gp
+            # a = c[:32]
+            # b = c[32:]
+            e.append(ExprAssign(a, c[:32]))
+            e.append(ExprAssign(b, c[32:]))
+        else:
+            raise NotImplementedError('Not implemented')
+        
+    return e, []
+
+def vstr(ir, instr, a, b):
+    e = []
+    if a in spregs_expr:
+        e.append(ExprAssign(b, a))
+    elif a in dpregs_expr:
+        if instr.mode == 'l':
+            e.append(ExprAssign(b, a[:32]))
+            e.append(ExprAssign(ExprMem(b.ptr + ExprInt(4, 32), 32), a[32:]))
+        else:
+            e.append(ExprAssign(b, a[32:]))
+            e.append(ExprAssign(ExprMem(b.ptr + ExprInt(4, 32), 32), a[:32]))
+    else:
+        raise NotImplementedError('Not implemented')
+    return e, []
+
+# todo
+def vcvt(ir, instr, a, b):
+    raise NotImplementedError('Not implemented')
+
+# todo
+def strex(ir, instr, a, b, c=None):
+    raise NotImplementedError('Not implemented')
+
+# todo
+def ldrex(ir, instr, a, b):
+    raise NotImplementedError('Not implemented')
+
+def dmb(ir, instr, a):
+    """Memory barrier"""
+    e = []
+    return e, []
 
 def st_ld_r(ir, instr, a, a2, b, store=False, size=32, s_ext=False, z_ext=False):
     e = []
@@ -1930,6 +1985,8 @@ mnemo_condm0 = {'add': add,
                 'pkhtb': pkhtb,
                 'pkhbt': pkhbt,
 
+                'ldrex': ldrex,
+                'strex': strex,
                 }
 
 mnemo_condm1 = {'adds': add,
@@ -1959,6 +2016,10 @@ mnemo_condm1 = {'adds': add,
                 'ldrb': ldrb,
                 'ldsb': ldrsb,
                 'strb': strb,
+
+                'vmov': vmov,
+                'vstr': vstr,
+                'vcvt': vcvt
                 }
 
 mnemo_condm2 = {'ldmia': ldmia,
@@ -2014,6 +2075,7 @@ mnemo_nocond = {'lsr': lsr,
                 'smlatt': smlatt,
                 'uadd8': uadd8,
                 'sel': sel,
+                'dmb': dmb
                 }
 
 mn_cond_x = [mnemo_condm0,
