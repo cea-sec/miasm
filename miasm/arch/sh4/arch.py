@@ -556,6 +556,14 @@ class mn_sh4(cls_mn):
         v = super(mn_sh4, self).value(mode)
         return [x[::-1] for x in v]
 
+    def cond_to_branch(self, cond_name):
+        """
+        returns branch which is alternative to IR @cond_name
+        """
+        raise RuntimeError("Not implemented")
+        assert cond_name in cond_dct_inv, "Unknown cond name"
+        cond_num = cond_dct_inv[cond_name]
+        return cond_to_br[cond_num]
 
 class bs_dr0gbr(sh4_dgpreg):
     parser = dgbr_reg
