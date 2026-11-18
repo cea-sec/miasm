@@ -155,13 +155,5 @@ def simp_flags(_, expr):
         op_nf, = args
         return ~op_nf
 
-    elif expr.is_op("CC_sOVR"):
-        op_of, = args
-        return op_of
-
-    elif expr.is_op("CC_sNOOVR"):
-        op_of, = args
-        return ~op_of
-
     return expr
 

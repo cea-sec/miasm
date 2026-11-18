@@ -896,8 +896,8 @@ cond2expr = {'EQ': ExprOp("CC_EQ", zf),
              'CC': ExprOp("CC_U<", cf ^ ExprInt(1, 1)), # inv cf
              'MI': ExprOp("CC_NEG", nf),
              'PL': ExprOp("CC_POS", nf),
-             'VS': ExprOp("CC_sOVR", of),
-             'VC': ExprOp("CC_sNOOVR", of),
+             'VS': of,
+             'VC': ~of,
              'HI': ExprOp("CC_U>", cf ^ ExprInt(1, 1), zf), # inv cf
              'LS': ExprOp("CC_U<=", cf ^ ExprInt(1, 1), zf), # inv cf
              'GE': ExprOp("CC_S>=", nf, of),
