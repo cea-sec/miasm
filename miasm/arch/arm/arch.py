@@ -1848,6 +1848,28 @@ class arm_widthm1(arm_imm, m_arg):
         return True
 
 
+class arm_bf_width(arm_imm, m_arg):
+    """
+    Width of a bitfield instruction which encodes its most significant bit
+    (msb = lsb + width - 1) instead of width - 1
+    """
+    def decode(self, v):
+        width = v - int(self.parent.lsb.expr) + 1
+        if width <= 0:
+            return False
+        self.expr = ExprInt(width, 32)
+        return True
+
+    def encode(self):
+        if not isinstance(self.expr, ExprInt) or not isinstance(self.parent.lsb.expr, ExprInt):
+            return False
+        msb = int(self.parent.lsb.expr) + int(self.expr) - 1
+        if not int(self.parent.lsb.expr) <= msb < 32:
+            return False
+        self.value = msb
+        return True
+
+
 class arm_rm_rot2(arm_arg):
     parser = rot2_expr
     def decode(self, v):
@@ -1973,6 +1995,8 @@ rot5 = bs(l=5, fname="rot5")
 
 widthm1 = bs(l=5, cls=(arm_widthm1, m_arg))
 lsb = bs(l=5, cls=(arm_imm, m_arg))
+lsb_bf = bs(l=5, cls=(arm_imm, m_arg), fname="lsb")
+msb_bf = bs(l=5, cls=(arm_bf_width, m_arg), order=1)
 
 rd_nopc = bs(l=4, cls=(arm_gpreg_nopc, arm_arg), fname="rd")
 rn_nopc = bs(l=4, cls=(arm_gpreg_nopc, arm_arg), fname="rn")
@@ -1985,7 +2009,7 @@ rn_nopc_noarg = bs(l=4, cls=(arm_gpreg_nopc,), fname="rn")
 
 armop("ubfx", [bs('0111111'), widthm1, rd, lsb, bs('101'), rn], [rd, rn, lsb, widthm1])
 
-armop("bfc", [bs('0111110'), widthm1, rd, lsb, bs('001'), bs('1111')], [rd, lsb, widthm1])
+armop("bfc", [bs('0111110'), msb_bf, rd, lsb_bf, bs('001'), bs('1111')], [rd, lsb_bf, msb_bf])
 
 armop("uxtab", [bs('01101110'), rn_nopc, rd, rot2, bs('000111'), rm_rot2], [rd, rn_nopc, rm_rot2])
 

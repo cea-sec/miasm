@@ -208,6 +208,8 @@ reg_tests_arm = [
 
     ("XXXXXXXX    BFC        R0, 0x0, 0xD",
      "1f00cce7"),
+    ("XXXXXXXX    BFC        R0, 0x3, 0x5",
+     "9f01c7e7"),
 
     ("XXXXXXXX    REV        R0, R2",
      "320FBFE6"),

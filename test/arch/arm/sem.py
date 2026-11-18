@@ -546,6 +546,18 @@ class TestARMSemantic(unittest.TestCase):
         self.assertEqual(compute('SMLAL R2, R3, R4, R5', {R2: 0xffffffff, R3: 0x0, R4: 0x12345678, R5: 0x87654321}), {R2: 0x70b88d77, R3: 0xf76c768e, R4: 0x12345678, R5: 0x87654321})
         self.assertEqual(compute('SMLAL R2, R3, R4, R5', {R2: 0xffffffff, R3: 0x00000002, R4: 0x12345678, R5: 0x87654321}), {R2: 0x70b88d77, R3: 0xf76c7690, R4: 0x12345678, R5: 0x87654321})
 
+    def test_MOVT(self):
+        self.assertEqual(compute('MOVT   R0, 0x1234', {R0: 0xdeadbeef}), {R0: 0x1234beef})
+        self.assertEqual(compute('MOVT   R0, 0x0', {R0: 0xffffffff}), {R0: 0x0000ffff})
+
+    def test_BFC(self):
+        self.assertEqual(compute('BFC    R0, 0x3, 0x5', {R0: 0xdeadbeef}), {R0: 0xdeadbe07})
+        self.assertEqual(compute('BFC    R0, 0x0, 0x20', {R0: 0xdeadbeef}), {R0: 0x0})
+
+    def test_CMP_RRX(self):
+        self.assertEqual(compute('CMP    R2, R3 RRX', {R2: 0x80000000, R3: 0x0, cf: 0x1}), {R2: 0x80000000, R3: 0x0, of: 0x0, zf: 0x1, cf: 0x1, nf: 0x0})
+        self.assertEqual(compute('CMP    R2, R3 RRX', {R2: 0x1, R3: 0x2, cf: 0x0}), {R2: 0x1, R3: 0x2, of: 0x0, zf: 0x1, cf: 0x1, nf: 0x0})
+
 if __name__ == '__main__':
     testsuite = unittest.TestLoader().loadTestsFromTestCase(TestARMSemantic)
     report = unittest.TextTestRunner(verbosity=2).run(testsuite)
