@@ -1810,8 +1810,8 @@ tab_cond = {COND_EQ: ExprOp("CC_EQ", zf),
             COND_CC: ExprOp("CC_U<", cf ^ ExprInt(1, 1)), # inv cf
             COND_MI: ExprOp("CC_NEG", nf),
             COND_PL: ExprOp("CC_POS", nf),
-            COND_VS: ExprOp("CC_sOVR", of),
-            COND_VC: ExprOp("CC_sNOOVR", of),
+            COND_VS: of,
+            COND_VC: ~of,
             COND_HI: ExprOp("CC_U>", cf ^ ExprInt(1, 1), zf), # inv cf
             COND_LS: ExprOp("CC_U<=", cf ^ ExprInt(1, 1), zf), # inv cf
             COND_GE: ExprOp("CC_S>=", nf, of),
