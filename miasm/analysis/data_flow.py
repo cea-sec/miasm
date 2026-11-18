@@ -1588,7 +1588,10 @@ class DelDummyPhi(object):
             if not irblock_has_phi(block):
                 continue
             assignblk = block[0]
+            handled_phis = set()
             for dst, phi_src in viewitems(assignblk):
+                if dst in handled_phis:
+                    continue
                 assert phi_src.is_op('Phi')
                 result = self.get_equivalence_class(dst, ids_to_src)
                 if result is None:
@@ -1601,7 +1604,12 @@ class DelDummyPhi(object):
                     # Don't propagate call
                     continue
                 # We have an equivalence of nodes
-                to_del = set(defined)
+                to_del = {
+                    dst for dst in defined
+                    if ids_to_src[dst].is_op('Phi')
+                }
+                assert len(to_del & handled_phis) == 0
+                handled_phis |= to_del
                 # Remove all implicated phis
                 for dst in to_del:
                     loc_key = def_to_loc[dst]
@@ -1615,6 +1623,7 @@ class DelDummyPhi(object):
                         fixed_phis[old_dst] = old_phi_src
 
                     assignblks = list(block)
+                    ids_to_src[dst] = true_value
                     assignblks[0] = AssignBlock(fixed_phis, assignblk.instr)
                     assignblks[1:1] = [AssignBlock({dst: true_value}, assignblk.instr)]
                     new_irblock = IRBlock(block.loc_db, block.loc_key, assignblks)
